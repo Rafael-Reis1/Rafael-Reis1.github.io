@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root {
+    --base-color: rgba(255, 255, 255, .1);
+    --accent-color: rgb(231, 151, 83);
+    --accent-color-hover: rgba(231, 151, 83, .8);
+    --text-color: #f7f7f7;
+    --text-color-hover: rgba(247, 247, 247, .8);
+    --border-color: rgba(217, 217, 217, .2);
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    color: var(--text-color);
+    font-family: Inter;
+    background-color: #06071A;
+}
+
+::selection {
+    background-color: var(--accent-color);
+    color: black;
+}
+
+.infoCard {
+    position: sticky;
+    top: 3.125rem;
+    left: 3.125rem;
+    margin-right: 1.25rem;
+    padding: 0.9375rem 0.9375rem 0 0.9375rem;
+    background-color: var(--base-color);
+    width: 80%;
+    max-width: 17.1875rem;
+    height: fit-content;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.infoCard hr {
+    color: var(--border-color);
+}
+
+.infoCard h1 {
+    font-size: 2rem;
+    margin-bottom: 1.25rem;
+    margin-top: 10px;
+}
+
+.main {
+    height: 100vh;
+    width: 100vw;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    padding: 3.125rem;
+}
+
+.mainInfo {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 56.25rem;
+    background-color: var(--base-color);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3125rem;
+    padding: 1.25rem 0 0.9375rem 0;
+}
+
+.contact {
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    gap: 0.625rem;
+    align-items: center;
+    transition: background-color 250ms ease;
+}
+
+#github {
+    padding: 7px;
+    gap: 5px;
+}
+
+.contact:hover {
+    background-color: var(--base-color);
+    cursor: pointer;
+}
+
+.navBar {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    z-index: 10;
+    background-color: var(--base-color);
+    height: 65px;
+    width: 350px;
+    border-radius: 0 20px 0 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    gap: 50px;
+}
+
+.navBarButtuns {
+    background-color: transparent;
+    border: 0;
+    font-size: 16px;
+    color: var(--text-color);
+    font-weight: bold;
+    transition: color 250ms ease;
+    cursor: pointer;
+}
+
+.navBarButtuns:hover {
+    color: var(--text-color-hover);
+}
+
+.btnAccentColor {
+    color: var(--accent-color);
+}
+
+.btnAccentColor:hover {
+    color: var(--accent-color-hover);
+}
+
+.infos {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    padding: 1.875rem;
+    transition: opacity 250ms ease;
+}
+
+.title {
+    font-size: 24px;
+    position: relative;
+    display: inline-block;
+}
+
+.title::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -20px;
+    width: 40%;
+    height: 5px;
+    background-color: var(--accent-color);
+    border-radius: 2px;
+}
+
+#informacaoSobre {
+    margin-top: 40px;
+    font-weight: 200;
+}
