@@ -6,6 +6,7 @@ window.onload = function() {
     const github = document.getElementById('github');
     const instagram = document.getElementById('instagram');
     const linkedin = document.getElementById('linkedin');
+    const mail = document.getElementById('mail');
 
     btnSobre.onclick = function() {
         btnSobre.classList.add('btnAccentColor');
@@ -38,5 +39,9 @@ window.onload = function() {
 
     linkedin.onclick = function() {
         window.open('https://www.linkedin.com/in/rafael-reis-00331b85/', '_blank');
+    }
+
+    mail.onclick = function() {
+        window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!';
     }
 }
