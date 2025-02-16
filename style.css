@@ -2,6 +2,7 @@
 
 :root {
     --base-color: rgba(255, 255, 255, .1);
+    --base-color-hover: rgba(255, 255, 255, .05);
     --accent-color: rgb(231, 151, 83);
     --accent-color-hover: rgba(231, 151, 83, .8);
     --text-color: #f7f7f7;
@@ -287,4 +288,27 @@ body {
     background-color: var(--accent-color);
     border-radius: 100%;
     z-index: 1; /* Garante que a bolinha menor fique na frente da linha */
+}
+
+#downloadCV {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2.5rem;
+}
+
+.btnDownload {
+    padding: 0.625rem;
+    border-radius: 10px;
+    border: 0;
+    font-size: 1rem;
+    background-color: var(--base-color);
+    color: var(--accent-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btnDownload:hover {
+    background-color: var(--base-color-hover);
 }

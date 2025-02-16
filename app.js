@@ -10,6 +10,7 @@ window.onload = function() {
     const mail = document.getElementById('mail');
     const mainInfo = document.querySelector('.mainInfo');
     const portfolio = document.getElementById('portfolio');
+    const btnCurriculoDownload = document.getElementById('btnCurriculoDownload');
     mainInfo.style.height = sobre.offsetHeight + 'px';
 
     btnSobre.onclick = function() {
@@ -83,5 +84,9 @@ window.onload = function() {
 
     mail.onclick = function() {
         window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!';
+    }
+
+    btnCurriculoDownload.onclick = function() {
+        window.open('docs/Currículo.pdf', '_blank');
     }
 }
