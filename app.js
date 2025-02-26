@@ -13,6 +13,40 @@ window.onload = function() {
     const btnCurriculoDownload = document.getElementById('btnCurriculoDownload');
     mainInfo.style.height = sobre.offsetHeight + 'px';
 
+    const habilidadesContainer = document.getElementById('habilidadesContainer');
+    let isDragging = false;
+    let startX;
+    let scrollLeft;
+
+    habilidadesContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.pageX - habilidadesContainer.offsetLeft;
+        scrollLeft = habilidadesContainer.scrollLeft;
+    });
+
+    habilidadesContainer.addEventListener('mouseleave', () => {
+        isDragging = false;
+    });
+
+    habilidadesContainer.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    habilidadesContainer.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const x = e.pageX - habilidadesContainer.offsetLeft;
+        const walk = (x - startX) * 2; // Ajuste a velocidade do scroll
+        habilidadesContainer.scrollLeft = scrollLeft - walk;
+    });
+
+    const imagens = habilidadesContainer.querySelectorAll('img');
+
+    imagens.forEach(img => {
+        img.addEventListener('dragstart', (e) => {
+            e.preventDefault(); // Impede o comportamento padrão de arrastar
+        });
+    });
+
     btnSobre.onclick = function() {
         sobre.style.display = 'block';
         setTimeout(function() {

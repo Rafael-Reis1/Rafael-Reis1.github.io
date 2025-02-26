@@ -312,3 +312,103 @@ body {
 .btnDownload:hover {
     background-color: var(--base-color-hover);
 }
+
+.habilidadesContainer {
+    position: relative;
+    left: -1.875rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0 1.5625rem 0.625rem 1.5625rem;
+    margin-top: 1.25rem;
+    width: 107.2%;
+    height: fit-content;
+    overflow-x: auto;
+    user-select: none;
+    cursor: grab;
+}
+
+.habilidadesBox {
+    width: fit-content;
+    height: fit-content;
+    padding: 1.25rem;
+    border-radius: 20px;
+    background-color: var(--base-color);
+}
+
+#habilidadesH3 {
+    margin-top: 0.9375rem;
+    font-size: 1.5rem;
+}
+  
+/* Estilos para navegadores baseados em WebKit (Chrome, Safari) */
+.habilidadesContainer::-webkit-scrollbar {
+    height: 0.5rem; /* Altura da barra de rolagem (mais fina) */
+}
+
+.habilidadesContainer::-webkit-scrollbar-track {
+    background: #333; /* Cor de fundo da área da barra (mais escura) */
+    border-radius: 4px; /* Arredondamento da track */
+}
+
+.habilidadesContainer::-webkit-scrollbar-thumb {
+    background: var(--accent-color); /* Cor amarela do "polegar" */
+    border-radius: 4px; /* Arredondamento do "polegar" */
+    height: 0.5rem; /* Altura do "polegar" */
+}
+
+.habilidadesContainer::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color-hover); /* Amarelo mais escuro ao passar o mouse */
+}
+
+/* Estilos para Firefox */
+.habilidadesContainer {
+    scrollbar-width: thin; /* Largura da barra (thin, auto, thick) */
+    scrollbar-color: var(--accent-color) #333; /* Cor do "polegar" e fundo */
+} 
+
+@media (max-width: 1000px) {
+    .main {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .infoCard {
+        position: static;
+        margin: 0;
+        margin-bottom: 1.25rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .contacts {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .navBar {
+        position: fixed;
+        top: calc(100% - 4.0625rem);
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        backdrop-filter: blur(20px);
+    }
+
+    .name {
+        text-align: center;
+    }
+
+    .main {
+        padding: 0.625rem 0.625rem 5rem 0.625rem;
+    }
+
+    .infos {
+        padding: 20px;
+    }
+
+    .habilidadesContainer {
+        left: -20px;
+        width: 112%;
+    }
+}
