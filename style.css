@@ -208,7 +208,7 @@ body {
     position: absolute;
     top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
     left: 19px; /* Ajuste a posição horizontal da linha */
-    height: calc(100% - 150px); /* Ajuste a altura da linha */
+    height: calc(100% - 9.375rem); /* Ajuste a altura da linha */
     width: 0.0625rem; /* Largura da linha */
     background-color: var(--base-color); /* Cor da linha */
     z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
@@ -412,5 +412,27 @@ body {
 
     .navBarButtuns {
         width: 4.6875rem;
+    }
+
+    #detalhesCurriculoEducacao::before { /* Linha vertical */
+        content: "";
+        position: absolute;
+        top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
+        left: 1.1875rem; /* Ajuste a posição horizontal da linha */
+        height: calc(100% - 13.125rem); /* Ajuste a altura da linha */
+        width: 0.0625rem; /* Largura da linha */
+        background-color: var(--base-color); /* Cor da linha */
+        z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+    }
+    
+    #detalhesCurriculoExperiencia::before { /* Linha vertical */
+        content: "";
+        position: absolute;
+        top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
+        left: 19px; /* Ajuste a posição horizontal da linha */
+        height: calc(100% - 13.75rem); /* Ajuste a altura da linha */
+        width: 0.0625rem; /* Largura da linha */
+        background-color: var(--base-color); /* Cor da linha */
+        z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
     }
 }
