@@ -376,7 +376,7 @@ body {
 
     .navBar {
         position: fixed;
-        top: calc(100% - 4.0625rem);
+        top: calc(100% - 3.75rem);
         width: 100%;
         border-radius: 20px 20px 0 0;
         backdrop-filter: blur(20px);
@@ -395,8 +395,6 @@ body {
         flex-wrap: wrap;
         justify-content: center;
     }
-
-    
 
     .name {
         text-align: center;
