@@ -197,10 +197,10 @@ body {
     position: absolute;
     top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
     left: 1.1875rem; /* Ajuste a posição horizontal da linha */
-    height: calc(100% - 8.125rem); /* Ajuste a altura da linha */
+    height: 52%; /* Ajuste a altura da linha */
     width: 0.0625rem; /* Largura da linha */
-    background-color: var(--base-color); /* Cor da linha */
-    z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+    background-color: var(--base-color);
+    z-index: 0;
 }
 
 #detalhesCurriculoExperiencia::before { /* Linha vertical */
@@ -208,10 +208,36 @@ body {
     position: absolute;
     top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
     left: 19px; /* Ajuste a posição horizontal da linha */
-    height: calc(100% - 9.375rem); /* Ajuste a altura da linha */
+    height: 44.5%; /* Ajuste a altura da linha */
     width: 0.0625rem; /* Largura da linha */
-    background-color: var(--base-color); /* Cor da linha */
-    z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+    background-color: var(--base-color);
+    z-index: 0;
+}
+
+.pontosCurriculo::before { /* Bolinha */
+    content: "";
+    position: absolute;
+    left: 0.625rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: var(--base-color);
+    border-radius: 100%;
+    z-index: 1;
+}
+
+.pontosCurriculo::after { /* Bolinha menor */
+    content: "";
+    position: absolute;
+    left: 0.9375rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0.625rem;
+    height: 0.625rem;
+    background-color: var(--accent-color);
+    border-radius: 100%;
+    z-index: 1;
 }
 
 .titulosCurriculo {
@@ -262,32 +288,6 @@ body {
 .pontosCurriculo {
     position: relative;
     padding-left: 3.75rem;
-}
-
-.pontosCurriculo::before { /* Bolinha */
-    content: "";
-    position: absolute;
-    left: 0.625rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.25rem;
-    height: 1.25rem;
-    background-color: var(--base-color);
-    border-radius: 100%;
-    z-index: 1; /* Garante que a bolinha fique na frente da linha */
-}
-
-.pontosCurriculo::after { /* Bolinha menor */
-    content: "";
-    position: absolute;
-    left: 0.9375rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0.625rem;
-    height: 0.625rem;
-    background-color: var(--accent-color);
-    border-radius: 100%;
-    z-index: 1; /* Garante que a bolinha menor fique na frente da linha */
 }
 
 #downloadCV {
@@ -341,30 +341,29 @@ body {
     font-size: 1.5rem;
 }
   
-/* Estilos para navegadores baseados em WebKit (Chrome, Safari) */
+
 .habilidadesContainer::-webkit-scrollbar {
-    height: 0.5rem; /* Altura da barra de rolagem (mais fina) */
+    height: 0.5rem;
 }
 
 .habilidadesContainer::-webkit-scrollbar-track {
-    background: #333; /* Cor de fundo da área da barra (mais escura) */
-    border-radius: 4px; /* Arredondamento da track */
+    background: #333;
+    border-radius: 4px;
 }
 
 .habilidadesContainer::-webkit-scrollbar-thumb {
-    background: var(--accent-color); /* Cor amarela do "polegar" */
-    border-radius: 4px; /* Arredondamento do "polegar" */
-    height: 0.5rem; /* Altura do "polegar" */
+    background: var(--accent-color);
+    border-radius: 4px;
+    height: 0.5rem;
 }
 
 .habilidadesContainer::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-color-hover); /* Amarelo mais escuro ao passar o mouse */
+    background: var(--accent-color-hover);
 }
 
-/* Estilos para Firefox */
 .habilidadesContainer {
-    scrollbar-width: thin; /* Largura da barra (thin, auto, thick) */
-    scrollbar-color: var(--accent-color) #333; /* Cor do "polegar" e fundo */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) #333;
 } 
 
 .detalhesGithub {
@@ -415,12 +414,12 @@ body {
     text-decoration: none;
 }
   
-/* Link visitado */
+
 .card a:visited {
     color: #70A5FD;
 }
   
-/* Link com o mouse sobre ele */
+
 .card a:hover {
     color: #70A5FD;
     text-decoration: underline;
@@ -480,8 +479,8 @@ body {
         left: 1.1875rem; /* Ajuste a posição horizontal da linha */
         height: calc(100% - 13.125rem); /* Ajuste a altura da linha */
         width: 0.0625rem; /* Largura da linha */
-        background-color: var(--base-color); /* Cor da linha */
-        z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+        background-color: var(--base-color);
+        z-index: 0;
     }
     
     #detalhesCurriculoExperiencia::before { /* Linha vertical */
@@ -491,8 +490,8 @@ body {
         left: 19px; /* Ajuste a posição horizontal da linha */
         height: calc(100% - 13.75rem); /* Ajuste a altura da linha */
         width: 0.0625rem; /* Largura da linha */
-        background-color: var(--base-color); /* Cor da linha */
-        z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+        background-color: var(--base-color);
+        z-index: 0;
     }
 
     .gitDetails {
