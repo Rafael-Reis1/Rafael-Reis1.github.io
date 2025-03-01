@@ -367,6 +367,65 @@ body {
     scrollbar-color: var(--accent-color) #333; /* Cor do "polegar" e fundo */
 } 
 
+.detalhesGithub {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 2.5rem;
+    width: 100%;
+}
+
+.detalhesGithub a {
+    display: flex;
+    justify-content: center;
+}
+
+.github-graph {
+    width: 95%;
+    height: auto;
+}
+
+#gitHubLanguages {
+    width: 308px;
+}
+
+.gitDetails {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 10px;
+}
+
+#repos {
+    display: flex;
+    margin-left: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+}
+
+.card {
+    width: 48%;
+    background-color: #1A1B27;
+    padding: 0.625rem;
+    border-radius: 8px;
+}
+
+.card a {
+    color: #70A5FD;
+    text-decoration: none;
+}
+  
+/* Link visitado */
+.card a:visited {
+    color: #70A5FD;
+}
+  
+/* Link com o mouse sobre ele */
+.card a:hover {
+    color: #70A5FD;
+    text-decoration: underline;
+}
+
 @media (max-width: 1000px) {
     .main {
         flex-direction: column;
@@ -434,5 +493,31 @@ body {
         width: 0.0625rem; /* Largura da linha */
         background-color: var(--base-color); /* Cor da linha */
         z-index: 0; /* Certifique-se de que a linha fique atrás dos pontos */
+    }
+
+    .gitDetails {
+        flex-direction: column;
+        gap: 0.625rem;
+    }
+
+    .gitDetails img {
+        width: 100%;
+    }
+    
+    #gitHubLanguages {
+        width: 100%;
+    }
+
+    .github-graph {
+        width: 100%;
+    }
+
+    #repos {
+        flex-direction: column;
+        margin-left: 0;
+    }
+
+    .card {
+        width: 100%;
     }
 }
