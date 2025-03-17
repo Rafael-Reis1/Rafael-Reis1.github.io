@@ -208,7 +208,7 @@ body {
     position: absolute;
     top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
     left: 19px; /* Ajuste a posição horizontal da linha */
-    height: 44.5%; /* Ajuste a altura da linha */
+    height: 63%; /* Ajuste a altura da linha */
     width: 0.0625rem; /* Largura da linha */
     background-color: var(--base-color);
     z-index: 0;
