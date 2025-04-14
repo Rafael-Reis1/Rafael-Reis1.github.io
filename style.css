@@ -329,11 +329,19 @@ body {
 }
 
 .habilidadesBox {
-    width: fit-content;
-    height: fit-content;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 9rem;
+    width: 8.75rem;
+    min-width: 8.75rem;
     padding: 1.25rem;
     border-radius: 20px;
     background-color: var(--base-color);
+}
+
+.habilidadesBox img {
+    object-fit: cover;
 }
 
 #habilidadesH3 {
