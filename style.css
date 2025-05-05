@@ -14,6 +14,7 @@
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+    scrollbar-width: thin;
 }
 
 body {
@@ -207,7 +208,7 @@ body {
     content: "";
     position: absolute;
     top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
-    left: 19px; /* Ajuste a posição horizontal da linha */
+    left: 1.1875rem; /* Ajuste a posição horizontal da linha */
     height: 63%; /* Ajuste a altura da linha */
     width: 0.0625rem; /* Largura da linha */
     background-color: var(--base-color);
@@ -326,6 +327,7 @@ body {
     overflow-x: auto;
     user-select: none;
     cursor: grab;
+    scrollbar-width: thin;
 }
 
 .habilidadesBox {
@@ -393,13 +395,13 @@ body {
 }
 
 #gitHubLanguages {
-    width: 308px;
+    width: 19.25rem;
 }
 
 .gitDetails {
     display: flex;
     gap: 1.25rem;
-    margin-bottom: 10px;
+    margin-bottom: 0.625rem;
 }
 
 #repos {
@@ -468,11 +470,11 @@ body {
     }
 
     .infos {
-        padding: 20px;
+        padding: 1.25rem;
     }
 
     .habilidadesContainer {
-        left: -20px;
+        left: -1.25rem;
         width: 112%;
     }
 
@@ -480,24 +482,24 @@ body {
         width: 4.6875rem;
     }
 
-    #detalhesCurriculoEducacao::before { /* Linha vertical */
+    #detalhesCurriculoEducacao::before {
         content: "";
         position: absolute;
-        top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
-        left: 1.1875rem; /* Ajuste a posição horizontal da linha */
-        height: calc(100% - 13.125rem); /* Ajuste a altura da linha */
-        width: 0.0625rem; /* Largura da linha */
+        top: 2.5rem;
+        left: 1.1875rem;
+        height: calc(100% - 13.125rem);
+        width: 0.0625rem;
         background-color: var(--base-color);
         z-index: 0;
     }
     
-    #detalhesCurriculoExperiencia::before { /* Linha vertical */
+    #detalhesCurriculoExperiencia::before {
         content: "";
         position: absolute;
-        top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
-        left: 19px; /* Ajuste a posição horizontal da linha */
-        height: calc(100% - 13.75rem); /* Ajuste a altura da linha */
-        width: 0.0625rem; /* Largura da linha */
+        top: 2.5rem;
+        left: 1.1875rem;
+        height: calc(100% - 13.75rem);
+        width: 0.0625rem;
         background-color: var(--base-color);
         z-index: 0;
     }
