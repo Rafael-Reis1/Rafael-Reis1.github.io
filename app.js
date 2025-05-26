@@ -105,15 +105,15 @@ window.onload = function() {
     }
 
     github.onclick = function() {
-        window.open('https://github.com/Rafael-Reis1', '_blank');
+        window.open('https://github.com/Rafael-Reis1', 'github');
     }
 
     instagram.onclick = function() {
-        window.open('https://www.instagram.com/rafael.reis1', '_blank');
+        window.open('https://www.instagram.com/rafael.reis1', 'insta');
     }
 
     linkedin.onclick = function() {
-        window.open('https://www.linkedin.com/in/rafael-reis-00331b85/', '_blank');
+        window.open('https://www.linkedin.com/in/rafael-reis-00331b85/', 'linkedin');
     }
 
     mail.onclick = function() {
@@ -121,7 +121,7 @@ window.onload = function() {
     }
 
     btnCurriculoDownload.onclick = function() {
-        window.open('docs/Currículo.pdf', '_blank');
+        window.open('docs/Currículo.pdf', 'curriculo');
     }
 
     fetch('https://api.github.com/users/Rafael-Reis1/repos')
@@ -138,7 +138,7 @@ window.onload = function() {
                         <svg aria-hidden="true" fill="#f7f7f7" height="25" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo mr-1 color-fg-muted" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
                             <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
                         </svg>
-                        <h3><a href="${repo.html_url}" target="_blank">${repo.name}</a></h3>
+                        <h3><a href="${repo.html_url}" target="${repo.name}">${repo.name}</a></h3>
                     </div>
                     <p style="font-weight: 300; font-size: 15px;">${repo.description || 'Sem descrição'}</p>
                     <p style="font-weight: 200; font-size: 15px;">${repo.language|| 'Sem linguagem'}</p>
