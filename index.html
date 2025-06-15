@@ -27,8 +27,8 @@
                     <img src="imgs/Instagram.svg" alt="Instagram">
                     <p>rafael.reis1</p>
                 </div>
-                <div class="contact" id="linkedin">
-                    <img src="imgs/Linkedin.svg" alt="Linkedin">
+                <div class="contact" id="LinkedIn">
+                    <img src="imgs/LinkedIn.svg" alt="LinkedIn">
                     <p>Rafael Reis</p>
                 </div>
             </div>
@@ -97,14 +97,14 @@
                             <p>Formação em projeto, desenvolvimento e manutenção de sistemas elétricos, 
                                 abrangendo eletrônica, eletromagnetismo, sistemas de potência, controle 
                                 e automação, e telecomunicações.</p>
-                            <p style="color: rgb(231, 151, 83); font-weight: bold;">02/2018 - 06/2021 (trancado)</p>
+                            <p style="color: #f2511b; font-weight: bold;">02/2018 - 06/2021 (trancado)</p>
                         </div>
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Sistemas de informação / Graduação</h4>
                             <p>Formação em desenvolvimento, implementação e gestão de sistemas 
                                 computacionais, incluindo análise de sistemas, banco de dados, 
                                 redes, segurança da informação e gestão de projetos de TI.</p>
-                            <p style="color: rgb(231, 151, 83); font-weight: bold;">02/2023 - atual</p>
+                            <p style="color: #f2511b; font-weight: bold;">02/2023 - atual</p>
                         </div>
                     </div>
                 </div>
@@ -118,12 +118,12 @@
                     <div class="detalhesCurriculo" id="detalhesCurriculoExperiencia">
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Cafezinho / Estágio Dev. Mobile Android Java</h4>
-                            <p style="color: rgb(231, 151, 83); font-weight: bold;">04/2024 - 08/2024</p>
+                            <p style="color: #f2511b; font-weight: bold;">04/2024 - 08/2024</p>
                             <p>Desde o protótipo no Figma até a implementação no Android de forma nativa.</p>
                         </div>
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Univale / Estágio Sistemas de Informação</h4>
-                            <p style="color: rgb(231, 151, 83); font-weight: bold;">08/2024 - 03/2025</p>
+                            <p style="color: #f2511b; font-weight: bold;">08/2024 - 03/2025</p>
                             <ul>
                                 <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
                                 <li>Desenvolvimento na plataforma Totvs Fluig</li>
@@ -132,7 +132,7 @@
                         </div>
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Univale / Programador de sistemas de informática</h4>
-                            <p style="color: rgb(231, 151, 83); font-weight: bold;">03/2025 - atual</p>
+                            <p style="color: #f2511b; font-weight: bold;">03/2025 - atual</p>
                             <ul>
                                 <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
                                 <li>Desenvolvimento na plataforma Totvs Fluig</li>
@@ -144,7 +144,7 @@
                 <div id="downloadCV">
                     <button id="btnCurriculoDownload" class="btnDownload">
                         <img src="imgs/Document.svg" alt="Curriculo">
-                        Baixar currículo
+                        Currículo
                     </button>
                 </div>
             </div>
@@ -168,7 +168,16 @@
                     </div>
                 </div>
                 <div id="repos"></div>
+            </div>
         </div>
     </div>
+    <div id="curriculoLive" class="curriculoLive">
+        <iframe src="Curriculo/Curriculo.html" id="actualCurriculoIframe" width="100%" height="100%">
+            <p>Seu navegador não suporta iframes, ou o PDF não pode ser exibido.</p>
+        </iframe>
+        <button id="closeButton" class="close-button">X</button>
+        <button id="downloadButtonModal" class="download-button-modal"><img src="imgs/download.svg" alt="Curriculo"></button>
+    </div>
+    <div id="overlay" class="overlay"></div>
 </body>
 </html>

@@ -6,11 +6,15 @@ window.onload = function() {
     const curriculo = document.getElementById('curriculo');
     const github = document.getElementById('github');
     const instagram = document.getElementById('instagram');
-    const linkedin = document.getElementById('linkedin');
+    const LinkedIn = document.getElementById('LinkedIn');
     const mail = document.getElementById('mail');
     const mainInfo = document.querySelector('.mainInfo');
     const portfolio = document.getElementById('portfolio');
     const btnCurriculoDownload = document.getElementById('btnCurriculoDownload');
+    const curriculoLive = document.getElementById('curriculoLive');
+    const overlay = document.getElementById('overlay');
+    const closeButton = document.getElementById('closeButton');
+    const downloadButtonModal = document.getElementById('downloadButtonModal');
     mainInfo.style.height = sobre.offsetHeight + 'px';
 
     const habilidadesContainer = document.getElementById('habilidadesContainer');
@@ -35,7 +39,7 @@ window.onload = function() {
     habilidadesContainer.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         const x = e.pageX - habilidadesContainer.offsetLeft;
-        const walk = (x - startX) * 2; // Ajuste a velocidade do scroll
+        const walk = (x - startX) * 2;
         habilidadesContainer.scrollLeft = scrollLeft - walk;
     });
 
@@ -43,7 +47,7 @@ window.onload = function() {
 
     imagens.forEach(img => {
         img.addEventListener('dragstart', (e) => {
-            e.preventDefault(); // Impede o comportamento padrão de arrastar
+            e.preventDefault();
         });
     });
 
@@ -112,8 +116,8 @@ window.onload = function() {
         window.open('https://www.instagram.com/rafael.reis1', 'insta');
     }
 
-    linkedin.onclick = function() {
-        window.open('https://www.linkedin.com/in/rafael-reis-00331b85/', 'linkedin');
+    LinkedIn.onclick = function() {
+        window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn');
     }
 
     mail.onclick = function() {
@@ -121,8 +125,76 @@ window.onload = function() {
     }
 
     btnCurriculoDownload.onclick = function() {
-        window.open('docs/Currículo.pdf', 'curriculo');
+        if (!document.startViewTransition) {
+            curriculoLive.style.display = 'block';
+            curriculoLive.classList.add('show');
+            btnCurriculoDownload.style.display = 'none';
+            overlay.style.display = 'block';
+            overlay.classList.add('show');
+            closeButton.style.display = 'flex';
+            closeButton.classList.add('show');
+            downloadButtonModal.classList.add('show');
+            return;
+        }
+
+        document.startViewTransition(() => {
+            curriculoLive.style.display = 'block';
+            curriculoLive.classList.add('show');
+            btnCurriculoDownload.style.display = 'none';
+            overlay.style.display = 'block';
+            overlay.classList.add('show');
+            closeButton.style.display = 'flex';
+            closeButton.classList.add('show');
+            downloadButtonModal.classList.add('show');
+            curriculoLive.style.viewTransitionName = 'shared-curriculo-area';
+        });
     }
+
+    overlay.addEventListener('click', closeIframe);
+    closeButton.addEventListener('click', closeIframe);
+    downloadButtonModal.addEventListener('click', () => {
+        const filePath = 'docs/Currículo.pdf';
+        const fileName = 'Currículo.pdf';
+        const link = document.createElement('a');
+        link.href = filePath;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    function closeIframe() {
+        if (!document.startViewTransition) {
+            curriculoLive.style.display = 'none';
+            curriculoLive.classList.remove('show');
+            btnCurriculoDownload.style.display = 'flex';
+            overlay.style.display = 'none';
+            overlay.classList.remove('show');
+            closeButton.style.display = 'none';
+            closeButton.classList.remove('show');
+            downloadButtonModal.classList.remove('show');
+            return;
+        }
+
+        document.startViewTransition(() => {
+            curriculoLive.style.display = 'none';
+            curriculoLive.classList.remove('show');
+            btnCurriculoDownload.style.display = 'flex';
+            overlay.style.display = 'none';
+            overlay.classList.remove('show');
+            closeButton.style.display = 'none';
+            closeButton.classList.remove('show');
+            downloadButtonModal.classList.remove('show');
+            curriculoLive.style.viewTransitionName = '';
+            btnCurriculoDownload.style.viewTransitionName = 'shared-curriculo-area';
+        });
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && curriculoLive.classList.contains('show')) {
+            closeIframe();
+        }
+    });
 
     fetch('https://api.github.com/users/Rafael-Reis1/repos')
     .then(response => response.json())

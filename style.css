@@ -1,10 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
+
 :root {
     --base-color: rgba(255, 255, 255, .1);
     --base-color-hover: rgba(255, 255, 255, .05);
-    --accent-color: rgb(231, 151, 83);
-    --accent-color-hover: rgba(231, 151, 83, .8);
+    --accent-color: #f2511b;
+    --accent-color-hover: #ee6233;
     --text-color: #f7f7f7;
     --text-color-hover: rgba(247, 247, 247, .8);
     --border-color: rgba(217, 217, 217, .2);
@@ -22,6 +23,10 @@ body {
     font-family: Inter;
     background-color: #06071A;
     overflow-x: clip;
+}
+
+iframe {
+    border: 0;
 }
 
 ::selection {
@@ -92,6 +97,11 @@ body {
 }
 
 #github {
+    padding: 0.4375rem;
+    gap: 0.3125rem;
+}
+
+#LinkedIn {
     padding: 0.4375rem;
     gap: 0.3125rem;
 }
@@ -169,14 +179,14 @@ body {
 
 #informacaoSobre {
     margin-top: 2.5rem;
-    font-weight: 200;
+    font-weight: 300;
 }
 
 .infosCurriculo {
     display: flex;
     flex-direction: column;
     margin-top: 2.5rem;
-    font-weight: 200;
+    font-weight: 300;
     position: relative;
 }
 
@@ -193,29 +203,29 @@ body {
     gap: 0.3125rem;
 }
   
-#detalhesCurriculoEducacao::before { /* Linha vertical */
+#detalhesCurriculoEducacao::before {
     content: "";
     position: absolute;
-    top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
-    left: 1.1875rem; /* Ajuste a posição horizontal da linha */
-    height: 52%; /* Ajuste a altura da linha */
-    width: 0.0625rem; /* Largura da linha */
+    top: 2.5rem;
+    left: 1.1875rem;
+    height: 52%;
+    width: 0.0625rem;
     background-color: var(--base-color);
     z-index: 0;
 }
 
-#detalhesCurriculoExperiencia::before { /* Linha vertical */
+#detalhesCurriculoExperiencia::before {
     content: "";
     position: absolute;
-    top: 2.5rem; /* Ajuste a posição vertical inicial da linha */
-    left: 1.1875rem; /* Ajuste a posição horizontal da linha */
-    height: 63%; /* Ajuste a altura da linha */
-    width: 0.0625rem; /* Largura da linha */
+    top: 2.5rem;
+    left: 1.1875rem;
+    height: 63%;
+    width: 0.0625rem;
     background-color: var(--base-color);
     z-index: 0;
 }
 
-.pontosCurriculo::before { /* Bolinha */
+.pontosCurriculo::before {
     content: "";
     position: absolute;
     left: 0.625rem;
@@ -228,7 +238,7 @@ body {
     z-index: 1;
 }
 
-.pontosCurriculo::after { /* Bolinha menor */
+.pontosCurriculo::after {
     content: "";
     position: absolute;
     left: 0.9375rem;
@@ -303,15 +313,142 @@ body {
     border: 0;
     font-size: 1rem;
     background-color: var(--base-color);
-    color: var(--accent-color);
+    color: var(--text-color);
     cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    view-transition-name: shared-curriculo-area;
+}
+
+.btnDownload:hover {
+    background-color: var(--base-color-hover);
+}
+
+.curriculoLive {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    border-radius: 20px;
+    z-index: 11;
+    view-transition-name: shared-curriculo-area;
+    display: none;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    background-color: white;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    position: relative;
+}
+
+.curriculoLive.show {
+    width: 90vw;
+    max-width: 56.25rem;
+    height: 90vh;
+    max-height: 56.25rem;
+    opacity: 1;
+}
+
+::view-transition-old(shared-curriculo-area) {
+    animation: fade-out-shrink 0.2s cubic-bezier(.34,.88,.34,1) forwards;
+}
+
+::view-transition-new(shared-curriculo-area) {
+    animation: fade-in-grow 0.4s cubic-bezier(.34,.88,.34,1) forwards;
+}
+
+@keyframes fade-out-shrink {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; }
+}
+
+@keyframes fade-in-grow {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(6, 7, 26, .5);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-out; 
+}
+
+.overlay.show {
+    display: block;
+    opacity: 1;
+}
+
+.close-button {
+    position: absolute;
+    top: 0.9375rem;
+    right: 1.25rem;
+    z-index: 15;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.btnDownload:hover {
-    background-color: var(--base-color-hover);
+.close-button:hover {
+    background-color: var(--accent-color-hover);
+}
+
+.close-button.show {
+    display: flex;
+    opacity: 1;
+}
+
+.download-button-modal {
+    position: absolute;
+    top: 4.0625rem;
+    right: 1.25rem;
+    z-index: 15;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    padding: 8;
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+.download-button-modal:hover {
+    background-color: var(--accent-color-hover);
+}
+
+.download-button-modal.show {
+    display: inline-block;
+    opacity: 1;
+}
+.curriculoLive {
+    position: fixed;
 }
 
 .habilidadesContainer {
