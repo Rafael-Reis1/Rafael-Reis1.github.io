@@ -22,7 +22,7 @@ window.onload = function() {
         }
     });
 
-    function abrirPopup(tabela) {
+    function abrirPopup(dados) {
         const listaFormatadaPopup = document.getElementById('listaFormatadaPopup');
         const popupCards = document.querySelectorAll('.popupCard');
         const listaFormatada = document.getElementById('listaFormatada');
@@ -40,11 +40,11 @@ window.onload = function() {
             });
         }, 10);
         
-        listaFormatada.innerText = tabela;
+        listaFormatada.innerHTML = dados.html;
 
         copiarBtn.onclick = async function() {
             try {
-                await navigator.clipboard.writeText(tabela);
+                await navigator.clipboard.writeText(dados.texto);
                 const textoOriginal = copiarBtn.innerText;
                 copiarBtn.innerText = 'Copiado!';
                 setTimeout(() => {
@@ -94,12 +94,10 @@ window.onload = function() {
         const nomesRepetidos = Array.from(duplicadosSet);
 
         const nomesFaltando = listaBase.filter(nome => !setVerificar.has(nome));
-
         const nomesAMais = listaVerificar.filter(nome => !setBase.has(nome));
 
         const todosOsNomesUnicos = new Set([...listaBase, ...listaVerificar]);
         const masterList = Array.from(todosOsNomesUnicos).sort();
-
         const linhasAlinhadas = [];
         for (const nome of masterList) {
             const nomeNaBase = setBase.has(nome) ? nome : '';
@@ -108,13 +106,20 @@ window.onload = function() {
         }
 
         const titulos = [
-            "Lista Original",   
-            "Lista Secundária",
-            "Ausentes na Lista Secundária",
-            "Exclusivos na Lista Secundária",
-            "Nomes Duplicados na Lista Secundária"
+            "Original",
+            "A Comparar",
+            "Ausentes",
+            "Adicionais",
+            "Duplicados"
         ];
-        let resultadoFinal = titulos.join('\t') + '\n';
+
+        let resultadoTextoParaCopia = titulos.join('\t') + '\n';
+
+        let resultadoHtml = '<table><thead><tr>';
+        titulos.forEach(titulo => {
+            resultadoHtml += `<th>${titulo}</th>`;
+        });
+        resultadoHtml += '</tr></thead><tbody>';
 
         const maxRows = Math.max(
             linhasAlinhadas.length,
@@ -126,22 +131,28 @@ window.onload = function() {
         for (let i = 0; i < maxRows; i++) {
             const col1 = linhasAlinhadas[i] ? linhasAlinhadas[i].col1 : '';
             const col2 = linhasAlinhadas[i] ? linhasAlinhadas[i].col2 : '';
-
             const col3 = nomesFaltando[i] || '';
-
             const col4 = nomesAMais[i] || '';
             const col5 = nomesRepetidos[i] || '';
 
-            const linha = [col1, col2, col3, col4, col5].join('\t');
-            resultadoFinal += linha + '\n';
+            resultadoTextoParaCopia += [col1, col2, col3, col4, col5].join('\t') + '\n';
+            
+            resultadoHtml += `<tr>
+                <td>${col1}</td>
+                <td>${col2}</td>
+                <td>${col3}</td>
+                <td>${col4}</td>
+                <td>${col5}</td>
+            </tr>`;
         }
+        
+        resultadoHtml += '</tbody></table>';
 
-        if (document.getElementById('output')) {
-            document.getElementById('output').value = resultadoFinal;
-        }
-    
-        if (resultadoFinal && typeof abrirPopup === 'function') {
-            abrirPopup(resultadoFinal);
+        if (resultadoHtml && typeof abrirPopup === 'function') {
+            abrirPopup({
+                html: resultadoHtml,
+                texto: resultadoTextoParaCopia
+            });
         }
     }
 };
