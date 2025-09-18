@@ -1,0 +1,234 @@
+:root {
+    --base-color: rgba(255, 255, 255, .1);
+    --base-color-hover: rgba(255, 255, 255, .05);
+    --accent-color: #f2511b;
+    --accent-color-hover: #ee6233;
+    --text-color: #f7f7f7;
+    --text-color-hover: rgba(247, 247, 247, .8);
+    --border-color: rgba(217, 217, 217, .2);
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: Open Sans;
+}
+
+body {
+    background-color: #06071a;
+}
+
+.container {
+    height: 100dvh;
+    width: 100dvw;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+h1 {
+    color: white;
+    font-size: 40px;
+    width: 80%;
+    text-align: center;
+}
+
+.opcoes {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.opcoes textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+}
+
+button {
+    padding: 10px;
+    font-size: 20px;
+    border-radius: 12px;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-color);
+    background-color: var(--accent-color);
+}
+
+button:hover {
+    background-color: var(--accent-color-hover);
+}
+
+textarea {
+    background-color: var(--base-color);
+    color: var(--text-color);
+}
+
+textarea:focus,
+button:focus {
+  outline: none;
+}
+
+.popupCard {
+    display: flex;
+    height: fit-content;
+    max-height: 80%;
+    max-width: 80%;
+    min-width: 24rem;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 1.875rem;
+    background-color: #1f2031;
+    color: var(--text-color);
+    border-radius: 28px;
+    gap: 0.625rem;
+    text-align: center;
+    font-size: 1.25rem;
+    z-index: 1;
+    scale: .5;
+    opacity: 0;
+    filter: blur(50px);
+    margin: 0.625rem;
+    word-break: break-all;
+    overflow: clip;
+}
+
+.listaNumeros {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 0.625rem;
+}
+
+#listaBackgroud {
+    position: absolute;
+    top: 0rem;
+    left: 0rem;
+    width: 100%;
+    height: 100%;
+}
+
+#listaFormatadaPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: all 200ms cubic-bezier(.12,.12,0,1);
+
+    @starting-style {
+        opacity: 0;
+    }
+}
+
+.formatarBTNS {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.formatOpcoes {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+}
+
+input[type="checkbox"] + label {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    padding-left: 1.875rem;
+    cursor: pointer;
+    font-size: 1.0625rem;
+    color: white;
+    user-select: none;
+    transition: color 0.3s ease;
+}
+
+input[type="checkbox"] + label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-60%);
+    width: 1.375rem;
+    height: 1.375rem;
+    scale: 85%;
+    border: 1px solid white;
+    border-radius: 5px;
+    transition: all 0.3s ease-in-out;
+    box-sizing: border-box;
+}
+
+input[type="checkbox"] + label::after {
+    content: '';
+    position: absolute;
+    left: 0.375rem;
+    top: 30%;
+    transform: translateY(-50%) rotate(45deg) scale(0);
+    width: 0.4375rem;
+    height: 0.875rem;
+    scale: 80%;
+    border: solid #022581;
+    border-width: 0 3px 3px 0;
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+                opacity 0.2s ease-in-out;
+}
+
+input[type="checkbox"]:checked + label::before {
+    background-color: #ffffff;
+    border-color: white;
+}
+
+input[type="checkbox"]:checked + label::after {
+    opacity: 1;
+    transform: translateY(-50%) rotate(45deg) scale(1);
+    transition-delay: 0.1s;
+}
+
+input[type="checkbox"]:disabled + label {
+    opacity: 0.6;
+    cursor: not-allowed;
+    color: #777;
+}
+input[type="checkbox"]:disabled + label::before {
+    background-color: #eee;
+    border-color: #ddd;
+}
+input[type="checkbox"]:disabled:checked + label::before {
+    background-color: #a0a0a0;
+    border-color: #a0a0a0;
+}
+input[type="checkbox"]:disabled:checked + label::after {
+    border-color: #f0f0f0;
+}

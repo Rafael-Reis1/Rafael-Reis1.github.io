@@ -200,6 +200,20 @@ window.onload = function() {
     .then(response => response.json())
     .then(data => {
         const reposDiv = document.getElementById('repos');
+        data.unshift(
+            {
+                name: 'Formatar para lista separada por vírgulas',
+                description: 'Easily format any list of numbers into a clean, comma-separated list.',
+                html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
+                language: 'HTML'
+            },
+            {
+                name: 'Compara 2 listas de nomes',
+                description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
+                html_url: '/Compara 2 listas de nomes/Compara 2 listas de nomes.html',
+                language: 'HTML'
+            }
+        );
         data.forEach(repo => {
             if(repo.description) {
                 const card = document.createElement('div');
@@ -218,7 +232,6 @@ window.onload = function() {
                 `;
                 reposDiv.appendChild(card);
             }
-            
         });
     });
 }

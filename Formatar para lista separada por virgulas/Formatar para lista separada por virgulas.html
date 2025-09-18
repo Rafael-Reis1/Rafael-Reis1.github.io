@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <title>Formatar para lista separada por vírgulas</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Formatar para lista separada por vírgulas</h1>
+        <div class="opcoes">
+            <textarea name="numeros" id="numeros" rows="20"></textarea>
+            <div class="formatarBTNS">
+                <div class="formatOpcoes">
+                    <button id="formataLista">Formatar lista</button>
+                    <div class="checkbox-group">
+                        <div>
+                            <input type="checkbox" id="aspas" name="aspas" value="aspas">
+                            <label for="aspas">Com aspas</label>
+                        </div>
+                    </div>
+                </div>
+                <button id="limpar">Limpar</button>
+            </div>
+        </div>
+    </div>
+    <div id="listaFormatadaPopup" style="display: none;">
+        <div id="listaBackgroud">
+        </div>
+        <div class="popupCard">
+            <div class="listaNumeros"> 
+                <p id="listaFormatada"></p>
+            </div>
+            <div class="formatarBTNS">
+                <button id="copiarListaBtn">Copiar lista</button>
+                <button id="fechar">Fechar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
