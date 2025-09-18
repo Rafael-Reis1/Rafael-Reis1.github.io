@@ -202,7 +202,7 @@ th:last-child {
 }
 
 #listaFormatada tbody tr:nth-of-type(even) {
-    background-color: var(--base-color); /* Efeito "zebra" para facilitar a leitura */
+    background-color: var(--base-color);
 }
 
 @media (max-width: 1000px) {
