@@ -202,7 +202,7 @@ window.onload = function() {
         const reposDiv = document.getElementById('repos');
         data.unshift(
             {
-                name: 'Formatar para lista separada por vírgulas',
+                name: 'Formatar para lista de números separada por vírgulas',
                 description: 'Easily format any list of numbers into a clean, comma-separated list.',
                 html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
                 language: 'HTML'
