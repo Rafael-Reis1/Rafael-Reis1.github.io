@@ -82,13 +82,13 @@ button:focus {
 }
 
 .popupCard {
+    position: relative;
     display: flex;
     height: fit-content;
     max-height: 80%;
     max-width: 80%;
     min-width: 24rem;
     flex-direction: column;
-    justify-content: center;
     align-items: flex-start;
     padding: 1.875rem;
     background-color: #1f2031;
@@ -103,7 +103,8 @@ button:focus {
     filter: blur(50px);
     margin: 0.625rem;
     word-break: break-all;
-    overflow: clip;
+    overflow-x: clip;
+    overflow-y: auto;
 }
 
 .listalistaUm {
@@ -146,8 +147,17 @@ button:focus {
 }
 
 .formatarBTNS {
-    width: 100%;
     display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.formatarBTNSPopup {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
     justify-content: space-between;
 }
 
@@ -155,6 +165,44 @@ button:focus {
     display: flex;
     width: 100%;
     gap: 10px;
+}
+
+#listaFormatada table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1rem;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+#listaFormatada th,
+#listaFormatada td {
+    padding: 12px 15px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+#listaFormatada td:not(:first-child) {
+  border-left: 1px solid var(--base-color);
+}
+
+th:first-child {
+    border-radius: 15px 0 0 0;
+}
+
+th:last-child {
+    border-radius: 0 15px 0 0;
+}
+
+#listaFormatada thead tr {
+    background-color: var(--accent-color);
+    border-radius: 28px 28px 0 0;
+    color: var(--text-color);
+    text-align: left;
+    font-weight: bold;
+}
+
+#listaFormatada tbody tr:nth-of-type(even) {
+    background-color: var(--base-color); /* Efeito "zebra" para facilitar a leitura */
 }
 
 @media (max-width: 1000px) {
