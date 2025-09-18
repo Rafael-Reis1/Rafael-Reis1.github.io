@@ -115,7 +115,7 @@ window.onload = function() {
 
         let resultadoTextoParaCopia = titulos.join('\t') + '\n';
 
-        let resultadoHtml = '<table><thead><tr>';
+        let resultadoHtml = '<table id="tabelaResultados"><thead><tr>';
         titulos.forEach(titulo => {
             resultadoHtml += `<th>${titulo}</th>`;
         });
@@ -153,6 +153,76 @@ window.onload = function() {
                 html: resultadoHtml,
                 texto: resultadoTextoParaCopia
             });
+
+            configurarCopiaDaTabela();
+            configurarCopiaDeCelulaPorClick();
         }
+    }
+
+    function configurarCopiaDaTabela() {
+        const tabela = document.getElementById('tabelaResultados');
+
+        if (!tabela) {
+            return;
+        }
+
+        tabela.addEventListener('copy', (event) => {
+            event.preventDefault();
+
+            const textoSelecionado = window.getSelection().toString();
+
+            const textoModificado = textoSelecionado.replace(/\t/g, '');
+
+            navigator.clipboard.writeText(textoModificado);
+        });
+    }
+
+    function configurarCopiaDeCelulaPorClick() {
+        const tabela = document.getElementById('tabelaResultados');
+        if (!tabela) return;
+
+        tabela.addEventListener('click', (event) => {
+            const clickedCell = event.target.closest('td');
+            if (!clickedCell || clickedCell.innerText.trim() === '') {
+                return;
+            }
+
+            const cellText = clickedCell.innerText;
+
+            navigator.clipboard.writeText(cellText).then(() => {
+                mostrarNotificacao("Texto copiado!");
+
+                document.querySelectorAll('td.copiada').forEach(cell => cell.classList.remove('copiada'));
+                clickedCell.classList.add('copiada');
+                setTimeout(() => {
+                    clickedCell.classList.remove('copiada');
+                }, 1500);
+
+            }).catch(err => {
+                mostrarNotificacao("Erro ao copiar!", 2000);
+                console.error('Erro ao copiar a célula:', err);
+            });
+        });
+    }
+
+    let timerNotificacao;
+
+    /**
+     *
+     * @param {string} mensagem
+     * @param {number} duracao
+     */
+    function mostrarNotificacao(mensagem, duracao = 1500) {
+        const notificacao = document.getElementById('notificacao-copia');
+        if (!notificacao) return;
+
+        notificacao.textContent = mensagem;
+        notificacao.classList.add('visivel');
+
+        clearTimeout(timerNotificacao);
+
+        timerNotificacao = setTimeout(() => {
+            notificacao.classList.remove('visivel');
+        }, duracao);
     }
 };
