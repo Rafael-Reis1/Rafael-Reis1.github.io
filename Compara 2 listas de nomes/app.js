@@ -79,31 +79,19 @@ window.onload = function() {
     function compararListas() {
         const textoBase = document.getElementById('listaUm').value;
         const textoVerificar = document.getElementById('listaDois').value;
-
         const listaBase = textoBase.split('\n').map(nome => nome.trim()).filter(nome => nome !== '');
         const listaVerificar = textoVerificar.split('\n').map(nome => nome.trim()).filter(nome => nome !== '');
-
         const setBase = new Set(listaBase);
         const setVerificar = new Set(listaVerificar);
-
+        const nomesCorrespondentes = Array.from(new Set(listaBase.filter(nome => setVerificar.has(nome)))).sort();
+        const nomesAusentes = Array.from(new Set(listaBase.filter(nome => !setVerificar.has(nome)))).sort();
+        const nomesAdicionais = Array.from(new Set(listaVerificar.filter(nome => !setBase.has(nome)))).sort();
         const vistos = new Set();
         const duplicadosSet = new Set();
         listaVerificar.forEach(nome => {
             vistos.has(nome) ? duplicadosSet.add(nome) : vistos.add(nome);
         });
-        const nomesRepetidos = Array.from(duplicadosSet);
-
-        const nomesFaltando = listaBase.filter(nome => !setVerificar.has(nome));
-        const nomesAMais = listaVerificar.filter(nome => !setBase.has(nome));
-
-        const todosOsNomesUnicos = new Set([...listaBase, ...listaVerificar]);
-        const masterList = Array.from(todosOsNomesUnicos).sort();
-        const linhasAlinhadas = [];
-        for (const nome of masterList) {
-            const nomeNaBase = setBase.has(nome) ? nome : '';
-            const nomeNaVerificar = setVerificar.has(nome) ? nome : '';
-            linhasAlinhadas.push({ col1: nomeNaBase, col2: nomeNaVerificar });
-        }
+        const nomesRepetidos = Array.from(duplicadosSet).sort();
 
         const titulos = [
             "Original",
@@ -114,7 +102,6 @@ window.onload = function() {
         ];
 
         let resultadoTextoParaCopia = titulos.join('\t') + '\n';
-
         let resultadoHtml = '<table id="tabelaResultados"><thead><tr>';
         titulos.forEach(titulo => {
             resultadoHtml += `<th>${titulo}</th>`;
@@ -122,17 +109,17 @@ window.onload = function() {
         resultadoHtml += '</tr></thead><tbody>';
 
         const maxRows = Math.max(
-            linhasAlinhadas.length,
-            nomesFaltando.length,
-            nomesAMais.length,
+            nomesCorrespondentes.length,
+            nomesAusentes.length,
+            nomesAdicionais.length,
             nomesRepetidos.length
         );
 
         for (let i = 0; i < maxRows; i++) {
-            const col1 = linhasAlinhadas[i] ? linhasAlinhadas[i].col1 : '';
-            const col2 = linhasAlinhadas[i] ? linhasAlinhadas[i].col2 : '';
-            const col3 = nomesFaltando[i] || '';
-            const col4 = nomesAMais[i] || '';
+            const col1 = nomesCorrespondentes[i] || '';
+            const col2 = nomesCorrespondentes[i] || '';
+            const col3 = nomesAusentes[i] || '';
+            const col4 = nomesAdicionais[i] || '';
             const col5 = nomesRepetidos[i] || '';
 
             resultadoTextoParaCopia += [col1, col2, col3, col4, col5].join('\t') + '\n';
@@ -153,7 +140,6 @@ window.onload = function() {
                 html: resultadoHtml,
                 texto: resultadoTextoParaCopia
             });
-
             configurarCopiaDaTabela();
             configurarCopiaDeCelulaPorClick();
         }
