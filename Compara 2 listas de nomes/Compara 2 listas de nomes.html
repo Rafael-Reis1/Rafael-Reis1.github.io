@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <title>Compara 2 listas de nomes</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Compara 2 listas de nomes</h1>
+        <div class="opcoes">
+            <div class="listas">
+                <textarea name="listaUm" id="listaUm" rows="20" placeholder="Lista Original"></textarea>
+                <textarea name="listaDois" id="listaDois" rows="20" placeholder="Lista Secundária"></textarea>
+            </div>
+            <div class="formatarBTNS">
+                <button id="formataLista">Comparar lista</button>
+                <button id="limpar">Limpar</button>
+            </div>
+        </div>
+    </div>
+    <div id="listaFormatadaPopup" style="display: none;">
+        <div id="listaBackgroud">
+        </div>
+        <div class="popupCard">
+            <div class="listalistaUm"> 
+                <p id="listaFormatada"></p>
+            </div>
+            <div class="formatarBTNS">
+                <button id="copiarListaBtn">Copiar Lista</button>
+                <button id="fechar">Fechar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

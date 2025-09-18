@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
-
 :root {
     --base-color: rgba(255, 255, 255, .1);
     --base-color-hover: rgba(255, 255, 255, .05);
@@ -535,12 +534,6 @@ iframe {
     width: 19.25rem;
 }
 
-.gitDetails {
-    display: flex;
-    gap: 1.25rem;
-    margin-bottom: 0.625rem;
-}
-
 #repos {
     display: flex;
     margin-left: 1.25rem;
@@ -639,15 +632,6 @@ iframe {
         width: 0.0625rem;
         background-color: var(--base-color);
         z-index: 0;
-    }
-
-    .gitDetails {
-        flex-direction: column;
-        gap: 0.625rem;
-    }
-
-    .gitDetails img {
-        width: 100%;
     }
     
     #gitHubLanguages {
