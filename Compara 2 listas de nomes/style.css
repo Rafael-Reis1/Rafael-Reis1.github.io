@@ -133,7 +133,7 @@ button:focus {
     height: 100dvh;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.2);
-    z-index: 9999;
+    z-index: 9000;
     backdrop-filter: blur(2px);
     display: flex;
     justify-content: center;
@@ -193,6 +193,18 @@ th:last-child {
     border-radius: 0 15px 0 0;
 }
 
+td.copiada {
+    background-color: var(--accent-color) !important;
+}
+
+td {
+    transition: background-color 0.5s ease;
+}
+
+#tabelaResultados tbody td {
+    cursor: pointer;
+}
+
 #listaFormatada thead tr {
     background-color: var(--accent-color);
     border-radius: 28px 28px 0 0;
@@ -203,6 +215,30 @@ th:last-child {
 
 #listaFormatada tbody tr:nth-of-type(even) {
     background-color: var(--base-color);
+}
+
+#notificacao-copia {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translate(-50%, -100px);
+    z-index: 9999;
+    background-color: var(--accent-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    font-family: sans-serif;
+    font-size: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#notificacao-copia.visivel {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    visibility: visible;
 }
 
 @media (max-width: 1000px) {
