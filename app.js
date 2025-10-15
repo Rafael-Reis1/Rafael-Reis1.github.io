@@ -220,21 +220,31 @@ window.onload = function() {
                 language: 'HTML'
             }
         );
-        data.forEach(repo => {
+        data.forEach((repo, index) => {
             if(repo.description) {
                 const card = document.createElement('div');
                 card.classList.add('card');
-                card.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 5px;">
-                    <div style="display: flex; gap: 5px;">
+                const iconSvg = index < 3 
+                    ? `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="#f7f7f7" height="25" viewBox="0 0 24 24" width="17" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
+                            <path d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                        </svg>
+                        ` 
+                    : `
                         <svg aria-hidden="true" fill="#f7f7f7" height="25" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo mr-1 color-fg-muted" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
                             <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
                         </svg>
-                        <h3><a href="${repo.html_url}" target="${repo.name}">${repo.name}</a></h3>
+                        `;
+                card.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <div style="display: flex; gap: 5px;">
+                            ${iconSvg}
+                            <h3><a href="${repo.html_url}" target="${repo.name}">${repo.name}</a></h3>
+                        </div>
+                        <p style="font-weight: 300; font-size: 15px;">${repo.description || 'Sem descrição'}</p>
+                        <p style="font-weight: 200; font-size: 15px;">${repo.language|| 'Sem linguagem'}</p>
                     </div>
-                    <p style="font-weight: 300; font-size: 15px;">${repo.description || 'Sem descrição'}</p>
-                    <p style="font-weight: 200; font-size: 15px;">${repo.language|| 'Sem linguagem'}</p>
-                </div>
                 `;
                 reposDiv.appendChild(card);
             }
