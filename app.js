@@ -218,7 +218,7 @@ window.onload = function() {
                 description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
                 html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
                 language: 'HTML'
-            },
+            }
         );
         data.forEach(repo => {
             if(repo.description) {
