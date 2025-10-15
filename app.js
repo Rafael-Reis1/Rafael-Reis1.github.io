@@ -5,7 +5,6 @@ window.onload = function() {
     const sobre = document.getElementById('sobre');
     const curriculo = document.getElementById('curriculo');
     const github = document.getElementById('github');
-    const instagram = document.getElementById('instagram');
     const LinkedIn = document.getElementById('LinkedIn');
     const mail = document.getElementById('mail');
     const mainInfo = document.querySelector('.mainInfo');
@@ -110,10 +109,6 @@ window.onload = function() {
 
     github.onclick = function() {
         window.open('https://github.com/Rafael-Reis1', 'github');
-    }
-
-    instagram.onclick = function() {
-        window.open('https://www.instagram.com/rafael.reis1', 'insta');
     }
 
     LinkedIn.onclick = function() {
