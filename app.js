@@ -212,6 +212,12 @@ window.onload = function() {
                 description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
                 html_url: '/Compara 2 listas de nomes/Compara 2 listas de nomes.html',
                 language: 'HTML'
+            },
+            {
+                name: 'Efeito de luz ambiente imersivo',
+                description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
+                html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
+                language: 'HTML'
             }
         );
         data.forEach(repo => {
