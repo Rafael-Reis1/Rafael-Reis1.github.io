@@ -32,6 +32,8 @@ body {
 .video-container {
     width: 57.9vw;
     filter: url(#ambilight);
+    border-radius: 20px;
+    overflow: clip;
 }
 
 .ambilight {
