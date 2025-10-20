@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js"></script><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+    <title>Soma lista de valores</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Soma lista de valores</h1>
+        <div class="opcoes">
+            <textarea name="numeros" id="numeros" rows="20"></textarea>
+            <div class="somaBTNS">
+                <div class="somarOpcoes">
+                    <button id="realizarSoma">Realizar soma</button>
+                    <div class="checkbox-group">
+                        <div>
+                            <input type="checkbox" id="ignorar" name="ignorar" value="ignorar">
+                            <label for="ignorar">Ignorar números repetidos</label>
+                        </div>
+                    </div>
+                </div>
+                <button id="limpar">Limpar</button>
+            </div>
+        </div>
+    </div>
+    <div id="somaPopup" style="display: none;">
+        <div id="listaBackgroud">
+        </div>
+        <div class="popupCard">
+            <div class="listaNumeros"> 
+                <p id="resultadoSoma"></p>
+            </div>
+            <div class="somaBTNS">
+                <button id="copiarBtn">Copiar</button>
+                <button id="fechar">Fechar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
