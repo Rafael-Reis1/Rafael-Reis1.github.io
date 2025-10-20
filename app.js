@@ -213,13 +213,19 @@ window.onload = function() {
                 description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
                 html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
                 language: 'HTML'
+            },
+            {
+                name: 'Soma lista de valores',
+                description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
+                html_url: '/somaValores/somaValores.html',
+                language: 'HTML'
             }
         );
         data.forEach((repo, index) => {
             if(repo.description) {
                 const card = document.createElement('div');
                 card.classList.add('card');
-                const iconSvg = index < 3 
+                const iconSvg = index < 4
                     ? `
                         <svg xmlns="http://www.w3.org/2000/svg" fill="#f7f7f7" height="25" viewBox="0 0 24 24" width="17" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
                             <path d="M0 0h24v24H0z" fill="none"/>
