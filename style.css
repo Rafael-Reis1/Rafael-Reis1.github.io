@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
+    --body-color: #06071A;
     --base-color: rgba(255, 255, 255, .1);
     --base-color-hover: rgba(255, 255, 255, .05);
     --accent-color: #f2511b;
@@ -20,7 +21,7 @@
 body {
     color: var(--text-color);
     font-family: Inter;
-    background-color: #06071A;
+    background-color: var(--body-color);
     overflow-x: clip;
 }
 
