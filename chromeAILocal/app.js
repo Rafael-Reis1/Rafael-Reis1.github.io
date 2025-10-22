@@ -58,7 +58,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
                         const percentage = (e.loaded * 100).toFixed(0);
                         let messageText;
                         
-                        if (e.loaded < 0.90) {
+                        if (e.loaded < 0.85) {
                             messageText = `Baixando modelo (${percentage}%)`;
                         } 
                         else { 
