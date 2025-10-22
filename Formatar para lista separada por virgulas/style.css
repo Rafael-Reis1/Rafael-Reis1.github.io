@@ -1,4 +1,5 @@
 :root {
+    --body-color: #06071A;
     --base-color: rgba(255, 255, 255, .1);
     --base-color-hover: rgba(255, 255, 255, .05);
     --accent-color: #f2511b;
@@ -6,6 +7,7 @@
     --text-color: #f7f7f7;
     --text-color-hover: rgba(247, 247, 247, .8);
     --border-color: rgba(217, 217, 217, .2);
+    --popup-background-color: #1f2031;
 }
 
 * {
@@ -16,7 +18,7 @@
 }
 
 body {
-    background-color: #06071a;
+    background-color: var(--body-color);
 }
 
 .container {
@@ -47,7 +49,7 @@ h1 {
 .opcoes textarea {
     width: 100%;
     border-radius: 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     padding: 20px;
 }
 
@@ -85,7 +87,7 @@ button:focus {
     justify-content: center;
     align-items: flex-start;
     padding: 1.875rem;
-    background-color: #1f2031;
+    background-color: var(--popup-background-color);
     color: var(--text-color);
     border-radius: 28px;
     gap: 0.625rem;
@@ -104,7 +106,7 @@ button:focus {
     height: 100%;
     width: 100%;
     overflow-y: auto;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 0.625rem;
 }
@@ -195,7 +197,7 @@ input[type="checkbox"] + label::after {
     width: 0.4375rem;
     height: 0.875rem;
     scale: 80%;
-    border: solid #022581;
+    border: solid var(--body-color);
     border-width: 0 3px 3px 0;
     opacity: 0;
     transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55),
@@ -203,29 +205,12 @@ input[type="checkbox"] + label::after {
 }
 
 input[type="checkbox"]:checked + label::before {
-    background-color: #ffffff;
-    border-color: white;
+    background-color: var(--text-color);
+    border-color: var(--text-color);
 }
 
 input[type="checkbox"]:checked + label::after {
     opacity: 1;
     transform: translateY(-50%) rotate(45deg) scale(1);
     transition-delay: 0.1s;
-}
-
-input[type="checkbox"]:disabled + label {
-    opacity: 0.6;
-    cursor: not-allowed;
-    color: #777;
-}
-input[type="checkbox"]:disabled + label::before {
-    background-color: #eee;
-    border-color: #ddd;
-}
-input[type="checkbox"]:disabled:checked + label::before {
-    background-color: #a0a0a0;
-    border-color: #a0a0a0;
-}
-input[type="checkbox"]:disabled:checked + label::after {
-    border-color: #f0f0f0;
 }

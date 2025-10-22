@@ -62,7 +62,7 @@ body {
 
 .rowUser .message {
     background-color: var(--accent-color);
-    color: white;
+    color: var(--text-color);
     border-bottom-right-radius: 4px;
     min-height: auto;
 }
@@ -220,25 +220,19 @@ body {
     position: absolute;
     top: 8px;
     right: 8px;
-    
-    background-color: #444;
-    color: #eee;
+    background-color: var(--base-color);
+    color: var(--text-color);
     border: none;
     padding: 5px 10px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
-    opacity: 0.3;
     transition: opacity 0.2s, background-color 0.2s;
 }
 
-.code-block-wrapper:hover .copy-code-button {
-    opacity: 1; 
-}
-
 .copy-code-button:hover {
-    background-color: #555;
+    background-color: var(--base-color-hover);
 }
 
 progress::-webkit-progress-value {
