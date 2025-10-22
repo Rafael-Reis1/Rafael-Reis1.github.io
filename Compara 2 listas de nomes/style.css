@@ -1,4 +1,5 @@
 :root {
+    --body-color: #06071A;
     --base-color: rgba(255, 255, 255, .1);
     --base-color-hover: rgba(255, 255, 255, .05);
     --accent-color: #f2511b;
@@ -6,6 +7,7 @@
     --text-color: #f7f7f7;
     --text-color-hover: rgba(247, 247, 247, .8);
     --border-color: rgba(217, 217, 217, .2);
+    --popup-background-color: #1f2031;
 }
 
 * {
@@ -16,7 +18,7 @@
 }
 
 body {
-    background-color: #06071A;
+    background-color: var(--body-color);
 }
 
 .container {
@@ -47,8 +49,12 @@ h1 {
 .opcoes textarea {
     width: 100%;
     border-radius: 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     padding: 20px;
+}
+
+.opcoes textarea::placeholder {
+    color: var(--border-color);
 }
 
 button {
@@ -91,7 +97,7 @@ button:focus {
     flex-direction: column;
     align-items: flex-start;
     padding: 1.875rem;
-    background-color: #1f2031;
+    background-color: var(--popup-background-color);
     color: var(--text-color);
     border-radius: 28px;
     gap: 0.625rem;
@@ -105,15 +111,6 @@ button:focus {
     word-break: break-all;
     overflow-x: clip;
     overflow-y: auto;
-}
-
-.listalistaUm {
-    height: 100%;
-    width: 100%;
-    overflow-y: auto;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 0.625rem;
 }
 
 #listaBackgroud {
