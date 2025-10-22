@@ -69,10 +69,11 @@ window.onload = function() {
         const copiarBtn = document.getElementById('copiarBtn');
         
         somaPopup.style.display = 'flex';
-        somaPopup.style.opacity = 1;
 
         setTimeout(() => {
             popupCards.forEach(popupCard => {
+                somaPopup.style.opacity = '1';
+                somaPopup.style.pointerEvents = 'all';
                 popupCard.style.transition = 'all 300ms cubic-bezier(.12,.12,0,1)';
                 popupCard.style.filter = 'blur(0px)';
                 popupCard.style.opacity = 1;

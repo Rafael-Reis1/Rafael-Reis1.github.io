@@ -125,6 +125,8 @@ button:focus {
 }
 
 #listaFormatadaPopup {
+    opacity: 0;
+    pointer-events: none;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -138,12 +140,7 @@ button:focus {
     display: flex;
     justify-content: center;
     align-items: center;
-    opacity: 1;
     transition: all 200ms cubic-bezier(.12,.12,0,1);
-
-    @starting-style {
-        opacity: 0;
-    }
 }
 
 .formatarBTNS {

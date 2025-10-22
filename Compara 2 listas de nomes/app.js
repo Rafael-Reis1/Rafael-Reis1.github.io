@@ -29,9 +29,10 @@ window.onload = function() {
         const copiarBtn = document.getElementById('copiarListaBtn');
         
         listaFormatadaPopup.style.display = 'flex';
-        listaFormatadaPopup.style.opacity = 1;
 
         setTimeout(() => {
+            listaFormatadaPopup.style.opacity = '1';
+            listaFormatadaPopup.style.pointerEvents = 'all';
             popupCards.forEach(popupCard => {
                 popupCard.style.transition = 'all 300ms cubic-bezier(.12,.12,0,1)';
                 popupCard.style.filter = 'blur(0px)';
