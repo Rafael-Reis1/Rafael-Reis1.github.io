@@ -219,13 +219,19 @@ window.onload = function() {
                 description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
                 html_url: '/somaValores/somaValores.html',
                 language: 'HTML'
+            },
+            {
+                name: 'Gemini Nano Web App: IA Instantânea e Privada, Built-in no Chrome',
+                description: "Experience the speed and privacy of on-device AI. This web application uses the Chrome's built-in Gemini Nano API for instant, secure chat functionality without cloud dependency.",
+                html_url: '/chromeAILocal/chromeAILocal.html',
+                language: 'HTML'
             }
         );
         data.forEach((repo, index) => {
             if(repo.description) {
                 const card = document.createElement('div');
                 card.classList.add('card');
-                const iconSvg = index < 4
+                const iconSvg = index < 5
                     ? `
                         <svg xmlns="http://www.w3.org/2000/svg" fill="#f7f7f7" height="25" viewBox="0 0 24 24" width="17" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
                             <path d="M0 0h24v24H0z" fill="none"/>
