@@ -23,7 +23,6 @@ function handleSendMessage() {
     aiApiCall(historicoMensagens, messageId);
     
     promptText.value = '';
-    promptText.focus();
 }
 
 promptText.onkeydown = function(event) {
@@ -38,6 +37,7 @@ sendButton.onclick = function() {
 }
 
 async function aiApiCall(historicoMensagens, elementIdToUpdate) {
+    promptText.disabled = true;
     const elementToUpdate = document.getElementById(elementIdToUpdate);
     let session;
 
@@ -141,6 +141,8 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         }
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
+    promptText.disabled = false;
+    promptText.focus();
 }
 
 function addHistorico(messageObject) {
