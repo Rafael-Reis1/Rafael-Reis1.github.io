@@ -194,3 +194,11 @@ function addCopyButtons(element) {
         wrapper.appendChild(button);
     });
 }
+
+document.getElementById('btnVoltar').onclick = function() {
+    if (window.opener) {
+        window.close();
+    } else {
+        window.location.href = '../index.html';
+    }
+};

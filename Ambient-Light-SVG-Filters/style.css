@@ -54,3 +54,43 @@ body {
     border: none;
     display: block;
 }
+
+.btnVoltar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.625rem;
+    width: 7.3125rem;
+    height: 2.75rem;
+    border-radius: 20px;
+    border: 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 1;
+    background-color: var(--base-color);
+    color: var(--text-color);
+    transition: background-color .5s cubic-bezier(.34,.88,.34,1);
+}
+
+.btnVoltar:hover {
+    background-color: var(--base-color-hover);
+}
+
+.btnVoltar .arrow-back-icon {
+    content: url('/imgs/arrow_back_white.webp');
+}
+
+.btnVoltar .seta-animada {
+    width: 1.25rem;
+    height: auto;
+    transition: transform 0.3s cubic-bezier(.34,.88,.34,1);
+}
+
+.btnVoltar:hover .seta-animada {
+    transform: translateX(-5px);
+}
