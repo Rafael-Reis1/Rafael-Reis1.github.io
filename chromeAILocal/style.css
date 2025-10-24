@@ -290,3 +290,35 @@ progress {
 .btnVoltar:hover .seta-animada {
     transform: translateX(-5px);
 }
+
+.rowAssistant .message table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background-color: var(--base-color-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.rowAssistant .message th,
+.rowAssistant .message td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+    color: var(--text-color);
+}
+
+.rowAssistant .message thead th {
+    background-color: var(--base-color);
+    font-weight: 600;
+}
+
+.rowAssistant .message tbody tr:nth-child(even) {
+    background-color: var(--base-color-hover);
+}
+
+.rowAssistant .message tbody tr:nth-child(odd) {
+    background-color: var(--base-color);
+}
