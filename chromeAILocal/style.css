@@ -322,3 +322,8 @@ progress {
 .rowAssistant .message tbody tr:nth-child(odd) {
     background-color: var(--base-color);
 }
+
+.rowAssistant .message code:not(pre code) {
+    display: inline-block;
+    color: var(--accent-color);
+}
