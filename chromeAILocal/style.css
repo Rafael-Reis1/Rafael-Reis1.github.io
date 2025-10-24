@@ -311,7 +311,7 @@ progress {
 }
 
 .rowAssistant .message thead th {
-    background-color: var(--base-color);
+    background-color: var(--accent-color);
     font-weight: 600;
 }
 
