@@ -26,9 +26,21 @@ function handleSendMessage() {
 }
 
 promptText.onkeydown = function(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter') {
         event.preventDefault();
-        handleSendMessage();
+
+        if (event.ctrlKey) {
+            const start = promptText.selectionStart;
+            const end = promptText.selectionEnd;
+            
+            promptText.value = promptText.value.substring(0, start) + "\n" + promptText.value.substring(end);
+            
+            promptText.selectionStart = promptText.selectionEnd = start + 1;
+
+        } else {
+            handleSendMessage();
+            promptText.style.height = 'auto';
+        }
     }
 }
 
@@ -49,7 +61,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         const DOWNLOAD_MESSAGE_ID = 'aviso-download-modelo';
         let downloadMessageAdded = false;
 
-        const session = await LanguageModel.create({
+        session = await LanguageModel.create({
             monitor(m) {
                 m.addEventListener('downloadprogress', (e) => {
                     const existingMsg = document.getElementById(DOWNLOAD_MESSAGE_ID);
@@ -97,23 +109,24 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         let fullResponse = "";
         let firstChunk = true;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
+        let renderBuffer = "";
+        let lastRenderTime = 0;
+        const RENDER_INTERVAL = 20;
+    ;
+
+        const render = (force = false) => {
+            const now = Date.now();
+            
+            if (!force && (now - lastRenderTime < RENDER_INTERVAL)) {
+                return; 
             }
+            if (renderBuffer === "") return;
 
-            if (firstChunk) {
-                elementToUpdate.innerHTML = '';
-                if (document.getElementById(DOWNLOAD_MESSAGE_ID)) {
-                    document.getElementById(DOWNLOAD_MESSAGE_ID).remove();
-                }
-                firstChunk = false;
-            }
+            lastRenderTime = now;
+            fullResponse += renderBuffer;
+            renderBuffer = "";
 
-            fullResponse += value;
-
-            const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 50;
+            const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 30;
 
             const unsafeHtml = marked.parse(fullResponse);
             elementToUpdate.innerHTML = DOMPurify.sanitize(unsafeHtml);
@@ -126,6 +139,28 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
             if (isScrolledToBottom) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
+        };
+
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                render(true);
+                break;
+            }
+
+            if (firstChunk) {
+                elementToUpdate.className = 'message is-streaming';
+                
+                if (document.getElementById(DOWNLOAD_MESSAGE_ID)) {
+                    document.getElementById(DOWNLOAD_MESSAGE_ID).remove();
+                }
+                firstChunk = false;
+            }
+
+            renderBuffer += value;
+            
+            render(false); 
         }
 
         addHistorico({ role: 'assistant', content: fullResponse });
@@ -139,7 +174,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         if (session) {
             session.destroy();
         }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        elementToUpdate.classList.remove('is-streaming');
     }
     promptText.disabled = false;
     promptText.focus();
