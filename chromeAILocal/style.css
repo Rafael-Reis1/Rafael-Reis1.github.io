@@ -335,7 +335,6 @@ progress {
     color: var(--accent-color);
 }
 
-/* Animação do spinner */
 @keyframes spinLoader {
     from {
         transform: rotate(0deg);

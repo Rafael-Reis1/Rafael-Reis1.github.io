@@ -112,7 +112,6 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         let renderBuffer = "";
         let lastRenderTime = 0;
         const RENDER_INTERVAL = 20;
-    ;
 
         const render = (force = false) => {
             const now = Date.now();
