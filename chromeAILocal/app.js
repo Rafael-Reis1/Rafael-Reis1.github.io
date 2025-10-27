@@ -111,7 +111,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
 
         let renderBuffer = "";
         let lastRenderTime = 0;
-        const RENDER_INTERVAL = 20;
+        const RENDER_INTERVAL = 100;
 
         const render = (force = false) => {
             const now = Date.now();
@@ -125,8 +125,6 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
             fullResponse += renderBuffer;
             renderBuffer = "";
 
-            const isScrolledToBottom = messagesContainer.scrollHeight - messagesContainer.clientHeight <= messagesContainer.scrollTop + 30;
-
             const unsafeHtml = marked.parse(fullResponse);
             elementToUpdate.innerHTML = DOMPurify.sanitize(unsafeHtml);
 
@@ -134,10 +132,6 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
                 hljs.highlightElement(block);
                 block.classList.add('hljs-added');
             });
-
-            if (isScrolledToBottom) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
         };
 
 
