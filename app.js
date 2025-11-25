@@ -18,35 +18,78 @@ function setupTabs() {
     const sections = Object.values(tabs).map(id => document.getElementById(id));
     const buttons = Object.keys(tabs).map(id => document.getElementById(id));
 
-    const initialSection = document.getElementById('sobre');
-    if (initialSection) {
-        mainInfo.style.height = initialSection.offsetHeight + 'px';
-    }
-
-    buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = tabs[btn.id];
-            const targetSection = document.getElementById(targetId);
-
-            buttons.forEach(b => b.classList.remove('btnAccentColor'));
-            btn.classList.add('btnAccentColor');
-
-            sections.forEach(sec => {
-                sec.style.opacity = 0;
-                setTimeout(() => {
-                    if (sec !== targetSection) sec.style.display = 'none';
-                }, 250);
-            });
-
-            targetSection.style.display = 'block';
-            mainInfo.style.height = targetSection.offsetHeight + 'px';
-
-            setTimeout(() => {
-                targetSection.style.opacity = 1;
-            }, 100);
-        });
+    let resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            if (entry.target.style.display !== 'none') {
+                mainInfo.style.height = entry.target.offsetHeight + 'px';
+            }
+        }
     });
 
+    const activateTab = (btnId) => {
+        const targetId = tabs[btnId];
+        const targetSection = document.getElementById(targetId);
+        const btn = document.getElementById(btnId);
+
+        if (!targetSection || !btn) return;
+
+        buttons.forEach(b => b.classList.remove('btnAccentColor'));
+        btn.classList.add('btnAccentColor');
+
+        sections.forEach(sec => resizeObserver.unobserve(sec));
+
+        sections.forEach(sec => {
+            sec.style.opacity = 0;
+            setTimeout(() => {
+                if (sec !== targetSection) sec.style.display = 'none';
+            }, 250);
+        });
+
+        targetSection.style.display = 'block';
+
+        resizeObserver.observe(targetSection);
+
+        mainInfo.style.height = targetSection.offsetHeight + 'px';
+
+        setTimeout(() => {
+            targetSection.style.opacity = 1;
+        }, 100);
+
+        sessionStorage.setItem('activeTab', btnId);
+    };
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => activateTab(btn.id));
+    });
+
+    const savedTab = sessionStorage.getItem('activeTab');
+    if (savedTab && tabs[savedTab]) {
+        const targetId = tabs[savedTab];
+        const targetSection = document.getElementById(targetId);
+        const btn = document.getElementById(savedTab);
+
+        if (targetSection && btn) {
+            buttons.forEach(b => b.classList.remove('btnAccentColor'));
+            btn.classList.add('btnAccentColor');
+            sections.forEach(sec => {
+                sec.style.opacity = 0;
+                sec.style.display = 'none';
+            });
+            targetSection.style.display = 'block';
+            targetSection.style.opacity = 1;
+
+            resizeObserver.observe(targetSection);
+
+            mainInfo.style.height = targetSection.offsetHeight + 'px';
+        }
+    } else {
+        const initialSection = document.getElementById('sobre');
+        if (initialSection) {
+            resizeObserver.observe(initialSection);
+            mainInfo.style.height = initialSection.offsetHeight + 'px';
+        }
+    }
+    
     document.getElementById('github')?.addEventListener('click', () => window.open('https://github.com/Rafael-Reis1', 'github'));
     document.getElementById('LinkedIn')?.addEventListener('click', () => window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn'));
     document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
@@ -239,17 +282,18 @@ function fetchAndDisplayRepos() {
 function createFeaturedCard(repo) {
     const card = document.createElement('a');
     card.href = repo.html_url;
+
     card.className = 'destaqueCard fade-in';
 
     const imgSrc = repo.image || 'imgs/GitHub.svg';
 
     card.innerHTML = `
         <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.name}" style="width: 100px; height: 100px; object-fit: contain;">
+            <img src="${imgSrc}" alt="${repo.name}" style="max-width: 60%; max-height: 60%;">
         </div>
         <div class="destaqueInfo">
             <h3>${repo.name}</h3>
-            <p>${repo.description}</p>
+            <p>${repo.description || 'Sem descrição'}</p>
         </div>
     `;
     return card;
@@ -273,7 +317,7 @@ function createRepoCard(repo) {
 
     card.innerHTML = `
         <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.language || 'GitHub Repo'}" style="width: 100px; height: 100px; object-fit: contain;">
+            <img src="${imgSrc}" alt="${repo.name}" style="max-width: 60%; max-height: 60%;">
         </div>
         <div class="destaqueInfo">
             <h3>${repo.name}</h3>
@@ -292,8 +336,5 @@ function setupAnimations() {
         });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.fade-in, .infoCard, .infos').forEach(el => {
-        el.classList.add('fade-in');
-        observer.observe(el);
-    });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 }
