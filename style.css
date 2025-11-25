@@ -16,6 +16,10 @@
     scrollbar-width: thin;
 }
 
+html {
+    scrollbar-color: var(--accent-color) var(--body-color);
+}
+
 body {
     color: var(--text-color);
     font-family: Inter;
