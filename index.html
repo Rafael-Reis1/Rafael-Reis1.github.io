@@ -1,15 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Portfólio de Rafael Reis da Silveira - Desenvolvedor Web Full-Stack especializado em criar aplicações web robustas e escaláveis.">
+    <meta name="keywords"
+        content="Rafael Reis, Desenvolvedor Web, Full Stack, JavaScript, Node.js, React, HTML, CSS, Portfólio">
+    <meta name="author" content="Rafael Reis da Silveira">
+    <meta property="og:title" content="Rafael Reis - Desenvolvedor Web Full-Stack">
+    <meta property="og:description" content="Confira meu portfólio e projetos de desenvolvimento web.">
+    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=4">
+    <meta property="og:url" content="https://rafael-reis1.github.io/">
+    <meta property="og:type" content="website">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="app.js"></script>
-    <title>Rafael Reis</title>
+    <script src="app.js" defer></script>
+    <title>Rafael Reis - Desenvolvedor Web</title>
 </head>
+
 <body>
     <div class="main">
         <aside class="infoCard">
@@ -22,11 +38,11 @@
                     <img src="imgs/Email.svg" alt="Mail">
                     <p>reisr5941@gmail.com</p>
                 </div>
-                <div class="contact" id="github">
-                    <img src="imgs/GitHub.svg" alt="Github">
+                <div class="contact smallLeftPadding" id="github">
+                    <img src="imgs/GitHubOutLine.svg" alt="Github">
                     <p>Rafael-Reis1</p>
                 </div>
-                <div class="contact" id="LinkedIn">
+                <div class="contact smallLeftPadding" id="LinkedIn">
                     <img src="imgs/LinkedIn.svg" alt="LinkedIn">
                     <p>Rafael Reis</p>
                 </div>
@@ -43,10 +59,14 @@
                     <h2>Sobre mim</h2>
                 </div>
                 <div id="informacaoSobre">
-                    <p>Um desenvolvedor Web Full-Stack apaixonado, com expertise em criar aplicações web robustas e escaláveis. 
-                        Experiente em construir APIs, integrar serviços e otimizar o desempenho para experiências de usuário perfeitas. 
-                        Especialista em depurar e garantir aplicações responsivas e de alta qualidade. Um colaborador ágil dedicado a 
-                        manter-se atualizado com as melhores práticas da indústria. <br><br>Buscando oportunidades para colaborar e dar vida ao 
+                    <p>Um desenvolvedor Web Full-Stack apaixonado, com expertise em criar aplicações web robustas e
+                        escaláveis.
+                        Experiente em construir APIs, integrar serviços e otimizar o desempenho para experiências de
+                        usuário perfeitas.
+                        Especialista em depurar e garantir aplicações responsivas e de alta qualidade. Um colaborador
+                        ágil dedicado a
+                        manter-se atualizado com as melhores práticas da indústria. <br><br>Buscando oportunidades para
+                        colaborar e dar vida ao
                         seu projeto web. Vamos nos conectar e transformar sua visão em uma realidade digital!</p>
                 </div>
                 <br>
@@ -93,15 +113,15 @@
                     <div class="detalhesCurriculo" id="detalhesCurriculoEducacao">
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Eng. elétrica / Graduação</h4>
-                            <p>Formação em projeto, desenvolvimento e manutenção de sistemas elétricos, 
-                                abrangendo eletrônica, eletromagnetismo, sistemas de potência, controle 
+                            <p>Formação em projeto, desenvolvimento e manutenção de sistemas elétricos,
+                                abrangendo eletrônica, eletromagnetismo, sistemas de potência, controle
                                 e automação, e telecomunicações.</p>
                             <p style="color: #f2511b; font-weight: bold;">02/2018 - 06/2021 (trancado)</p>
                         </div>
                         <div class="cursos">
                             <h4 class="pontosCurriculo">Sistemas de informação / Graduação</h4>
-                            <p>Formação em desenvolvimento, implementação e gestão de sistemas 
-                                computacionais, incluindo análise de sistemas, banco de dados, 
+                            <p>Formação em desenvolvimento, implementação e gestão de sistemas
+                                computacionais, incluindo análise de sistemas, banco de dados,
                                 redes, segurança da informação e gestão de projetos de TI.</p>
                             <p style="color: #f2511b; font-weight: bold;">02/2023 - atual</p>
                         </div>
@@ -154,10 +174,20 @@
                 <div class="detalhesGithub">
                     <div>
                         <a href="https://github.com/Rafael-Reis1" target="github">
-                            <img src="https://github-readme-activity-graph.vercel.app/graph?username=Rafael-Reis1&bg_color=1a1b27&color=6493e1&line=38bdae&point=38bdae&area=true&hide_border=true&hide_title=true&radius=10" alt="Gráfico de atividade do GitHub de Rafael-Reis1" class="github-graph">
+                            <img src="https://github-readme-activity-graph.vercel.app/graph?username=Rafael-Reis1&bg_color=1a1b27&color=6493e1&line=38bdae&point=38bdae&area=true&hide_border=true&hide_title=true&radius=10"
+                                alt="Gráfico de atividade do GitHub de Rafael-Reis1" class="github-graph">
                         </a>
                     </div>
                 </div>
+
+                <!-- New Featured Projects Section -->
+                <div id="projetosDestaque" class="projetosDestaque">
+                    <h3 class="subtitleDest">Destaques</h3>
+                    <div class="destaquesContainer">
+                        <!-- Destaques serão inseridos aqui via JS -->
+                    </div>
+                </div>
+
                 <div id="repos"></div>
             </div>
         </div>
@@ -167,8 +197,10 @@
             <p>Seu navegador não suporta iframes, ou o PDF não pode ser exibido.</p>
         </iframe>
         <button id="closeButton" class="close-button">×</button>
-        <button id="downloadButtonModal" class="download-button-modal"><img src="imgs/download.svg" alt="Curriculo"></button>
+        <button id="downloadButtonModal" class="download-button-modal"><img src="imgs/download.svg"
+                alt="Curriculo"></button>
     </div>
     <div id="overlay" class="overlay"></div>
 </body>
+
 </html>

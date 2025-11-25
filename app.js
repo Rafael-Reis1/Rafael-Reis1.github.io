@@ -1,266 +1,299 @@
-window.onload = function() {
-    const btnSobre = document.getElementById('btnSobre');
-    const btnCurriculo = document.getElementById('btnCurriculo');
-    const btnPortfolio = document.getElementById('btnPortfolio');
-    const sobre = document.getElementById('sobre');
-    const curriculo = document.getElementById('curriculo');
-    const github = document.getElementById('github');
-    const LinkedIn = document.getElementById('LinkedIn');
-    const mail = document.getElementById('mail');
-    const mainInfo = document.querySelector('.mainInfo');
-    const portfolio = document.getElementById('portfolio');
-    const btnCurriculoDownload = document.getElementById('btnCurriculoDownload');
-    const curriculoLive = document.getElementById('curriculoLive');
-    const overlay = document.getElementById('overlay');
-    const closeButton = document.getElementById('closeButton');
-    const downloadButtonModal = document.getElementById('downloadButtonModal');
-    mainInfo.style.height = sobre.offsetHeight + 'px';
 
-    const habilidadesContainer = document.getElementById('habilidadesContainer');
-    let isDragging = false;
+document.addEventListener('DOMContentLoaded', () => {
+    setupTabs();
+    setupDragScroll();
+    setupModal();
+    fetchAndDisplayRepos();
+    setupAnimations();
+});
+
+function setupTabs() {
+    const tabs = {
+        'btnSobre': 'sobre',
+        'btnCurriculo': 'curriculo',
+        'btnPortfolio': 'portfolio'
+    };
+
+    const mainInfo = document.querySelector('.mainInfo');
+    const sections = Object.values(tabs).map(id => document.getElementById(id));
+    const buttons = Object.keys(tabs).map(id => document.getElementById(id));
+
+    const initialSection = document.getElementById('sobre');
+    if (initialSection) {
+        mainInfo.style.height = initialSection.offsetHeight + 'px';
+    }
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = tabs[btn.id];
+            const targetSection = document.getElementById(targetId);
+
+            buttons.forEach(b => b.classList.remove('btnAccentColor'));
+            btn.classList.add('btnAccentColor');
+
+            sections.forEach(sec => {
+                sec.style.opacity = 0;
+                setTimeout(() => {
+                    if (sec !== targetSection) sec.style.display = 'none';
+                }, 250);
+            });
+
+            targetSection.style.display = 'block';
+            mainInfo.style.height = targetSection.offsetHeight + 'px';
+
+            setTimeout(() => {
+                targetSection.style.opacity = 1;
+            }, 100);
+        });
+    });
+
+    document.getElementById('github')?.addEventListener('click', () => window.open('https://github.com/Rafael-Reis1', 'github'));
+    document.getElementById('LinkedIn')?.addEventListener('click', () => window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn'));
+    document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
+}
+
+function setupDragScroll() {
+    const slider = document.getElementById('habilidadesContainer');
+    if (!slider) return;
+
+    let isDown = false;
     let startX;
     let scrollLeft;
 
-    habilidadesContainer.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.pageX - habilidadesContainer.offsetLeft;
-        scrollLeft = habilidadesContainer.scrollLeft;
+    slider.addEventListener('mousedown', (e) => {
+        isDown = true;
+        startX = e.pageX - slider.offsetLeft;
+        scrollLeft = slider.scrollLeft;
     });
-
-    habilidadesContainer.addEventListener('mouseleave', () => {
-        isDragging = false;
-    });
-
-    habilidadesContainer.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-
-    habilidadesContainer.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const x = e.pageX - habilidadesContainer.offsetLeft;
+    slider.addEventListener('mouseleave', () => isDown = false);
+    slider.addEventListener('mouseup', () => isDown = false);
+    slider.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
         const walk = (x - startX) * 2;
-        habilidadesContainer.scrollLeft = scrollLeft - walk;
+        slider.scrollLeft = scrollLeft - walk;
     });
 
-    const imagens = habilidadesContainer.querySelectorAll('img');
-
-    imagens.forEach(img => {
-        img.addEventListener('dragstart', (e) => {
-            e.preventDefault();
-        });
+    slider.querySelectorAll('img').forEach(img => {
+        img.addEventListener('dragstart', e => e.preventDefault());
     });
+}
 
-    btnSobre.onclick = function() {
-        sobre.style.display = 'block';
-        setTimeout(function() {
-            sobre.style.opacity = 1;
-        }, 100);
+function setupModal() {
+    const btnDownload = document.getElementById('btnCurriculoDownload');
+    const modal = document.getElementById('curriculoLive');
+    const overlay = document.getElementById('overlay');
+    const closeBtn = document.getElementById('closeButton');
+    const downloadBtnModal = document.getElementById('downloadButtonModal');
 
-        mainInfo.style.height = sobre.offsetHeight + 'px';
-        btnSobre.classList.add('btnAccentColor');
-        btnCurriculo.classList.remove('btnAccentColor');
-        btnPortfolio.classList.remove('btnAccentColor');
-        curriculo.style.opacity = 0;
-        portfolio.style.opacity = 0;
-        
-        setTimeout(function() {
-            curriculo.style.display = 'none';
-            portfolio.style.display = 'none';
-        }, 250); 
-    }
+    if (!btnDownload || !modal || !overlay) return;
 
-    btnCurriculo.onclick = function() {
-        curriculo.style.display = 'block';
-        setTimeout(function() {
-            curriculo.style.opacity = 1;
-        }, 100);
+    function toggleModal(show) {
+        if (document.startViewTransition) {
+            document.startViewTransition(() => {
+                if (show) {
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    btnDownload.style.display = 'none';
+                    overlay.style.display = 'block';
+                    overlay.classList.add('show');
+                    closeBtn.style.display = 'flex';
+                    closeBtn.classList.add('show');
+                    downloadBtnModal.classList.add('show');
+                } else {
+                    modal.style.display = 'none';
+                    modal.classList.remove('show');
+                    btnDownload.style.display = 'flex';
+                    overlay.style.display = 'none';
+                    overlay.classList.remove('show');
+                    closeBtn.style.display = 'none';
+                    closeBtn.classList.remove('show');
+                    downloadBtnModal.classList.remove('show');
+                }
+            });
+        } else {
+            if (show) {
+                modal.style.display = 'block';
+                modal.offsetHeight;
+                modal.classList.add('show');
+                btnDownload.style.display = 'none';
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.classList.add('show'), 10);
+                closeBtn.style.display = 'flex';
+                setTimeout(() => closeBtn.classList.add('show'), 10);
+                downloadBtnModal.classList.add('show');
+            } else {
+                modal.classList.remove('show');
+                overlay.classList.remove('show');
+                closeBtn.classList.remove('show');
+                downloadBtnModal.classList.remove('show');
 
-        mainInfo.style.height = curriculo.offsetHeight + 'px';
-        btnSobre.classList.remove('btnAccentColor');
-        btnCurriculo.classList.add('btnAccentColor');
-        btnPortfolio.classList.remove('btnAccentColor');
-        sobre.style.opacity = 0;
-        portfolio.style.opacity = 0;
-        
-        setTimeout(function() {
-            sobre.style.display = 'none';
-            portfolio.style.display = 'none';
-        }, 250); 
-    }
-
-    btnPortfolio.onclick = function() {
-        portfolio.style.display = 'block';
-        setTimeout(function() {
-            portfolio.style.opacity = 1;
-        }, 100);
-
-        mainInfo.style.height = portfolio.offsetHeight + 'px';
-        btnSobre.classList.remove('btnAccentColor');
-        btnCurriculo.classList.remove('btnAccentColor');
-        btnPortfolio.classList.add('btnAccentColor');
-        sobre.style.opacity = 0;
-        curriculo.style.opacity = 0;
-
-        setTimeout(function() {
-            curriculo.style.display = 'none';
-            sobre.style.display = 'none';
-        }, 250);
-    }
-
-    github.onclick = function() {
-        window.open('https://github.com/Rafael-Reis1', 'github');
-    }
-
-    LinkedIn.onclick = function() {
-        window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn');
-    }
-
-    mail.onclick = function() {
-        window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!';
-    }
-
-    btnCurriculoDownload.onclick = function() {
-        if (!document.startViewTransition) {
-            curriculoLive.style.display = 'block';
-            curriculoLive.classList.add('show');
-            btnCurriculoDownload.style.display = 'none';
-            overlay.style.display = 'block';
-            overlay.classList.add('show');
-            closeButton.style.display = 'flex';
-            closeButton.classList.add('show');
-            downloadButtonModal.classList.add('show');
-            return;
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    btnDownload.style.display = 'flex';
+                    overlay.style.display = 'none';
+                    closeBtn.style.display = 'none';
+                }, 300);
+            }
         }
-
-        document.startViewTransition(() => {
-            curriculoLive.style.display = 'block';
-            curriculoLive.classList.add('show');
-            btnCurriculoDownload.style.display = 'none';
-            overlay.style.display = 'block';
-            overlay.classList.add('show');
-            closeButton.style.display = 'flex';
-            closeButton.classList.add('show');
-            downloadButtonModal.classList.add('show');
-            curriculoLive.style.viewTransitionName = 'shared-curriculo-area';
-        });
     }
 
-    overlay.addEventListener('click', closeIframe);
-    closeButton.addEventListener('click', closeIframe);
-    downloadButtonModal.addEventListener('click', () => {
-        const filePath = 'docs/Currículo.pdf';
-        const fileName = 'Currículo.pdf';
+    btnDownload.addEventListener('click', () => toggleModal(true));
+    overlay.addEventListener('click', () => toggleModal(false));
+    closeBtn.addEventListener('click', () => toggleModal(false));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('show')) toggleModal(false);
+    });
+
+    downloadBtnModal.addEventListener('click', () => {
         const link = document.createElement('a');
-        link.href = filePath;
-        link.download = fileName;
+        link.href = 'docs/Currículo.pdf';
+        link.download = 'Currículo.pdf';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     });
+}
 
-    function closeIframe() {
-        if (!document.startViewTransition) {
-            curriculoLive.style.display = 'none';
-            curriculoLive.classList.remove('show');
-            btnCurriculoDownload.style.display = 'flex';
-            overlay.style.display = 'none';
-            overlay.classList.remove('show');
-            closeButton.style.display = 'none';
-            closeButton.classList.remove('show');
-            downloadButtonModal.classList.remove('show');
-            return;
+function fetchAndDisplayRepos() {
+    const extraRepos = [
+        {
+            name: 'Formatar para lista de números separada por vírgulas',
+            description: 'Easily format any list of numbers into a clean, comma-separated list.',
+            html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/Html 5.svg'
+        },
+        {
+            name: 'Compara 2 listas de nomes',
+            description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
+            html_url: '/Compara 2 listas de nomes/Compara 2 listas de nomes.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/Html 5.svg'
+        },
+        {
+            name: 'Efeito de luz ambiente imersivo',
+            description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
+            html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/CSS3.svg'
+        },
+        {
+            name: 'Soma lista de valores',
+            description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
+            html_url: '/somaValores/somaValores.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Gemini Nano Web App',
+            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            html_url: '/chromeAILocal/chromeAILocal.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Portal do Colaborador - Univale',
+            description: "Desenvolvido do zero com HTML, CSS e JS. Integração via API com a plataforma Fluig.",
+            html_url: 'https://portalcolaborador.univale.br/',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
         }
-
-        document.startViewTransition(() => {
-            curriculoLive.style.display = 'none';
-            curriculoLive.classList.remove('show');
-            btnCurriculoDownload.style.display = 'flex';
-            overlay.style.display = 'none';
-            overlay.classList.remove('show');
-            closeButton.style.display = 'none';
-            closeButton.classList.remove('show');
-            downloadButtonModal.classList.remove('show');
-            curriculoLive.style.viewTransitionName = '';
-            btnCurriculoDownload.style.viewTransitionName = 'shared-curriculo-area';
-        });
-    }
-
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape' && curriculoLive.classList.contains('show')) {
-            closeIframe();
-        }
-    });
+    ];
 
     fetch('https://api.github.com/users/Rafael-Reis1/repos')
-    .then(response => response.json())
-    .then(data => {
-        const reposDiv = document.getElementById('repos');
-        data.unshift(
-            {
-                name: 'Formatar para lista de números separada por vírgulas',
-                description: 'Easily format any list of numbers into a clean, comma-separated list.',
-                html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
-                language: 'HTML'
-            },
-            {
-                name: 'Compara 2 listas de nomes',
-                description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
-                html_url: '/Compara 2 listas de nomes/Compara 2 listas de nomes.html',
-                language: 'HTML'
-            },
-            {
-                name: 'Efeito de luz ambiente imersivo',
-                description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
-                html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
-                language: 'HTML'
-            },
-            {
-                name: 'Soma lista de valores',
-                description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
-                html_url: '/somaValores/somaValores.html',
-                language: 'HTML'
-            },
-            {
-                name: 'Gemini Nano Web App: IA Instantânea e Privada, Built-in no Chrome',
-                description: "Experience the speed and privacy of on-device AI. This web application uses the Chrome's built-in Gemini Nano API for instant, secure chat functionality without cloud dependency.",
-                html_url: '/chromeAILocal/chromeAILocal.html',
-                language: 'HTML'
-            },
-            {
-                name: 'Potal do Colaborador - Univale',
-                description: "An internal intranet portal for Universidade Vale do Rio Doce (Univale). This application provides university employees with centralized access to internal resources, communications, and institutional services.",
-                html_url: 'https://portalcolaborador.univale.br/',
-                language: 'HTML'
-            }
-        );
-        data.forEach((repo, index) => {
-            if(repo.description) {
-                const card = document.createElement('div');
-                card.classList.add('card');
-                const iconSvg = index < 6
-                    ? `
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="#f7f7f7" height="25" viewBox="0 0 24 24" width="17" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
-                            <path d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                        </svg>
-                        ` 
-                    : `
-                        <svg aria-hidden="true" fill="#f7f7f7" height="25" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo mr-1 color-fg-muted" style="flex-shrink: 0; min-width: 16px; min-height: 25px;">
-                            <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
-                        </svg>
-                        `;
-                card.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <div style="display: flex; gap: 5px;">
-                            ${iconSvg}
-                            <h3><a href="${repo.html_url}" target="${repo.name}">${repo.name}</a></h3>
-                        </div>
-                        <p style="font-weight: 300; font-size: 15px;">${repo.description || 'Sem descrição'}</p>
-                        <p style="font-weight: 200; font-size: 15px;">${repo.language|| 'Sem linguagem'}</p>
-                    </div>
-                `;
-                reposDiv.appendChild(card);
+        .then(response => response.json())
+        .then(data => {
+            const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
+            const filteredData = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
+
+            const allRepos = [...extraRepos, ...filteredData];
+            const featuredContainer = document.querySelector('.destaquesContainer');
+            const reposContainer = document.getElementById('repos');
+
+            featuredContainer.innerHTML = '';
+            reposContainer.innerHTML = '';
+
+            allRepos.forEach(repo => {
+                if (repo.featured) {
+                    const card = createFeaturedCard(repo);
+                    featuredContainer.appendChild(card);
+                } else if (repo.description) {
+                    const card = createRepoCard(repo);
+                    reposContainer.appendChild(card);
+                }
+            });
+
+            setupAnimations();
+        })
+        .catch(err => console.error('Error fetching repos:', err));
+}
+
+function createFeaturedCard(repo) {
+    const card = document.createElement('a');
+    card.href = repo.html_url;
+    card.className = 'destaqueCard fade-in';
+
+    const imgSrc = repo.image || 'imgs/GitHub.svg';
+
+    card.innerHTML = `
+        <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
+            <img src="${imgSrc}" alt="${repo.name}" style="width: 100px; height: 100px; object-fit: contain;">
+        </div>
+        <div class="destaqueInfo">
+            <h3>${repo.name}</h3>
+            <p>${repo.description}</p>
+        </div>
+    `;
+    return card;
+}
+
+function createRepoCard(repo) {
+    const card = document.createElement('a');
+    card.href = repo.html_url;
+    card.target = "_blank";
+    card.className = 'destaqueCard fade-in';
+
+    let imgSrc = 'imgs/GitHub.svg';
+    if (repo.language) {
+        const lang = repo.language.toLowerCase();
+        if (lang.includes('html')) imgSrc = 'imgs/Html 5.svg';
+        else if (lang.includes('css')) imgSrc = 'imgs/CSS3.svg';
+        else if (lang.includes('javascript')) imgSrc = 'imgs/JavaScript.svg';
+        else if (lang.includes('c#')) imgSrc = 'imgs/C Sharp Logo.svg';
+        else if (lang.includes('typescript')) imgSrc = 'imgs/JavaScript.svg';
+    }
+
+    card.innerHTML = `
+        <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
+            <img src="${imgSrc}" alt="${repo.language || 'GitHub Repo'}" style="width: 100px; height: 100px; object-fit: contain;">
+        </div>
+        <div class="destaqueInfo">
+            <h3>${repo.name}</h3>
+            <p>${repo.description || 'Sem descrição'}</p>
+        </div>
+    `;
+    return card;
+}
+
+function setupAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
             }
         });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in, .infoCard, .infos').forEach(el => {
+        el.classList.add('fade-in');
+        observer.observe(el);
     });
 }

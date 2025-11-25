@@ -74,14 +74,13 @@ iframe {
     background-color: var(--base-color);
     border-radius: 20px;
     border: 1px solid var(--border-color);
-    transition: height 500ms cubic-bezier(.12,.12,0,1);
+    transition: height 500ms cubic-bezier(.12, .12, 0, 1);
     overflow: clip;
 }
 
 .contacts {
     display: flex;
     flex-direction: column;
-    gap: 0.3125rem;
     padding: 1.25rem 0 0.9375rem 0;
 }
 
@@ -94,19 +93,13 @@ iframe {
     transition: background-color 250ms ease;
 }
 
-#github {
-    padding: 0.4375rem;
-    gap: 0.3125rem;
-}
-
-#LinkedIn {
-    padding: 0.4375rem;
-    gap: 0.3125rem;
-}
-
 .contact:hover {
     background-color: var(--base-color);
     cursor: pointer;
+}
+
+.smallLeftPadding {
+    padding-left: 7px;
 }
 
 .navBar {
@@ -200,7 +193,7 @@ iframe {
     flex-direction: column;
     gap: 0.3125rem;
 }
-  
+
 #detalhesCurriculoEducacao::before {
     content: "";
     position: absolute;
@@ -349,24 +342,6 @@ iframe {
     opacity: 1;
 }
 
-::view-transition-old(shared-curriculo-area) {
-    animation: fade-out-shrink 0.2s cubic-bezier(.34,.88,.34,1) forwards;
-}
-
-::view-transition-new(shared-curriculo-area) {
-    animation: fade-in-grow 0.4s cubic-bezier(.34,.88,.34,1) forwards;
-}
-
-@keyframes fade-out-shrink {
-    from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; }
-}
-
-@keyframes fade-in-grow {
-    from { opacity: 0; transform: scale(0.5); }
-    to { opacity: 1; transform: scale(1); }
-}
-
 .overlay {
     position: fixed;
     top: 0;
@@ -378,7 +353,7 @@ iframe {
     z-index: 10;
     display: none;
     opacity: 0;
-    transition: opacity 0.3s ease-out; 
+    transition: opacity 0.3s ease-out;
 }
 
 .overlay.show {
@@ -445,6 +420,7 @@ iframe {
     display: inline-block;
     opacity: 1;
 }
+
 .curriculoLive {
     position: fixed;
 }
@@ -485,7 +461,6 @@ iframe {
     margin-top: 0.9375rem;
     font-size: 1.5rem;
 }
-  
 
 .habilidadesContainer::-webkit-scrollbar {
     height: 0.5rem;
@@ -509,24 +484,43 @@ iframe {
 .habilidadesContainer {
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) #333;
-} 
+}
 
 .detalhesGithub {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 2.5rem;
+    margin: 3.125rem 0 0 0.3125rem;
     width: 100%;
+}
+
+.detalhesGithub>div {
+    background-color: #1A1B27;
+    border-radius: 15px;
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    width: 50.4375rem;
+    display: flex;
+    justify-content: center;
+}
+
+.detalhesGithub>div:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-color);
 }
 
 .detalhesGithub a {
     display: flex;
     justify-content: center;
+    width: 100%;
 }
 
 .github-graph {
-    width: 95%;
+    width: 100%;
     height: auto;
+    border-radius: 5px;
 }
 
 #gitHubLanguages {
@@ -537,7 +531,7 @@ iframe {
     display: flex;
     margin-left: 1.25rem;
     flex-wrap: wrap;
-    gap: 0.625rem;
+    gap: 1.25rem;
     margin-top: 1.25rem;
 }
 
@@ -552,12 +546,10 @@ iframe {
     color: #70A5FD;
     text-decoration: none;
 }
-  
 
 .card a:visited {
     color: #70A5FD;
 }
-  
 
 .card a:hover {
     color: #70A5FD;
@@ -621,7 +613,7 @@ iframe {
         background-color: var(--base-color);
         z-index: 0;
     }
-    
+
     #detalhesCurriculoExperiencia::before {
         content: "";
         position: absolute;
@@ -632,7 +624,7 @@ iframe {
         background-color: var(--base-color);
         z-index: 0;
     }
-    
+
     #gitHubLanguages {
         width: 100%;
     }
@@ -648,5 +640,116 @@ iframe {
 
     .card {
         width: 100%;
+    }
+}
+
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.projetosDestaque {
+    margin-top: 1.875rem;
+    margin-left: 1.25rem;
+}
+
+.destaquesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+}
+
+.destaqueCard {
+    background-color: #1A1B27;
+    border-radius: 15px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 48%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.destaqueCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-color);
+}
+
+.destaqueCard h3 {
+    font-size: 1.25rem;
+}
+
+.destaqueImg {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.destaqueInfo {
+    padding: 1.25rem;
+}
+
+.destaqueInfo h3 {
+    margin-bottom: 0.625rem;
+    color: var(--accent-color);
+}
+
+.destaqueInfo p {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+    border-radius: 5px;
+}
+
+.subtitleDest {
+    font-size: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .destaqueCard {
+        max-width: 100%;
+    }
+}
+
+::view-transition-old(shared-curriculo-area) {
+    animation: fade-out-shrink 0.2s cubic-bezier(.34, .88, .34, 1) forwards;
+}
+
+::view-transition-new(shared-curriculo-area) {
+    animation: fade-in-grow 0.4s cubic-bezier(.34, .88, .34, 1) forwards;
+}
+
+@keyframes fade-out-shrink {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes fade-in-grow {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
