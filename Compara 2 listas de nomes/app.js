@@ -193,12 +193,7 @@ window.onload = function() {
     }
 
     let timerNotificacao;
-
-    /**
-     *
-     * @param {string} mensagem
-     * @param {number} duracao
-     */
+    
     function mostrarNotificacao(mensagem, duracao = 1500) {
         const notificacao = document.getElementById('notificacao-copia');
         if (!notificacao) return;
