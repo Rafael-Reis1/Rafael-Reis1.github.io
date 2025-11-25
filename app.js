@@ -89,7 +89,7 @@ function setupTabs() {
             mainInfo.style.height = initialSection.offsetHeight + 'px';
         }
     }
-    
+
     document.getElementById('github')?.addEventListener('click', () => window.open('https://github.com/Rafael-Reis1', 'github'));
     document.getElementById('LinkedIn')?.addEventListener('click', () => window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn'));
     document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
@@ -289,7 +289,7 @@ function createFeaturedCard(repo) {
 
     card.innerHTML = `
         <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.name}" style="max-width: 60%; max-height: 60%;">
+            <img src="${imgSrc}" alt="${repo.name}" style="height: 60%; width: auto;">
         </div>
         <div class="destaqueInfo">
             <h3>${repo.name}</h3>
@@ -317,7 +317,7 @@ function createRepoCard(repo) {
 
     card.innerHTML = `
         <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.name}" style="max-width: 60%; max-height: 60%;">
+            <img src="${imgSrc}" alt="${repo.name}" style="height: 60%; width: auto;">
         </div>
         <div class="destaqueInfo">
             <h3>${repo.name}</h3>
