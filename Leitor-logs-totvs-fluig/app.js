@@ -114,6 +114,13 @@ function addFileToList(file) {
                 let pendingHeader = null;
                 let pendingBuffer = [];
 
+                function parseLogDate(dateStr) {
+                    const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
+                    return new Date(isoStr);
+                }
+
+                let previousUniqueLogDate = null;
+
                 function processPendingLog() {
                     if (!pendingHeader) return;
 
@@ -135,12 +142,33 @@ function addFileToList(file) {
                         } else {
                             lastLog.countBadge.textContent = `x${lastLog.count}`;
                         }
-
                     } else {
+                        let deltaHtml = '';
+                        const currentObjDate = parseLogDate(date);
+
+                        if (previousUniqueLogDate) {
+                            const diff = currentObjDate - previousUniqueLogDate;
+                            if (diff > 0) {
+                                // Format delta
+                                let deltaText = '';
+                                if (diff < 1000) {
+                                    deltaText = `+${diff}ms`;
+                                } else if (diff < 60000) {
+                                    deltaText = `+${(diff / 1000).toFixed(2)}s`;
+                                } else {
+                                    deltaText = `+${(diff / 60000).toFixed(1)}m`;
+                                }
+                                deltaHtml = `<span class="log-delta">${deltaText}</span>`;
+                            }
+                        }
+
+                        previousUniqueLogDate = currentObjDate;
+
+
                         const div = document.createElement('div');
                         div.className = 'log-line';
                         div.innerHTML = `
-                            <span class="log-date">${date}</span>
+                            <span class="log-date">${date} ${deltaHtml}</span>
                             <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
                             <span class="log-class">${className}</span>
                             <span class="log-thread">${thread}</span>
@@ -193,6 +221,16 @@ function addFileToList(file) {
 
                 processPendingLog();
 
+                conteudoArquivoLog.onclick = function (e) {
+                    const line = e.target.closest('.log-line');
+                    if (line) {
+                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
+                        if (currentActive) currentActive.classList.remove('active');
+
+                        line.classList.add('active');
+                    }
+                };
+
                 const searchInput = document.getElementById('searchInput');
                 const radioButtons = document.querySelectorAll('input[name="logLevel"]');
 
@@ -234,22 +272,24 @@ function addFileToList(file) {
                     });
 
                     stackContainers.forEach(container => {
-                        const containerLevel = container.dataset.level;
+                        const prevLine = container.previousElementSibling;
+                        const isPrevVisible = prevLine && prevLine.style.display !== 'none';
 
-                        let levelMatch = true;
-
-                        if (selectedLevel !== 'all') {
-                            if (containerLevel) {
-                                levelMatch = (containerLevel === selectedLevel);
-                            } else {
-                                levelMatch = false;
-                            }
-                        }
-
-                        if (levelMatch) {
+                        if (isPrevVisible) {
                             container.style.display = '';
                         } else {
                             container.style.display = 'none';
+                        }
+
+                        if (searchTerm) {
+                            const content = container.querySelector('.stack-trace-content');
+                            const btn = container.querySelector('.stack-trace-toggle');
+                            if (content && content.style.display !== 'none') {
+                                content.style.display = 'none';
+                                if (btn) {
+                                    btn.textContent = btn.textContent.replace('▼ Hide', '▶ Show');
+                                }
+                            }
                         }
                     });
 
