@@ -110,6 +110,11 @@ function addFileToList(file) {
                 let lastLog = null;
                 let pendingHeader = null;
                 let pendingBuffer = [];
+                let countTotal = 0;
+                let countError = 0;
+                let countWarn = 0;
+                let firstDate = null;
+                let lastDate = null;
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -121,7 +126,15 @@ function addFileToList(file) {
                 function processPendingLog() {
                     if (!pendingHeader) return;
 
+                    countTotal++;
                     const { date, level, className, thread, message } = pendingHeader;
+
+                    if (level === 'ERROR') countError++;
+                    if (level === 'WARN') countWarn++;
+
+                    if (!firstDate) firstDate = parseLogDate(date);
+                    lastDate = parseLogDate(date);
+
                     const bufferContent = pendingBuffer.join('\n');
                     const signature = `${level}|${className}|${thread}|${message}|${bufferContent}`;
 
@@ -184,20 +197,46 @@ function addFileToList(file) {
                         };
                     }
 
-                    pendingHeader = null;
                     pendingBuffer = [];
                 }
 
+                const headerRow = document.createElement('div');
+                headerRow.className = 'log-header';
+                headerRow.innerHTML = `
+                    <div class="header-cell">Date</div>
+                    <div class="header-cell">Level</div>
+                    <div class="header-cell">Class</div>
+                    <div class="header-cell">Thread</div>
+                    <div class="header-cell">Message</div>
+                `;
+                fragment.appendChild(headerRow);
+
+                conteudoArquivoLog.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('log-class') || e.target.classList.contains('log-thread')) {
+                        const text = e.target.textContent.trim();
+                        const cleanText = text.replace(/^\[|\]$|^\(|\)$/g, '');
+
+                        const searchInput = document.getElementById('searchInput');
+                        if (searchInput) {
+                            searchInput.value = cleanText;
+                            // Trigger input event to run filter
+                            searchInput.dispatchEvent(new Event('input'));
+                        }
+                    }
+                });
+
                 lines.forEach(line => {
-                    const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                    line = line.replace('\r', '');
+
+                    const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
                     const match = line.match(regex);
 
                     if (match) {
                         processPendingLog();
 
-                        const [, date, level, className, thread, message] = match;
+                        const [date, level, className, thread, message] = match;
                         pendingHeader = { date, level, className, thread, message };
-
+                        pendingBuffer = [];
                     } else {
                         if (pendingHeader) {
                             if (line.trim().length > 0) {
@@ -217,12 +256,33 @@ function addFileToList(file) {
 
                 processPendingLog();
 
+                const statTotal = document.getElementById('statTotal');
+                const statErrors = document.getElementById('statErrors');
+                const statWarnings = document.getElementById('statWarnings');
+                const statDuration = document.getElementById('statDuration');
+                const logDashboard = document.getElementById('logDashboard');
+
+                if (statTotal) statTotal.textContent = countTotal;
+                if (statErrors) statErrors.textContent = countError;
+                if (statWarnings) statWarnings.textContent = countWarn;
+
+                let durationStr = '--';
+                if (firstDate && lastDate) {
+                    const diffMs = lastDate - firstDate;
+                    const diffSec = Math.floor(diffMs / 1000);
+                    const hours = Math.floor(diffSec / 3600);
+                    const mins = Math.floor((diffSec % 3600) / 60);
+                    const secs = diffSec % 60;
+                    durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                if (statDuration) statDuration.textContent = durationStr;
+                if (logDashboard) logDashboard.style.display = 'flex';
+
                 conteudoArquivoLog.onclick = function (e) {
                     const line = e.target.closest('.log-line');
                     if (line) {
                         const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
                         if (currentActive) currentActive.classList.remove('active');
-
                         line.classList.add('active');
                     }
                 };
