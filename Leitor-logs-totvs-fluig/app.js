@@ -421,7 +421,11 @@ function addFileToList(file) {
                 });
 
                 const elements = Array.from(fragment.children);
-                elements.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
+                const header = elements.find(el => el.classList.contains('log-header'));
+                const logs = elements.filter(el => !el.classList.contains('log-header'));
+
+                if (header) conteudoArquivoLog.appendChild(header);
+                logs.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
 
 
                 popup.style.display = 'flex';
