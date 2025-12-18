@@ -67,7 +67,7 @@ function addFileToList(file) {
 
                     const toggleBtn = document.createElement('button');
                     toggleBtn.className = 'stack-trace-toggle';
-                    toggleBtn.textContent = `▶ Show Stack Trace (${buffer.length} lines)`;
+                    toggleBtn.textContent = `▶ Show Details (${buffer.length} lines)`;
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'stack-trace-content';
@@ -75,7 +75,14 @@ function addFileToList(file) {
 
                     buffer.forEach(traceLine => {
                         const lineDiv = document.createElement('div');
-                        lineDiv.className = 'log-line log-stacktrace';
+                        const isStackLine = traceLine.trim().startsWith('at ') || traceLine.trim().startsWith('...');
+
+                        if (isStackLine) {
+                            lineDiv.className = 'log-line log-stacktrace';
+                        } else {
+                            lineDiv.className = 'log-line log-detail';
+                        }
+
                         lineDiv.textContent = traceLine;
                         contentDiv.appendChild(lineDiv);
                     });
@@ -84,8 +91,8 @@ function addFileToList(file) {
                         const isHidden = contentDiv.style.display === 'none';
                         contentDiv.style.display = isHidden ? 'block' : 'none';
                         toggleBtn.textContent = isHidden
-                            ? `▼ Hide Stack Trace (${buffer.length} lines)`
-                            : `▶ Show Stack Trace (${buffer.length} lines)`;
+                            ? `▼ Hide Details (${buffer.length} lines)`
+                            : `▶ Show Details (${buffer.length} lines)`;
                     };
 
                     container.appendChild(toggleBtn);
@@ -94,39 +101,34 @@ function addFileToList(file) {
                 }
 
                 lines.forEach(line => {
-                    const isStackTrace = line.trim().startsWith('at ') || line.trim().startsWith('...');
+                    const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                    const match = line.match(regex);
 
-                    if (isStackTrace) {
-                        stackTraceBuffer.push(line);
-                    } else {
+                    if (match) {
                         if (stackTraceBuffer.length > 0) {
                             fragment.appendChild(createStackTraceBlock(stackTraceBuffer, lastLogLevel));
                             stackTraceBuffer = [];
                         }
 
+                        const [, date, level, className, thread, message] = match;
+
+                        lastLogLevel = level.toLowerCase();
+
                         const div = document.createElement('div');
                         div.className = 'log-line';
-
-                        const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
-                        const match = line.match(regex);
-
-                        if (match) {
-                            const [, date, level, className, thread, message] = match;
-
-                            lastLogLevel = level.toLowerCase();
-
-                            div.innerHTML = `
-                                <span class="log-date">${date}</span>
-                                <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                                <span class="log-class">${className}</span>
-                                <span class="log-thread">${thread}</span>
-                                <span class="log-message">${message}</span>
-                            `;
-                        } else {
-                            div.textContent = line;
-                        }
-
+                        div.innerHTML = `
+                            <span class="log-date">${date}</span>
+                            <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
+                            <span class="log-class">${className}</span>
+                            <span class="log-thread">${thread}</span>
+                            <span class="log-message">${message}</span>
+                        `;
                         fragment.appendChild(div);
+
+                    } else {
+                        if (line.trim().length > 0) {
+                            stackTraceBuffer.push(line);
+                        }
                     }
                 });
 
@@ -197,7 +199,7 @@ function addFileToList(file) {
                             container.style.display = 'none';
                         }
                     });
-                    
+
                     let noResultsMsg = document.getElementById('no-results-msg');
                     if (!noResultsMsg) {
                         noResultsMsg = document.createElement('div');
