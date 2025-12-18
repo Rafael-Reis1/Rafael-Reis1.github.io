@@ -61,6 +61,9 @@ function addFileToList(file) {
                     searchInputEl.value = '';
                 }
 
+                const filterCheckboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+                filterCheckboxes.forEach(cb => cb.checked = false);
+
 
                 function createStackTraceBlock(buffer, level) {
                     const container = document.createElement('div');
@@ -392,12 +395,17 @@ function addFileToList(file) {
                     setTimeout(() => {
                         popup.style.display = 'none';
                         conteudoArquivoLog.textContent = '';
-                    }, 300);
+                    }, 100);
                 }
 
                 const closeBtn = document.getElementById('fechar');
                 if (closeBtn) {
                     closeBtn.onclick = closeModal;
+                }
+
+                const background = document.getElementById('listaBackgroud');
+                if (background) {
+                    background.onclick = closeModal;
                 }
 
                 document.addEventListener('keydown', function (event) {
