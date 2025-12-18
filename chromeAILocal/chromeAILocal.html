@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link 
-        rel="preload" 
-        href="/imgs/arrow_back_white.webp"
-        as="image">
-    <link 
-        rel="preconnect" 
-        href="https://cdn.jsdelivr.net">
-    <link 
-        rel="preconnect" 
-        href="https://cdnjs.cloudflare.com">
+    <link rel="preload" href="/imgs/arrow_back_white.webp" as="image">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.11/dist/purify.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <meta http-equiv="origin-trial" content="AvxBD+oW91YZfQTswQAl484hZn4AjUcD7APEjlNTZpZFDkSm2XS5VRm5SXAxyFaci+hCoSMBeiUBwNJ4Ez9iHQIAAAB9eyJvcmlnaW4iOiJodHRwczovL3JhZmFlbC1yZWlzMS5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IkFJUHJvbXB0QVBJTXVsdGltb2RhbElucHV0IiwiZXhwaXJ5IjoxNzc0MzEwNDAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0=">
+    <meta http-equiv="origin-trial"
+        content="AvxBD+oW91YZfQTswQAl484hZn4AjUcD7APEjlNTZpZFDkSm2XS5VRm5SXAxyFaci+hCoSMBeiUBwNJ4Ez9iHQIAAAB9eyJvcmlnaW4iOiJodHRwczovL3JhZmFlbC1yZWlzMS5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IkFJUHJvbXB0QVBJTXVsdGltb2RhbElucHV0IiwiZXhwaXJ5IjoxNzc0MzEwNDAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0=">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <title>Chrome AI Local</title>
 </head>
+
 <body>
     <button class="btnVoltar" id="btnVoltar">
         <img class="seta-animada arrow-back-icon">
         Home
     </button>
-    
+
     <div class="container">
         <div class="messages" id="messages"></div>
         <div class="form-group">
-            <textarea name="promptText" id="promptText" class="form-control" rows="5" placeholder="Digite sua mensagem para a IA..." autofocus></textarea>
+            <textarea name="promptText" id="promptText" class="form-control" rows="5"
+                placeholder="Digite sua mensagem para a IA..." autofocus></textarea>
             <button id="sendButton">Enviar</button>
         </div>
     </div>
-    
-    <script src="app.js"></script>
+
+    <script src="app.js" defer></script>
 </body>
+
 </html>
