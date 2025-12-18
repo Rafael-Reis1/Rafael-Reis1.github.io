@@ -100,7 +100,7 @@ button:focus {
     margin: 0.625rem;
     word-break: break-all;
     overflow: clip;
-    transition: all 200ms cubic-bezier(.12,.12,0,1);
+    transition: all 200ms cubic-bezier(.12, .12, 0, 1);
 }
 
 .popupCard.show {
@@ -214,6 +214,11 @@ button:focus {
     line-height: 1.4;
     padding: 4px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 30px;
+    contain: content;
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .log-line:nth-child(even) {
