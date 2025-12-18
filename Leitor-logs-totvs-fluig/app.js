@@ -127,7 +127,10 @@ function addFileToList(file) {
                     if (!pendingHeader) return;
 
                     countTotal++;
-                    const { date, level, className, thread, message } = pendingHeader;
+                    let { date, level, className, thread, message } = pendingHeader;
+
+                    className = className.replace(/^\[|\]$/g, '');
+                    thread = thread.replace(/^\(|\)$/g, '');
 
                     if (level === 'ERROR') countError++;
                     if (level === 'WARN') countWarn++;
