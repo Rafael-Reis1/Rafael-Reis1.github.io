@@ -143,65 +143,104 @@ button:focus {
 }
 
 .log-line {
-    white-space: nowrap;
+    display: grid;
+    grid-template-columns: 190px 60px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
+    gap: 1rem;
+    align-items: start;
+    white-space: normal;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.85rem;
-    line-height: 1.2;
-    padding: 0;
+    line-height: 1.4;
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.log-line:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
 }
 
 .log-line:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.log-line.hidden {
+    display: none;
 }
 
 .log-date {
     color: #ccdfff;
-    margin-right: 8px;
+    white-space: nowrap;
 }
 
 .log-level {
     font-weight: bold;
-    margin-right: 8px;
+    text-align: center;
+    border-radius: 4px;
+    padding: 2px 4px;
 }
 
 .log-level-info {
+    background-color: rgba(97, 175, 239, 0.1);
     color: #61afef;
 }
 
 .log-level-warn {
+    background-color: rgba(229, 192, 123, 0.1);
     color: #e5c07b;
 }
 
 .log-level-error,
 .log-level-fatal {
+    background-color: rgba(224, 108, 117, 0.1);
     color: #e06c75;
 }
 
 .log-level-debug {
+    background-color: rgba(86, 182, 194, 0.1);
     color: #56b6c2;
 }
 
 .log-class {
     color: #98c379;
-    margin-right: 8px;
+    word-break: break-all;
 }
 
 .log-thread {
     color: #c678dd;
-    margin-right: 8px;
+    word-break: break-all;
 }
 
 .log-message {
     color: #ffffff;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .log-stacktrace {
-    color: #5c6370;
+    color: #abb2bf;
     padding-left: 1rem;
     margin-left: 1rem;
     border-left: 2px solid #e06c75;
     font-size: 0.8rem;
     opacity: 1;
+}
+
+.log-line.log-stacktrace,
+.log-line.log-detail {
+    display: block;
+    width: 100%;
+    grid-template-columns: none;
+    white-space: pre-wrap;
+    border-bottom: none;
+    padding: 2px 8px;
+}
+
+.log-line.log-detail {
+    color: inherit;
+    padding-left: 1rem;
+    margin-left: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
 }
 
 .stack-trace-container {
