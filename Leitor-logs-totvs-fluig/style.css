@@ -221,6 +221,39 @@ button:focus {
     opacity: 1;
 }
 
+.stack-trace-container {
+    margin: 2px 0;
+}
+
+.stack-trace-toggle {
+    background: none;
+    border: none;
+    color: #5c6370;
+    /* Match the dark grey of the traces */
+    cursor: pointer;
+    font-family: 'Consolas', 'Monaco', monospace;
+    /* Match log font */
+    font-size: 0.85rem;
+    padding: 0;
+    text-align: left;
+    width: auto;
+    /* Allow it to be just as wide as needed */
+    margin: 0;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.stack-trace-toggle:hover {
+    background-color: transparent;
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.stack-trace-content {
+    margin-left: 0;
+    /* Reset margin, indentation handled by .log-stacktrace */
+}
+
 #listaBackgroud {
     position: absolute;
     top: 0rem;
