@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preload" href="/imgs/arrow_back_white.webp" as="image">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap"
+        rel="stylesheet">
+    <title>Leitor de logs</title>
+</head>
+
+<body>
+    <button class="btnVoltar" id="btnVoltar">
+        <img class="seta-animada arrow-back-icon">
+        Home
+    </button>
+
+    <div class="container">
+        <h1>Leitor de logs</h1>
+        <div class="opcoes">
+            <div id="file-upload" class="file-upload">
+                <label for="file-input" class="file-upload-label">
+                    <img id="imageUpload" src="assets/upload.webp" alt="upload">
+                    Selecione ou arraste arquivos aqui
+                </label>
+                <input type="file" id="file-input" class="custom-file-input" accept="*/*" capture="environment"
+                    multiple>
+            </div>
+        </div>
+    </div>
+    <div id="arquivoLogPopup" style="display: none;">
+        <div id="listaBackgroud">
+        </div>
+        <div class="popupCard">
+            <div class="containerArquivoLog">
+                <p id="conteudoArquivoLog"></p>
+            </div>
+            <div class="formatarBTNS">
+                <button id="copiarListaBtn">Copiar lista</button>
+                <button id="fechar">Fechar</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
