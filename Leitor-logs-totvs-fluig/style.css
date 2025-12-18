@@ -144,7 +144,7 @@ button:focus {
 
 .log-line {
     display: grid;
-    grid-template-columns: 190px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
+    grid-template-columns: 220px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
     gap: 1rem;
     align-items: center;
     white-space: normal;
@@ -258,6 +258,18 @@ button:focus {
     border-radius: 10px;
     margin-left: 6px;
     white-space: nowrap;
+}
+
+.log-line.active {
+    background-color: rgba(62, 68, 81, 0.6) !important;
+    box-shadow: inset 3px 0 0 #61afef;
+}
+
+.log-delta {
+    font-size: 0.75rem;
+    color: #98c379;
+    margin-left: 6px;
+    opacity: 0.8;
 }
 
 .stack-trace-toggle {
