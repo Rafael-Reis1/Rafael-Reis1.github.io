@@ -219,7 +219,6 @@ function addFileToList(file) {
                         const searchInput = document.getElementById('searchInput');
                         if (searchInput) {
                             searchInput.value = cleanText;
-                            // Trigger input event to run filter
                             searchInput.dispatchEvent(new Event('input'));
                         }
                     }
@@ -378,6 +377,8 @@ function addFileToList(file) {
                 popup.style.display = 'flex';
                 requestAnimationFrame(() => {
                     if (popupCard) popupCard.classList.add('show');
+                    const container = document.querySelector('.containerArquivoLog');
+                    if (container) container.scrollTop = 0;
                 });
 
                 function closeModal() {
