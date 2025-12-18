@@ -55,15 +55,12 @@ function addFileToList(file) {
                 const lines = content.split('\n');
                 const fragment = document.createDocumentFragment();
 
-                const allFilterBtn = document.getElementById('all');
-                if (allFilterBtn) {
-                    allFilterBtn.checked = true;
-                }
 
                 const searchInputEl = document.getElementById('searchInput');
                 if (searchInputEl) {
                     searchInputEl.value = '';
                 }
+
 
                 function createStackTraceBlock(buffer, level) {
                     const container = document.createElement('div');
@@ -287,12 +284,17 @@ function addFileToList(file) {
                 };
 
                 const searchInput = document.getElementById('searchInput');
-                const radioButtons = document.querySelectorAll('input[name="logLevel"]');
+                const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
 
                 function filterLogs() {
                     const searchTerm = searchInput.value.toLowerCase();
-                    const selectedRadio = document.querySelector('input[name="logLevel"]:checked');
-                    const selectedLevel = selectedRadio ? selectedRadio.value.toLowerCase() : 'all';
+
+                    const selectedLevels = [];
+                    checkboxes.forEach(cb => {
+                        if (cb.checked) {
+                            selectedLevels.push(cb.value.toLowerCase());
+                        }
+                    });
 
                     const logLines = conteudoArquivoLog.querySelectorAll('.log-line');
                     const stackContainers = conteudoArquivoLog.querySelectorAll('.stack-trace-container');
@@ -307,10 +309,10 @@ function addFileToList(file) {
 
                         let levelMatch = true;
 
-                        if (selectedLevel !== 'all') {
+                        if (selectedLevels.length > 0) {
                             if (levelSpan) {
                                 const levelText = levelSpan.textContent.toLowerCase().trim();
-                                levelMatch = (levelText === selectedLevel);
+                                levelMatch = selectedLevels.includes(levelText);
                             } else {
                                 levelMatch = false;
                             }
@@ -368,8 +370,8 @@ function addFileToList(file) {
                     searchInput.addEventListener('input', filterLogs);
                 }
 
-                radioButtons.forEach(radio => {
-                    radio.addEventListener('change', filterLogs);
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', filterLogs);
                 });
 
                 conteudoArquivoLog.appendChild(fragment);
