@@ -533,9 +533,11 @@ function addFileToList(file) {
 
                 if (header) conteudoArquivoLog.appendChild(header);
 
+                const finalFragment = document.createDocumentFragment();
                 groupedLogs.reverse().forEach(group => {
-                    group.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
+                    group.reverse().forEach(el => finalFragment.appendChild(el));
                 });
+                conteudoArquivoLog.appendChild(finalFragment);
 
 
                 popup.style.display = 'flex';
