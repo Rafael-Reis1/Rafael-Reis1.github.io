@@ -202,6 +202,14 @@ function setupModal() {
 function fetchAndDisplayRepos() {
     const extraRepos = [
         {
+            name: 'Leitor de Logs Totvs Fluig',
+            description: "Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.",
+            html_url: '/Leitor-logs-totvs-fluig/leitor.html',
+            language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
             name: 'Formatar para lista de números separada por vírgulas',
             description: 'Easily format any list of numbers into a clean, comma-separated list.',
             html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
