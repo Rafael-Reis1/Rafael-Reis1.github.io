@@ -303,6 +303,10 @@ function addFileToList(file) {
                     const stackContainers = conteudoArquivoLog.querySelectorAll('.stack-trace-container');
 
                     let visibleCount = 0;
+                    let visibleErrors = 0;
+                    let visibleWarnings = 0;
+                    let firstVisibleDate = null;
+                    let lastVisibleDate = null;
 
                     logLines.forEach(line => {
                         if (line.classList.contains('log-stacktrace') || line.classList.contains('log-detail')) return;
@@ -326,6 +330,20 @@ function addFileToList(file) {
                         if (levelMatch && textMatch) {
                             line.style.display = '';
                             visibleCount++;
+
+                            if (levelSpan) {
+                                const levelText = levelSpan.textContent.toLowerCase().trim();
+                                if (levelText === 'error') visibleErrors++;
+                                if (levelText === 'warn') visibleWarnings++;
+                            }
+
+                            const dateSpan = line.querySelector('.log-date');
+                            if (dateSpan) {
+                                const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
+                                const logDate = parseLogDate(dateText);
+                                if (!firstVisibleDate) firstVisibleDate = logDate;
+                                lastVisibleDate = logDate;
+                            }
                         } else {
                             line.style.display = 'none';
                         }
@@ -352,6 +370,26 @@ function addFileToList(file) {
                             }
                         }
                     });
+
+                    const statTotal = document.getElementById('statTotal');
+                    const statErrors = document.getElementById('statErrors');
+                    const statWarnings = document.getElementById('statWarnings');
+                    const statDuration = document.getElementById('statDuration');
+
+                    if (statTotal) statTotal.textContent = visibleCount;
+                    if (statErrors) statErrors.textContent = visibleErrors;
+                    if (statWarnings) statWarnings.textContent = visibleWarnings;
+
+                    let durationStr = '--';
+                    if (firstVisibleDate && lastVisibleDate) {
+                        const diffMs = lastVisibleDate - firstVisibleDate;
+                        const diffSec = Math.floor(diffMs / 1000);
+                        const hours = Math.floor(diffSec / 3600);
+                        const mins = Math.floor((diffSec % 3600) / 60);
+                        const secs = diffSec % 60;
+                        durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    }
+                    if (statDuration) statDuration.textContent = durationStr;
 
                     let noResultsMsg = document.getElementById('no-results-msg');
                     if (!noResultsMsg) {
