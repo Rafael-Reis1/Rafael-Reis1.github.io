@@ -40,7 +40,16 @@
                 <p id="conteudoArquivoLog"></p>
             </div>
             <div class="formatarBTNS">
-                <button id="copiarListaBtn">Copiar lista</button>
+                <div class="filters-container">
+                    <input type="text" id="searchInput" placeholder="Search logs...">
+                    <div class="checkbox-group">
+                        <label><input type="radio" name="logLevel" value="ALL" checked> Todos</label>
+                        <label><input type="radio" name="logLevel" value="INFO"> INFO</label>
+                        <label><input type="radio" name="logLevel" value="WARN"> WARN</label>
+                        <label><input type="radio" name="logLevel" value="ERROR"> ERROR</label>
+                        <label><input type="radio" name="logLevel" value="DEBUG"> DEBUG</label>
+                    </div>
+                </div>
                 <button id="fechar">Fechar</button>
             </div>
         </div>
