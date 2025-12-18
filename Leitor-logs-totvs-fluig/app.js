@@ -113,8 +113,8 @@ function addFileToList(file) {
                 let countTotal = 0;
                 let countError = 0;
                 let countWarn = 0;
-                let firstDate = null;
-                let lastDate = null;
+                let oldestDate = null;
+                let newestDate = null;
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -132,8 +132,8 @@ function addFileToList(file) {
                     if (level === 'ERROR') countError++;
                     if (level === 'WARN') countWarn++;
 
-                    if (!firstDate) firstDate = parseLogDate(date);
-                    lastDate = parseLogDate(date);
+                    if (!oldestDate) oldestDate = parseLogDate(date);
+                    newestDate = parseLogDate(date);
 
                     const bufferContent = pendingBuffer.join('\n');
                     const signature = `${level}|${className}|${thread}|${message}|${bufferContent}`;
@@ -266,8 +266,8 @@ function addFileToList(file) {
                 if (statWarnings) statWarnings.textContent = countWarn;
 
                 let durationStr = '--';
-                if (firstDate && lastDate) {
-                    const diffMs = lastDate - firstDate;
+                if (oldestDate && newestDate) {
+                    const diffMs = newestDate - oldestDate;
                     const diffSec = Math.floor(diffMs / 1000);
                     const hours = Math.floor(diffSec / 3600);
                     const mins = Math.floor((diffSec % 3600) / 60);
@@ -305,7 +305,7 @@ function addFileToList(file) {
                     let visibleCount = 0;
                     let visibleErrors = 0;
                     let visibleWarnings = 0;
-                    let firstVisibleDate = null;
+                    let oldestVisibleDate = null;
                     let lastVisibleDate = null;
 
                     logLines.forEach(line => {
@@ -341,8 +341,13 @@ function addFileToList(file) {
                             if (dateSpan) {
                                 const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
                                 const logDate = parseLogDate(dateText);
-                                if (!firstVisibleDate) firstVisibleDate = logDate;
-                                lastVisibleDate = logDate;
+
+                                if (!oldestVisibleDate || logDate < oldestVisibleDate) {
+                                    oldestVisibleDate = logDate;
+                                }
+                                if (!lastVisibleDate || logDate > lastVisibleDate) {
+                                    lastVisibleDate = logDate;
+                                }
                             }
                         } else {
                             line.style.display = 'none';
@@ -381,8 +386,8 @@ function addFileToList(file) {
                     if (statWarnings) statWarnings.textContent = visibleWarnings;
 
                     let durationStr = '--';
-                    if (firstVisibleDate && lastVisibleDate) {
-                        const diffMs = lastVisibleDate - firstVisibleDate;
+                    if (oldestVisibleDate && lastVisibleDate) {
+                        const diffMs = lastVisibleDate - oldestVisibleDate;
                         const diffSec = Math.floor(diffMs / 1000);
                         const hours = Math.floor(diffSec / 3600);
                         const mins = Math.floor((diffSec % 3600) / 60);
@@ -415,7 +420,9 @@ function addFileToList(file) {
                     checkbox.addEventListener('change', filterLogs);
                 });
 
-                conteudoArquivoLog.appendChild(fragment);
+                const elements = Array.from(fragment.children);
+                elements.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
+
 
                 popup.style.display = 'flex';
                 requestAnimationFrame(() => {
