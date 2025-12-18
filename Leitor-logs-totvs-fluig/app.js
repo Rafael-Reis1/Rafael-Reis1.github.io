@@ -59,35 +59,84 @@ function addFileToList(file) {
                 const lines = content.split('\n');
                 const fragment = document.createDocumentFragment();
 
+                let stackTraceBuffer = [];
+
+                function createStackTraceBlock(buffer) {
+                    const container = document.createElement('div');
+                    container.className = 'stack-trace-container';
+
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'stack-trace-toggle';
+                    toggleBtn.textContent = `▶ Show Stack Trace (${buffer.length} lines)`;
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'stack-trace-content';
+                    contentDiv.style.display = 'none';
+
+                    buffer.forEach(traceLine => {
+                        const lineDiv = document.createElement('div');
+                        lineDiv.className = 'log-line log-stacktrace';
+                        lineDiv.textContent = traceLine;
+                        contentDiv.appendChild(lineDiv);
+                    });
+
+                    toggleBtn.onclick = () => {
+                        const isHidden = contentDiv.style.display === 'none';
+                        contentDiv.style.display = isHidden ? 'block' : 'none';
+                        toggleBtn.textContent = isHidden
+                            ? `▼ Hide Stack Trace (${buffer.length} lines)`
+                            : `▶ Show Stack Trace (${buffer.length} lines)`;
+                    };
+
+                    container.appendChild(toggleBtn);
+                    container.appendChild(contentDiv);
+                    return container;
+                }
+
                 lines.forEach(line => {
-                    const div = document.createElement('div');
-                    div.className = 'log-line';
+                    // Check if line is part of stack trace
+                    const isStackTrace = line.trim().startsWith('at ') || line.trim().startsWith('...');
 
-                    // Regex to parse: Date Level [Class] (Thread) Message
-                    const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
-                    const match = line.match(regex);
-
-                    if (match) {
-                        const [, date, level, className, thread, message] = match;
-
-                        div.innerHTML = `
-                            <span class="log-date">${date}</span>
-                            <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                            <span class="log-class">${className}</span>
-                            <span class="log-thread">${thread}</span>
-                            <span class="log-message">${message}</span>
-                        `;
+                    if (isStackTrace) {
+                        stackTraceBuffer.push(line);
                     } else {
-                        // If line doesn't match specific format (e.g. stack trace), just print it
-                        // Check if it looks like a stack trace or continuation
-                        if (line.trim().startsWith('at') || line.trim().startsWith('...')) {
-                            div.classList.add('log-stacktrace');
+                        // Flush stack trace buffer if it has content
+                        if (stackTraceBuffer.length > 0) {
+                            fragment.appendChild(createStackTraceBlock(stackTraceBuffer));
+                            stackTraceBuffer = [];
                         }
-                        div.textContent = line;
-                    }
 
-                    fragment.appendChild(div);
+                        const div = document.createElement('div');
+                        div.className = 'log-line';
+
+                        // Regex to parse: Date Level [Class] (Thread) Message
+                        const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                        const match = line.match(regex);
+
+                        if (match) {
+                            const [, date, level, className, thread, message] = match;
+
+                            div.innerHTML = `
+                                <span class="log-date">${date}</span>
+                                <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
+                                <span class="log-class">${className}</span>
+                                <span class="log-thread">${thread}</span>
+                                <span class="log-message">${message}</span>
+                            `;
+                        } else {
+                            // Helper for non-standard lines that aren't stack traces 
+                            // (or separated stack traces that didn't get caught strictly, though 'at ' is standard)
+                            div.textContent = line;
+                        }
+
+                        fragment.appendChild(div);
+                    }
                 });
+
+                // Flush remaining buffer at the end
+                if (stackTraceBuffer.length > 0) {
+                    fragment.appendChild(createStackTraceBlock(stackTraceBuffer));
+                }
 
                 conteudoArquivoLog.appendChild(fragment);
 
