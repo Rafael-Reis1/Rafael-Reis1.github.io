@@ -234,7 +234,7 @@ function addFileToList(file) {
                     if (match) {
                         processPendingLog();
 
-                        const [date, level, className, thread, message] = match;
+                        const [fullMatch, date, level, className, thread, message] = match;
                         pendingHeader = { date, level, className, thread, message };
                         pendingBuffer = [];
                     } else {
