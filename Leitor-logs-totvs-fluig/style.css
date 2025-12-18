@@ -80,8 +80,8 @@ button:focus {
 .popupCard {
     display: flex;
     height: fit-content;
-    max-height: 80%;
-    max-width: 80%;
+    max-height: 95%;
+    max-width: 95%;
     min-width: 24rem;
     flex-direction: column;
     justify-content: center;
