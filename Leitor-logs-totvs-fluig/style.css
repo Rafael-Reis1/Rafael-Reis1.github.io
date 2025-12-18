@@ -144,9 +144,9 @@ button:focus {
 
 .log-line {
     display: grid;
-    grid-template-columns: 190px 60px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
+    grid-template-columns: 190px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
     gap: 1rem;
-    align-items: start;
+    align-items: center;
     white-space: normal;
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.85rem;
@@ -177,6 +177,10 @@ button:focus {
     text-align: center;
     border-radius: 4px;
     padding: 2px 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
 }
 
 .log-level-info {
@@ -243,8 +247,17 @@ button:focus {
     opacity: 0.8;
 }
 
-.stack-trace-container {
-    margin: 2px 0;
+
+.log-count {
+    display: inline-block;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #abb2bf;
+    font-size: 0.75rem;
+    font-weight: normal;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    white-space: nowrap;
 }
 
 .stack-trace-toggle {

@@ -58,6 +58,16 @@ function addFileToList(file) {
                 let stackTraceBuffer = [];
                 let lastLogLevel = '';
 
+                const allFilterBtn = document.getElementById('all');
+                if (allFilterBtn) {
+                    allFilterBtn.checked = true;
+                }
+
+                const searchInputEl = document.getElementById('searchInput');
+                if (searchInputEl) {
+                    searchInputEl.value = '';
+                }
+
                 function createStackTraceBlock(buffer, level) {
                     const container = document.createElement('div');
                     container.className = 'stack-trace-container';
@@ -100,20 +110,33 @@ function addFileToList(file) {
                     return container;
                 }
 
-                lines.forEach(line => {
-                    const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
-                    const match = line.match(regex);
+                let lastLog = null;
+                let pendingHeader = null;
+                let pendingBuffer = [];
 
-                    if (match) {
-                        if (stackTraceBuffer.length > 0) {
-                            fragment.appendChild(createStackTraceBlock(stackTraceBuffer, lastLogLevel));
-                            stackTraceBuffer = [];
+                function processPendingLog() {
+                    if (!pendingHeader) return;
+
+                    const { date, level, className, thread, message } = pendingHeader;
+                    const bufferContent = pendingBuffer.join('\n');
+                    const signature = `${level}|${className}|${thread}|${message}|${bufferContent}`;
+
+                    if (lastLog && lastLog.signature === signature) {
+                        lastLog.count++;
+                        if (!lastLog.countBadge) {
+                            const badge = document.createElement('span');
+                            badge.className = 'log-count';
+                            badge.textContent = `x${lastLog.count}`;
+                            const levelSpan = lastLog.element.querySelector('.log-level');
+                            if (levelSpan) {
+                                levelSpan.appendChild(badge);
+                            }
+                            lastLog.countBadge = badge;
+                        } else {
+                            lastLog.countBadge.textContent = `x${lastLog.count}`;
                         }
 
-                        const [, date, level, className, thread, message] = match;
-
-                        lastLogLevel = level.toLowerCase();
-
+                    } else {
                         const div = document.createElement('div');
                         div.className = 'log-line';
                         div.innerHTML = `
@@ -125,16 +148,50 @@ function addFileToList(file) {
                         `;
                         fragment.appendChild(div);
 
+                        if (pendingBuffer.length > 0) {
+                            fragment.appendChild(createStackTraceBlock(pendingBuffer, level.toLowerCase()));
+                        }
+
+                        lastLog = {
+                            signature: signature,
+                            count: 1,
+                            element: div,
+                            countBadge: null
+                        };
+                    }
+
+                    pendingHeader = null;
+                    pendingBuffer = [];
+                }
+
+                lines.forEach(line => {
+                    const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                    const match = line.match(regex);
+
+                    if (match) {
+                        processPendingLog();
+
+                        const [, date, level, className, thread, message] = match;
+                        pendingHeader = { date, level, className, thread, message };
+
                     } else {
-                        if (line.trim().length > 0) {
-                            stackTraceBuffer.push(line);
+                        if (pendingHeader) {
+                            if (line.trim().length > 0) {
+                                pendingBuffer.push(line);
+                            }
+                        } else {
+                            if (line.trim().length > 0) {
+                                const div = document.createElement('div');
+                                div.textContent = line;
+                                div.classList.add('log-line', 'log-raw');
+                                fragment.appendChild(div);
+                                lastLog = null;
+                            }
                         }
                     }
                 });
 
-                if (stackTraceBuffer.length > 0) {
-                    fragment.appendChild(createStackTraceBlock(stackTraceBuffer, lastLogLevel));
-                }
+                processPendingLog();
 
                 const searchInput = document.getElementById('searchInput');
                 const radioButtons = document.querySelectorAll('input[name="logLevel"]');
@@ -169,7 +226,7 @@ function addFileToList(file) {
                         const textMatch = text.includes(searchTerm);
 
                         if (levelMatch && textMatch) {
-                            line.style.display = 'block';
+                            line.style.display = '';
                             visibleCount++;
                         } else {
                             line.style.display = 'none';
@@ -189,12 +246,8 @@ function addFileToList(file) {
                             }
                         }
 
-                        const text = container.textContent.toLowerCase();
-                        const textMatch = text.includes(searchTerm);
-
-                        if (levelMatch && textMatch) {
-                            container.style.display = 'block';
-                            visibleCount++;
+                        if (levelMatch) {
+                            container.style.display = '';
                         } else {
                             container.style.display = 'none';
                         }
