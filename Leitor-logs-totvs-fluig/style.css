@@ -280,7 +280,66 @@ button:focus {
     display: flex;
     justify-content: center;
     align-items: center;
+
     transition: all 200ms cubic-bezier(.12, .12, 0, 1);
+}
+
+.formatarBTNS {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 1rem;
+    gap: 1rem;
+}
+
+.filters-container {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+#searchInput {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--base-color);
+    color: var(--text-color);
+    width: 250px;
+    font-size: 0.9rem;
+}
+
+#searchInput:focus {
+    outline: 2px solid var(--accent-color);
+    border-color: transparent;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-color);
+}
+
+.checkbox-group input[type="checkbox"] {
+    position: static;
+    appearance: auto;
+    width: auto;
+    height: auto;
+    opacity: 1;
+    z-index: 1;
+    cursor: pointer;
 }
 
 .somaBTNS {
@@ -445,4 +504,13 @@ input[type="checkbox"]:checked+label::after {
 .file-upload.dragover {
     background-color: rgba(112, 165, 253, 0.1);
     border-color: #70A5FD;
+}
+
+.no-results-message {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-color);
+    font-size: 1.1rem;
+    opacity: 0.7;
+    width: 100%;
 }
