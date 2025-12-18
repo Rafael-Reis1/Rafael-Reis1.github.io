@@ -34,7 +34,6 @@ fileUploadArea.onmouseleave = function () {
 
 fileInput.addEventListener('change', function () {
     Array.from(this.files).forEach(file => addFileToList(file));
-    // Clear input so same file can be selected again if needed
     this.value = '';
 });
 
@@ -57,13 +56,13 @@ function addFileToList(file) {
                 const fragment = document.createDocumentFragment();
 
                 let stackTraceBuffer = [];
-                let lastLogLevel = ''; // Keep track of the last seen log level
+                let lastLogLevel = '';
 
                 function createStackTraceBlock(buffer, level) {
                     const container = document.createElement('div');
                     container.className = 'stack-trace-container';
                     if (level) {
-                        container.dataset.level = level; // Tag container with valid log level
+                        container.dataset.level = level;
                     }
 
                     const toggleBtn = document.createElement('button');
@@ -95,13 +94,11 @@ function addFileToList(file) {
                 }
 
                 lines.forEach(line => {
-                    // Check if line is part of stack trace
                     const isStackTrace = line.trim().startsWith('at ') || line.trim().startsWith('...');
 
                     if (isStackTrace) {
                         stackTraceBuffer.push(line);
                     } else {
-                        // Flush stack trace buffer if it has content (belongs to previous line's level)
                         if (stackTraceBuffer.length > 0) {
                             fragment.appendChild(createStackTraceBlock(stackTraceBuffer, lastLogLevel));
                             stackTraceBuffer = [];
@@ -110,14 +107,12 @@ function addFileToList(file) {
                         const div = document.createElement('div');
                         div.className = 'log-line';
 
-                        // Regex to parse: Date Level [Class] (Thread) Message
                         const regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
                         const match = line.match(regex);
 
                         if (match) {
                             const [, date, level, className, thread, message] = match;
 
-                            // Update last seen level
                             lastLogLevel = level.toLowerCase();
 
                             div.innerHTML = `
@@ -128,8 +123,6 @@ function addFileToList(file) {
                                 <span class="log-message">${message}</span>
                             `;
                         } else {
-                            // Non-standard line: keep previous level context or no?
-                            // Usually continuation of message. Let's keep lastLogLevel.
                             div.textContent = line;
                         }
 
@@ -137,12 +130,10 @@ function addFileToList(file) {
                     }
                 });
 
-                // Flush remaining buffer at the end
                 if (stackTraceBuffer.length > 0) {
                     fragment.appendChild(createStackTraceBlock(stackTraceBuffer, lastLogLevel));
                 }
 
-                // Filter Logic
                 const searchInput = document.getElementById('searchInput');
                 const radioButtons = document.querySelectorAll('input[name="logLevel"]');
 
@@ -154,10 +145,8 @@ function addFileToList(file) {
                     const logLines = conteudoArquivoLog.querySelectorAll('.log-line');
                     const stackContainers = conteudoArquivoLog.querySelectorAll('.stack-trace-container');
 
-                    // Filter Logic
                     let visibleCount = 0;
 
-                    // Filter Standard Log Lines
                     logLines.forEach(line => {
                         if (line.classList.contains('log-stacktrace')) return;
 
@@ -185,10 +174,8 @@ function addFileToList(file) {
                         }
                     });
 
-                    // Filter Stack Trace Containers
                     stackContainers.forEach(container => {
-                        // Check container level
-                        const containerLevel = container.dataset.level; // might be undefined
+                        const containerLevel = container.dataset.level;
 
                         let levelMatch = true;
 
@@ -196,8 +183,6 @@ function addFileToList(file) {
                             if (containerLevel) {
                                 levelMatch = (containerLevel === selectedLevel);
                             } else {
-                                // Stack traces without level (orphaned? or start of file?)
-                                // Hide them if filtering strictly.
                                 levelMatch = false;
                             }
                         }
@@ -212,8 +197,7 @@ function addFileToList(file) {
                             container.style.display = 'none';
                         }
                     });
-
-                    // Handle "No Results" message
+                    
                     let noResultsMsg = document.getElementById('no-results-msg');
                     if (!noResultsMsg) {
                         noResultsMsg = document.createElement('div');
@@ -245,16 +229,28 @@ function addFileToList(file) {
                     if (popupCard) popupCard.classList.add('show');
                 });
 
+                function closeModal() {
+                    const popup = document.getElementById('arquivoLogPopup');
+                    const popupCard = popup.querySelector('.popupCard');
+                    const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+
+                    if (popupCard) popupCard.classList.remove('show');
+                    setTimeout(() => {
+                        popup.style.display = 'none';
+                        conteudoArquivoLog.textContent = '';
+                    }, 300);
+                }
+
                 const closeBtn = document.getElementById('fechar');
                 if (closeBtn) {
-                    closeBtn.onclick = () => {
-                        if (popupCard) popupCard.classList.remove('show');
-                        setTimeout(() => {
-                            popup.style.display = 'none';
-                            conteudoArquivoLog.textContent = '';
-                        }, 300);
-                    };
+                    closeBtn.onclick = closeModal;
                 }
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    }
+                });
             }
         };
         reader.onerror = function () {
@@ -264,4 +260,11 @@ function addFileToList(file) {
     } else {
         alert("Por favor, envie um arquivo .log ou de texto.");
     }
+}
+
+const btnVoltar = document.getElementById('btnVoltar');
+if (btnVoltar) {
+    btnVoltar.addEventListener('click', () => {
+        window.location.href = '../index.html';
+    });
 }

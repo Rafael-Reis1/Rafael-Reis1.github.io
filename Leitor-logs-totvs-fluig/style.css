@@ -97,7 +97,6 @@ button:focus {
     scale: .5;
     opacity: 0;
     filter: blur(50px);
-
     margin: 0.625rem;
     word-break: break-all;
     overflow: clip;
@@ -117,7 +116,6 @@ button:focus {
     width: 100%;
     overflow-y: auto;
     overflow-x: auto;
-    /* Enable horizontal scrolling */
     border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 0.625rem;
@@ -142,20 +140,14 @@ button:focus {
     backdrop-filter: blur(2px);
     justify-content: center;
     align-items: center;
-    /* display is toggled by JS */
 }
 
-/* Log Styling */
 .log-line {
     white-space: nowrap;
-    /* Prevent wrapping */
-    /* Preserve spaces but wrap text */
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 0.85rem;
     line-height: 1.2;
-    /* Compact line height */
     padding: 0;
-    /* Remove padding */
 }
 
 .log-line:hover {
@@ -164,7 +156,6 @@ button:focus {
 
 .log-date {
     color: #ccdfff;
-    /* Brighter date */
     margin-right: 8px;
 }
 
@@ -175,45 +166,37 @@ button:focus {
 
 .log-level-info {
     color: #61afef;
-    /* Blue */
 }
 
 .log-level-warn {
     color: #e5c07b;
-    /* Yellow/Orange */
 }
 
 .log-level-error,
 .log-level-fatal {
     color: #e06c75;
-    /* Red */
 }
 
 .log-level-debug {
     color: #56b6c2;
-    /* Cyan */
 }
 
 .log-class {
     color: #98c379;
-    /* Green */
     margin-right: 8px;
 }
 
 .log-thread {
     color: #c678dd;
-    /* Purple */
     margin-right: 8px;
 }
 
 .log-message {
     color: #ffffff;
-    /* White message text */
 }
 
 .log-stacktrace {
     color: #5c6370;
-    /* Darker grey for stack trace */
     padding-left: 1rem;
     margin-left: 1rem;
     border-left: 2px solid #e06c75;
@@ -229,15 +212,12 @@ button:focus {
     background: none;
     border: none;
     color: #5c6370;
-    /* Match the dark grey of the traces */
     cursor: pointer;
     font-family: 'Consolas', 'Monaco', monospace;
-    /* Match log font */
     font-size: 0.85rem;
     padding: 0;
     text-align: left;
     width: auto;
-    /* Allow it to be just as wide as needed */
     margin: 0;
     opacity: 0.7;
     transition: opacity 0.2s;
@@ -251,7 +231,6 @@ button:focus {
 
 .stack-trace-content {
     margin-left: 0;
-    /* Reset margin, indentation handled by .log-stacktrace */
 }
 
 #listaBackgroud {
@@ -261,7 +240,6 @@ button:focus {
     width: 100%;
     height: 100%;
     z-index: -1;
-    /* Behind the card */
 }
 
 #somaPopup {
@@ -316,30 +294,70 @@ button:focus {
     border-color: transparent;
 }
 
+#searchInput:hover {
+    border-color: transparent;
+}
+
 .checkbox-group {
     display: flex;
     gap: 1rem;
     align-items: center;
 }
 
-.checkbox-group label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    user-select: none;
-    color: var(--text-color);
+.file-upload:hover,
+.file-upload.dragover {
+    background-color: var(--base-color-hover);
+    border-color: var(--text-color);
 }
 
-.checkbox-group input[type="checkbox"] {
-    position: static;
-    appearance: auto;
-    width: auto;
-    height: auto;
-    opacity: 1;
-    z-index: 1;
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3125rem;
+    align-items: center;
+    transition: background-color .5s cubic-bezier(.34, .88, .34, 1);
+}
+
+.radio-group input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.3125rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--base-color);
+    color: var(--text-color);
+    transition: background-color .5s cubic-bezier(.34, .88, .34, 1),
+        color .5s cubic-bezier(.34, .88, .34, 1),
+        transform .5s cubic-bezier(.34, .88, .34, 1);
+    text-align: center;
+    user-select: none;
+}
+
+.radio-group input[type="radio"]:checked+label {
+    background-color: var(--accent-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-color);
+}
+
+.radio-group label:hover {
+    background-color: var(--base-color-hover);
+}
+
+.radio-group input[type="radio"]:not(:checked)+label:hover {
+    background-color: var(--base-color-hover);
 }
 
 .somaBTNS {
@@ -462,6 +480,7 @@ input[type="checkbox"]:checked+label::after {
 .file-upload {
     width: 100%;
     padding: 1.25rem;
+    min-height: 250px;
     border: 2px dashed var(--accent-color);
     color: var(--text-color);
     border-radius: 12px;
@@ -495,15 +514,12 @@ input[type="checkbox"]:checked+label::after {
 .file-upload:hover,
 .file-upload.dragover {
     background-color: var(--base-color-hover);
-    border-color: #70A5FD;
-    /* Assuming blue based on upload_blue asset, or use accent if preferred, but usually hover implies interaction */
+    border-color: var(--accent-color);
 }
 
-/* Ensure the image change in JS matches a style change if desired, but the JS handles the image src. 
-   The dragover class is added by JS. */
 .file-upload.dragover {
-    background-color: rgba(112, 165, 253, 0.1);
-    border-color: #70A5FD;
+    background-color: var(--base-color-hover);
+    border-color: var(--accent-color);
 }
 
 .no-results-message {
