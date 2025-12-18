@@ -65,32 +65,58 @@ function addFileToList(file) {
                 filterCheckboxes.forEach(cb => cb.checked = false);
 
 
-                function createStackTraceBlock(buffer, level) {
+                function createStackTraceBlock(buffer, level, customLabel = null, isConfigMode = false) {
                     const container = document.createElement('div');
                     container.className = 'stack-trace-container';
                     if (level) {
                         container.dataset.level = level;
                     }
 
+                    const labelText = customLabel || 'Show Details';
+
                     const toggleBtn = document.createElement('button');
                     toggleBtn.className = 'stack-trace-toggle';
-                    toggleBtn.textContent = `▶ Show Details (${buffer.length} lines)`;
+                    toggleBtn.textContent = `▶ ${labelText} (${buffer.length} lines)`;
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'stack-trace-content';
                     contentDiv.style.display = 'none';
 
-                    buffer.forEach(traceLine => {
+                    [...buffer].reverse().forEach(traceLine => {
                         const lineDiv = document.createElement('div');
                         const isStackLine = traceLine.trim().startsWith('at ') || traceLine.trim().startsWith('...');
 
-                        if (isStackLine) {
+                        if (isConfigMode) {
+                            lineDiv.className = 'log-line';
+
+                            const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                            const match = traceLine.match(regex);
+
+                            if (match) {
+                                const [fullMatch, date, level, className, thread, message] = match;
+                                let cleanClass = className.replace(/^\[|\]$/g, '');
+                                let cleanThread = thread.replace(/^\(|\)$/g, '');
+
+                                lineDiv.innerHTML = `
+                                    <span class="log-date">${date}</span>
+                                    <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
+                                    <span class="log-class">${cleanClass}</span>
+                                    <span class="log-thread">${cleanThread}</span>
+                                    <span class="log-message">${message}</span>
+                                `;
+                            } else {
+                                lineDiv.className = 'log-line log-config-content';
+                                lineDiv.textContent = traceLine;
+                            }
+
+                        } else if (isStackLine) {
                             lineDiv.className = 'log-line log-stacktrace';
+                            lineDiv.textContent = traceLine;
                         } else {
                             lineDiv.className = 'log-line log-detail';
+                            lineDiv.textContent = traceLine;
                         }
 
-                        lineDiv.textContent = traceLine;
                         contentDiv.appendChild(lineDiv);
                     });
 
@@ -98,8 +124,8 @@ function addFileToList(file) {
                         const isHidden = contentDiv.style.display === 'none';
                         contentDiv.style.display = isHidden ? 'block' : 'none';
                         toggleBtn.textContent = isHidden
-                            ? `▼ Hide Details (${buffer.length} lines)`
-                            : `▶ Show Details (${buffer.length} lines)`;
+                            ? `▼ Hide ${labelText.replace('Show ', '')} (${buffer.length} lines)`
+                            : `▶ ${labelText} (${buffer.length} lines)`;
                     };
 
                     container.appendChild(toggleBtn);
@@ -179,6 +205,8 @@ function addFileToList(file) {
 
                         const div = document.createElement('div');
                         div.className = 'log-line';
+                        const isConfig = message.includes('=============LOG CONFIGS=========');
+
                         div.innerHTML = `
                             <span class="log-date">${date} ${deltaHtml}</span>
                             <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
@@ -189,7 +217,8 @@ function addFileToList(file) {
                         fragment.appendChild(div);
 
                         if (pendingBuffer.length > 0) {
-                            fragment.appendChild(createStackTraceBlock(pendingBuffer, level.toLowerCase()));
+                            const label = isConfig ? 'Show Configs' : null;
+                            fragment.appendChild(createStackTraceBlock(pendingBuffer, level.toLowerCase(), label, isConfig));
                         }
 
                         lastLog = {
@@ -227,6 +256,9 @@ function addFileToList(file) {
                     }
                 });
 
+                let configBuffer = [];
+                let inConfigBlock = false;
+
                 lines.forEach(line => {
                     line = line.replace('\r', '');
 
@@ -234,28 +266,86 @@ function addFileToList(file) {
                     const match = line.match(regex);
 
                     if (match) {
-                        processPendingLog();
-
                         const [fullMatch, date, level, className, thread, message] = match;
-                        pendingHeader = { date, level, className, thread, message };
-                        pendingBuffer = [];
-                    } else {
-                        if (pendingHeader) {
-                            if (line.trim().length > 0) {
-                                pendingBuffer.push(line);
+
+                        if (message.includes('=============LOG CONFIGS=========')) {
+                            if (inConfigBlock && configBuffer.length > 0) {
+                                fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
+                                configBuffer = [];
                             }
+                            inConfigBlock = true;
+                            processPendingLog();
+
+                            pendingHeader = { date, level, className, thread, message };
+                            pendingBuffer = [];
+
+                            processPendingLog();
+                            pendingHeader = null;
+
+                            return;
+                        }
+
+                        if (inConfigBlock && message.match(/^={10,}$/)) {
+                            configBuffer.push(line);
+                            fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
+                            configBuffer = [];
+                            inConfigBlock = false;
+                            return;
+                        }
+
+                        if (inConfigBlock) {
+                            configBuffer.push(line);
                         } else {
-                            if (line.trim().length > 0) {
-                                const div = document.createElement('div');
-                                div.textContent = line;
-                                div.classList.add('log-line', 'log-raw');
-                                fragment.appendChild(div);
-                                lastLog = null;
+                            processPendingLog();
+                            pendingHeader = { date, level, className, thread, message };
+                            pendingBuffer = [];
+                        }
+                    } else {
+                        if (line.includes('=============LOG CONFIGS=========')) {
+                            if (inConfigBlock && configBuffer.length > 0) {
+                                fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
+                                configBuffer = [];
+                            }
+                            inConfigBlock = true;
+                            const div = document.createElement('div');
+                            div.textContent = line;
+                            div.classList.add('log-line', 'log-raw');
+                            div.style.fontWeight = 'bold';
+                            fragment.appendChild(div);
+                            return;
+                        }
+
+                        if (inConfigBlock && line.trim() === '============') {
+                            configBuffer.push(line);
+                            fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
+                            configBuffer = [];
+                            inConfigBlock = false;
+                            return;
+                        }
+
+                        if (inConfigBlock) {
+                            configBuffer.push(line);
+                        } else {
+                            if (pendingHeader) {
+                                if (line.trim().length > 0) {
+                                    pendingBuffer.push(line);
+                                }
+                            } else {
+                                if (line.trim().length > 0) {
+                                    const div = document.createElement('div');
+                                    div.textContent = line;
+                                    div.classList.add('log-line', 'log-raw');
+                                    fragment.appendChild(div);
+                                    lastLog = null;
+                                }
                             }
                         }
                     }
                 });
 
+                if (inConfigBlock && configBuffer.length > 0) {
+                    fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
+                }
                 processPendingLog();
 
                 const statTotal = document.getElementById('statTotal');
@@ -425,10 +515,27 @@ function addFileToList(file) {
 
                 const elements = Array.from(fragment.children);
                 const header = elements.find(el => el.classList.contains('log-header'));
-                const logs = elements.filter(el => !el.classList.contains('log-header'));
+
+                const groupedLogs = [];
+                let currentGroup = [];
+
+                elements.forEach(el => {
+                    if (el.classList.contains('log-header')) return;
+
+                    if (el.classList.contains('log-line') && !el.classList.contains('log-stacktrace') && !el.classList.contains('log-detail') && !el.classList.contains('log-config-content')) {
+                        if (currentGroup.length > 0) groupedLogs.push(currentGroup);
+                        currentGroup = [el];
+                    } else {
+                        currentGroup.push(el);
+                    }
+                });
+                if (currentGroup.length > 0) groupedLogs.push(currentGroup);
 
                 if (header) conteudoArquivoLog.appendChild(header);
-                logs.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
+
+                groupedLogs.reverse().forEach(group => {
+                    group.reverse().forEach(el => conteudoArquivoLog.appendChild(el));
+                });
 
 
                 popup.style.display = 'flex';

@@ -253,6 +253,8 @@ button:focus {
     white-space: nowrap;
 }
 
+
+
 .log-level {
     font-weight: bold;
     text-align: center;
@@ -310,11 +312,20 @@ button:focus {
 }
 
 .log-line.log-stacktrace,
-.log-line.log-detail {
+.log-line.log-detail,
+.log-line.log-config-content:not(:has(.log-date)) {
     display: block;
     width: 100%;
     grid-template-columns: none;
     border-bottom: none;
+}
+
+.log-line.log-config-content {
+    color: inherit;
+    padding-left: 1.625rem;
+    font-size: 0.85rem;
+    opacity: 1;
+    white-space: pre-wrap;
 }
 
 .log-line.log-detail {
