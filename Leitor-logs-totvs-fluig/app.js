@@ -55,9 +55,6 @@ function addFileToList(file) {
                 const lines = content.split('\n');
                 const fragment = document.createDocumentFragment();
 
-                let stackTraceBuffer = [];
-                let lastLogLevel = '';
-
                 const allFilterBtn = document.getElementById('all');
                 if (allFilterBtn) {
                     allFilterBtn.checked = true;
@@ -149,7 +146,6 @@ function addFileToList(file) {
                         if (previousUniqueLogDate) {
                             const diff = currentObjDate - previousUniqueLogDate;
                             if (diff > 0) {
-                                // Format delta
                                 let deltaText = '';
                                 if (diff < 1000) {
                                     deltaText = `+${diff}ms`;
@@ -245,7 +241,7 @@ function addFileToList(file) {
                     let visibleCount = 0;
 
                     logLines.forEach(line => {
-                        if (line.classList.contains('log-stacktrace')) return;
+                        if (line.classList.contains('log-stacktrace') || line.classList.contains('log-detail')) return;
 
                         const text = line.textContent.toLowerCase();
                         const levelSpan = line.querySelector('.log-level');
