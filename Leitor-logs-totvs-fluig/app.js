@@ -105,9 +105,8 @@ function addFileToList(file) {
                                 lineDiv.innerHTML = `
                                     <span class="log-date">${date}</span>
                                     <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                                    <span class="log-class">${cleanClass}</span>
-                                    <span class="log-thread">${cleanThread}</span>
-
+                                    <span class="log-class"><span class="clickable-text" data-type="class">${cleanClass}</span></span>
+                                    <span class="log-thread"><span class="clickable-text" data-type="thread">${cleanThread}</span></span>
                                     <span class="log-message">${cleanMessage}</span>
                                 `;
                                 lineDiv.querySelector('.log-message').dataset.originalText = cleanMessage;
@@ -225,8 +224,8 @@ function addFileToList(file) {
                         div.innerHTML = `
                             <span class="log-date">${date} ${deltaHtml}</span>
                             <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                            <span class="log-class">${className}</span>
-                            <span class="log-thread">${thread}</span>
+                            <span class="log-class"><span class="clickable-text" data-type="class">${className}</span></span>
+                            <span class="log-thread"><span class="clickable-text" data-type="thread">${thread}</span></span>
                             <span class="log-message">${message}</span>
                         `;
                         div.querySelector('.log-message').dataset.originalText = message;
@@ -261,13 +260,18 @@ function addFileToList(file) {
                 fragment.appendChild(headerRow);
 
                 conteudoArquivoLog.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('log-class') || e.target.classList.contains('log-thread')) {
-                        const text = e.target.textContent.trim();
+                    const clickable = e.target.closest('.clickable-text');
+                    if (clickable) {
+                        const text = clickable.textContent.trim();
                         const cleanText = text.replace(/^\[|\]$|^\(|\)$/g, '');
 
                         const searchInput = document.getElementById('searchInput');
                         if (searchInput) {
-                            searchInput.value = cleanText;
+                            if (searchInput.value === cleanText) {
+                                searchInput.value = '';
+                            } else {
+                                searchInput.value = cleanText;
+                            }
                             searchInput.dispatchEvent(new Event('input'));
                         }
                     }
