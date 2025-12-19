@@ -418,21 +418,24 @@ function addFileToList(file) {
 
                     const fragment = document.createDocumentFragment();
                     pageItems.forEach(group => {
-                        group.forEach(el => {
-                            if (el.classList.contains('active')) {
-                                el.classList.remove('active');
-                            }
-                            fragment.appendChild(el);
-                        });
+                        group.forEach(el => fragment.appendChild(el));
                     });
                     conteudoArquivoLog.appendChild(fragment);
 
-                    containerArquivoLog.scrollTop = 0;
                     updatePaginationControls();
 
-                    const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
-                    if (firstLine) {
-                        firstLine.classList.add('active');
+                    const existingActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+
+                    if (existingActive) {
+                        requestAnimationFrame(() => {
+                            existingActive.scrollIntoView({ block: 'center', behavior: 'auto' });
+                        });
+                    } else {
+                        containerArquivoLog.scrollTop = 0;
+                        const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
+                        if (firstLine) {
+                            firstLine.classList.add('active');
+                        }
                     }
                 }
 
