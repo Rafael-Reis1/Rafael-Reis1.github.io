@@ -48,6 +48,7 @@ function addFileToList(file) {
             const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
             const popup = document.getElementById('arquivoLogPopup');
             const popupCard = popup.querySelector('.popupCard');
+            const containerArquivoLog = document.querySelector('.containerArquivoLog');
 
             if (conteudoArquivoLog && popup) {
                 conteudoArquivoLog.innerHTML = '';
@@ -96,13 +97,14 @@ function addFileToList(file) {
                                 const [fullMatch, date, level, className, thread, message] = match;
                                 let cleanClass = className.replace(/^\[|\]$/g, '');
                                 let cleanThread = thread.replace(/^\(|\)$/g, '');
+                                let cleanMessage = message.replace(/^-\s+/, '');
 
                                 lineDiv.innerHTML = `
                                     <span class="log-date">${date}</span>
                                     <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
                                     <span class="log-class">${cleanClass}</span>
                                     <span class="log-thread">${cleanThread}</span>
-                                    <span class="log-message">${message}</span>
+                                    <span class="log-message">${cleanMessage}</span>
                                 `;
                             } else {
                                 lineDiv.className = 'log-line log-config-content';
@@ -141,6 +143,11 @@ function addFileToList(file) {
                 let countWarn = 0;
                 let oldestDate = null;
                 let newestDate = null;
+                const logsPerPage = 500;
+                let currentPage = 1;
+                let allGroupedLogs = [];
+                let filteredGroupedLogs = [];
+                let logHeaderElement = null;
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -157,6 +164,7 @@ function addFileToList(file) {
 
                     className = className.replace(/^\[|\]$/g, '');
                     thread = thread.replace(/^\(|\)$/g, '');
+                    message = message.replace(/^-\s+/, '');
 
                     if (level === 'ERROR') countError++;
                     if (level === 'WARN') countWarn++;
@@ -382,6 +390,82 @@ function addFileToList(file) {
                 const searchInput = document.getElementById('searchInput');
                 const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
 
+                function renderPage(page) {
+                    if (!filteredGroupedLogs.length) {
+                        conteudoArquivoLog.innerHTML = '';
+                        document.getElementById('pagination-controls').style.display = 'none';
+                        let noResultsMsg = document.getElementById('no-results-msg');
+                        if (!noResultsMsg) {
+                            noResultsMsg = document.createElement('div');
+                            noResultsMsg.id = 'no-results-msg';
+                            noResultsMsg.textContent = 'Nenhum log encontrado para este filtro.';
+                            noResultsMsg.className = 'no-results-message';
+                            conteudoArquivoLog.appendChild(noResultsMsg);
+                        }
+                        noResultsMsg.style.display = 'block';
+                        return;
+                    }
+
+                    const noResults = document.getElementById('no-results-msg');
+                    if (noResults) noResults.style.display = 'none';
+
+                    const startIndex = (page - 1) * logsPerPage;
+                    const endIndex = Math.min(startIndex + logsPerPage, filteredGroupedLogs.length);
+                    const pageItems = filteredGroupedLogs.slice(startIndex, endIndex);
+
+                    conteudoArquivoLog.innerHTML = '';
+                    if (logHeaderElement) conteudoArquivoLog.appendChild(logHeaderElement);
+
+                    const fragment = document.createDocumentFragment();
+                    pageItems.forEach(group => {
+                        group.forEach(el => fragment.appendChild(el));
+                    });
+                    conteudoArquivoLog.appendChild(fragment);
+
+                    containerArquivoLog.scrollTop = 0;
+                    updatePaginationControls();
+                }
+
+                function updatePaginationControls() {
+                    const controls = document.getElementById('pagination-controls');
+                    const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
+
+                    if (totalPages <= 1) {
+                        controls.style.display = 'none';
+                        return;
+                    }
+
+                    controls.style.display = 'flex';
+                    controls.innerHTML = '';
+
+                    const prevBtn = document.createElement('button');
+                    prevBtn.textContent = '◀ Anterior';
+                    prevBtn.disabled = currentPage === 1;
+                    prevBtn.onclick = () => {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            renderPage(currentPage);
+                        }
+                    };
+
+                    const info = document.createElement('span');
+                    info.textContent = `Página ${currentPage} de ${totalPages} (${filteredGroupedLogs.length} logs)`;
+
+                    const nextBtn = document.createElement('button');
+                    nextBtn.textContent = 'Próximo ▶';
+                    nextBtn.disabled = currentPage === totalPages;
+                    nextBtn.onclick = () => {
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            renderPage(currentPage);
+                        }
+                    };
+
+                    controls.appendChild(prevBtn);
+                    controls.appendChild(info);
+                    controls.appendChild(nextBtn);
+                }
+
                 function filterLogs() {
                     const searchTerm = searchInput.value.toLowerCase();
 
@@ -392,23 +476,21 @@ function addFileToList(file) {
                         }
                     });
 
-                    const logLines = conteudoArquivoLog.querySelectorAll('.log-line');
-                    const stackContainers = conteudoArquivoLog.querySelectorAll('.stack-trace-container');
-
+                    filteredGroupedLogs = [];
                     let visibleCount = 0;
                     let visibleErrors = 0;
                     let visibleWarnings = 0;
                     let oldestVisibleDate = null;
                     let lastVisibleDate = null;
 
-                    logLines.forEach(line => {
-                        if (line.classList.contains('log-stacktrace') || line.classList.contains('log-detail')) return;
+                    allGroupedLogs.forEach(group => {
+                        const logLine = group[group.length - 1];
+                        if (!logLine || !logLine.classList.contains('log-line')) return;
 
-                        const text = line.textContent.toLowerCase();
-                        const levelSpan = line.querySelector('.log-level');
+                        const text = logLine.textContent.toLowerCase();
+                        const levelSpan = logLine.querySelector('.log-level');
 
                         let levelMatch = true;
-
                         if (selectedLevels.length > 0) {
                             if (levelSpan) {
                                 const levelText = levelSpan.textContent.toLowerCase().trim();
@@ -421,7 +503,7 @@ function addFileToList(file) {
                         const textMatch = text.includes(searchTerm);
 
                         if (levelMatch && textMatch) {
-                            line.style.display = '';
+                            filteredGroupedLogs.push(group);
                             visibleCount++;
 
                             if (levelSpan) {
@@ -430,7 +512,7 @@ function addFileToList(file) {
                                 if (levelText === 'warn') visibleWarnings++;
                             }
 
-                            const dateSpan = line.querySelector('.log-date');
+                            const dateSpan = logLine.querySelector('.log-date');
                             if (dateSpan) {
                                 const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
                                 const logDate = parseLogDate(dateText);
@@ -440,30 +522,6 @@ function addFileToList(file) {
                                 }
                                 if (!lastVisibleDate || logDate > lastVisibleDate) {
                                     lastVisibleDate = logDate;
-                                }
-                            }
-                        } else {
-                            line.style.display = 'none';
-                        }
-                    });
-
-                    stackContainers.forEach(container => {
-                        const prevLine = container.previousElementSibling;
-                        const isPrevVisible = prevLine && prevLine.style.display !== 'none';
-
-                        if (isPrevVisible) {
-                            container.style.display = '';
-                        } else {
-                            container.style.display = 'none';
-                        }
-
-                        if (searchTerm) {
-                            const content = container.querySelector('.stack-trace-content');
-                            const btn = container.querySelector('.stack-trace-toggle');
-                            if (content && content.style.display !== 'none') {
-                                content.style.display = 'none';
-                                if (btn) {
-                                    btn.textContent = btn.textContent.replace('▼ Hide', '▶ Show');
                                 }
                             }
                         }
@@ -489,20 +547,8 @@ function addFileToList(file) {
                     }
                     if (statDuration) statDuration.textContent = durationStr;
 
-                    let noResultsMsg = document.getElementById('no-results-msg');
-                    if (!noResultsMsg) {
-                        noResultsMsg = document.createElement('div');
-                        noResultsMsg.id = 'no-results-msg';
-                        noResultsMsg.textContent = 'Nenhum log encontrado para este filtro.';
-                        noResultsMsg.className = 'no-results-message';
-                        conteudoArquivoLog.appendChild(noResultsMsg);
-                    }
-
-                    if (visibleCount === 0) {
-                        noResultsMsg.style.display = 'block';
-                    } else {
-                        noResultsMsg.style.display = 'none';
-                    }
+                    currentPage = 1;
+                    renderPage(currentPage);
                 }
 
                 if (searchInput) {
@@ -531,13 +577,14 @@ function addFileToList(file) {
                 });
                 if (currentGroup.length > 0) groupedLogs.push(currentGroup);
 
-                if (header) conteudoArquivoLog.appendChild(header);
+                if (header) {
+                    logHeaderElement = header;
+                }
 
-                const finalFragment = document.createDocumentFragment();
-                groupedLogs.reverse().forEach(group => {
-                    group.reverse().forEach(el => finalFragment.appendChild(el));
-                });
-                conteudoArquivoLog.appendChild(finalFragment);
+                allGroupedLogs = groupedLogs.reverse().map(group => group.reverse());
+                filteredGroupedLogs = [...allGroupedLogs];
+
+                renderPage(1);
 
 
                 popup.style.display = 'flex';
