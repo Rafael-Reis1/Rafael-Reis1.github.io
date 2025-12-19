@@ -37,7 +37,6 @@
         <div id="listaBackgroud">
         </div>
         <div class="popupCard">
-            <div id="logHistogram" class="log-histogram" style="display: none;"></div>
             <div id="logDashboard" class="log-dashboard" style="display: none; width: 100%;">
                 <div class="stat-item">
                     <span class="stat-label">Total:</span>
@@ -56,6 +55,7 @@
                     <span id="statDuration" class="stat-value">--</span>
                 </div>
             </div>
+            <div id="logHistogram" class="log-histogram" style="display: none;"></div>
             <div class="containerArquivoLog">
                 <div id="conteudoArquivoLog"></div>
             </div>
@@ -84,13 +84,13 @@
                             <input type="checkbox" id="debug" value="DEBUG">
                             <label for="debug">DEBUG</label>
                         </div>
+                        <div>
+                            <input type="checkbox" id="pinnedOnly" value="PINNED">
+                            <label for="pinnedOnly">📍 Fixados</label>
+                        </div>
                     </div>
                 </div>
                 <div id="pagination-controls" class="pagination-controls" style="display: none;"></div>
-                <div class="pin-controls" style="margin-right: 15px; display: flex; gap: 5px;">
-                    <button id="prevPin" title="Anterior Pin">⬆📍</button>
-                    <button id="nextPin" title="Próximo Pin">⬇📍</button>
-                </div>
                 <button id="exportar">Exportar Logs</button>
                 <button id="fechar">Fechar</button>
             </div>

@@ -79,25 +79,25 @@ button:focus {
 
 .popupCard {
     display: flex;
-    height: 90%;
-    width: 95%;
-    max-height: 95%;
-    max-width: 95%;
+    height: 98%;
+    width: 98%;
+    max-height: 99%;
+    max-width: 99%;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    padding: 1rem;
+    padding: 0.5rem;
     background-color: var(--popup-background-color);
     color: var(--text-color);
-    border-radius: 20px;
-    gap: 0.625rem;
+    border-radius: 12px;
+    gap: 0.5rem;
     text-align: center;
     font-size: 1.25rem;
     z-index: 1;
     scale: .5;
     opacity: 0;
     filter: blur(50px);
-    margin: 0.625rem;
+    margin: 0;
     word-break: break-all;
     overflow: clip;
     transition: all 200ms cubic-bezier(.12, .12, 0, 1);
@@ -111,7 +111,7 @@ button:focus {
 
 .log-histogram {
     width: 100%;
-    height: 40px;
+    height: 25px;
     display: flex;
     align-items: flex-end;
     background-color: var(--base-color);
@@ -127,8 +127,9 @@ button:focus {
     background-color: #4b5263;
     border-radius: 1px 1px 0 0;
     transition: background-color 0.2s;
+    transition: background-color 0.2s;
     cursor: pointer;
-    min-width: 2px;
+    min-width: 6px;
 }
 
 .hist-bar:hover {
@@ -531,17 +532,11 @@ mark.highlight {
 }
 
 .log-line.pinned {
-    background-color: rgba(255, 215, 0, 0.1) !important;
-    border-left: 3px solid #ffd700 !important;
+    border-left: 4px solid var(--accent-color) !important;
+    box-shadow: inset 4px 0 0 0 rgba(230, 126, 34, 0.1);
 }
 
-.log-type-error.pinned {
-    background-color: rgba(224, 108, 117, 0.25) !important;
-}
 
-.log-type-warn.pinned {
-    background-color: rgba(229, 192, 123, 0.25) !important;
-}
 
 #searchInput {
     padding: 0.5rem 1rem;
@@ -935,4 +930,32 @@ input[type="checkbox"]:not(.checkbox-group *):checked+label::after {
 .pagination-controls span {
     font-size: 0.9rem;
     font-family: 'Open Sans', sans-serif;
+}
+
+@keyframes flashFade {
+    0% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.flash-highlight {
+    position: relative;
+    overflow: hidden;
+}
+
+.flash-highlight::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--accent-color);
+    animation: flashFade 1.5s ease-out;
+    pointer-events: none;
+    z-index: 10;
 }
