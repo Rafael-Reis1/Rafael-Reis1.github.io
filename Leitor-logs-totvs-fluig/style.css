@@ -181,6 +181,7 @@ button:focus {
     border: 1px solid var(--border-color);
     border-radius: 10px;
     padding: 0.625rem;
+    scroll-padding-top: 60px;
 }
 
 #conteudoArquivoLog {
@@ -227,6 +228,14 @@ button:focus {
 
 .log-line:hover {
     background-color: rgba(255, 255, 255, 0.08);
+}
+
+.log-line.active,
+.stack-trace-container.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left: 1px solid #61afef;
+    border-left: 1px solid #61afef;
+    outline: none;
 }
 
 .log-line.hidden {

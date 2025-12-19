@@ -381,7 +381,7 @@ function addFileToList(file) {
                 conteudoArquivoLog.onclick = function (e) {
                     const line = e.target.closest('.log-line');
                     if (line) {
-                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
+                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
                         if (currentActive) currentActive.classList.remove('active');
                         line.classList.add('active');
                     }
@@ -418,12 +418,22 @@ function addFileToList(file) {
 
                     const fragment = document.createDocumentFragment();
                     pageItems.forEach(group => {
-                        group.forEach(el => fragment.appendChild(el));
+                        group.forEach(el => {
+                            if (el.classList.contains('active')) {
+                                el.classList.remove('active');
+                            }
+                            fragment.appendChild(el);
+                        });
                     });
                     conteudoArquivoLog.appendChild(fragment);
 
                     containerArquivoLog.scrollTop = 0;
                     updatePaginationControls();
+
+                    const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
+                    if (firstLine) {
+                        firstLine.classList.add('active');
+                    }
                 }
 
                 function updatePaginationControls() {
@@ -592,6 +602,65 @@ function addFileToList(file) {
                     if (popupCard) popupCard.classList.add('show');
                     const container = document.querySelector('.containerArquivoLog');
                     if (container) container.scrollTop = 0;
+                });
+
+                document.addEventListener('keydown', function (e) {
+                    if (popup.style.display === 'none') return;
+
+                    if (e.key === 'ArrowRight') {
+                        const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
+                        if (currentPage < totalPages) {
+                            currentPage++;
+                            renderPage(currentPage);
+                        }
+                    } else if (e.key === 'Enter') {
+                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+                        if (currentActive) {
+                            const toggleBtn = currentActive.querySelector('.stack-trace-toggle');
+                            if (toggleBtn) {
+                                toggleBtn.click();
+                            }
+                        }
+                    } else if (e.key === 'ArrowLeft') {
+                        if (currentPage > 1) {
+                            currentPage--;
+                            renderPage(currentPage);
+                        }
+                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const candidates = Array.from(conteudoArquivoLog.querySelectorAll('.log-line, .stack-trace-container'));
+
+                        const allVisibleLines = candidates.filter(el => {
+                            return el.offsetParent !== null;
+                        });
+
+                        if (allVisibleLines.length === 0) return;
+
+                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+                        let nextIndex = 0;
+
+                        if (currentActive) {
+                            const currentIndex = allVisibleLines.indexOf(currentActive);
+                            if (e.key === 'ArrowDown') {
+                                nextIndex = Math.min(currentIndex + 1, allVisibleLines.length - 1);
+                            } else {
+                                nextIndex = Math.max(currentIndex - 1, 0);
+                            }
+                        } else {
+                            if (e.key === 'ArrowDown') nextIndex = 0;
+                            else nextIndex = allVisibleLines.length - 1;
+                        }
+
+                        if (currentActive) currentActive.classList.remove('active');
+                        const nextLine = allVisibleLines[nextIndex];
+                        nextLine.classList.add('active');
+
+                        if (nextIndex === 0) {
+                            conteudoArquivoLog.parentElement.scrollTop = 0;
+                        } else {
+                            nextLine.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+                        }
+                    }
                 });
 
                 function closeModal() {
