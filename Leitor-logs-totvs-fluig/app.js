@@ -98,7 +98,7 @@ function addFileToList(file) {
 
                             if (match) {
                                 const [fullMatch, date, rawLevel, className, thread, message] = match;
-                                const level = rawLevel.replace(/x\d+$/, '').trim(); // Clean level
+                                const level = rawLevel.replace(/x\d+$/, '').trim();
                                 let cleanClass = className.replace(/^\[|\]$/g, '');
                                 let cleanThread = thread.replace(/^\(|\)$/g, '');
                                 let cleanMessage = message.replace(/^-\s+/, '');
@@ -157,6 +157,8 @@ function addFileToList(file) {
                 let filteredGroupedLogs = [];
                 let logHeaderElement = null;
                 const pinnedLogs = new Set();
+                const timeFilterHistory = [];
+                let currentPinNavIndex = -1;
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -182,7 +184,7 @@ function addFileToList(file) {
                     newestDate = parseLogDate(date);
 
                     const bufferContent = pendingBuffer.join('\n');
-                    const signature = `${level}|${className}|${thread}|${message}|${bufferContent}`;
+                    const signature = `${date}|${level}|${className}|${thread}|${message}|${bufferContent}`;
 
                     if (lastLog && lastLog.signature === signature) {
                         lastLog.count++;
@@ -261,7 +263,9 @@ function addFileToList(file) {
                 const headerRow = document.createElement('div');
                 headerRow.className = 'log-header';
                 headerRow.innerHTML = `
-                    <div class="header-cell"></div>
+                    <div class="header-cell" style="position: relative;">
+                        <button id="clearPins" title="Limpar todos os fixados" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.9em; padding: 1px 4px; cursor: pointer; background: var(--error-color); color: white; border: none; border-radius: 3px;">✕</button>
+                    </div>
                     <div class="header-cell">Date</div>
                     <div class="header-cell">Level</div>
                     <div class="header-cell">Class</div>
@@ -278,9 +282,19 @@ function addFileToList(file) {
                             if (pinnedLogs.has(sig)) {
                                 pinnedLogs.delete(sig);
                                 line.classList.remove('pinned');
+
+                                const pinnedCheckbox = document.getElementById('pinnedOnly');
+                                if (pinnedCheckbox && pinnedCheckbox.checked) {
+                                    const allActive = conteudoArquivoLog.querySelectorAll('.active');
+                                    allActive.forEach(el => el.classList.remove('active'));
+                                    filterLogs();
+                                }
+
+                                updateClearPinsButton();
                             } else {
                                 pinnedLogs.add(sig);
                                 line.classList.add('pinned');
+                                updateClearPinsButton();
                             }
                         }
                     }
@@ -467,6 +481,7 @@ function addFileToList(file) {
                 }
 
                 function renderPage(page) {
+                    generateHistogram();
                     if (!filteredGroupedLogs.length) {
                         conteudoArquivoLog.innerHTML = '';
                         document.getElementById('pagination-controls').style.display = 'none';
@@ -484,6 +499,12 @@ function addFileToList(file) {
 
                     const noResults = document.getElementById('no-results-msg');
                     if (noResults) noResults.style.display = 'none';
+
+                    filteredGroupedLogs.forEach(group => {
+                        group.forEach(el => {
+                            if (el.classList) el.classList.remove('active');
+                        });
+                    });
 
                     const startIndex = (page - 1) * logsPerPage;
                     const endIndex = Math.min(startIndex + logsPerPage, filteredGroupedLogs.length);
@@ -540,6 +561,8 @@ function addFileToList(file) {
                             if (dateSpan) {
                                 const dateText = dateSpan.textContent.trim().split(' ')[0] + ' ' + dateSpan.textContent.trim().split(' ')[1].split(',')[0];
                                 const time = parseLogDate(dateSpan.textContent.trim().split('+')[0]).getTime();
+                                if (isNaN(time)) return;
+
                                 if (!minTime || time < minTime) minTime = time;
                                 if (!maxTime || time > maxTime) maxTime = time;
 
@@ -556,9 +579,13 @@ function addFileToList(file) {
                         }
                     });
 
-                    if (!minTime || !maxTime || minTime === maxTime) {
+                    if (!minTime || !maxTime) {
                         histogramEl.style.display = 'none';
                         return;
+                    }
+
+                    if (minTime === maxTime) {
+                        maxTime += 1000;
                     }
 
                     histogramEl.style.display = 'flex';
@@ -573,20 +600,24 @@ function addFileToList(file) {
 
                     logTimes.forEach(item => {
                         let bucketIndex = Math.floor((item.time - minTime) / interval);
+                        if (isNaN(bucketIndex)) return;
+                        if (bucketIndex < 0) bucketIndex = 0;
                         if (bucketIndex >= numBuckets) bucketIndex = numBuckets - 1;
 
-                        buckets[bucketIndex].count++;
-                        if (item.type === 'error') buckets[bucketIndex].hasError = true;
-                        if (item.type === 'warn') buckets[bucketIndex].hasWarn = true;
+                        if (buckets[bucketIndex]) {
+                            buckets[bucketIndex].count++;
+                            if (item.type === 'error') buckets[bucketIndex].hasError = true;
+                            if (item.type === 'warn') buckets[bucketIndex].hasWarn = true;
 
-                        if (buckets[bucketIndex].count > maxCount) maxCount = buckets[bucketIndex].count;
+                            if (buckets[bucketIndex].count > maxCount) maxCount = buckets[bucketIndex].count;
+                        }
                     });
 
                     buckets.forEach((bucket, index) => {
                         const bar = document.createElement('div');
                         bar.className = 'hist-bar';
 
-                        const height = bucket.count > 0 ? Math.max(10, (bucket.count / maxCount) * 100) : 0;
+                        const height = bucket.count > 0 ? Math.max(50, (bucket.count / maxCount) * 100) : 0;
                         bar.style.height = `${height}%`;
 
                         if (bucket.hasError) bar.classList.add('has-error');
@@ -598,11 +629,29 @@ function addFileToList(file) {
                         bar.title = `${bucket.count} logs\n${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`;
 
                         bar.onclick = () => {
-                            const startStr = startTime.toTimeString().split(' ')[0]; // HH:MM:SS
-                            const endStr = endTime.toTimeString().split(' ')[0];
+                            const startStr = startTime.toTimeString().split(' ')[0].substring(0, 5);
+                            const endStr = endTime.toTimeString().split(' ')[0].substring(0, 5);
 
                             const timeStartInput = document.getElementById('timeStart');
                             const timeEndInput = document.getElementById('timeEnd');
+
+                            if (timeStartInput && timeEndInput &&
+                                timeStartInput.value === startStr &&
+                                timeEndInput.value === endStr) {
+                                let priority = null;
+                                if (bucket.hasError) priority = 'error';
+                                else if (bucket.hasWarn) priority = 'warn';
+
+                                scrollToLogTime(startTime.getTime(), endTime.getTime(), priority);
+                                return;
+                            }
+
+                            if (timeStartInput && timeEndInput) {
+                                timeFilterHistory.push({
+                                    start: timeStartInput.value,
+                                    end: timeEndInput.value
+                                });
+                            }
 
                             if (timeStartInput) timeStartInput.value = startStr;
                             if (timeEndInput) timeEndInput.value = endStr;
@@ -612,6 +661,84 @@ function addFileToList(file) {
 
                         histogramEl.appendChild(bar);
                     });
+
+                    histogramEl.oncontextmenu = (e) => {
+                        e.preventDefault();
+                        const timeStartInput = document.getElementById('timeStart');
+                        const timeEndInput = document.getElementById('timeEnd');
+
+                        if (timeFilterHistory.length > 0) {
+                            const lastState = timeFilterHistory.pop();
+                            if (timeStartInput) timeStartInput.value = lastState.start;
+                            if (timeEndInput) timeEndInput.value = lastState.end;
+                        } else {
+                            if (timeStartInput) timeStartInput.value = '';
+                            if (timeEndInput) timeEndInput.value = '';
+                        }
+
+                        if (timeStartInput) timeStartInput.dispatchEvent(new Event('input'));
+                    };
+                }
+
+                function scrollToLogTime(startTime, endTime, priority = null) {
+                    const findLogIndex = (mustMatchPriority) => {
+                        return filteredGroupedLogs.findIndex(group => {
+                            const line = group[group.length - 1];
+                            if (!line) return false;
+
+                            const dateSpan = line.querySelector('.log-date');
+                            if (!dateSpan) return false;
+
+
+                            const t = parseLogDate(dateSpan.textContent.trim().split('+')[0]).getTime();
+                            if (isNaN(t)) return false;
+                            if (t < startTime || t > endTime) return false;
+
+                            if (mustMatchPriority && priority) {
+                                const levelSpan = line.querySelector('.log-level');
+                                if (!levelSpan) return false;
+                                const levelText = levelSpan.textContent.toLowerCase().trim();
+                                if (!levelText.startsWith(priority)) return false;
+                            }
+                            return true;
+                        });
+                    };
+
+                    let idx = -1;
+                    if (priority) {
+                        idx = findLogIndex(true);
+                    }
+
+                    if (idx === -1) {
+                        idx = findLogIndex(false);
+                    }
+
+                    if (idx === -1) return;
+
+                    const targetPage = Math.floor(idx / logsPerPage) + 1;
+                    if (currentPage !== targetPage) {
+                        currentPage = targetPage;
+                        renderPage(currentPage);
+                    }
+
+                    setTimeout(() => {
+                        const group = filteredGroupedLogs[idx];
+                        if (group && group.length > 0) {
+                            const el = group[0];
+                            if (el && el.scrollIntoView) {
+                                el.scrollIntoView({ behavior: 'auto', block: 'center' });
+
+                                const observer = new IntersectionObserver((entries) => {
+                                    if (entries[0].isIntersecting) {
+                                        el.classList.add('flash-highlight');
+                                        setTimeout(() => el.classList.remove('flash-highlight'), 1500);
+                                        observer.disconnect();
+                                    }
+                                }, { threshold: 0.5 });
+                                observer.observe(el);
+                            }
+                        }
+                    }, 50);
                 }
 
                 function updatePaginationControls() {
@@ -659,9 +786,15 @@ function addFileToList(file) {
                     const searchTokens = searchInputVal.split(/\s+/).filter(t => t.length > 0);
 
                     const selectedLevels = [];
+                    let pinnedOnlyFilter = false;
+
                     checkboxes.forEach(cb => {
                         if (cb.checked) {
-                            selectedLevels.push(cb.value.toLowerCase());
+                            if (cb.id === 'pinnedOnly') {
+                                pinnedOnlyFilter = true;
+                            } else {
+                                selectedLevels.push(cb.value.toLowerCase());
+                            }
                         }
                     });
 
@@ -675,6 +808,13 @@ function addFileToList(file) {
                     allGroupedLogs.forEach(group => {
                         const logLine = group[group.length - 1];
                         if (!logLine || !logLine.classList.contains('log-line')) return;
+
+                        if (pinnedOnlyFilter) {
+                            const hasPinned = logLine.dataset.signature && pinnedLogs.has(logLine.dataset.signature);
+                            if (!hasPinned) {
+                                return;
+                            }
+                        }
 
                         const text = logLine.textContent.toLowerCase();
                         const levelSpan = logLine.querySelector('.log-level');
@@ -938,77 +1078,34 @@ function addFileToList(file) {
                     exportBtn.onclick = exportFilteredLogs;
                 }
 
-                function scrollToPin(direction) {
+                const clearPinsBtn = document.getElementById('clearPins');
+                if (clearPinsBtn) {
+                    clearPinsBtn.onclick = () => {
+                        if (pinnedLogs.size === 0) return;
 
-                    if (pinnedLogs.size === 0) return;
+                        if (confirm(`Desmarcar todos os ${pinnedLogs.size} logs fixados?`)) {
+                            pinnedLogs.clear();
 
-                    const flatList = [];
-                    filteredGroupedLogs.forEach((group, gIndex) => {
-                        const line = group[group.length - 1];
+                            const allPinnedElements = document.querySelectorAll('.log-line.pinned');
+                            allPinnedElements.forEach(el => el.classList.remove('pinned'));
 
-                        group.forEach((el, elIndex) => {
-                            if (el.dataset && el.dataset.signature && pinnedLogs.has(el.dataset.signature)) {
-                                flatList.push({ groupIndex: gIndex, elementIndex: elIndex, element: el });
+                            const pinnedCheckbox = document.getElementById('pinnedOnly');
+                            if (pinnedCheckbox && pinnedCheckbox.checked) {
+                                pinnedCheckbox.checked = false;
+                                filterLogs();
                             }
-                        });
-                    });
 
-                    if (flatList.length === 0) return;
-
-                    const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
-                    let currentIndex = -1;
-
-                    if (currentActive) {
-                        const activeSig = currentActive.dataset.signature;
-                    }
-
-                    if (typeof this.currentPinIndex === 'undefined') {
-                        this.currentPinIndex = -1;
-                    }
-
-                    if (direction === 1) {
-                        this.currentPinIndex++;
-                        if (this.currentPinIndex >= flatList.length) this.currentPinIndex = 0;
-                    } else {
-                        this.currentPinIndex--;
-                        if (this.currentPinIndex < 0) this.currentPinIndex = flatList.length - 1;
-                    }
-
-                    const targetPin = flatList[this.currentPinIndex];
-
-                    const targetPage = Math.floor(targetPin.groupIndex / logsPerPage) + 1;
-
-                    if (targetPage !== currentPage) {
-                        currentPage = targetPage;
-                        renderPage(currentPage);
-                    }
-
-                    setTimeout(() => {
-                        const sig = targetPin.element.dataset.signature;
-                        const lines = conteudoArquivoLog.querySelectorAll('.log-line');
-                        let found = null;
-                        for (let line of lines) {
-                            if (line.dataset.signature === sig) {
-                                found = line;
-                                break;
-                            }
+                            clearPinsBtn.style.display = 'none';
                         }
-
-                        if (found) {
-                            if (conteudoArquivoLog.querySelector('.active'))
-                                conteudoArquivoLog.querySelector('.active').classList.remove('active');
-
-                            found.classList.add('active');
-                            found.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                        }
-                    }, 50);
+                    };
                 }
 
-                const nextPinBtn = document.getElementById('nextPin');
-                if (nextPinBtn) nextPinBtn.onclick = () => scrollToPin(1);
-
-                const prevPinBtn = document.getElementById('prevPin');
-                if (prevPinBtn) prevPinBtn.onclick = () => scrollToPin(-1);
+                function updateClearPinsButton() {
+                    const clearPinsBtn = document.getElementById('clearPins');
+                    if (clearPinsBtn) {
+                        clearPinsBtn.style.display = pinnedLogs.size > 0 ? 'block' : 'none';
+                    }
+                }
 
                 const background = document.getElementById('listaBackgroud');
                 if (background) {
