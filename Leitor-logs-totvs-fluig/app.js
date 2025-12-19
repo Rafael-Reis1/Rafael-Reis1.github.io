@@ -58,9 +58,12 @@ function addFileToList(file) {
 
 
                 const searchInputEl = document.getElementById('searchInput');
-                if (searchInputEl) {
-                    searchInputEl.value = '';
-                }
+                const timeStartEl = document.getElementById('timeStart');
+                const timeEndEl = document.getElementById('timeEnd');
+
+                if (searchInputEl) searchInputEl.value = '';
+                if (timeStartEl) timeStartEl.value = '';
+                if (timeEndEl) timeEndEl.value = '';
 
                 const filterCheckboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
                 filterCheckboxes.forEach(cb => cb.checked = false);
@@ -104,11 +107,14 @@ function addFileToList(file) {
                                     <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
                                     <span class="log-class">${cleanClass}</span>
                                     <span class="log-thread">${cleanThread}</span>
+
                                     <span class="log-message">${cleanMessage}</span>
                                 `;
+                                lineDiv.querySelector('.log-message').dataset.originalText = cleanMessage;
                             } else {
                                 lineDiv.className = 'log-line log-config-content';
                                 lineDiv.textContent = traceLine;
+                                lineDiv.dataset.originalText = traceLine;
                             }
 
                         } else if (isStackLine) {
@@ -117,6 +123,7 @@ function addFileToList(file) {
                         } else {
                             lineDiv.className = 'log-line log-detail';
                             lineDiv.textContent = traceLine;
+                            lineDiv.dataset.originalText = traceLine;
                         }
 
                         contentDiv.appendChild(lineDiv);
@@ -222,6 +229,8 @@ function addFileToList(file) {
                             <span class="log-thread">${thread}</span>
                             <span class="log-message">${message}</span>
                         `;
+                        div.querySelector('.log-message').dataset.originalText = message;
+                        div.classList.add(`log-type-${level.toLowerCase()}`);
                         fragment.appendChild(div);
 
                         if (pendingBuffer.length > 0) {
@@ -388,7 +397,43 @@ function addFileToList(file) {
                 };
 
                 const searchInput = document.getElementById('searchInput');
+                const timeStartInput = document.getElementById('timeStart');
+                const timeEndInput = document.getElementById('timeEnd');
                 const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+
+                function highlightSearchTerm(element, term) {
+                    if (!element) return;
+
+                    const messageSpan = element.querySelector('.log-message');
+                    const target = messageSpan || element;
+
+                    if (!target.dataset.originalText) return;
+
+                    if (!term || term.trim() === '') {
+                        target.textContent = target.dataset.originalText;
+                        return;
+                    }
+
+                    const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
+                    if (tokens.length === 0) {
+                        target.textContent = target.dataset.originalText;
+                        return;
+                    }
+
+                    const text = target.dataset.originalText;
+
+                    const escapedTokens = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                    const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+
+                    const safeText = text.replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+
+                    const newHtml = safeText.replace(regex, '<mark class="highlight">$1</mark>');
+                    target.innerHTML = newHtml;
+                }
 
                 function renderPage(page) {
                     if (!filteredGroupedLogs.length) {
@@ -417,8 +462,13 @@ function addFileToList(file) {
                     if (logHeaderElement) conteudoArquivoLog.appendChild(logHeaderElement);
 
                     const fragment = document.createDocumentFragment();
+                    const searchTerm = searchInput ? searchInput.value.trim() : '';
+
                     pageItems.forEach(group => {
-                        group.forEach(el => fragment.appendChild(el));
+                        group.forEach(el => {
+                            highlightSearchTerm(el, searchTerm);
+                            fragment.appendChild(el);
+                        });
                     });
                     conteudoArquivoLog.appendChild(fragment);
 
@@ -480,7 +530,8 @@ function addFileToList(file) {
                 }
 
                 function filterLogs() {
-                    const searchTerm = searchInput.value.toLowerCase();
+                    const searchInputVal = searchInput.value.toLowerCase().trim();
+                    const searchTokens = searchInputVal.split(/\s+/).filter(t => t.length > 0);
 
                     const selectedLevels = [];
                     checkboxes.forEach(cb => {
@@ -513,9 +564,31 @@ function addFileToList(file) {
                             }
                         }
 
-                        const textMatch = text.includes(searchTerm);
+                        const textMatch = searchTokens.length === 0 || searchTokens.every(token => text.includes(token));
 
-                        if (levelMatch && textMatch) {
+                        let timeMatch = true;
+                        const dateSpan = logLine.querySelector('.log-date');
+                        if (dateSpan) {
+                            const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
+                            const timePart = dateText.split(' ')[1].split(',')[0];
+
+                            let startTime = timeStartInput ? timeStartInput.value : '';
+                            let endTime = timeEndInput ? timeEndInput.value : '';
+
+                            if (startTime && startTime.length === 5) startTime += ':00';
+                            if (endTime && endTime.length === 5) endTime += ':59';
+
+                            if (startTime && timePart < startTime) timeMatch = false;
+                            if (endTime && timePart > endTime) timeMatch = false;
+
+                            if (timeMatch) {
+                                const logDate = parseLogDate(dateText);
+                                if (!oldestVisibleDate || logDate < oldestVisibleDate) oldestVisibleDate = logDate;
+                                if (!lastVisibleDate || logDate > lastVisibleDate) lastVisibleDate = logDate;
+                            }
+                        }
+
+                        if (levelMatch && textMatch && timeMatch) {
                             filteredGroupedLogs.push(group);
                             visibleCount++;
 
@@ -523,19 +596,6 @@ function addFileToList(file) {
                                 const levelText = levelSpan.textContent.toLowerCase().trim();
                                 if (levelText === 'error') visibleErrors++;
                                 if (levelText === 'warn') visibleWarnings++;
-                            }
-
-                            const dateSpan = logLine.querySelector('.log-date');
-                            if (dateSpan) {
-                                const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
-                                const logDate = parseLogDate(dateText);
-
-                                if (!oldestVisibleDate || logDate < oldestVisibleDate) {
-                                    oldestVisibleDate = logDate;
-                                }
-                                if (!lastVisibleDate || logDate > lastVisibleDate) {
-                                    lastVisibleDate = logDate;
-                                }
                             }
                         }
                     });
@@ -564,9 +624,9 @@ function addFileToList(file) {
                     renderPage(currentPage);
                 }
 
-                if (searchInput) {
-                    searchInput.addEventListener('input', filterLogs);
-                }
+                if (searchInput) searchInput.addEventListener('input', filterLogs);
+                if (timeStartInput) timeStartInput.addEventListener('input', filterLogs);
+                if (timeEndInput) timeEndInput.addEventListener('input', filterLogs);
 
                 checkboxes.forEach(checkbox => {
                     checkbox.addEventListener('change', filterLogs);
