@@ -109,6 +109,40 @@ button:focus {
     filter: blur(0px);
 }
 
+.log-histogram {
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: flex-end;
+    background-color: var(--base-color);
+    border-radius: 6px;
+    margin-bottom: 5px;
+    padding: 2px 5px;
+    gap: 1px;
+    overflow: hidden;
+}
+
+.hist-bar {
+    flex: 1;
+    background-color: #4b5263;
+    border-radius: 1px 1px 0 0;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    min-width: 2px;
+}
+
+.hist-bar:hover {
+    background-color: var(--accent-color);
+}
+
+.hist-bar.has-error {
+    background-color: #e06c75;
+}
+
+.hist-bar.has-warn {
+    background-color: #e5c07b;
+}
+
 .log-dashboard {
     display: flex;
     justify-content: space-around;
@@ -151,7 +185,7 @@ button:focus {
 
 .log-header {
     display: grid;
-    grid-template-columns: 220px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
+    grid-template-columns: 20px 220px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
     gap: 10px;
     background-color: #363746;
     color: #abb2bf;
@@ -206,7 +240,7 @@ button:focus {
 
 .log-line {
     display: grid;
-    grid-template-columns: 220px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
+    grid-template-columns: 20px 220px 95px minmax(150px, 1.5fr) minmax(100px, 1fr) 2fr;
     gap: 10px;
     align-items: center;
     white-space: normal;
@@ -465,6 +499,50 @@ mark.highlight {
     flex: 1;
 }
 
+.pin-controls button {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--base-color);
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.pin-controls button:hover {
+    background-color: var(--base-color-hover);
+    border-color: var(--text-color);
+}
+
+.log-pin {
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    user-select: none;
+    font-size: 0.8rem;
+}
+
+.log-pin:hover {
+    opacity: 1;
+}
+
+.log-line.pinned .log-pin {
+    opacity: 1;
+}
+
+.log-line.pinned {
+    background-color: rgba(255, 215, 0, 0.1) !important;
+    border-left: 3px solid #ffd700 !important;
+}
+
+.log-type-error.pinned {
+    background-color: rgba(224, 108, 117, 0.25) !important;
+}
+
+.log-type-warn.pinned {
+    background-color: rgba(229, 192, 123, 0.25) !important;
+}
+
 #searchInput {
     padding: 0.5rem 1rem;
     border-radius: 8px;
@@ -514,6 +592,21 @@ mark.highlight {
     border: 1px solid var(--accent-color);
     background-color: var(--accent-color);
     color: var(--text-color);
+}
+
+#exportar {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--base-color);
+    color: var(--text-color);
+    margin-right: 10px;
+}
+
+#exportar:hover {
+    background-color: var(--base-color-hover);
+    border-color: var(--text-color);
 }
 
 #searchInput:focus {

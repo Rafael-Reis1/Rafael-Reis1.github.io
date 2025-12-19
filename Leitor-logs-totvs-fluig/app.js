@@ -93,16 +93,18 @@ function addFileToList(file) {
                         if (isConfigMode) {
                             lineDiv.className = 'log-line';
 
-                            const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                            const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
                             const match = traceLine.match(regex);
 
                             if (match) {
-                                const [fullMatch, date, level, className, thread, message] = match;
+                                const [fullMatch, date, rawLevel, className, thread, message] = match;
+                                const level = rawLevel.replace(/x\d+$/, '').trim(); // Clean level
                                 let cleanClass = className.replace(/^\[|\]$/g, '');
                                 let cleanThread = thread.replace(/^\(|\)$/g, '');
                                 let cleanMessage = message.replace(/^-\s+/, '');
 
                                 lineDiv.innerHTML = `
+                                    <span class="log-pin-placeholder"></span>
                                     <span class="log-date">${date}</span>
                                     <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
                                     <span class="log-class"><span class="clickable-text" data-type="class">${cleanClass}</span></span>
@@ -112,16 +114,16 @@ function addFileToList(file) {
                                 lineDiv.querySelector('.log-message').dataset.originalText = cleanMessage;
                             } else {
                                 lineDiv.className = 'log-line log-config-content';
-                                lineDiv.textContent = traceLine;
+                                lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
                                 lineDiv.dataset.originalText = traceLine;
                             }
 
                         } else if (isStackLine) {
                             lineDiv.className = 'log-line log-stacktrace';
-                            lineDiv.textContent = traceLine;
+                            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
                         } else {
                             lineDiv.className = 'log-line log-detail';
-                            lineDiv.textContent = traceLine;
+                            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
                             lineDiv.dataset.originalText = traceLine;
                         }
 
@@ -154,6 +156,7 @@ function addFileToList(file) {
                 let allGroupedLogs = [];
                 let filteredGroupedLogs = [];
                 let logHeaderElement = null;
+                const pinnedLogs = new Set();
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -222,6 +225,7 @@ function addFileToList(file) {
                         const isConfig = message.includes('=============LOG CONFIGS=========');
 
                         div.innerHTML = `
+                            <span class="log-pin" title="Fixar linha">📌</span>
                             <span class="log-date">${date} ${deltaHtml}</span>
                             <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
                             <span class="log-class"><span class="clickable-text" data-type="class">${className}</span></span>
@@ -229,7 +233,13 @@ function addFileToList(file) {
                             <span class="log-message">${message}</span>
                         `;
                         div.querySelector('.log-message').dataset.originalText = message;
+                        div.dataset.signature = signature;
                         div.classList.add(`log-type-${level.toLowerCase()}`);
+
+                        if (pinnedLogs.has(signature)) {
+                            div.classList.add('pinned');
+                        }
+
                         fragment.appendChild(div);
 
                         if (pendingBuffer.length > 0) {
@@ -251,6 +261,7 @@ function addFileToList(file) {
                 const headerRow = document.createElement('div');
                 headerRow.className = 'log-header';
                 headerRow.innerHTML = `
+                    <div class="header-cell"></div>
                     <div class="header-cell">Date</div>
                     <div class="header-cell">Level</div>
                     <div class="header-cell">Class</div>
@@ -260,6 +271,20 @@ function addFileToList(file) {
                 fragment.appendChild(headerRow);
 
                 conteudoArquivoLog.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('log-pin')) {
+                        const line = e.target.closest('.log-line');
+                        if (line && line.dataset.signature) {
+                            const sig = line.dataset.signature;
+                            if (pinnedLogs.has(sig)) {
+                                pinnedLogs.delete(sig);
+                                line.classList.remove('pinned');
+                            } else {
+                                pinnedLogs.add(sig);
+                                line.classList.add('pinned');
+                            }
+                        }
+                    }
+
                     const clickable = e.target.closest('.clickable-text');
                     if (clickable) {
                         const text = clickable.textContent.trim();
@@ -283,11 +308,12 @@ function addFileToList(file) {
                 lines.forEach(line => {
                     line = line.replace('\r', '');
 
-                    const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+(INFO|WARN|ERROR|DEBUG|FATAL)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+                    const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
                     const match = line.match(regex);
 
                     if (match) {
-                        const [fullMatch, date, level, className, thread, message] = match;
+                        const [fullMatch, date, rawLevel, className, thread, message] = match;
+                        const level = rawLevel.replace(/x\d+$/, '').trim();
 
                         if (message.includes('=============LOG CONFIGS=========')) {
                             if (inConfigBlock && configBuffer.length > 0) {
@@ -419,14 +445,15 @@ function addFileToList(file) {
                     }
 
                     const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
-                    if (tokens.length === 0) {
+                    const positiveTokens = tokens.filter(t => !t.startsWith('-'));
+
+                    if (positiveTokens.length === 0) {
                         target.textContent = target.dataset.originalText;
                         return;
                     }
 
                     const text = target.dataset.originalText;
-
-                    const escapedTokens = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                    const escapedTokens = positiveTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
                     const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
 
                     const safeText = text.replace(/&/g, "&amp;")
@@ -491,6 +518,100 @@ function addFileToList(file) {
                             firstLine.classList.add('active');
                         }
                     }
+                }
+
+                function generateHistogram() {
+                    const histogramEl = document.getElementById('logHistogram');
+                    if (!histogramEl) return;
+
+                    if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
+                        histogramEl.style.display = 'none';
+                        return;
+                    }
+
+                    let minTime = null;
+                    let maxTime = null;
+                    const logTimes = [];
+
+                    filteredGroupedLogs.forEach(group => {
+                        const line = group[group.length - 1];
+                        if (line) {
+                            const dateSpan = line.querySelector('.log-date');
+                            if (dateSpan) {
+                                const dateText = dateSpan.textContent.trim().split(' ')[0] + ' ' + dateSpan.textContent.trim().split(' ')[1].split(',')[0];
+                                const time = parseLogDate(dateSpan.textContent.trim().split('+')[0]).getTime();
+                                if (!minTime || time < minTime) minTime = time;
+                                if (!maxTime || time > maxTime) maxTime = time;
+
+                                let type = 'info';
+                                const levelSpan = line.querySelector('.log-level');
+                                if (levelSpan) {
+                                    const level = levelSpan.textContent.toLowerCase().trim();
+                                    if (level === 'error') type = 'error';
+                                    else if (level === 'warn') type = 'warn';
+                                }
+
+                                logTimes.push({ time, type });
+                            }
+                        }
+                    });
+
+                    if (!minTime || !maxTime || minTime === maxTime) {
+                        histogramEl.style.display = 'none';
+                        return;
+                    }
+
+                    histogramEl.style.display = 'flex';
+                    histogramEl.innerHTML = '';
+
+                    const numBuckets = 60;
+                    const interval = (maxTime - minTime) / numBuckets;
+
+                    const buckets = new Array(numBuckets).fill(0).map(() => ({ count: 0, hasError: false, hasWarn: false }));
+
+                    let maxCount = 0;
+
+                    logTimes.forEach(item => {
+                        let bucketIndex = Math.floor((item.time - minTime) / interval);
+                        if (bucketIndex >= numBuckets) bucketIndex = numBuckets - 1;
+
+                        buckets[bucketIndex].count++;
+                        if (item.type === 'error') buckets[bucketIndex].hasError = true;
+                        if (item.type === 'warn') buckets[bucketIndex].hasWarn = true;
+
+                        if (buckets[bucketIndex].count > maxCount) maxCount = buckets[bucketIndex].count;
+                    });
+
+                    buckets.forEach((bucket, index) => {
+                        const bar = document.createElement('div');
+                        bar.className = 'hist-bar';
+
+                        const height = bucket.count > 0 ? Math.max(10, (bucket.count / maxCount) * 100) : 0;
+                        bar.style.height = `${height}%`;
+
+                        if (bucket.hasError) bar.classList.add('has-error');
+                        else if (bucket.hasWarn) bar.classList.add('has-warn');
+
+                        const startTime = new Date(minTime + (index * interval));
+                        const endTime = new Date(minTime + ((index + 1) * interval));
+
+                        bar.title = `${bucket.count} logs\n${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`;
+
+                        bar.onclick = () => {
+                            const startStr = startTime.toTimeString().split(' ')[0]; // HH:MM:SS
+                            const endStr = endTime.toTimeString().split(' ')[0];
+
+                            const timeStartInput = document.getElementById('timeStart');
+                            const timeEndInput = document.getElementById('timeEnd');
+
+                            if (timeStartInput) timeStartInput.value = startStr;
+                            if (timeEndInput) timeEndInput.value = endStr;
+
+                            if (timeStartInput) timeStartInput.dispatchEvent(new Event('input'));
+                        };
+
+                        histogramEl.appendChild(bar);
+                    });
                 }
 
                 function updatePaginationControls() {
@@ -562,13 +683,18 @@ function addFileToList(file) {
                         if (selectedLevels.length > 0) {
                             if (levelSpan) {
                                 const levelText = levelSpan.textContent.toLowerCase().trim();
-                                levelMatch = selectedLevels.includes(levelText);
+                                levelMatch = selectedLevels.some(selected => levelText.startsWith(selected));
                             } else {
                                 levelMatch = false;
                             }
                         }
 
-                        const textMatch = searchTokens.length === 0 || searchTokens.every(token => text.includes(token));
+                        const textMatch = searchTokens.length === 0 || searchTokens.every(token => {
+                            if (token.startsWith('-') && token.length > 1) {
+                                return !text.includes(token.substring(1));
+                            }
+                            return text.includes(token);
+                        });
 
                         let timeMatch = true;
                         const dateSpan = logLine.querySelector('.log-date');
@@ -584,22 +710,23 @@ function addFileToList(file) {
 
                             if (startTime && timePart < startTime) timeMatch = false;
                             if (endTime && timePart > endTime) timeMatch = false;
+                        }
 
-                            if (timeMatch) {
+                        if (levelMatch && textMatch && timeMatch) {
+                            if (logLine.querySelector('.log-date')) {
+                                const dateText = logLine.querySelector('.log-date').textContent.trim().split(' ').slice(0, 2).join(' ');
                                 const logDate = parseLogDate(dateText);
                                 if (!oldestVisibleDate || logDate < oldestVisibleDate) oldestVisibleDate = logDate;
                                 if (!lastVisibleDate || logDate > lastVisibleDate) lastVisibleDate = logDate;
                             }
-                        }
 
-                        if (levelMatch && textMatch && timeMatch) {
                             filteredGroupedLogs.push(group);
                             visibleCount++;
 
                             if (levelSpan) {
                                 const levelText = levelSpan.textContent.toLowerCase().trim();
-                                if (levelText === 'error') visibleErrors++;
-                                if (levelText === 'warn') visibleWarnings++;
+                                if (levelText.startsWith('error')) visibleErrors++;
+                                if (levelText.startsWith('warn')) visibleWarnings++;
                             }
                         }
                     });
@@ -742,10 +869,146 @@ function addFileToList(file) {
                     }, 100);
                 }
 
+                function exportFilteredLogs() {
+                    if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
+                        alert("Não há logs filtrados para exportar.");
+                        return;
+                    }
+
+                    let content = '';
+                    for (let g = filteredGroupedLogs.length - 1; g >= 0; g--) {
+                        const group = filteredGroupedLogs[g];
+                        for (let i = group.length - 1; i >= 0; i--) {
+                            const el = group[i];
+
+                            if (el.classList.contains('stack-trace-container')) {
+                                const innerLines = Array.from(el.querySelectorAll('.stack-trace-content .log-line')).reverse();
+
+                                innerLines.forEach(inner => {
+                                    let innerText = '';
+                                    if (inner.querySelector('.log-date')) {
+                                        const date = inner.querySelector('.log-date').textContent.split('+')[0].trim();
+                                        const level = inner.querySelector('.log-level').textContent;
+                                        const className = inner.querySelector('.log-class').textContent;
+                                        const thread = inner.querySelector('.log-thread').textContent;
+                                        const message = inner.querySelector('.log-message').dataset.originalText || inner.querySelector('.log-message').textContent;
+                                        innerText = `${date} ${level} [${className}] (${thread}) - ${message}`;
+                                    } else {
+                                        innerText = inner.dataset.originalText || inner.textContent;
+                                    }
+                                    content += innerText + '\n';
+                                });
+                                continue;
+                            }
+
+                            let lineText = '';
+
+                            if (el.classList.contains('log-line') && !el.classList.contains('log-detail') && !el.classList.contains('log-stacktrace') && !el.classList.contains('log-config-content') && !el.classList.contains('log-raw')) {
+                                const date = el.querySelector('.log-date').textContent.split('+')[0].trim();
+                                const level = el.querySelector('.log-level').textContent;
+                                const className = el.querySelector('.log-class').textContent;
+                                const thread = el.querySelector('.log-thread').textContent;
+                                const message = el.querySelector('.log-message').dataset.originalText || el.querySelector('.log-message').textContent;
+
+                                lineText = `${date} ${level} [${className}] (${thread}) - ${message}`;
+                            } else {
+                                lineText = el.dataset.originalText || el.textContent;
+                            }
+
+                            content += lineText + '\n';
+                        }
+                    }
+
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `logs-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.log`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+
                 const closeBtn = document.getElementById('fechar');
                 if (closeBtn) {
                     closeBtn.onclick = closeModal;
                 }
+
+                const exportBtn = document.getElementById('exportar');
+                if (exportBtn) {
+                    exportBtn.onclick = exportFilteredLogs;
+                }
+
+                function scrollToPin(direction) {
+
+                    if (pinnedLogs.size === 0) return;
+
+                    const flatList = [];
+                    filteredGroupedLogs.forEach((group, gIndex) => {
+                        const line = group[group.length - 1];
+
+                        group.forEach((el, elIndex) => {
+                            if (el.dataset && el.dataset.signature && pinnedLogs.has(el.dataset.signature)) {
+                                flatList.push({ groupIndex: gIndex, elementIndex: elIndex, element: el });
+                            }
+                        });
+                    });
+
+                    if (flatList.length === 0) return;
+
+                    const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
+                    let currentIndex = -1;
+
+                    if (currentActive) {
+                        const activeSig = currentActive.dataset.signature;
+                    }
+
+                    if (typeof this.currentPinIndex === 'undefined') {
+                        this.currentPinIndex = -1;
+                    }
+
+                    if (direction === 1) {
+                        this.currentPinIndex++;
+                        if (this.currentPinIndex >= flatList.length) this.currentPinIndex = 0;
+                    } else {
+                        this.currentPinIndex--;
+                        if (this.currentPinIndex < 0) this.currentPinIndex = flatList.length - 1;
+                    }
+
+                    const targetPin = flatList[this.currentPinIndex];
+
+                    const targetPage = Math.floor(targetPin.groupIndex / logsPerPage) + 1;
+
+                    if (targetPage !== currentPage) {
+                        currentPage = targetPage;
+                        renderPage(currentPage);
+                    }
+
+                    setTimeout(() => {
+                        const sig = targetPin.element.dataset.signature;
+                        const lines = conteudoArquivoLog.querySelectorAll('.log-line');
+                        let found = null;
+                        for (let line of lines) {
+                            if (line.dataset.signature === sig) {
+                                found = line;
+                                break;
+                            }
+                        }
+
+                        if (found) {
+                            if (conteudoArquivoLog.querySelector('.active'))
+                                conteudoArquivoLog.querySelector('.active').classList.remove('active');
+
+                            found.classList.add('active');
+                            found.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }
+                    }, 50);
+                }
+
+                const nextPinBtn = document.getElementById('nextPin');
+                if (nextPinBtn) nextPinBtn.onclick = () => scrollToPin(1);
+
+                const prevPinBtn = document.getElementById('prevPin');
+                if (prevPinBtn) prevPinBtn.onclick = () => scrollToPin(-1);
 
                 const background = document.getElementById('listaBackgroud');
                 if (background) {
