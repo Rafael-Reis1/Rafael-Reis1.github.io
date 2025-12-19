@@ -260,8 +260,11 @@ button:focus {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    cursor: pointer;
     transition: color 0.2s;
+}
+
+.clickable-text {
+    cursor: pointer;
 }
 
 mark.highlight {
@@ -271,8 +274,7 @@ mark.highlight {
     padding: 0 2px;
 }
 
-.log-class:hover,
-.log-thread:hover {
+.clickable-text:hover {
     color: #61afef;
     text-decoration: underline;
 }
