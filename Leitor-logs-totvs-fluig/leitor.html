@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,6 +59,11 @@
             </div>
             <div class="formatarBTNS">
                 <div class="filters-container">
+                    <div class="time-filters">
+                        <input type="time" id="timeStart" title="Hora Início">
+                        <span style="color: var(--text-color);">-</span>
+                        <input type="time" id="timeEnd" title="Hora Fim">
+                    </div>
                     <input type="text" id="searchInput" placeholder="Search logs...">
                     <div class="checkbox-group">
                         <div>
@@ -87,5 +91,4 @@
     </div>
     <script src="app.js"></script>
 </body>
-
 </html>
