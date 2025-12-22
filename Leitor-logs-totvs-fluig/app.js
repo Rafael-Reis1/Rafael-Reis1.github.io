@@ -157,8 +157,6 @@ function addFileToList(file) {
                 let filteredGroupedLogs = [];
                 let logHeaderElement = null;
                 const pinnedLogs = new Set();
-                const timeFilterHistory = [];
-                let currentPinNavIndex = -1;
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -481,7 +479,6 @@ function addFileToList(file) {
                 }
 
                 function renderPage(page) {
-                    generateHistogram();
                     if (!filteredGroupedLogs.length) {
                         conteudoArquivoLog.innerHTML = '';
                         document.getElementById('pagination-controls').style.display = 'none';
@@ -499,12 +496,6 @@ function addFileToList(file) {
 
                     const noResults = document.getElementById('no-results-msg');
                     if (noResults) noResults.style.display = 'none';
-
-                    filteredGroupedLogs.forEach(group => {
-                        group.forEach(el => {
-                            if (el.classList) el.classList.remove('active');
-                        });
-                    });
 
                     const startIndex = (page - 1) * logsPerPage;
                     const endIndex = Math.min(startIndex + logsPerPage, filteredGroupedLogs.length);
@@ -539,206 +530,6 @@ function addFileToList(file) {
                             firstLine.classList.add('active');
                         }
                     }
-                }
-
-                function generateHistogram() {
-                    const histogramEl = document.getElementById('logHistogram');
-                    if (!histogramEl) return;
-
-                    if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
-                        histogramEl.style.display = 'none';
-                        return;
-                    }
-
-                    let minTime = null;
-                    let maxTime = null;
-                    const logTimes = [];
-
-                    filteredGroupedLogs.forEach(group => {
-                        const line = group[group.length - 1];
-                        if (line) {
-                            const dateSpan = line.querySelector('.log-date');
-                            if (dateSpan) {
-                                const dateText = dateSpan.textContent.trim().split(' ')[0] + ' ' + dateSpan.textContent.trim().split(' ')[1].split(',')[0];
-                                const time = parseLogDate(dateSpan.textContent.trim().split('+')[0]).getTime();
-                                if (isNaN(time)) return;
-
-                                if (!minTime || time < minTime) minTime = time;
-                                if (!maxTime || time > maxTime) maxTime = time;
-
-                                let type = 'info';
-                                const levelSpan = line.querySelector('.log-level');
-                                if (levelSpan) {
-                                    const level = levelSpan.textContent.toLowerCase().trim();
-                                    if (level === 'error') type = 'error';
-                                    else if (level === 'warn') type = 'warn';
-                                }
-
-                                logTimes.push({ time, type });
-                            }
-                        }
-                    });
-
-                    if (!minTime || !maxTime) {
-                        histogramEl.style.display = 'none';
-                        return;
-                    }
-
-                    if (minTime === maxTime) {
-                        maxTime += 1000;
-                    }
-
-                    histogramEl.style.display = 'flex';
-                    histogramEl.innerHTML = '';
-
-                    const numBuckets = 60;
-                    const interval = (maxTime - minTime) / numBuckets;
-
-                    const buckets = new Array(numBuckets).fill(0).map(() => ({ count: 0, hasError: false, hasWarn: false }));
-
-                    let maxCount = 0;
-
-                    logTimes.forEach(item => {
-                        let bucketIndex = Math.floor((item.time - minTime) / interval);
-                        if (isNaN(bucketIndex)) return;
-                        if (bucketIndex < 0) bucketIndex = 0;
-                        if (bucketIndex >= numBuckets) bucketIndex = numBuckets - 1;
-
-                        if (buckets[bucketIndex]) {
-                            buckets[bucketIndex].count++;
-                            if (item.type === 'error') buckets[bucketIndex].hasError = true;
-                            if (item.type === 'warn') buckets[bucketIndex].hasWarn = true;
-
-                            if (buckets[bucketIndex].count > maxCount) maxCount = buckets[bucketIndex].count;
-                        }
-                    });
-
-                    buckets.forEach((bucket, index) => {
-                        const bar = document.createElement('div');
-                        bar.className = 'hist-bar';
-
-                        const height = bucket.count > 0 ? Math.max(50, (bucket.count / maxCount) * 100) : 0;
-                        bar.style.height = `${height}%`;
-
-                        if (bucket.hasError) bar.classList.add('has-error');
-                        else if (bucket.hasWarn) bar.classList.add('has-warn');
-
-                        const startTime = new Date(minTime + (index * interval));
-                        const endTime = new Date(minTime + ((index + 1) * interval));
-
-                        bar.title = `${bucket.count} logs\n${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`;
-
-                        bar.onclick = () => {
-                            const startStr = startTime.toTimeString().split(' ')[0].substring(0, 5);
-                            const endStr = endTime.toTimeString().split(' ')[0].substring(0, 5);
-
-                            const timeStartInput = document.getElementById('timeStart');
-                            const timeEndInput = document.getElementById('timeEnd');
-
-                            if (timeStartInput && timeEndInput &&
-                                timeStartInput.value === startStr &&
-                                timeEndInput.value === endStr) {
-                                let priority = null;
-                                if (bucket.hasError) priority = 'error';
-                                else if (bucket.hasWarn) priority = 'warn';
-
-                                scrollToLogTime(startTime.getTime(), endTime.getTime(), priority);
-                                return;
-                            }
-
-                            if (timeStartInput && timeEndInput) {
-                                timeFilterHistory.push({
-                                    start: timeStartInput.value,
-                                    end: timeEndInput.value
-                                });
-                            }
-
-                            if (timeStartInput) timeStartInput.value = startStr;
-                            if (timeEndInput) timeEndInput.value = endStr;
-
-                            if (timeStartInput) timeStartInput.dispatchEvent(new Event('input'));
-                        };
-
-                        histogramEl.appendChild(bar);
-                    });
-
-                    histogramEl.oncontextmenu = (e) => {
-                        e.preventDefault();
-                        const timeStartInput = document.getElementById('timeStart');
-                        const timeEndInput = document.getElementById('timeEnd');
-
-                        if (timeFilterHistory.length > 0) {
-                            const lastState = timeFilterHistory.pop();
-                            if (timeStartInput) timeStartInput.value = lastState.start;
-                            if (timeEndInput) timeEndInput.value = lastState.end;
-                        } else {
-                            if (timeStartInput) timeStartInput.value = '';
-                            if (timeEndInput) timeEndInput.value = '';
-                        }
-
-                        if (timeStartInput) timeStartInput.dispatchEvent(new Event('input'));
-                    };
-                }
-
-                function scrollToLogTime(startTime, endTime, priority = null) {
-                    const findLogIndex = (mustMatchPriority) => {
-                        return filteredGroupedLogs.findIndex(group => {
-                            const line = group[group.length - 1];
-                            if (!line) return false;
-
-                            const dateSpan = line.querySelector('.log-date');
-                            if (!dateSpan) return false;
-
-
-                            const t = parseLogDate(dateSpan.textContent.trim().split('+')[0]).getTime();
-                            if (isNaN(t)) return false;
-                            if (t < startTime || t > endTime) return false;
-
-                            if (mustMatchPriority && priority) {
-                                const levelSpan = line.querySelector('.log-level');
-                                if (!levelSpan) return false;
-                                const levelText = levelSpan.textContent.toLowerCase().trim();
-                                if (!levelText.startsWith(priority)) return false;
-                            }
-                            return true;
-                        });
-                    };
-
-                    let idx = -1;
-                    if (priority) {
-                        idx = findLogIndex(true);
-                    }
-
-                    if (idx === -1) {
-                        idx = findLogIndex(false);
-                    }
-
-                    if (idx === -1) return;
-
-                    const targetPage = Math.floor(idx / logsPerPage) + 1;
-                    if (currentPage !== targetPage) {
-                        currentPage = targetPage;
-                        renderPage(currentPage);
-                    }
-
-                    setTimeout(() => {
-                        const group = filteredGroupedLogs[idx];
-                        if (group && group.length > 0) {
-                            const el = group[0];
-                            if (el && el.scrollIntoView) {
-                                el.scrollIntoView({ behavior: 'auto', block: 'center' });
-
-                                const observer = new IntersectionObserver((entries) => {
-                                    if (entries[0].isIntersecting) {
-                                        el.classList.add('flash-highlight');
-                                        setTimeout(() => el.classList.remove('flash-highlight'), 1500);
-                                        observer.disconnect();
-                                    }
-                                }, { threshold: 0.5 });
-                                observer.observe(el);
-                            }
-                        }
-                    }, 50);
                 }
 
                 function updatePaginationControls() {
@@ -797,6 +588,14 @@ function addFileToList(file) {
                             }
                         }
                     });
+
+                    if (filteredGroupedLogs) {
+                        filteredGroupedLogs.forEach(group => {
+                            group.forEach(el => {
+                                if (el.classList) el.classList.remove('active');
+                            });
+                        });
+                    }
 
                     filteredGroupedLogs = [];
                     let visibleCount = 0;
