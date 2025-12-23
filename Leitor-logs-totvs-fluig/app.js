@@ -188,7 +188,6 @@ function addFileToList(file) {
         const reader = new FileReader();
         reader.onload = function (e) {
             const content = e.target.result;
-            const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
             const popup = document.getElementById('arquivoLogPopup');
             const popupCard = popup.querySelector('.popupCard');
             const containerArquivoLog = document.querySelector('.containerArquivoLog');
@@ -293,11 +292,6 @@ function addFileToList(file) {
                 let oldestDate = null;
                 let newestDate = null;
 
-                function parseLogDate(dateStr) {
-                    const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
-                    return new Date(isoStr);
-                }
-
                 let previousUniqueLogDate = null;
 
                 function processPendingLog() {
@@ -353,7 +347,6 @@ function addFileToList(file) {
                         }
 
                         previousUniqueLogDate = currentObjDate;
-
 
                         const div = document.createElement('div');
                         div.className = 'log-line';
@@ -531,265 +524,6 @@ function addFileToList(file) {
                     }
                 };
 
-
-
-                function highlightSearchTerm(element, term) {
-                    if (!element) return;
-
-                    const messageSpan = element.querySelector('.log-message');
-                    const target = messageSpan || element;
-
-                    if (!target.dataset.originalText) return;
-
-                    if (!term || term.trim() === '') {
-                        target.textContent = target.dataset.originalText;
-                        return;
-                    }
-
-                    const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
-                    const positiveTokens = tokens.filter(t => !t.startsWith('-'));
-
-                    if (positiveTokens.length === 0) {
-                        target.textContent = target.dataset.originalText;
-                        return;
-                    }
-
-                    const text = target.dataset.originalText;
-                    const escapedTokens = positiveTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                    const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
-
-                    const safeText = text.replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/"/g, "&quot;")
-                        .replace(/'/g, "&#039;");
-
-                    const newHtml = safeText.replace(regex, '<mark class="highlight">$1</mark>');
-                    target.innerHTML = newHtml;
-                }
-
-                function renderPage(page) {
-                    if (!filteredGroupedLogs.length) {
-                        conteudoArquivoLog.innerHTML = '';
-                        document.getElementById('pagination-controls').style.display = 'none';
-                        let noResultsMsg = document.getElementById('no-results-msg');
-                        if (!noResultsMsg) {
-                            noResultsMsg = document.createElement('div');
-                            noResultsMsg.id = 'no-results-msg';
-                            noResultsMsg.textContent = 'Nenhum log encontrado para este filtro.';
-                            noResultsMsg.className = 'no-results-message';
-                            conteudoArquivoLog.appendChild(noResultsMsg);
-                        }
-                        noResultsMsg.style.display = 'block';
-                        return;
-                    }
-
-                    const noResults = document.getElementById('no-results-msg');
-                    if (noResults) noResults.style.display = 'none';
-
-                    const startIndex = (page - 1) * logsPerPage;
-                    const endIndex = Math.min(startIndex + logsPerPage, filteredGroupedLogs.length);
-                    const pageItems = filteredGroupedLogs.slice(startIndex, endIndex);
-
-                    conteudoArquivoLog.innerHTML = '';
-                    if (logHeaderElement) conteudoArquivoLog.appendChild(logHeaderElement);
-
-                    const fragment = document.createDocumentFragment();
-                    const searchTerm = searchInput ? searchInput.value.trim() : '';
-
-                    pageItems.forEach(group => {
-                        group.forEach(el => {
-                            highlightSearchTerm(el, searchTerm);
-                            fragment.appendChild(el);
-                        });
-                    });
-                    conteudoArquivoLog.appendChild(fragment);
-
-                    updatePaginationControls();
-
-                    const existingActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
-
-                    if (existingActive) {
-                        requestAnimationFrame(() => {
-                            existingActive.scrollIntoView({ block: 'center', behavior: 'auto' });
-                        });
-                    } else {
-                        containerArquivoLog.scrollTop = 0;
-                        const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
-                        if (firstLine) {
-                            firstLine.classList.add('active');
-                        }
-                    }
-                }
-
-                function updatePaginationControls() {
-                    const controls = document.getElementById('pagination-controls');
-                    const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
-
-                    if (totalPages <= 1) {
-                        controls.style.display = 'none';
-                        return;
-                    }
-                    controls.innerHTML = '';
-
-                    const prevBtn = document.createElement('button');
-                    prevBtn.textContent = '◀ Anterior';
-                    prevBtn.disabled = currentPage === 1;
-                    prevBtn.onclick = () => {
-                        if (currentPage > 1) {
-                            currentPage--;
-                            renderPage(currentPage);
-                        }
-                    };
-
-                    const info = document.createElement('span');
-                    info.textContent = `Página ${currentPage} de ${totalPages} (${filteredGroupedLogs.length} logs)`;
-
-                    const nextBtn = document.createElement('button');
-                    nextBtn.textContent = 'Próximo ▶';
-                    nextBtn.disabled = currentPage === totalPages;
-                    nextBtn.onclick = () => {
-                        if (currentPage < totalPages) {
-                            currentPage++;
-                            renderPage(currentPage);
-                        }
-                    };
-
-                    controls.appendChild(prevBtn);
-                    controls.appendChild(info);
-                    controls.appendChild(nextBtn);
-                }
-
-                function filterLogs() {
-                    const searchInputVal = searchInput.value.toLowerCase().trim();
-                    const searchTokens = searchInputVal.split(/\s+/).filter(t => t.length > 0);
-
-                    const selectedLevels = [];
-                    let pinnedOnlyFilter = false;
-
-                    checkboxes.forEach(cb => {
-                        if (cb.checked) {
-                            if (cb.id === 'pinnedOnly') {
-                                pinnedOnlyFilter = true;
-                            } else {
-                                selectedLevels.push(cb.value.toLowerCase());
-                            }
-                        }
-                    });
-
-                    if (filteredGroupedLogs) {
-                        filteredGroupedLogs.forEach(group => {
-                            group.forEach(el => {
-                                if (el.classList) el.classList.remove('active');
-                            });
-                        });
-                    }
-
-                    filteredGroupedLogs = [];
-                    let visibleCount = 0;
-                    let visibleErrors = 0;
-                    let visibleWarnings = 0;
-                    let oldestVisibleDate = null;
-                    let lastVisibleDate = null;
-
-                    allGroupedLogs.forEach(group => {
-                        const logLine = group[group.length - 1];
-                        if (!logLine || !logLine.classList.contains('log-line')) return;
-
-                        if (pinnedOnlyFilter) {
-                            const hasPinned = logLine.dataset.signature && pinnedLogs.has(logLine.dataset.signature);
-                            if (!hasPinned) {
-                                return;
-                            }
-                        }
-
-                        const text = logLine.textContent.toLowerCase();
-                        const levelSpan = logLine.querySelector('.log-level');
-
-                        let levelMatch = true;
-                        if (selectedLevels.length > 0) {
-                            if (levelSpan) {
-                                const levelText = levelSpan.textContent.toLowerCase().trim();
-                                levelMatch = selectedLevels.some(selected => levelText.startsWith(selected));
-                            } else {
-                                levelMatch = false;
-                            }
-                        }
-
-                        const textMatch = searchTokens.length === 0 || searchTokens.every(token => {
-                            if (token.startsWith('-') && token.length > 1) {
-                                return !text.includes(token.substring(1));
-                            }
-                            return text.includes(token);
-                        });
-
-                        let timeMatch = true;
-                        const dateSpan = logLine.querySelector('.log-date');
-                        if (dateSpan) {
-                            const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
-                            const timePart = dateText.split(' ')[1].split(',')[0];
-
-                            let startTime = timeStartInput ? timeStartInput.value : '';
-                            let endTime = timeEndInput ? timeEndInput.value : '';
-
-                            if (startTime && startTime.length === 5) startTime += ':00';
-                            if (endTime && endTime.length === 5) endTime += ':59';
-
-                            if (startTime && timePart < startTime) timeMatch = false;
-                            if (endTime && timePart > endTime) timeMatch = false;
-                        }
-
-                        if (levelMatch && textMatch && timeMatch) {
-                            if (logLine.querySelector('.log-date')) {
-                                const dateText = logLine.querySelector('.log-date').textContent.trim().split(' ').slice(0, 2).join(' ');
-                                const logDate = parseLogDate(dateText);
-                                if (!oldestVisibleDate || logDate < oldestVisibleDate) oldestVisibleDate = logDate;
-                                if (!lastVisibleDate || logDate > lastVisibleDate) lastVisibleDate = logDate;
-                            }
-
-                            filteredGroupedLogs.push(group);
-                            visibleCount++;
-
-                            if (levelSpan) {
-                                const levelText = levelSpan.textContent.toLowerCase().trim();
-                                if (levelText.startsWith('error')) visibleErrors++;
-                                if (levelText.startsWith('warn')) visibleWarnings++;
-                            }
-                        }
-                    });
-
-                    const statTotal = document.getElementById('statTotal');
-                    const statErrors = document.getElementById('statErrors');
-                    const statWarnings = document.getElementById('statWarnings');
-                    const statDuration = document.getElementById('statDuration');
-
-                    if (statTotal) statTotal.textContent = visibleCount;
-                    if (statErrors) statErrors.textContent = visibleErrors;
-                    if (statWarnings) statWarnings.textContent = visibleWarnings;
-
-                    let durationStr = '--';
-                    if (oldestVisibleDate && lastVisibleDate) {
-                        const diffMs = lastVisibleDate - oldestVisibleDate;
-                        const diffSec = Math.floor(diffMs / 1000);
-                        const hours = Math.floor(diffSec / 3600);
-                        const mins = Math.floor((diffSec % 3600) / 60);
-                        const secs = diffSec % 60;
-                        durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                    }
-                    if (statDuration) statDuration.textContent = durationStr;
-
-                    currentPage = 1;
-                    renderPage(currentPage);
-                }
-
-                if (searchInput) searchInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
-                if (timeStartInput) timeStartInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
-                if (timeEndInput) timeEndInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
-
-                checkboxes.forEach(checkbox => {
-                    checkbox.addEventListener('change', () => { filterLogs(); debouncedSaveSettings(); });
-                });
-
                 const elements = Array.from(fragment.children);
                 const header = elements.find(el => el.classList.contains('log-header'));
 
@@ -827,77 +561,6 @@ function addFileToList(file) {
                     const container = document.querySelector('.containerArquivoLog');
                     if (container) container.scrollTop = 0;
                 });
-
-                document.addEventListener('keydown', function (e) {
-                    if (popup.style.display === 'none') return;
-
-                    if (e.key === 'ArrowRight') {
-                        const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
-                        if (currentPage < totalPages) {
-                            currentPage++;
-                            renderPage(currentPage);
-                        }
-                    } else if (e.key === 'Enter') {
-                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
-                        if (currentActive) {
-                            const toggleBtn = currentActive.querySelector('.stack-trace-toggle');
-                            if (toggleBtn) {
-                                toggleBtn.click();
-                            }
-                        }
-                    } else if (e.key === 'ArrowLeft') {
-                        if (currentPage > 1) {
-                            currentPage--;
-                            renderPage(currentPage);
-                        }
-                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        const candidates = Array.from(conteudoArquivoLog.querySelectorAll('.log-line, .stack-trace-container'));
-
-                        const allVisibleLines = candidates.filter(el => {
-                            return el.offsetParent !== null;
-                        });
-
-                        if (allVisibleLines.length === 0) return;
-
-                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
-                        let nextIndex = 0;
-
-                        if (currentActive) {
-                            const currentIndex = allVisibleLines.indexOf(currentActive);
-                            if (e.key === 'ArrowDown') {
-                                nextIndex = Math.min(currentIndex + 1, allVisibleLines.length - 1);
-                            } else {
-                                nextIndex = Math.max(currentIndex - 1, 0);
-                            }
-                        } else {
-                            if (e.key === 'ArrowDown') nextIndex = 0;
-                            else nextIndex = allVisibleLines.length - 1;
-                        }
-
-                        if (currentActive) currentActive.classList.remove('active');
-                        const nextLine = allVisibleLines[nextIndex];
-                        nextLine.classList.add('active');
-
-                        if (nextIndex === 0) {
-                            conteudoArquivoLog.parentElement.scrollTop = 0;
-                        } else {
-                            nextLine.scrollIntoView({ block: 'nearest', behavior: 'auto' });
-                        }
-                    }
-                });
-
-                function closeModal() {
-                    const popup = document.getElementById('arquivoLogPopup');
-                    const popupCard = popup.querySelector('.popupCard');
-                    const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
-
-                    if (popupCard) popupCard.classList.remove('show');
-                    setTimeout(() => {
-                        popup.style.display = 'none';
-                        conteudoArquivoLog.textContent = '';
-                    }, 100);
-                }
 
                 function exportFilteredLogs() {
                     if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
@@ -995,12 +658,6 @@ function addFileToList(file) {
                 if (background) {
                     background.onclick = closeModal;
                 }
-
-                document.addEventListener('keydown', function (event) {
-                    if (event.key === 'Escape') {
-                        closeModal();
-                    }
-                });
             }
         };
         reader.onerror = function () {
@@ -1021,9 +678,15 @@ function updateClearPinsButton() {
 
 function closeModal() {
     const popup = document.getElementById('arquivoLogPopup');
-    if (popup) {
-        popup.style.display = 'none';
+    const popupCard = popup ? popup.querySelector('.popupCard') : null;
+    const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
 
+    if (popupCard) popupCard.classList.remove('show');
+    if (popup) {
+        setTimeout(() => {
+            popup.style.display = 'none';
+            if (conteudoArquivoLog) conteudoArquivoLog.textContent = '';
+        }, 100);
         if (typeof saveSettings === 'function') {
             saveSettings();
         }
@@ -1034,5 +697,393 @@ const btnVoltar = document.getElementById('btnVoltar');
 if (btnVoltar) {
     btnVoltar.addEventListener('click', () => {
         window.location.href = '../index.html';
+    });
+}
+
+function parseLogDate(dateStr) {
+    const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
+    return new Date(isoStr);
+}
+
+function highlightSearchTerm(element, term) {
+    if (!element) return;
+    const messageSpan = element.querySelector('.log-message');
+    const target = messageSpan || element;
+    if (!target.dataset.originalText) return;
+    if (!term || term.trim() === '') {
+        target.textContent = target.dataset.originalText;
+        return;
+    }
+    const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
+    const positiveTokens = tokens.filter(t => !t.startsWith('-'));
+    if (positiveTokens.length === 0) {
+        target.textContent = target.dataset.originalText;
+        return;
+    }
+    const text = target.dataset.originalText;
+    const escapedTokens = positiveTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+    const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    const newHtml = safeText.replace(regex, '<mark class="highlight">$1</mark>');
+    target.innerHTML = newHtml;
+}
+
+function renderPage(page) {
+    const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+    const containerArquivoLog = document.querySelector('.containerArquivoLog');
+
+    if (!filteredGroupedLogs.length) {
+        conteudoArquivoLog.innerHTML = '';
+        const controls = document.getElementById('pagination-controls');
+        if (controls) controls.style.display = 'none';
+
+        let noResultsMsg = document.getElementById('no-results-msg');
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.id = 'no-results-msg';
+            noResultsMsg.textContent = 'Nenhum log encontrado para este filtro.';
+            noResultsMsg.className = 'no-results-message';
+            conteudoArquivoLog.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = 'block';
+        return;
+    }
+
+    const noResults = document.getElementById('no-results-msg');
+    if (noResults) noResults.style.display = 'none';
+
+    const startIndex = (page - 1) * logsPerPage;
+    const endIndex = Math.min(startIndex + logsPerPage, filteredGroupedLogs.length);
+    const pageItems = filteredGroupedLogs.slice(startIndex, endIndex);
+
+    conteudoArquivoLog.innerHTML = '';
+    if (logHeaderElement) conteudoArquivoLog.appendChild(logHeaderElement);
+
+    const fragment = document.createDocumentFragment();
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
+
+    pageItems.forEach(group => {
+        group.forEach(el => {
+            highlightSearchTerm(el, searchTerm);
+            fragment.appendChild(el);
+        });
+    });
+    conteudoArquivoLog.appendChild(fragment);
+
+    updatePaginationControls();
+
+    const existingActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+    if (existingActive) {
+        requestAnimationFrame(() => {
+            existingActive.scrollIntoView({ block: 'center', behavior: 'auto' });
+        });
+    } else {
+        if (containerArquivoLog) containerArquivoLog.scrollTop = 0;
+        const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
+        if (firstLine) {
+            firstLine.classList.add('active');
+        }
+    }
+}
+
+function updatePaginationControls() {
+    const controls = document.getElementById('pagination-controls');
+    if (!controls) return;
+
+    const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
+
+    if (totalPages <= 1) {
+        controls.style.display = 'none';
+        return;
+    }
+    controls.innerHTML = '';
+    controls.style.display = 'flex';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '◀ Anterior';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderPage(currentPage);
+        }
+    };
+
+    const info = document.createElement('span');
+    info.textContent = `Página ${currentPage} de ${totalPages} (${filteredGroupedLogs.length} logs)`;
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Próximo ▶';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderPage(currentPage);
+        }
+    };
+
+    controls.appendChild(prevBtn);
+    controls.appendChild(info);
+    controls.appendChild(nextBtn);
+}
+
+function filterLogs() {
+    const searchInput = document.getElementById('searchInput');
+    const timeStartInput = document.getElementById('timeStart');
+    const timeEndInput = document.getElementById('timeEnd');
+    const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+
+    const searchInputVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const searchTokens = searchInputVal.split(/\s+/).filter(t => t.length > 0);
+
+    const selectedLevels = [];
+    let pinnedOnlyFilter = false;
+
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            if (cb.id === 'pinnedOnly') {
+                pinnedOnlyFilter = true;
+            } else if (cb.name === 'filterLevel') {
+                selectedLevels.push(cb.value.toLowerCase());
+            }
+        }
+    });
+
+    if (filteredGroupedLogs) {
+        filteredGroupedLogs.forEach(group => {
+            group.forEach(el => {
+                if (el.classList) el.classList.remove('active');
+            });
+        });
+    }
+
+    filteredGroupedLogs = [];
+    let visibleCount = 0;
+    let visibleErrors = 0;
+    let visibleWarnings = 0;
+    let oldestVisibleDate = null;
+    let lastVisibleDate = null;
+
+    allGroupedLogs.forEach(group => {
+        const logLine = group[group.length - 1];
+        if (!logLine || !logLine.classList.contains('log-line')) return;
+
+        if (pinnedOnlyFilter) {
+            const hasPinned = logLine.dataset.signature && pinnedLogs.has(logLine.dataset.signature);
+            if (!hasPinned) return;
+        }
+
+        const text = logLine.textContent.toLowerCase();
+        const levelSpan = logLine.querySelector('.log-level');
+
+        let levelMatch = true;
+        if (selectedLevels.length > 0) {
+            if (levelSpan) {
+                const levelText = levelSpan.textContent.toLowerCase().trim();
+                levelMatch = selectedLevels.some(selected => levelText.startsWith(selected));
+            } else {
+                levelMatch = false;
+            }
+        }
+
+        const textMatch = searchTokens.length === 0 || searchTokens.every(token => {
+            if (token.startsWith('-') && token.length > 1) {
+                return !text.includes(token.substring(1));
+            }
+            return text.includes(token);
+        });
+
+        let timeMatch = true;
+        const dateSpan = logLine.querySelector('.log-date');
+        if (dateSpan) {
+            const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
+            const timePart = dateText.split(' ')[1].split(',')[0];
+
+            let startTime = timeStartInput ? timeStartInput.value : '';
+            let endTime = timeEndInput ? timeEndInput.value : '';
+
+            if (startTime && startTime.length === 5) startTime += ':00';
+            if (endTime && endTime.length === 5) endTime += ':59';
+
+            if (startTime && timePart < startTime) timeMatch = false;
+            if (endTime && timePart > endTime) timeMatch = false;
+        }
+
+        if (levelMatch && textMatch && timeMatch) {
+            if (logLine.querySelector('.log-date')) {
+                const dateText = logLine.querySelector('.log-date').textContent.trim().split(' ').slice(0, 2).join(' ');
+                const logDate = parseLogDate(dateText);
+                if (!oldestVisibleDate || logDate < oldestVisibleDate) oldestVisibleDate = logDate;
+                if (!lastVisibleDate || logDate > lastVisibleDate) lastVisibleDate = logDate;
+            }
+
+            filteredGroupedLogs.push(group);
+            visibleCount++;
+
+            if (levelSpan) {
+                const levelText = levelSpan.textContent.toLowerCase().trim();
+                if (levelText.startsWith('error')) visibleErrors++;
+                if (levelText.startsWith('warn')) visibleWarnings++;
+            }
+        }
+    });
+
+    const statTotal = document.getElementById('statTotal');
+    const statErrors = document.getElementById('statErrors');
+    const statWarnings = document.getElementById('statWarnings');
+    const statDuration = document.getElementById('statDuration');
+
+    if (statTotal) statTotal.textContent = visibleCount;
+    if (statErrors) statErrors.textContent = visibleErrors;
+    if (statWarnings) statWarnings.textContent = visibleWarnings;
+
+    let durationStr = '--';
+    if (oldestVisibleDate && lastVisibleDate) {
+        const diffMs = lastVisibleDate - oldestVisibleDate;
+        const diffSec = Math.floor(diffMs / 1000);
+        const hours = Math.floor(diffSec / 3600);
+        const mins = Math.floor((diffSec % 3600) / 60);
+        const secs = diffSec % 60;
+        durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    if (statDuration) statDuration.textContent = durationStr;
+
+    currentPage = 1;
+    renderPage(currentPage);
+}
+
+function togglePin(line) {
+    if (!line || !line.dataset.signature) return;
+    const sig = line.dataset.signature;
+
+    if (pinnedLogs.has(sig)) {
+        pinnedLogs.delete(sig);
+        line.classList.remove('pinned');
+
+        const pinnedCheckbox = document.getElementById('pinnedOnly');
+        if (pinnedCheckbox && pinnedCheckbox.checked) {
+            const allActive = document.querySelectorAll('.log-line.active');
+            allActive.forEach(el => el.classList.remove('active'));
+            filterLogs();
+        }
+    } else {
+        pinnedLogs.add(sig);
+        line.classList.add('pinned');
+    }
+    updateClearPinsButton();
+    debouncedSaveSettings();
+}
+
+document.addEventListener('keydown', function (e) {
+    const popup = document.getElementById('arquivoLogPopup');
+    if (!popup || popup.style.display === 'none') return;
+
+    if (e.key === 'p' || e.key === 'P') {
+        const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+        const activeLine = conteudoArquivoLog.querySelector('.log-line.active');
+        if (activeLine) togglePin(activeLine);
+    } else if (e.key === '/') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    } else if (e.key === 'Home') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        e.preventDefault();
+        currentPage = 1;
+        renderPage(1);
+    } else if (e.key === 'End') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        e.preventDefault();
+        const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
+        if (totalPages > 0) {
+            currentPage = totalPages;
+            renderPage(currentPage);
+        }
+    } else if (e.key === 'Escape') {
+        closeModal();
+    } else if (e.key === 'ArrowRight') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderPage(currentPage);
+        }
+    } else if (e.key === 'ArrowLeft') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        if (currentPage > 1) {
+            currentPage--;
+            renderPage(currentPage);
+        }
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        e.preventDefault();
+        const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+        const containerArquivoLog = document.querySelector('.containerArquivoLog');
+
+        const candidates = Array.from(conteudoArquivoLog.querySelectorAll('.log-line, .stack-trace-container'));
+        const allVisibleLines = candidates.filter(el => el.offsetParent !== null);
+
+        if (allVisibleLines.length === 0) return;
+
+        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+        let nextIndex = 0;
+
+        if (currentActive) {
+            const currentIndex = allVisibleLines.indexOf(currentActive);
+            if (e.key === 'ArrowDown') {
+                nextIndex = Math.min(currentIndex + 1, allVisibleLines.length - 1);
+            } else {
+                nextIndex = Math.max(currentIndex - 1, 0);
+            }
+        } else {
+            if (e.key === 'ArrowDown') nextIndex = 0;
+            else nextIndex = allVisibleLines.length - 1;
+        }
+
+        if (currentActive) currentActive.classList.remove('active');
+        const nextLine = allVisibleLines[nextIndex];
+        nextLine.classList.add('active');
+
+        if (nextIndex === 0 && currentPage === 1) {
+            if (containerArquivoLog) containerArquivoLog.scrollTop = 0;
+        } else {
+            nextLine.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        }
+    } else if (e.key === 'Enter') {
+        const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+        if (currentActive) {
+            const toggleBtn = currentActive.querySelector('.stack-trace-toggle');
+            if (toggleBtn) toggleBtn.click();
+        }
+    } else if (['i', 'w', 'e', 'd', 'f'].includes(e.key.toLowerCase())) {
+        if (document.activeElement.tagName === 'INPUT') return;
+
+        let checkboxId = '';
+        if (e.key.toLowerCase() === 'i') checkboxId = 'info';
+        if (e.key.toLowerCase() === 'w') checkboxId = 'warn';
+        if (e.key.toLowerCase() === 'e') checkboxId = 'error';
+        if (e.key.toLowerCase() === 'd') checkboxId = 'debug';
+        if (e.key.toLowerCase() === 'f') checkboxId = 'pinnedOnly';
+
+        const checkbox = document.getElementById(checkboxId);
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            filterLogs();
+            debouncedSaveSettings();
+        }
+    }
+});
+
+if (searchInput) searchInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
+if (timeStartInput) timeStartInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
+if (timeEndInput) timeEndInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
+
+if (checkboxes) {
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', () => { filterLogs(); debouncedSaveSettings(); });
     });
 }
