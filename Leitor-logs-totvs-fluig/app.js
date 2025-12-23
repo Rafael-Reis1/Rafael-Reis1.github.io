@@ -37,14 +37,157 @@ fileInput.addEventListener('change', function () {
     this.value = '';
 });
 
+let currentFileId = null;
+const pinnedLogs = new Set();
+let allGroupedLogs = [];
+let filteredGroupedLogs = [];
+let logHeaderElement = null;
+let currentPage = 1;
+const logsPerPage = 500;
+let searchInput = document.getElementById('searchInput');
+let timeStartInput = document.getElementById('timeStart');
+let timeEndInput = document.getElementById('timeEnd');
+let checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+
+const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+if (conteudoArquivoLog) {
+    conteudoArquivoLog.addEventListener('click', (e) => {
+        if (e.target.classList.contains('log-pin')) {
+            const line = e.target.closest('.log-line');
+            if (line && line.dataset.signature) {
+                const sig = line.dataset.signature;
+                if (pinnedLogs.has(sig)) {
+                    pinnedLogs.delete(sig);
+                    line.classList.remove('pinned');
+
+                    const pinnedCheckbox = document.getElementById('pinnedOnly');
+                    if (pinnedCheckbox && pinnedCheckbox.checked) {
+                        const allActive = conteudoArquivoLog.querySelectorAll('.active');
+                        allActive.forEach(el => el.classList.remove('active'));
+                        filterLogs();
+                    }
+
+                    updateClearPinsButton();
+                    debouncedSaveSettings();
+                } else {
+                    pinnedLogs.add(sig);
+                    line.classList.add('pinned');
+                    updateClearPinsButton();
+                    debouncedSaveSettings();
+                }
+            }
+        }
+
+        const clickable = e.target.closest('.clickable-text');
+        if (clickable) {
+            const text = clickable.textContent.trim();
+            const cleanText = text.replace(/^\[|\]$|^\(|\)$/g, '');
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                if (searchInput.value === cleanText) {
+                    searchInput.value = '';
+                } else {
+                    searchInput.value = cleanText;
+                }
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        }
+    });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function getFileId(file) {
+    const id = `log_settings_${file.name}_${file.size}_${file.lastModified}`;
+    console.log('[DEBUG] Generated File ID:', id);
+    return id;
+}
+
+function saveSettings() {
+    console.log('[DEBUG] Saving settings...', currentFileId, 'Pins:', pinnedLogs.size);
+    if (!currentFileId) {
+        console.warn('[DEBUG] No currentFileId, skipping save');
+        return;
+    }
+
+    const settings = {
+        pinnedSignatures: Array.from(pinnedLogs),
+        filters: {
+            pinnedOnly: document.getElementById('pinnedOnly')?.checked || false,
+            levels: Array.from(document.querySelectorAll('input[name="filterLevel"]:checked')).map(cb => cb.value),
+            search: document.getElementById('searchInput')?.value || '',
+            timeStart: document.getElementById('timeStart')?.value || '',
+            timeEnd: document.getElementById('timeEnd')?.value || ''
+        }
+    };
+
+    try {
+        localStorage.setItem(currentFileId, JSON.stringify(settings));
+    } catch (e) {
+        console.error('Failed to save settings to localStorage', e);
+    }
+}
+
+const debouncedSaveSettings = debounce(saveSettings, 500);
+
+function loadSettings(fileId) {
+    const saved = localStorage.getItem(fileId);
+    console.log('[DEBUG] Loading Settings for:', fileId, 'Found:', !!saved);
+    if (!saved) return;
+
+    try {
+        const settings = JSON.parse(saved);
+
+        pinnedLogs.clear();
+        if (settings.pinnedSignatures && Array.isArray(settings.pinnedSignatures)) {
+            settings.pinnedSignatures.forEach(sig => pinnedLogs.add(sig));
+        }
+
+        updateClearPinsButton();
+
+        if (settings.filters) {
+            const pinnedCheckbox = document.getElementById('pinnedOnly');
+            if (pinnedCheckbox) pinnedCheckbox.checked = !!settings.filters.pinnedOnly;
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = settings.filters.search || '';
+
+            const timeStart = document.getElementById('timeStart');
+            const timeEnd = document.getElementById('timeEnd');
+            if (timeStart) timeStart.value = settings.filters.timeStart || '';
+            if (timeEnd) timeEnd.value = settings.filters.timeEnd || '';
+
+            if (settings.filters.levels && Array.isArray(settings.filters.levels)) {
+                document.querySelectorAll('input[name="filterLevel"]').forEach(cb => {
+                    cb.checked = settings.filters.levels.includes(cb.value);
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load settings from localStorage', e);
+    }
+}
+
 function addFileToList(file) {
     if (!file) return;
 
     if (file.name.toLowerCase().endsWith('.log') || file.name.toLowerCase().endsWith('.txt') || file.type.startsWith('text/')) {
+        currentFileId = getFileId(file);
+        pinnedLogs.clear();
         const reader = new FileReader();
         reader.onload = function (e) {
             const content = e.target.result;
-
             const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
             const popup = document.getElementById('arquivoLogPopup');
             const popupCard = popup.querySelector('.popupCard');
@@ -52,22 +195,18 @@ function addFileToList(file) {
 
             if (conteudoArquivoLog && popup) {
                 conteudoArquivoLog.innerHTML = '';
+                allGroupedLogs = [];
+                filteredGroupedLogs = [];
+                currentPage = 1;
+                searchInput.value = '';
+                timeStartInput.value = '';
+                timeEndInput.value = '';
+                checkboxes.forEach(cb => cb.checked = false);
+
+                loadSettings(currentFileId);
 
                 const lines = content.split('\n');
                 const fragment = document.createDocumentFragment();
-
-
-                const searchInputEl = document.getElementById('searchInput');
-                const timeStartEl = document.getElementById('timeStart');
-                const timeEndEl = document.getElementById('timeEnd');
-
-                if (searchInputEl) searchInputEl.value = '';
-                if (timeStartEl) timeStartEl.value = '';
-                if (timeEndEl) timeEndEl.value = '';
-
-                const filterCheckboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
-                filterCheckboxes.forEach(cb => cb.checked = false);
-
 
                 function createStackTraceBlock(buffer, level, customLabel = null, isConfigMode = false) {
                     const container = document.createElement('div');
@@ -96,8 +235,10 @@ function addFileToList(file) {
                             const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
                             const match = traceLine.match(regex);
 
+
                             if (match) {
                                 const [fullMatch, date, rawLevel, className, thread, message] = match;
+
                                 const level = rawLevel.replace(/x\d+$/, '').trim();
                                 let cleanClass = className.replace(/^\[|\]$/g, '');
                                 let cleanThread = thread.replace(/^\(|\)$/g, '');
@@ -151,12 +292,6 @@ function addFileToList(file) {
                 let countWarn = 0;
                 let oldestDate = null;
                 let newestDate = null;
-                const logsPerPage = 500;
-                let currentPage = 1;
-                let allGroupedLogs = [];
-                let filteredGroupedLogs = [];
-                let logHeaderElement = null;
-                const pinnedLogs = new Set();
 
                 function parseLogDate(dateStr) {
                     const isoStr = dateStr.replace(' ', 'T').replace(',', '.');
@@ -271,48 +406,6 @@ function addFileToList(file) {
                     <div class="header-cell">Message</div>
                 `;
                 fragment.appendChild(headerRow);
-
-                conteudoArquivoLog.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('log-pin')) {
-                        const line = e.target.closest('.log-line');
-                        if (line && line.dataset.signature) {
-                            const sig = line.dataset.signature;
-                            if (pinnedLogs.has(sig)) {
-                                pinnedLogs.delete(sig);
-                                line.classList.remove('pinned');
-
-                                const pinnedCheckbox = document.getElementById('pinnedOnly');
-                                if (pinnedCheckbox && pinnedCheckbox.checked) {
-                                    const allActive = conteudoArquivoLog.querySelectorAll('.active');
-                                    allActive.forEach(el => el.classList.remove('active'));
-                                    filterLogs();
-                                }
-
-                                updateClearPinsButton();
-                            } else {
-                                pinnedLogs.add(sig);
-                                line.classList.add('pinned');
-                                updateClearPinsButton();
-                            }
-                        }
-                    }
-
-                    const clickable = e.target.closest('.clickable-text');
-                    if (clickable) {
-                        const text = clickable.textContent.trim();
-                        const cleanText = text.replace(/^\[|\]$|^\(|\)$/g, '');
-
-                        const searchInput = document.getElementById('searchInput');
-                        if (searchInput) {
-                            if (searchInput.value === cleanText) {
-                                searchInput.value = '';
-                            } else {
-                                searchInput.value = cleanText;
-                            }
-                            searchInput.dispatchEvent(new Event('input'));
-                        }
-                    }
-                });
 
                 let configBuffer = [];
                 let inConfigBlock = false;
@@ -438,10 +531,7 @@ function addFileToList(file) {
                     }
                 };
 
-                const searchInput = document.getElementById('searchInput');
-                const timeStartInput = document.getElementById('timeStart');
-                const timeEndInput = document.getElementById('timeEnd');
-                const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+
 
                 function highlightSearchTerm(element, term) {
                     if (!element) return;
@@ -540,8 +630,6 @@ function addFileToList(file) {
                         controls.style.display = 'none';
                         return;
                     }
-
-                    controls.style.display = 'flex';
                     controls.innerHTML = '';
 
                     const prevBtn = document.createElement('button');
@@ -694,12 +782,12 @@ function addFileToList(file) {
                     renderPage(currentPage);
                 }
 
-                if (searchInput) searchInput.addEventListener('input', filterLogs);
-                if (timeStartInput) timeStartInput.addEventListener('input', filterLogs);
-                if (timeEndInput) timeEndInput.addEventListener('input', filterLogs);
+                if (searchInput) searchInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
+                if (timeStartInput) timeStartInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
+                if (timeEndInput) timeEndInput.addEventListener('input', () => { filterLogs(); debouncedSaveSettings(); });
 
                 checkboxes.forEach(checkbox => {
-                    checkbox.addEventListener('change', filterLogs);
+                    checkbox.addEventListener('change', () => { filterLogs(); debouncedSaveSettings(); });
                 });
 
                 const elements = Array.from(fragment.children);
@@ -727,7 +815,10 @@ function addFileToList(file) {
                 allGroupedLogs = groupedLogs.reverse().map(group => group.reverse());
                 filteredGroupedLogs = [...allGroupedLogs];
 
+                filterLogs();
+
                 renderPage(1);
+                updateClearPinsButton();
 
 
                 popup.style.display = 'flex';
@@ -895,15 +986,9 @@ function addFileToList(file) {
                             }
 
                             clearPinsBtn.style.display = 'none';
+                            debouncedSaveSettings();
                         }
                     };
-                }
-
-                function updateClearPinsButton() {
-                    const clearPinsBtn = document.getElementById('clearPins');
-                    if (clearPinsBtn) {
-                        clearPinsBtn.style.display = pinnedLogs.size > 0 ? 'block' : 'none';
-                    }
                 }
 
                 const background = document.getElementById('listaBackgroud');
@@ -924,6 +1009,24 @@ function addFileToList(file) {
         reader.readAsText(file);
     } else {
         alert("Por favor, envie um arquivo .log ou de texto.");
+    }
+}
+
+function updateClearPinsButton() {
+    const clearPinsBtn = document.getElementById('clearPins');
+    if (clearPinsBtn) {
+        clearPinsBtn.style.display = pinnedLogs.size > 0 ? 'block' : 'none';
+    }
+}
+
+function closeModal() {
+    const popup = document.getElementById('arquivoLogPopup');
+    if (popup) {
+        popup.style.display = 'none';
+
+        if (typeof saveSettings === 'function') {
+            saveSettings();
+        }
     }
 }
 
