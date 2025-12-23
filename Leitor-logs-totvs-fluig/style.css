@@ -644,8 +644,7 @@ mark.highlight {
     position: absolute;
     z-index: 100;
     bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
+    right: -50px;
     opacity: 0;
     transition: opacity 0.3s, visibility 0.3s;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -656,7 +655,7 @@ mark.highlight {
     content: "";
     position: absolute;
     top: 100%;
-    left: 50%;
+    right: 65px;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
