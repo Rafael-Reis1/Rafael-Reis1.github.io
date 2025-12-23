@@ -596,7 +596,101 @@ mark.highlight {
     border: 1px solid var(--border-color);
     background-color: var(--base-color);
     color: var(--text-color);
-    margin-right: 10px;
+    margin-right: 0;
+}
+
+.shortcuts-tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+.icon-btn {
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+    background-color: var(--base-color-hover);
+}
+
+.shortcuts-tooltip {
+    visibility: hidden;
+    width: 250px;
+    background-color: #2c2d3c;
+    color: #fff;
+    text-align: left;
+    border-radius: 8px;
+    padding: 10px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+}
+
+.shortcuts-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #2c2d3c transparent transparent transparent;
+}
+
+.shortcuts-tooltip-container:hover .shortcuts-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.shortcuts-tooltip h4 {
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    color: var(--accent-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.shortcuts-tooltip ul {
+    list-style: none;
+    padding: 0;
+    font-size: 0.85rem;
+}
+
+.shortcuts-tooltip li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.shortcuts-tooltip li:last-child {
+    margin-bottom: 0;
+}
+
+kbd {
+    background-color: #181a1f;
+    border-radius: 4px;
+    border: 1px solid #3e4451;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .2), 0 2px 0 0 rgba(255, 255, 255, .05) inset;
+    color: #abb2bf;
+    display: inline-block;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 2px 5px;
+    white-space: nowrap;
 }
 
 #exportar:hover {
