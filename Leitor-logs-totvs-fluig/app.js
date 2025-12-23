@@ -139,6 +139,22 @@ function saveSettings() {
     }
 }
 
+const activeLogElements = new Set();
+
+function clearActiveLines() {
+    activeLogElements.forEach(el => {
+        if (el && el.classList) el.classList.remove('active');
+    });
+    activeLogElements.clear();
+}
+
+function setActiveLine(element) {
+    if (!element) return;
+    clearActiveLines();
+    element.classList.add('active');
+    activeLogElements.add(element);
+}
+
 const debouncedSaveSettings = debounce(saveSettings, 500);
 
 function loadSettings(fileId) {
@@ -518,9 +534,7 @@ function addFileToList(file) {
                 conteudoArquivoLog.onclick = function (e) {
                     const line = e.target.closest('.log-line');
                     if (line) {
-                        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
-                        if (currentActive) currentActive.classList.remove('active');
-                        line.classList.add('active');
+                        setActiveLine(line);
                     }
                 };
 
@@ -710,20 +724,42 @@ function highlightSearchTerm(element, term) {
     const messageSpan = element.querySelector('.log-message');
     const target = messageSpan || element;
     if (!target.dataset.originalText) return;
+
     if (!term || term.trim() === '') {
         target.textContent = target.dataset.originalText;
         return;
     }
-    const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
-    const positiveTokens = tokens.filter(t => !t.startsWith('-'));
-    if (positiveTokens.length === 0) {
-        target.textContent = target.dataset.originalText;
-        return;
+
+    let useRegex = false;
+    let regexVal = term.trim();
+
+    if (regexVal.length > 2 && regexVal.startsWith('/') && regexVal.endsWith('/')) {
+        useRegex = true;
+        regexVal = regexVal.slice(1, -1);
     }
+
     const text = target.dataset.originalText;
-    const escapedTokens = positiveTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
     const safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+    let regex;
+    if (useRegex) {
+        try {
+            regex = new RegExp(`(${regexVal})`, 'gi');
+        } catch (e) {
+            target.innerHTML = safeText;
+            return;
+        }
+    } else {
+        const tokens = term.trim().split(/\s+/).filter(t => t.length > 0);
+        const positiveTokens = tokens.filter(t => !t.startsWith('-'));
+        if (positiveTokens.length === 0) {
+            target.textContent = target.dataset.originalText;
+            return;
+        }
+        const escapedTokens = positiveTokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+    }
+
     const newHtml = safeText.replace(regex, '<mark class="highlight">$1</mark>');
     target.innerHTML = newHtml;
 }
@@ -782,7 +818,7 @@ function renderPage(page) {
         if (containerArquivoLog) containerArquivoLog.scrollTop = 0;
         const firstLine = conteudoArquivoLog.querySelector('.log-line:not(.log-detail):not(.log-stacktrace), .stack-trace-container');
         if (firstLine) {
-            firstLine.classList.add('active');
+            setActiveLine(firstLine);
         }
     }
 }
@@ -834,8 +870,28 @@ function filterLogs() {
     const timeEndInput = document.getElementById('timeEnd');
     const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
 
-    const searchInputVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    const searchTokens = searchInputVal.split(/\s+/).filter(t => t.length > 0);
+    const searchInputVal = searchInput ? searchInput.value : '';
+    const trimmedVal = searchInputVal.trim();
+
+    let regex = null;
+    let searchTokens = [];
+    let useRegex = false;
+
+    if (trimmedVal.length > 2 && trimmedVal.startsWith('/') && trimmedVal.endsWith('/')) {
+        useRegex = true;
+        const pattern = trimmedVal.slice(1, -1);
+        try {
+            regex = new RegExp(pattern, 'i');
+            if (searchInput) searchInput.classList.remove('error');
+        } catch (e) {
+            if (searchInput) searchInput.classList.add('error');
+            regex = /$.^/;
+        }
+    } else {
+        if (searchInput) searchInput.classList.remove('error');
+        const lowerVal = searchInputVal.toLowerCase().trim();
+        searchTokens = lowerVal.split(/\s+/).filter(t => t.length > 0);
+    }
 
     const selectedLevels = [];
     let pinnedOnlyFilter = false;
@@ -851,11 +907,7 @@ function filterLogs() {
     });
 
     if (filteredGroupedLogs) {
-        filteredGroupedLogs.forEach(group => {
-            group.forEach(el => {
-                if (el.classList) el.classList.remove('active');
-            });
-        });
+        clearActiveLines();
     }
 
     filteredGroupedLogs = [];
@@ -874,7 +926,8 @@ function filterLogs() {
             if (!hasPinned) return;
         }
 
-        const text = logLine.textContent.toLowerCase();
+        const text = logLine.textContent;
+        const lowerText = text.toLowerCase();
         const levelSpan = logLine.querySelector('.log-level');
 
         let levelMatch = true;
@@ -887,12 +940,19 @@ function filterLogs() {
             }
         }
 
-        const textMatch = searchTokens.length === 0 || searchTokens.every(token => {
-            if (token.startsWith('-') && token.length > 1) {
-                return !text.includes(token.substring(1));
+        let textMatch = true;
+        if (useRegex) {
+            if (regex) {
+                textMatch = regex.test(text);
             }
-            return text.includes(token);
-        });
+        } else {
+            textMatch = searchTokens.length === 0 || searchTokens.every(token => {
+                if (token.startsWith('-') && token.length > 1) {
+                    return !lowerText.includes(token.substring(1));
+                }
+                return lowerText.includes(token);
+            });
+        }
 
         let timeMatch = true;
         const dateSpan = logLine.querySelector('.log-date');
@@ -963,8 +1023,6 @@ function togglePin(line) {
 
         const pinnedCheckbox = document.getElementById('pinnedOnly');
         if (pinnedCheckbox && pinnedCheckbox.checked) {
-            const allActive = document.querySelectorAll('.log-line.active');
-            allActive.forEach(el => el.classList.remove('active'));
             filterLogs();
         }
     } else {
@@ -984,6 +1042,7 @@ document.addEventListener('keydown', function (e) {
         const activeLine = conteudoArquivoLog.querySelector('.log-line.active');
         if (activeLine) togglePin(activeLine);
     } else if (e.key === '/') {
+        if (document.activeElement.tagName === 'INPUT') return;
         e.preventDefault();
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
@@ -1043,9 +1102,7 @@ document.addEventListener('keydown', function (e) {
             else nextIndex = allVisibleLines.length - 1;
         }
 
-        if (currentActive) currentActive.classList.remove('active');
-        const nextLine = allVisibleLines[nextIndex];
-        nextLine.classList.add('active');
+        setActiveLine(allVisibleLines[nextIndex]);
 
         if (nextIndex === 0 && currentPage === 1) {
             if (containerArquivoLog) containerArquivoLog.scrollTop = 0;

@@ -544,9 +544,23 @@ mark.highlight {
     border: 1px solid var(--border-color);
     background-color: var(--base-color);
     color: var(--text-color);
-    width: 250px;
+    width: 350px;
     font-size: 0.9rem;
+    transition: border-color 0.2s;
 }
+
+#searchInput.error {
+    border-color: #e06c75;
+    background-color: rgba(224, 108, 117, 0.1);
+}
+
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+
 
 .time-filters {
     display: flex;
