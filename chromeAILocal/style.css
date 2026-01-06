@@ -189,7 +189,7 @@ body {
     background: var(--current-chat-color, var(--accent-gradient));
     color: var(--current-chat-text-color, white);
     border-bottom-right-radius: 4px;
-    box-shadow: var(--accent-glow);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--current-chat-color, var(--accent-color)) 50%, transparent);
 }
 
 .rowAssistant {
@@ -270,7 +270,7 @@ body {
     width: 100%;
     display: flex;
     padding: 0 1.25rem 1.25rem 1.25rem;
-    align-items: flex-end;
+    align-items: center;
     gap: 0.625rem;
 }
 
@@ -319,9 +319,9 @@ body {
 }
 
 #sendButton {
-    background: var(--accent-gradient);
+    background: var(--current-chat-color, var(--accent-gradient));
     color: white;
-    box-shadow: var(--accent-glow);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--current-chat-color, var(--accent-color)) 50%, transparent);
 }
 
 #sendButton:hover {
