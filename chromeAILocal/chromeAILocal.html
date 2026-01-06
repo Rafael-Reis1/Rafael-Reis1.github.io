@@ -110,6 +110,22 @@
                         <input type="text" id="inputPersonaName" class="modal-input"
                             placeholder="Ex: Professor de Inglês">
                     </div>
+                    <div class="modal-form-row">
+                        <div class="modal-form-group">
+                            <label for="inputPersonaColor">Cor</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="inputPersonaColor" value="#f2511b">
+                            </div>
+                        </div>
+                        <div class="modal-form-group">
+                            <label for="inputPersonaIcon">Ícone (Emoji)</label>
+                            <div style="position: relative;">
+                                <input type="text" id="inputPersonaIcon" class="modal-input text-center"
+                                    placeholder="🤖" maxlength="4" style="width: 80px; cursor: pointer;" readonly>
+                                <div id="emojiPicker" class="emoji-picker" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="modal-form-group">
                         <label for="inputPersonaPrompt">Prompt de Sistema</label>
                         <textarea id="inputPersonaPrompt" class="modal-input"
