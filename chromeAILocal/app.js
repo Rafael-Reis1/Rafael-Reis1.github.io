@@ -305,6 +305,81 @@ class EmojiPicker {
     }
 }
 
+const colors = [
+    '#f2511b', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3',
+    '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39',
+    '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b',
+    '#39c5bb', '#3b82f6', '#ef4444', '#f97316', '#84cc16', '#06b6d4'
+];
+
+class ColorPicker {
+    constructor(previewId, pickerId) {
+        this.preview = document.getElementById(previewId);
+        this.picker = document.getElementById(pickerId);
+        this.selectedColor = '#f2511b';
+        this.init();
+    }
+
+    init() {
+        if (!this.preview || !this.picker) return;
+
+        this.picker.innerHTML = colors.map(color =>
+            `<button class="color-btn" style="background: ${color};" data-color="${color}"></button>`
+        ).join('');
+
+        this.preview.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggle();
+        });
+
+        this.picker.addEventListener('click', (e) => {
+            if (e.target.classList.contains('color-btn')) {
+                this.selectColor(e.target.dataset.color);
+                this.close();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!this.picker.contains(e.target) && e.target !== this.preview) {
+                this.close();
+            }
+        });
+    }
+
+    selectColor(color) {
+        this.selectedColor = color;
+        this.preview.style.background = color;
+
+        this.picker.querySelectorAll('.color-btn').forEach(btn => {
+            btn.classList.toggle('selected', btn.dataset.color === color);
+        });
+    }
+
+    getValue() {
+        return this.selectedColor;
+    }
+
+    setValue(color) {
+        this.selectColor(color);
+    }
+
+    toggle() {
+        if (this.picker.style.display === 'none') {
+            this.open();
+        } else {
+            this.close();
+        }
+    }
+
+    open() {
+        this.picker.style.display = 'grid';
+    }
+
+    close() {
+        this.picker.style.display = 'none';
+    }
+}
+
 class UIManager {
     constructor(chatManager, aiService, personaManager) {
         this.chats = chatManager;
@@ -314,6 +389,7 @@ class UIManager {
         this.renderBuffer = "";
         this.lastRenderTime = 0;
         this.emojiPicker = new EmojiPicker('inputPersonaIcon', 'emojiPicker');
+        this.colorPicker = new ColorPicker('inputPersonaColor', 'colorPicker');
 
         this.els = {
             prompt: document.getElementById('promptText'),
@@ -526,8 +602,6 @@ class UIManager {
             if (persona && persona.id !== 'default') {
                 prompt.placeholder = `Conversando com ${persona.name}...`;
                 activeColor = persona.color || '#f2511b';
-                prompt.style.borderColor = activeColor;
-                prompt.style.boxShadow = `0 0 0 1px ${activeColor}`;
 
                 textColor = this.getContrastYIQ(activeColor);
             } else {
@@ -546,11 +620,15 @@ class UIManager {
                         bubbleColor = this.darkenColor(activeColor, 45);
                     }
 
+                    // Use darkened color for consistency
+                    prompt.style.borderColor = bubbleColor;
+                    prompt.style.boxShadow = `0 0 0 1px ${bubbleColor}`;
+
                     this.els.messages.style.setProperty('--current-chat-color', bubbleColor);
                     this.els.messages.style.setProperty('--current-chat-text-color', textColor);
 
                     if (this.els.sendBtn) {
-                        this.els.sendBtn.style.setProperty('--current-chat-color', activeColor);
+                        this.els.sendBtn.style.setProperty('--current-chat-color', bubbleColor);
                     }
                 } else {
                     this.els.messages.style.removeProperty('--current-chat-color');
@@ -656,7 +734,7 @@ class UIManager {
         this.currentEditingId = persona ? persona.id : null;
         this.els.inputPersonaName.value = persona ? persona.name : '';
         this.els.inputPersonaPrompt.value = persona ? persona.prompt : '';
-        this.els.inputPersonaColor.value = persona ? (persona.color || '#f2511b') : '#f2511b';
+        this.colorPicker.setValue(persona ? (persona.color || '#f2511b') : '#f2511b');
         this.els.inputPersonaIcon.value = persona ? (persona.icon || '🤖') : '';
         this.els.personasList.style.display = 'none';
         this.els.addPersonaBtn.style.display = 'none';
@@ -673,7 +751,7 @@ class UIManager {
     savePersona() {
         const name = this.els.inputPersonaName.value.trim();
         const prompt = this.els.inputPersonaPrompt.value.trim();
-        const color = this.els.inputPersonaColor.value;
+        const color = this.colorPicker.getValue();
         const icon = this.els.inputPersonaIcon.value.trim() || '🤖';
 
         if (!name) {
@@ -688,6 +766,8 @@ class UIManager {
         }
 
         this.renderPersonasList();
+        this.renderChatList();
+        this.updateInputState();
         this.hidePersonaEditor();
     }
 
