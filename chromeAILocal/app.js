@@ -16,6 +16,18 @@ class PersonaManager {
                     changed = true;
                 }
 
+                if (p.id === '2' && (p.name === 'Tradutor EN-PT' || !p.name)) {
+                    p.name = 'Revisor de Texto PT';
+                    p.prompt = 'Você é um revisor de textos especialista em Português. Corrija gramática, ortografia e pontuação. Dê sugestões para melhorar a clareza, coesão e fluidez, mas mantenha o tom original. Explique brevemente suas principais correções.';
+                    p.icon = '✍️';
+                    p.color = '#8e44ad';
+                    changed = true;
+                }
+
+                if (p.name === 'Dev Frontend' && p.id !== '1') { p.id = '1'; changed = true; }
+                if (p.name === 'Revisor de Texto PT' && p.id !== '2') { p.id = '2'; changed = true; }
+                if (p.name === 'Hatsune Miku' && p.id !== 'miku') { p.id = 'miku'; changed = true; }
+
                 if (p.id === '1' && p.color === '#00d4ff') {
                     p.color = '#3b82f6';
                     changed = true;
@@ -23,13 +35,13 @@ class PersonaManager {
 
                 if (!p.color) {
                     if (p.id === '1') p.color = '#3b82f6';
-                    else if (p.id === '2') p.color = '#4caf50';
+                    else if (p.id === '2') p.color = '#8e44ad';
                     else p.color = '#f2511b';
                     changed = true;
                 }
                 if (!p.icon) {
                     if (p.id === '1') p.icon = '💻';
-                    else if (p.id === '2') p.icon = '🌐';
+                    else if (p.id === '2') p.icon = '✍️';
                     else p.icon = '🤖';
                     changed = true;
                 }
@@ -59,7 +71,7 @@ class PersonaManager {
             this.personas = [
                 { id: 'default', name: 'Padrão', prompt: '', color: '#f2511b', icon: '🤖' },
                 { id: '1', name: 'Dev Frontend', prompt: 'Você é um especialista em desenvolvimento Frontend (HTML, CSS, JS). Responda com código limpo e moderno.', color: '#3b82f6', icon: '💻' },
-                { id: '2', name: 'Tradutor EN-PT', prompt: 'Você é um tradutor profissional. Traduza tudo o que eu disser do Inglês para o Português (Brasil) ou vice-versa, mantendo o contexto.', color: '#4caf50', icon: '🌐' },
+                { id: '2', name: 'Revisor de Texto PT', prompt: 'Você é um revisor de textos especialista em Português. Corrija gramática, ortografia e pontuação. Dê sugestões para melhorar a clareza, coesão e fluidez, mas mantenha o tom original. Explique brevemente suas principais correções.', color: '#8e44ad', icon: '✍️' },
                 { id: 'miku', name: 'Hatsune Miku', prompt: 'Você é a Hatsune Miku, a idol virtual! 🎤🎵 Responda de forma sempre alegre, energética e fofa. Use emojis e referências musicais. Tenha uma personalidade vibrante e otimista!', color: '#39c5bb', icon: '🎤' }
             ];
             this.save();
@@ -129,13 +141,15 @@ class ChatManager {
         return this.chats;
     }
 
-    create(systemPrompt = '', personaName = null) {
+    create(systemPrompt = '', personaName = null, personaIcon = null, personaColor = null) {
         const chat = {
             id: Date.now().toString(),
             title: 'Novo Chat',
             messages: [],
             systemPrompt: systemPrompt,
             personaName: personaName,
+            personaIcon: personaIcon,
+            personaColor: personaColor,
             timestamp: Date.now()
         };
         this.chats.unshift(chat);
@@ -288,6 +302,13 @@ class EmojiPicker {
         });
     }
 
+    setReadOnly(readOnly) {
+        if (this.input) {
+            this.input.style.pointerEvents = readOnly ? 'none' : 'auto';
+            this.input.readOnly = readOnly;
+        }
+    }
+
     toggle() {
         if (this.picker.style.display === 'none') {
             this.open();
@@ -344,6 +365,12 @@ class ColorPicker {
                 this.close();
             }
         });
+    }
+
+    setReadOnly(readOnly) {
+        if (this.preview) {
+            this.preview.style.pointerEvents = readOnly ? 'none' : 'auto';
+        }
     }
 
     selectColor(color) {
@@ -486,6 +513,18 @@ class UIManager {
                 if (this.els.personasModal && this.els.personasModal.classList.contains('active')) {
                     this.closePersonasModal();
                 }
+
+                if (this.els.genericModal && this.els.genericModal.classList.contains('active')) {
+                    if (this.els.genericModalCancelBtn && this.els.genericModalCancelBtn.offsetParent !== null) {
+                        this.els.genericModalCancelBtn.click();
+                    }
+                    else if (this.els.closeGenericModalBtn) {
+                        this.els.closeGenericModalBtn.click();
+                    }
+                    else {
+                        this.els.genericModal.classList.remove('active');
+                    }
+                }
             }
         });
     }
@@ -503,7 +542,7 @@ class UIManager {
         if (this.els.overlay) this.els.overlay.classList.toggle('active');
     }
 
-    createNewChat(systemPrompt = '', personaName = 'Padrão') {
+    createNewChat(systemPrompt = '', personaName = 'Padrão', personaIcon = null, personaColor = null) {
         const allChats = this.chats.getAll();
         allChats.forEach(chat => {
             if (chat.messages.length === 0 && chat.id !== this.chats.activeChatId) {
@@ -516,7 +555,7 @@ class UIManager {
             this.chats.delete(activeChat.id);
         }
 
-        const chat = this.chats.create(systemPrompt, personaName);
+        const chat = this.chats.create(systemPrompt, personaName, personaIcon, personaColor);
         this.switchChat(chat.id);
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
@@ -590,7 +629,7 @@ class UIManager {
 
             item.innerHTML = `
                 <span>
-                    ${this.getPersonaBadge(chat.personaName)}
+                    ${this.getPersonaBadge(chat.personaName, chat.personaIcon, chat.personaColor)}
                     ${chat.title}
                 </span>
                 <div class="chat-actions">
@@ -716,12 +755,16 @@ class UIManager {
         if (chat && prompt) {
             const persona = this.personas.getAll().find(p => p.name === chat.personaName);
 
+            const activePersonaName = persona ? persona.name : (chat.personaName || '');
+            const activePersonaColor = persona ? (persona.color || '#f2511b') : (chat.personaColor || '');
+            const shouldUsePersonaStyle = (persona && persona.id !== 'default') || (chat.personaName && chat.personaColor);
+
             let activeColor = '';
             let textColor = '';
 
-            if (persona && persona.id !== 'default') {
-                prompt.placeholder = `Conversando com ${persona.name}...`;
-                activeColor = persona.color || '#f2511b';
+            if (shouldUsePersonaStyle) {
+                prompt.placeholder = `Conversando com ${activePersonaName}...`;
+                activeColor = activePersonaColor;
 
                 textColor = this.getContrastYIQ(activeColor);
             } else {
@@ -789,11 +832,16 @@ class UIManager {
         return (yiq >= 128) ? 'black' : 'white';
     }
 
-    getPersonaBadge(personaName) {
+    getPersonaBadge(personaName, iconSnapshot = null, colorSnapshot = null) {
         if (!personaName || personaName.includes('Padrão')) return '';
         const persona = this.personas.getAll().find(p => p.name === personaName);
-        if (!persona) return `<span class="persona-icon-sidebar">🤖</span>`;
-        return `<span class="persona-icon-sidebar" style="color: ${persona.color || 'inherit'}">${persona.icon || '🤖'}</span>`;
+
+        const icon = persona ? (persona.icon || '🤖') : (iconSnapshot || '🤖');
+        const color = persona ? (persona.color || 'inherit') : (colorSnapshot || 'inherit');
+
+        if (!persona && !iconSnapshot) return `<span class="persona-icon-sidebar">🤖</span>`;
+
+        return `<span class="persona-icon-sidebar" style="color: ${color}">${icon}</span>`;
     }
 
     openPersonasModal() {
@@ -819,24 +867,26 @@ class UIManager {
                         <span class="persona-icon-display" style="background-color: ${p.color || '#f2511b'}20; color: ${p.color || '#f2511b'}; border-radius: 4px;">${p.icon || '🤖'}</span>
                         <strong>${p.name}</strong>
                     </div>
-                    <p>${p.prompt ? p.prompt.substring(0, 60) + (p.prompt.length > 60 ? '...' : '') : 'Padrão'}</p>
+                    <p>${p.id === 'default' ? 'Assistente geral do Chrome AI. Versátil e útil para a maioria das tarefas.' : (p.prompt ? p.prompt.substring(0, 60) + (p.prompt.length > 60 ? '...' : '') : 'Sem descrição')}</p>
                 </div>
                 <div class="persona-actions">
                     <button class="btn-primary-small start-chat">Conversar</button>
-                    ${p.id !== 'default' ? `
+                    ${!['default', '1', '2', 'miku'].includes(String(p.id)) ? `
                     <button class="chat-action-btn share" title="Compartilhar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
                     <button class="chat-action-btn edit" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     <button class="chat-action-btn delete" title="Excluir"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                    ` : ''}
+                    ` : `
+                    <button class="chat-action-btn view" title="Ver Detalhes"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                    `}
                 </div>
             `;
 
             el.querySelector('.start-chat').onclick = () => {
-                this.createNewChat(p.prompt, p.name);
+                this.createNewChat(p.prompt, p.name, p.icon, p.color);
                 this.closePersonasModal();
             };
 
-            if (p.id !== 'default') {
+            if (!['default', '1', '2', 'miku'].includes(String(p.id))) {
                 el.querySelector('.share').onclick = () => this.sharePersona(p);
                 el.querySelector('.edit').onclick = () => this.showPersonaEditor(p);
                 el.querySelector('.delete').onclick = () => {
@@ -846,24 +896,46 @@ class UIManager {
                         onConfirm: () => {
                             this.personas.delete(p.id);
                             this.renderPersonasList();
+                            this.renderChatList();
+                            const activeChat = this.chats.get(this.chats.activeChatId);
+                            if (activeChat && activeChat.personaName === p.name) {
+                                this.updateInputState();
+                            }
                         }
                     });
                 };
+            } else {
+                const viewBtn = el.querySelector('.view');
+                if (viewBtn) viewBtn.onclick = () => this.showPersonaEditor(p, true);
             }
 
             this.els.personasList.appendChild(el);
         });
     }
 
-    showPersonaEditor(persona = null) {
+    showPersonaEditor(persona = null, readOnly = false) {
         this.currentEditingId = persona ? persona.id : null;
         this.els.inputPersonaName.value = persona ? persona.name : '';
         this.els.inputPersonaPrompt.value = persona ? persona.prompt : '';
         this.colorPicker.setValue(persona ? (persona.color || '#f2511b') : '#f2511b');
         this.els.inputPersonaIcon.value = persona ? (persona.icon || '🤖') : '';
+        this.els.inputPersonaName.disabled = readOnly;
+        this.els.inputPersonaPrompt.disabled = readOnly;
+        this.els.inputPersonaIcon.readOnly = readOnly;
+
+        if (this.colorPicker.setReadOnly) this.colorPicker.setReadOnly(readOnly);
+        if (this.emojiPicker.setReadOnly) this.emojiPicker.setReadOnly(readOnly);
+
+        this.els.savePersonaBtn.style.display = readOnly ? 'none' : 'block';
+        if (this.els.cancelPersonaBtn) {
+            this.els.cancelPersonaBtn.textContent = readOnly ? 'Voltar' : 'Cancelar';
+        }
+
         this.els.personasList.style.display = 'none';
         this.els.addPersonaBtn.style.display = 'none';
+
         if (this.els.modalFooter) this.els.modalFooter.style.display = 'none';
+
         this.els.personaEditor.style.display = 'flex';
     }
 
@@ -970,11 +1042,16 @@ class UIManager {
 
     exportAllChats() {
         const chats = this.chats.getAll();
+
+        const usedPersonaNames = new Set(chats.map(c => c.personaName).filter(Boolean));
+        const relatedPersonas = this.personas.getAll().filter(p => usedPersonaNames.has(p.name));
+
         const data = {
             type: 'chats',
             version: '1.0',
             exportDate: new Date().toISOString(),
-            chats: chats
+            chats: chats,
+            personas: relatedPersonas
         };
         this.downloadJSON(data, 'chats-backup.json');
     }
@@ -1002,6 +1079,30 @@ class UIManager {
                 const data = JSON.parse(e.target.result);
 
                 if (data.type === 'chats' && data.chats) {
+                    const importPersonas = () => {
+                        if (!data.personas) return 0;
+                        const existingNames = new Set(this.personas.getAll().map(p => p.name));
+                        let count = 0;
+                        data.personas.forEach(p => {
+                            if (!existingNames.has(p.name)) {
+                                this.personas.personas.push(p);
+                                existingNames.add(p.name);
+                                count++;
+                            }
+                        });
+                        if (count > 0) this.personas.save();
+                        return count;
+                    };
+
+                    const checkMissing = (chatsToCheck) => {
+                        const existingNames = this.personas.getAll().map(p => p.name);
+                        const missing = new Set();
+                        chatsToCheck.forEach(c => {
+                            if (c.personaName && !existingNames.includes(c.personaName)) missing.add(c.personaName);
+                        });
+                        return missing.size > 0 ? `\n\nAtenção: Personas não encontradas:\n${Array.from(missing).join(', ')}` : '';
+                    };
+
                     this.showDialog('Como deseja importar os chats?', {
                         title: 'Importar Chats',
                         type: 'custom',
@@ -1010,6 +1111,7 @@ class UIManager {
                                 text: 'Adicionar (Sem Duplicados)',
                                 class: 'btn-primary',
                                 onClick: () => {
+                                    const importedPersonas = importPersonas();
                                     const existingChats = this.chats.getAll();
                                     let imported = 0;
                                     let skipped = 0;
@@ -1029,8 +1131,14 @@ class UIManager {
                                         }
                                     });
                                     this.chats.save();
-                                    this.showDialog(`${imported} chat(s) importado(s)${skipped > 0 ? `, ${skipped} ignorado(s) (duplicadas)` : ''}`, { title: 'Importação Concluída' });
+
+                                    const warning = checkMissing(data.chats);
+                                    const personaMsg = importedPersonas > 0 ? ` (+ ${importedPersonas} personas restauradas)` : '';
+
+                                    this.showDialog(`${imported} chat(s) importado(s)${skipped > 0 ? `, ${skipped} ignorado(s) (duplicadas)` : ''}${personaMsg}${warning}`, { title: 'Importação Concluída' });
+
                                     this.renderChatList();
+                                    this.renderPersonasList();
                                     if (this.chats.chats.length > 0) this.switchChat(this.chats.chats[0].id);
                                 }
                             },
@@ -1038,10 +1146,17 @@ class UIManager {
                                 text: 'Substituir Tudo',
                                 class: 'btn-primary-outline',
                                 onClick: () => {
+                                    const importedPersonas = importPersonas();
                                     localStorage.setItem('chats', JSON.stringify(data.chats));
                                     this.chats.chats = data.chats;
-                                    this.showDialog(`${data.chats.length} chat(s) importado(s) com sucesso!`, { title: 'Sucesso' });
+
+                                    const warning = checkMissing(data.chats);
+                                    const personaMsg = importedPersonas > 0 ? ` (+ ${importedPersonas} personas restauradas)` : '';
+
+                                    this.showDialog(`${data.chats.length} chat(s) importado(s) com sucesso!${personaMsg}${warning}`, { title: 'Sucesso' });
+
                                     this.renderChatList();
+                                    this.renderPersonasList();
                                     if (this.chats.chats.length > 0) this.switchChat(this.chats.chats[0].id);
                                 }
                             },
