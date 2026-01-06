@@ -202,6 +202,14 @@ function setupModal() {
 function fetchAndDisplayRepos() {
     const extraRepos = [
         {
+            name: 'Gemini Nano Web App',
+            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            html_url: '/chromeAILocal/chromeAILocal.html',
+            language: 'HTML',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
             name: 'Leitor de Logs Totvs Fluig',
             description: "Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.",
             html_url: '/Leitor-logs-totvs-fluig/leitor.html',
@@ -237,14 +245,6 @@ function fetchAndDisplayRepos() {
             name: 'Soma lista de valores',
             description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
             html_url: '/somaValores/somaValores.html',
-            language: 'HTML',
-            featured: true,
-            image: 'imgs/JavaScript.svg'
-        },
-        {
-            name: 'Gemini Nano Web App',
-            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
-            html_url: '/chromeAILocal/chromeAILocal.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/JavaScript.svg'
