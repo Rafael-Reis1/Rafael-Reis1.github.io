@@ -847,13 +847,15 @@ progress {
 
 .btn-primary {
     background: var(--accent-gradient);
-    border: none;
+    border: 1px solid transparent;
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 500;
-    transition: box-shadow 0.2s;
+    font-size: 0.95rem;
+    transition: box-shadow 0.2s, background 0.2s;
+    font-family: var(--font-body);
 }
 
 .btn-primary:hover {
@@ -867,6 +869,8 @@ progress {
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
+    font-size: 0.95rem;
+    font-family: var(--font-body);
 }
 
 .btn-secondary:hover {
@@ -958,15 +962,16 @@ progress {
 
 .btn-primary-outline {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--glass-border);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     cursor: pointer;
     width: 100%;
     transition: all 0.2s;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
+    font-family: var(--font-body);
 }
 
 .btn-primary-outline:hover {
