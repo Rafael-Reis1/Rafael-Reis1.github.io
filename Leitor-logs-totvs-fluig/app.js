@@ -38,6 +38,7 @@ fileInput.addEventListener('change', function () {
 });
 
 let currentFileId = null;
+let globalExpandState = false;
 const pinnedLogs = new Set();
 let allGroupedLogs = [];
 let filteredGroupedLogs = [];
@@ -238,7 +239,11 @@ function addFileToList(file) {
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'stack-trace-content';
-                    contentDiv.style.display = 'none';
+                    contentDiv.style.display = globalExpandState ? 'block' : 'none';
+
+                    if (globalExpandState) {
+                        toggleBtn.classList.add('rotated');
+                    }
 
                     [...buffer].reverse().forEach(traceLine => {
                         const lineDiv = document.createElement('div');
@@ -1063,14 +1068,14 @@ document.addEventListener('keydown', function (e) {
         }
     } else if (e.key === 'Escape') {
         closeModal();
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
         if (document.activeElement.tagName === 'INPUT') return;
         const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
             renderPage(currentPage);
         }
-    } else if (e.key === 'ArrowLeft') {
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         if (document.activeElement.tagName === 'INPUT') return;
         if (currentPage > 1) {
             currentPage--;
@@ -1092,29 +1097,83 @@ document.addEventListener('keydown', function (e) {
 
         if (currentActive) {
             const currentIndex = allVisibleLines.indexOf(currentActive);
+            const step = e.shiftKey ? 10 : 1;
+
             if (e.key === 'ArrowDown') {
-                nextIndex = Math.min(currentIndex + 1, allVisibleLines.length - 1);
+                if (e.shiftKey) {
+                    nextIndex = Math.min(currentIndex + step, allVisibleLines.length - 1);
+                } else {
+                    nextIndex = currentIndex + 1;
+                    if (nextIndex >= allVisibleLines.length) nextIndex = 0;
+                }
             } else {
-                nextIndex = Math.max(currentIndex - 1, 0);
+                if (e.shiftKey) {
+                    nextIndex = Math.max(currentIndex - step, 0);
+                } else {
+                    nextIndex = currentIndex - 1;
+                    if (nextIndex < 0) nextIndex = allVisibleLines.length - 1;
+                }
             }
         } else {
             if (e.key === 'ArrowDown') nextIndex = 0;
             else nextIndex = allVisibleLines.length - 1;
         }
 
-        setActiveLine(allVisibleLines[nextIndex]);
+        const nextLine = allVisibleLines[nextIndex];
+        setActiveLine(nextLine);
 
         if (nextIndex === 0 && currentPage === 1) {
             if (containerArquivoLog) containerArquivoLog.scrollTop = 0;
         } else {
-            nextLine.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+            if (nextLine) nextLine.scrollIntoView({ block: 'nearest', behavior: 'auto' });
         }
     } else if (e.key === 'Enter') {
         const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
-        const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+
+        if (e.shiftKey) {
+
+            const allToggles = conteudoArquivoLog.querySelectorAll('.stack-trace-toggle');
+            let anyOpen = false;
+            let count = 0;
+
+            allToggles.forEach(btn => {
+                count++;
+                if (btn.classList.contains('rotated')) {
+                    anyOpen = true;
+                }
+            });
+
+            if (count === 0) return;
+
+            const targetStateOpen = !anyOpen;
+            globalExpandState = targetStateOpen;
+
+            allToggles.forEach(btn => {
+                const isRotated = btn.classList.contains('rotated');
+                if (targetStateOpen && !isRotated) btn.click();
+                if (!targetStateOpen && isRotated) btn.click();
+            });
+
+        } else {
+            const currentActive = conteudoArquivoLog.querySelector('.log-line.active, .stack-trace-container.active');
+            if (currentActive) {
+                const toggleBtn = currentActive.querySelector('.stack-trace-toggle');
+                if (toggleBtn) toggleBtn.click();
+            }
+        }
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        // Copy Active Line
+        const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
+        const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
         if (currentActive) {
-            const toggleBtn = currentActive.querySelector('.stack-trace-toggle');
-            if (toggleBtn) toggleBtn.click();
+            const text = currentActive.dataset.originalText || currentActive.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalBg = currentActive.style.backgroundColor;
+                currentActive.style.backgroundColor = 'var(--accent-color)';
+                setTimeout(() => {
+                    currentActive.style.backgroundColor = originalBg;
+                }, 200);
+            }).catch(err => console.error('Failed to copy', err));
         }
     } else if (['i', 'w', 'e', 'd', 'f'].includes(e.key.toLowerCase())) {
         if (document.activeElement.tagName === 'INPUT') return;
