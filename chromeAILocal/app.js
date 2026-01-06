@@ -406,6 +406,18 @@ class UIManager {
     }
 
     createNewChat(systemPrompt = '', personaName = 'Padrão') {
+        const allChats = this.chats.getAll();
+        allChats.forEach(chat => {
+            if (chat.messages.length === 0 && chat.id !== this.chats.activeChatId) {
+                this.chats.delete(chat.id);
+            }
+        });
+
+        const activeChat = this.chats.get(this.chats.activeChatId);
+        if (activeChat && activeChat.messages.length === 0 && systemPrompt) {
+            this.chats.delete(activeChat.id);
+        }
+
         const chat = this.chats.create(systemPrompt, personaName);
         this.switchChat(chat.id);
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
@@ -536,9 +548,17 @@ class UIManager {
 
                     this.els.messages.style.setProperty('--current-chat-color', bubbleColor);
                     this.els.messages.style.setProperty('--current-chat-text-color', textColor);
+
+                    if (this.els.sendBtn) {
+                        this.els.sendBtn.style.setProperty('--current-chat-color', activeColor);
+                    }
                 } else {
                     this.els.messages.style.removeProperty('--current-chat-color');
                     this.els.messages.style.removeProperty('--current-chat-text-color');
+
+                    if (this.els.sendBtn) {
+                        this.els.sendBtn.style.removeProperty('--current-chat-color');
+                    }
                 }
             }
         }
