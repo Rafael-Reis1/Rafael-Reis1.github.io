@@ -525,6 +525,36 @@ class UIManager {
                         this.els.genericModal.classList.remove('active');
                     }
                 }
+            } else if (e.key === 'Enter') {
+                if (this.els.genericModal && this.els.genericModal.classList.contains('active')) {
+                    if (document.activeElement !== this.els.genericModalInput) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (this.els.genericModalOkBtn && this.els.genericModalOkBtn.offsetParent !== null) {
+                            this.els.genericModalOkBtn.click();
+                        }
+                        else if (this.els.genericModalFooter) {
+                            const primaryBtn = this.els.genericModalFooter.querySelector('.btn-primary');
+                            if (primaryBtn) primaryBtn.click();
+                            else {
+                                const firstBtn = this.els.genericModalFooter.querySelector('button');
+                                if (firstBtn) firstBtn.click();
+                            }
+                        }
+                    }
+                }
+
+                if (this.els.personaEditor && this.els.personaEditor.style.display !== 'none') {
+                    if (document.activeElement !== this.els.inputPersonaPrompt) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (this.els.savePersonaBtn && this.els.savePersonaBtn.offsetParent !== null) {
+                            this.els.savePersonaBtn.click();
+                        }
+                    }
+                }
             }
         });
     }
