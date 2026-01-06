@@ -2,19 +2,205 @@ const promptText = document.getElementById('promptText');
 const messagesContainer = document.getElementById('messages');
 const sendButton = document.getElementById('sendButton');
 const stopButton = document.getElementById('stopButton');
-const LIMITE_HISTORICO = 40;
-let historicoMensagens = [];
+const btnNewChat = document.getElementById('btnNewChat');
+const chatListContainer = document.getElementById('chatList');
+const sidebar = document.getElementById('sidebar');
+const menuButton = document.getElementById('menuButton');
+const overlay = document.getElementById('overlay');
+
+let allChats = [];
+let currentChatId = null;
 let abortController = null;
+
+window.addEventListener('load', () => {
+    loadAllChats();
+});
+
+function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+}
+
+menuButton.onclick = toggleSidebar;
+overlay.onclick = toggleSidebar;
+
+function loadAllChats() {
+    const savedChats = localStorage.getItem('allChats');
+    if (savedChats) {
+        allChats = JSON.parse(savedChats);
+    }
+
+    if (allChats.length === 0) {
+        createNewChat();
+    } else {
+        switchChat(allChats[0].id);
+    }
+    renderChatList();
+}
+
+function saveAllChats() {
+    localStorage.setItem('allChats', JSON.stringify(allChats));
+}
+
+function createNewChat() {
+    const newChat = {
+        id: Date.now().toString(),
+        title: 'Novo Chat',
+        messages: [],
+        timestamp: Date.now()
+    };
+
+    allChats.unshift(newChat);
+    saveAllChats();
+    switchChat(newChat.id);
+    renderChatList();
+
+    if (window.innerWidth <= 768) {
+        if (sidebar && sidebar.classList.contains('open')) toggleSidebar();
+    }
+}
+
+function deleteChat(chatId, event) {
+    if (event) event.stopPropagation();
+
+    if (!confirm('Excluir este chat?')) return;
+
+    allChats = allChats.filter(c => c.id !== chatId);
+    saveAllChats();
+
+    if (currentChatId === chatId) {
+        if (allChats.length > 0) {
+            switchChat(allChats[0].id);
+        } else {
+            createNewChat();
+        }
+    } else {
+        renderChatList();
+    }
+}
+
+function switchChat(chatId) {
+    currentChatId = chatId;
+    const chat = allChats.find(c => c.id === chatId);
+    messagesContainer.innerHTML = '';
+
+    if (chat) {
+        chat.messages.forEach(msg => {
+            renderMessage(msg, false);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    renderChatList();
+
+    if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('open')) {
+        toggleSidebar();
+    }
+}
+
+function updateChatTitle(chatId, firstMessageContent) {
+    const chat = allChats.find(c => c.id === chatId);
+    if (chat && chat.title === 'Novo Chat') {
+        const generatedTitle = firstMessageContent.slice(0, 30) + (firstMessageContent.length > 30 ? '...' : '');
+        chat.title = generatedTitle;
+        saveAllChats();
+        renderChatList();
+    }
+}
+
+function renderChatList() {
+    if (!chatListContainer) return;
+
+    chatListContainer.innerHTML = '';
+    allChats.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+
+        item.onclick = (e) => {
+            if (!e.target.closest('.chat-action-btn')) {
+                switchChat(chat.id);
+            }
+        };
+
+        item.innerHTML = `
+            <span>${chat.title}</span>
+            <div class="chat-actions">
+                <button class="chat-action-btn edit" title="Renomear">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+                <button class="chat-action-btn delete" title="Excluir">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        `;
+
+        const editBtn = item.querySelector('.chat-action-btn.edit');
+        const deleteBtn = item.querySelector('.chat-action-btn.delete');
+
+        editBtn.onclick = (e) => renameChat(chat.id, e);
+        deleteBtn.onclick = (e) => deleteChat(chat.id, e);
+
+        chatListContainer.appendChild(item);
+    });
+}
+
+function renameChat(chatId, event) {
+    if (event) event.stopPropagation();
+
+    const chat = allChats.find(c => c.id === chatId);
+    if (!chat) return;
+
+    const newTitle = prompt('Renomear chat para:', chat.title);
+    if (newTitle && newTitle.trim() !== '') {
+        chat.title = newTitle.trim();
+        saveAllChats();
+        renderChatList();
+    }
+}
+
+function renderMessage(msg, shouldScroll = true) {
+    if (msg.role === 'user') {
+        const escapedUserText = msg.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const userHtml = `<p class="message">${escapedUserText}</p>`;
+        addMessage(userHtml, 'user', shouldScroll);
+    } else if (msg.role === 'assistant') {
+        const divId = 'msg-' + Math.random().toString(36).substr(2, 9);
+        const assistantDiv = `<div class="message" id="${divId}"></div>`;
+        addMessage(assistantDiv, 'assistant', shouldScroll);
+
+        const elementToUpdate = document.getElementById(divId);
+        if (elementToUpdate) {
+            const unsafeHtml = marked.parse(msg.content);
+            elementToUpdate.innerHTML = DOMPurify.sanitize(unsafeHtml);
+            elementToUpdate.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            addCopyButtons(elementToUpdate);
+        }
+    }
+}
+
+if (btnNewChat) btnNewChat.onclick = createNewChat;
 
 function handleSendMessage() {
     const userText = promptText.value;
     if (userText.trim() === "") return;
 
-    addHistorico({ role: 'user', content: userText });
+    const currentChat = allChats.find(c => c.id === currentChatId);
+    let context = [];
 
-    const escapedUserText = userText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const userHtml = `<p class="message">${escapedUserText}</p>`;
-    addMessage(userHtml, 'user');
+    if (currentChat) {
+        currentChat.messages.push({ role: 'user', content: userText });
+        saveAllChats();
+
+        if (currentChat.messages.length === 1) {
+            updateChatTitle(currentChatId, userText);
+        }
+
+        context = currentChat.messages.map(m => ({ role: m.role, content: m.content }));
+    }
+
+    renderMessage({ role: 'user', content: userText });
 
     const messageId = 'msg-' + Date.now();
     const assistantHtml = `<div class="message" id="${messageId}">
@@ -27,7 +213,7 @@ function handleSendMessage() {
 
     abortController = new AbortController();
 
-    aiApiCall(historicoMensagens, messageId, abortController.signal);
+    aiApiCall(context, messageId, abortController.signal);
 
     promptText.value = '';
     promptText.style.height = 'auto';
@@ -192,7 +378,11 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate, signal) {
             render(false);
         }
 
-        addHistorico({ role: 'assistant', content: fullResponse });
+        const currentChat = allChats.find(c => c.id === currentChatId);
+        if (currentChat) {
+            currentChat.messages.push({ role: 'assistant', content: fullResponse });
+            saveAllChats();
+        }
 
         addCopyButtons(elementToUpdate);
 
@@ -217,26 +407,18 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate, signal) {
     }
 }
 
-function addHistorico(messageObject) {
-    if (historicoMensagens.length >= LIMITE_HISTORICO) {
-        historicoMensagens.splice(0, 2);
-    }
-    if (messageObject && messageObject.role && typeof messageObject.content === 'string') {
-        historicoMensagens.push({
-            role: messageObject.role,
-            content: messageObject.content
-        });
-    }
-}
 
-function addMessage(htmlContent, role) {
+
+function addMessage(htmlContent, role, shouldScroll = true) {
     const message = `
         <div class="${role === 'user' ? 'rowUser' : 'rowAssistant'}"> 
             ${htmlContent}
         </div>
     `;
     messagesContainer.insertAdjacentHTML('beforeend', message);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    if (shouldScroll) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
 }
 
 function addCopyButtons(element) {
