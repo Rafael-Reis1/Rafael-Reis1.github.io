@@ -463,6 +463,92 @@ class UIManager {
     }
 
     init() {
+        try {
+            if (window.mermaid) {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'dark',
+                    flowchart: { useMaxWidth: false, htmlLabels: true },
+                    sequence: { useMaxWidth: false },
+                    securityLevel: 'loose'
+                });
+            }
+        } catch (e) {
+            console.error('Mermaid init error:', e);
+        }
+
+        try {
+            const renderer = new marked.Renderer();
+            const originalCode = renderer.code.bind(renderer);
+
+            renderer.code = (code, language) => {
+                let text = code;
+                let lang = language;
+
+                if (typeof code === 'object' && code !== null && !Array.isArray(code)) {
+                    text = code.text || '';
+                    lang = code.lang || '';
+                }
+
+                let codeContent = String(text || '');
+
+                codeContent = codeContent.replace(/^mermaid\s*\n/i, '');
+
+                const isMermaid = (lang && lang.toLowerCase() === 'mermaid') ||
+                    /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b/i.test(codeContent);
+
+                if (isMermaid) {
+                    const chatId = this.chats.activeChatId;
+                    const chat = this.chats.get(chatId);
+                    const personaColor = chat?.personaColor || '#f2511b';
+                    const darkColor = this.darkenColor(personaColor, 40);
+
+                    const fixLabel = (id, open, content, close) => {
+                        let text = (content || '').trim();
+                        if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+                        text = text.replace(/"/g, "'");
+                        return `${id || ''}${open}"${text}"${close}`;
+                    };
+
+                    let fixedCode = codeContent.replace(/(\b\w+)?\s*(?:\[([^\]]*)\]|\{([^\}]*)\}|\(([^\)]*)\))/g, (match, id, c1, c2, c3) => {
+                        if (c1 !== undefined) return fixLabel(id, '[', c1, ']');
+                        if (c2 !== undefined) return fixLabel(id, '{', c2, '}');
+                        if (c3 !== undefined) return fixLabel(id, '(', c3, ')');
+                        return match;
+                    });
+
+                    fixedCode = fixedCode
+                        .replace(/fill\s*:\s*#[a-fA-F0-9]{3,6}/gi, `fill:${darkColor}`)
+                        .replace(/stroke\s*:\s*#[a-fA-F0-9]{3,6}/gi, `stroke:${personaColor}`);
+
+                    const textColor = this.getContrastYIQ(darkColor) === 'black' ? '#000000' : '#ffffff';
+                    fixedCode += `\n    classDef default fill:${darkColor},stroke:${personaColor},stroke-width:2px,color:${textColor};`;
+
+                    const encodedCode = encodeURIComponent(fixedCode);
+                    return `
+                        <div class="mermaid-wrapper">
+                            <div class="mermaid-top-bar">
+                                <span class="mermaid-label">Diagrama</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="expand-mermaid-btn">
+                                        Expandir
+                                    </button>
+                                    <button class="copy-mermaid-btn" data-data="${encodedCode}">
+                                        Copiar Código
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mermaid">${fixedCode}</div>
+                        </div>`;
+                }
+                return originalCode(code, language);
+            };
+
+            marked.use({ renderer });
+        } catch (e) {
+            console.error('Marked init error:', e);
+        }
+
         window.addEventListener('load', () => this.loadInitialState());
 
         if (this.els.menuBtn) this.els.menuBtn.onclick = () => this.toggleSidebar();
@@ -1331,13 +1417,54 @@ class UIManager {
         if (!force && (now - this.lastRenderTime < 100)) return;
 
         this.lastRenderTime = now;
-        this.renderMarkdownUpdate(fullText, element);
+        this.renderMarkdownUpdate(fullText, element, !force);
     }
 
-    renderMarkdownUpdate(text, element) {
+    async renderMarkdownUpdate(text, element, isStreaming = false) {
         const unsafe = marked.parse(text);
-        element.innerHTML = DOMPurify.sanitize(unsafe);
-        element.querySelectorAll('pre code:not(.hljs-added)').forEach(block => {
+
+        const sanitized = DOMPurify.sanitize(unsafe, {
+            ADD_TAGS: ['div', 'button', 'svg', 'g', 'path', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'style', 'defs', 'marker', 'foreignObject'],
+            ADD_ATTR: ['class', 'id', 'data-data', 'width', 'height', 'viewBox', 'd', 'fill', 'stroke', 'stroke-width', 'marker-end', 'transform', 'style']
+        });
+
+        element.innerHTML = sanitized;
+
+        if (window.renderMathInElement) {
+            renderMathInElement(element, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+        }
+
+        const mermaidNodes = element.querySelectorAll('.mermaid');
+        if (!isStreaming && mermaidNodes.length > 0 && window.mermaid) {
+            try {
+                await mermaid.run({ nodes: mermaidNodes });
+            } catch (err) {
+                console.error('Mermaid run failed:', err);
+                mermaidNodes.forEach(div => {
+                    if (!div.querySelector('svg')) {
+                        const errorMsg = err.message || 'Syntax error';
+                        div.innerHTML += `
+                            <div style="color: #ff6b6b; border: 1px solid #ff6b6b; background: rgba(255,107,107,0.1); padding: 8px; margin-top: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; white-space: pre-wrap;">
+                                <strong>Mermaid Error:</strong>\n${errorMsg}
+                            </div>`;
+                    }
+                });
+            }
+        } else if (isStreaming && mermaidNodes.length > 0) {
+            mermaidNodes.forEach(node => {
+                node.innerHTML = `<div class="mermaid-placeholder">Aguardando a IA terminar para renderizar o gráfico...</div>`;
+            });
+        }
+
+        element.querySelectorAll('pre code:not(.language-mermaid):not(.hljs-added)').forEach(block => {
             hljs.highlightElement(block);
             block.classList.add('hljs-added');
         });
@@ -1382,11 +1509,19 @@ class UIManager {
         }
 
         this.els.messages.appendChild(div);
-        this.scrollToBottom();
+        this.scrollToBottom(true);
     }
 
-    scrollToBottom() {
-        if (this.els.messages) this.els.messages.scrollTop = this.els.messages.scrollHeight;
+    scrollToBottom(force = false) {
+        if (!this.els.messages) return;
+
+        const el = this.els.messages;
+        const threshold = 100;
+        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+
+        if (force || isNearBottom) {
+            el.scrollTop = el.scrollHeight;
+        }
     }
 
     setLoadingState(isLoading) {
@@ -1436,6 +1571,28 @@ class UIManager {
             pre.parentNode.insertBefore(wrapper, pre);
             wrapper.appendChild(pre);
             wrapper.appendChild(btn);
+        });
+
+        element.querySelectorAll('.copy-mermaid-btn').forEach(btn => {
+            btn.onclick = () => {
+                const encoded = btn.getAttribute('data-data');
+                if (encoded) {
+                    const code = decodeURIComponent(encoded);
+                    navigator.clipboard.writeText(code);
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copiado!';
+                    setTimeout(() => btn.textContent = originalText.trim(), 2000);
+                }
+            };
+        });
+
+        element.querySelectorAll('.expand-mermaid-btn').forEach(btn => {
+            btn.onclick = () => {
+                const wrapper = btn.closest('.mermaid-wrapper');
+                const mermaid = wrapper.querySelector('.mermaid');
+                mermaid.classList.toggle('expanded');
+                btn.textContent = mermaid.classList.contains('expanded') ? 'Recolher' : 'Expandir';
+            };
         });
     }
 }
