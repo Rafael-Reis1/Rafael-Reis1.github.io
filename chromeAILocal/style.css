@@ -1178,3 +1178,138 @@ textarea.modal-input {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 3px;
 }
+
+.mermaid-wrapper {
+    margin: 1rem 0;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mermaid-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.mermaid-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.copy-mermaid-btn,
+.expand-mermaid-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.copy-mermaid-btn:hover,
+.expand-mermaid-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.mermaid {
+    background: transparent !important;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: center;
+    min-height: 50px;
+    max-height: 750px;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    transition: max-height 0.3s ease;
+}
+
+.mermaid.expanded {
+    max-height: none;
+}
+
+.mermaid::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.mermaid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.mermaid-placeholder {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+    overflow: visible !important;
+}
+
+.mermaid {
+    display: block !important;
+    text-align: center;
+}
+
+.mermaid svg {
+    display: inline-block;
+}
+
+.mermaid .cluster rect,
+.mermaid .subgraph-level-0 rect,
+.mermaid .subgraph-level-n rect,
+.mermaid g[id^="cluster"] rect,
+.mermaid .cluster path {
+    fill: rgba(255, 255, 255, 0.05) !important;
+    stroke: rgba(255, 255, 255, 0.2) !important;
+    stroke-width: 1px !important;
+    rx: 12px !important;
+}
+
+.mermaid .cluster text,
+.mermaid .cluster-label text,
+.mermaid .cluster-label span,
+.mermaid .cluster-label div,
+.mermaid g[id^="cluster"] text,
+.mermaid g[id^="cluster"] foreignObject div {
+    fill: var(--text-secondary) !important;
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    padding: 2px 4px !important;
+    display: inline-block !important;
+    overflow: visible !important;
+    width: auto !important;
+}
+
+.mermaid g[id^="cluster"] foreignObject {
+    overflow: visible !important;
+}
+
+.mermaid g.cluster>rect,
+.mermaid .cluster rect,
+.mermaid g[id^="cluster"]>rect,
+.mermaid .subgraph-level-0 rect {
+    fill-opacity: 0.1 !important;
+}
