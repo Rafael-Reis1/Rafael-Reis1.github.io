@@ -1,8 +1,10 @@
 const promptText = document.getElementById('promptText');
 const messagesContainer = document.getElementById('messages');
 const sendButton = document.getElementById('sendButton');
+const stopButton = document.getElementById('stopButton');
 const LIMITE_HISTORICO = 40;
 let historicoMensagens = [];
+let abortController = null;
 
 function handleSendMessage() {
     const userText = promptText.value;
@@ -13,45 +15,68 @@ function handleSendMessage() {
     const escapedUserText = userText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const userHtml = `<p class="message">${escapedUserText}</p>`;
     addMessage(userHtml, 'user');
-    
+
     const messageId = 'msg-' + Date.now();
     const assistantHtml = `<div class="message" id="${messageId}">
                              <div class="typing-indicator"></div>
                            </div>`;
     addMessage(assistantHtml, 'assistant');
 
-    aiApiCall(historicoMensagens, messageId);
-    
+    sendButton.style.display = 'none';
+    stopButton.style.display = 'block';
+
+    abortController = new AbortController();
+
+    aiApiCall(historicoMensagens, messageId, abortController.signal);
+
     promptText.value = '';
+    promptText.style.height = 'auto';
 }
 
-promptText.onkeydown = function(event) {
+promptText.addEventListener('input', function () {
+    this.style.height = 'auto';
+
+    if (this.scrollHeight > 200) {
+        this.style.height = '200px';
+        this.style.overflowY = 'auto';
+    } else {
+        this.style.height = (this.scrollHeight) + 'px';
+        this.style.overflowY = 'hidden';
+    }
+
+    if (this.value === '') {
+        this.style.height = 'auto';
+        this.style.overflowY = 'hidden';
+    }
+});
+
+promptText.onkeydown = function (event) {
     if (event.key === 'Enter') {
-        event.preventDefault();
-
-        if (event.ctrlKey) {
-            const start = promptText.selectionStart;
-            const end = promptText.selectionEnd;
-            
-            promptText.value = promptText.value.substring(0, start) + "\n" + promptText.value.substring(end);
-            
-            promptText.selectionStart = promptText.selectionEnd = start + 1;
-
+        if (event.shiftKey) {
+            return;
         } else {
+            event.preventDefault();
             handleSendMessage();
-            promptText.style.height = 'auto';
         }
     }
 }
 
-sendButton.onclick = function() {
+stopButton.onclick = function () {
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+    }
+};
+
+sendButton.onclick = function () {
     handleSendMessage();
 }
 
-async function aiApiCall(historicoMensagens, elementIdToUpdate) {
+async function aiApiCall(historicoMensagens, elementIdToUpdate, signal) {
     promptText.disabled = true;
     const elementToUpdate = document.getElementById(elementIdToUpdate);
     let session;
+    let reader;
 
     try {
         if (!(await LanguageModel.availability())) {
@@ -65,18 +90,18 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
             monitor(m) {
                 m.addEventListener('downloadprogress', (e) => {
                     const existingMsg = document.getElementById(DOWNLOAD_MESSAGE_ID);
-                    
-                    if (e.loaded > 0 && e.loaded < 1) { 
+
+                    if (e.loaded > 0 && e.loaded < 1) {
                         const percentage = (e.loaded * 100).toFixed(0);
                         let messageText;
-                        
+
                         if (e.loaded < 0.85) {
                             messageText = `Baixando modelo (${percentage}%)`;
-                        } 
-                        else { 
+                        }
+                        else {
                             messageText = `Download concluído. Processando e carregando o modelo... Por favor, aguarde.`;
                         }
-                        
+
                         const avisoDownloadContent = `
                             <p><b>Preparando IA:</b> ${messageText}</p>
                             <progress 
@@ -85,7 +110,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
                                 style="width: 100%; border-radius: 8px; overflow: hidden;"
                             ></progress>
                         `;
-                        
+
                         if (!downloadMessageAdded) {
                             const avisoDownload = `<div class="message" id="${DOWNLOAD_MESSAGE_ID}">${avisoDownloadContent}</div>`;
                             addMessage(avisoDownload, 'assistant');
@@ -95,7 +120,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
                         }
 
                     }
-                    
+
                     else if (e.loaded === 1 && existingMsg) {
                         existingMsg.innerHTML = '<p><b>Quase lá!</b> Download concluído. Carregando o modelo de IA...</p>';
                     }
@@ -104,7 +129,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         });
 
         const stream = await session.promptStreaming(historicoMensagens);
-        const reader = stream.getReader();
+        reader = stream.getReader();
 
         let fullResponse = "";
         let firstChunk = true;
@@ -115,11 +140,13 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
 
         const render = (force = false) => {
             const now = Date.now();
-            
+
             if (!force && (now - lastRenderTime < RENDER_INTERVAL)) {
-                return; 
+                return;
             }
             if (renderBuffer === "") return;
+
+            const isAtBottom = (messagesContainer.scrollHeight - messagesContainer.scrollTop) <= (messagesContainer.clientHeight + 100);
 
             lastRenderTime = now;
             fullResponse += renderBuffer;
@@ -132,10 +159,19 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
                 hljs.highlightElement(block);
                 block.classList.add('hljs-added');
             });
+
+            if (isAtBottom) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
         };
 
 
         while (true) {
+            if (signal && signal.aborted) {
+                reader.cancel();
+                break;
+            }
+
             const { done, value } = await reader.read();
             if (done) {
                 render(true);
@@ -144,7 +180,7 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
 
             if (firstChunk) {
                 elementToUpdate.className = 'message is-streaming';
-                
+
                 if (document.getElementById(DOWNLOAD_MESSAGE_ID)) {
                     document.getElementById(DOWNLOAD_MESSAGE_ID).remove();
                 }
@@ -152,8 +188,8 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
             }
 
             renderBuffer += value;
-            
-            render(false); 
+
+            render(false);
         }
 
         addHistorico({ role: 'assistant', content: fullResponse });
@@ -161,28 +197,36 @@ async function aiApiCall(historicoMensagens, elementIdToUpdate) {
         addCopyButtons(elementToUpdate);
 
     } catch (error) {
-        console.error('Erro ao chamar a API de IA:', error);
-        elementToUpdate.innerHTML = `<p class="error-message"><b>Erro:</b> ${error.message}</p>`;
+        if (signal && signal.aborted) {
+            console.log('Geração interrompida pelo usuário.');
+        } else {
+            console.error('Erro ao chamar a API de IA:', error);
+            elementToUpdate.innerHTML = `<p class="error-message"><b>Erro:</b> ${error.message}</p>`;
+        }
     } finally {
         if (session) {
             session.destroy();
         }
         elementToUpdate.classList.remove('is-streaming');
+
+        sendButton.style.display = 'block';
+        stopButton.style.display = 'none';
+        promptText.disabled = false;
+        promptText.focus();
+        abortController = null;
     }
-    promptText.disabled = false;
-    promptText.focus();
 }
 
 function addHistorico(messageObject) {
-  if (historicoMensagens.length >= LIMITE_HISTORICO) {
-    historicoMensagens.splice(0, 2); 
-  }
-  if (messageObject && messageObject.role && typeof messageObject.content === 'string') {
-      historicoMensagens.push({
-          role: messageObject.role,
-          content: messageObject.content
-      });
-  }
+    if (historicoMensagens.length >= LIMITE_HISTORICO) {
+        historicoMensagens.splice(0, 2);
+    }
+    if (messageObject && messageObject.role && typeof messageObject.content === 'string') {
+        historicoMensagens.push({
+            role: messageObject.role,
+            content: messageObject.content
+        });
+    }
 }
 
 function addMessage(htmlContent, role) {
@@ -223,7 +267,7 @@ function addCopyButtons(element) {
     });
 }
 
-document.getElementById('btnVoltar').onclick = function() {
+document.getElementById('btnVoltar').onclick = function () {
     if (window.opener) {
         window.close();
     } else {
