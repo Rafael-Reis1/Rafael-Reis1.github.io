@@ -792,7 +792,14 @@ class UIManager {
         this.adjustTextarea();
 
         const msgId = 'msg-' + Date.now();
-        this.addMessageToDOM(`<div class="message" id="${msgId}"><div class="typing-indicator"></div></div>`, 'assistant');
+        const skeletonHtml = `
+            <div class="message" id="${msgId}">
+                <div class="skeleton-loading">
+                    <div class="skeleton-line"></div>
+                </div>
+            </div>
+        `;
+        this.addMessageToDOM(skeletonHtml, 'assistant');
 
         this.setLoadingState(true);
         this.abortController = new AbortController();
@@ -922,7 +929,21 @@ class UIManager {
     addMessageToDOM(html, role) {
         const div = document.createElement('div');
         div.className = role === 'user' ? 'rowUser' : 'rowAssistant';
-        div.innerHTML = html;
+
+        if (role === 'assistant') {
+            const chat = this.chats.get(this.chats.activeChatId);
+            const persona = chat ? this.personas.getAll().find(p => p.name === chat.personaName) : null;
+            const icon = persona?.icon || '🤖';
+            const color = persona?.color || '#f2511b';
+
+            div.innerHTML = `
+                <div class="avatar" style="background-color: ${color}20; color: ${color};">${icon}</div>
+                ${html}
+            `;
+        } else {
+            div.innerHTML = html;
+        }
+
         this.els.messages.appendChild(div);
         this.scrollToBottom();
     }
