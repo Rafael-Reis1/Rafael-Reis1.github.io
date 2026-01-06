@@ -186,6 +186,25 @@
         </div>
     </div>
 
+    <div class="modal" id="genericModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="genericModalTitle">Atenção</h2>
+                <button class="close-modal" id="closeGenericModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="genericModalMessage"></p>
+                <input type="text" id="genericModalInput" class="modal-input" style="display: none; margin-top: 1rem;"
+                    autocomplete="off">
+            </div>
+            <div class="modal-footer" id="genericModalFooter"
+                style="flex-direction: row; justify-content: flex-end; padding-top: 1rem; gap: 0.5rem;">
+                <button id="genericModalCancelBtn" class="btn-secondary" style="display: none;">Cancelar</button>
+                <button id="genericModalOkBtn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js" defer></script>
 </body>
 

@@ -421,7 +421,15 @@ class UIManager {
             btnExportChats: document.getElementById('btnExportChats'),
             btnImportChats: document.getElementById('btnImportChats'),
             importChatsFile: document.getElementById('importChatsFile'),
-            modalFooter: document.querySelector('.modal-footer')
+            modalFooter: document.querySelector('.modal-footer'),
+            genericModal: document.getElementById('genericModal'),
+            genericModalTitle: document.getElementById('genericModalTitle'),
+            genericModalMessage: document.getElementById('genericModalMessage'),
+            genericModalOkBtn: document.getElementById('genericModalOkBtn'),
+            genericModalCancelBtn: document.getElementById('genericModalCancelBtn'),
+            closeGenericModalBtn: document.getElementById('closeGenericModal'),
+            genericModalInput: document.getElementById('genericModalInput'),
+            genericModalFooter: document.getElementById('genericModalFooter')
         };
 
         this.init();
@@ -457,11 +465,11 @@ class UIManager {
 
         if (this.els.personasBtn) this.els.personasBtn.onclick = () => this.openPersonasModal();
         if (this.els.closeModalBtn) this.els.closeModalBtn.onclick = () => this.closePersonasModal();
-        if (this.els.personasModal) {
-            this.els.personasModal.onclick = (e) => {
-                if (e.target === this.els.personasModal) this.closePersonasModal();
-            };
-        }
+        this.els.personasModal.onclick = (e) => {
+            if (e.target === this.els.personasModal) this.closePersonasModal();
+        };
+
+        if (this.els.closeGenericModalBtn) this.els.closeGenericModalBtn.onclick = () => this.els.genericModal.classList.remove('active');
         if (this.els.addPersonaBtn) this.els.addPersonaBtn.onclick = () => this.showPersonaEditor();
         if (this.els.cancelPersonaBtn) this.els.cancelPersonaBtn.onclick = () => this.hidePersonaEditor();
         if (this.els.savePersonaBtn) this.els.savePersonaBtn.onclick = () => this.savePersona();
@@ -537,17 +545,21 @@ class UIManager {
 
     deleteChat(id, e) {
         if (e) e.stopPropagation();
-        if (!confirm('Excluir este chat?')) return;
+        this.showDialog('Excluir este chat?', {
+            title: 'Confirmar Exclusão',
+            type: 'confirm',
+            onConfirm: () => {
+                this.chats.delete(id);
 
-        this.chats.delete(id);
-
-        if (this.chats.activeChatId === id) {
-            const all = this.chats.getAll();
-            if (all.length > 0) this.switchChat(all[0].id);
-            else this.createNewChat();
-        } else {
-            this.renderChatList();
-        }
+                if (this.chats.activeChatId === id) {
+                    const all = this.chats.getAll();
+                    if (all.length > 0) this.switchChat(all[0].id);
+                    else this.createNewChat();
+                } else {
+                    this.renderChatList();
+                }
+            }
+        });
     }
 
     renameChat(id, e) {
@@ -555,11 +567,17 @@ class UIManager {
         const chat = this.chats.get(id);
         if (!chat) return;
 
-        const newTitle = prompt('Renomear chat para:', chat.title);
-        if (newTitle && newTitle.trim()) {
-            this.chats.rename(id, newTitle.trim());
-            this.renderChatList();
-        }
+        this.showDialog('Digite o novo nome do chat:', {
+            title: 'Renomear Chat',
+            type: 'prompt',
+            defaultValue: chat.title,
+            onConfirm: (newTitle) => {
+                if (newTitle && newTitle.trim()) {
+                    this.chats.rename(id, newTitle.trim());
+                    this.renderChatList();
+                }
+            }
+        });
     }
 
     renderChatList() {
@@ -602,6 +620,94 @@ class UIManager {
         });
     }
 
+    showDialog(message, options = {}) {
+        const {
+            title = 'Atenção',
+            type = 'alert',
+            defaultValue = '',
+            onConfirm = () => { },
+            onCancel = () => { },
+            buttons = []
+        } = options;
+
+        if (this.els.genericModalTitle) this.els.genericModalTitle.textContent = title;
+        if (this.els.genericModalMessage) this.els.genericModalMessage.textContent = message;
+
+        if (this.els.genericModalInput) {
+            if (type === 'prompt') {
+                this.els.genericModalInput.style.display = 'block';
+                this.els.genericModalInput.value = defaultValue;
+
+                this.els.genericModalInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.els.genericModalOkBtn.click();
+                    }
+                };
+
+                setTimeout(() => this.els.genericModalInput.focus(), 100);
+            } else {
+                this.els.genericModalInput.style.display = 'none';
+                this.els.genericModalInput.onkeydown = null;
+            }
+        }
+
+        if (buttons.length > 0) {
+            if (this.els.genericModalFooter) {
+                this.els.genericModalFooter.innerHTML = '';
+                this.els.genericModalFooter.style.flexDirection = 'column';
+                this.els.genericModalFooter.style.alignItems = 'stretch';
+
+                buttons.forEach(btn => {
+                    const button = document.createElement('button');
+                    button.textContent = btn.text;
+                    button.className = btn.class || 'btn-primary';
+                    button.style.width = '100%';
+                    button.onclick = () => {
+                        this.els.genericModal.classList.remove('active');
+                        if (btn.onClick) btn.onClick();
+                    };
+                    this.els.genericModalFooter.appendChild(button);
+                });
+            }
+        } else {
+            if (this.els.genericModalFooter) {
+                this.els.genericModalFooter.style.flexDirection = 'row';
+                this.els.genericModalFooter.style.alignItems = 'center';
+                this.els.genericModalFooter.innerHTML = '';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.id = 'genericModalCancelBtn';
+                cancelBtn.className = 'btn-secondary';
+                cancelBtn.textContent = 'Cancelar';
+                cancelBtn.style.display = (type === 'confirm' || type === 'prompt') ? 'block' : 'none';
+                cancelBtn.onclick = () => {
+                    this.els.genericModal.classList.remove('active');
+                    onCancel();
+                };
+
+                const okBtn = document.createElement('button');
+                okBtn.id = 'genericModalOkBtn';
+                okBtn.className = 'btn-primary';
+                okBtn.textContent = 'OK';
+                okBtn.onclick = () => {
+                    const value = this.els.genericModalInput ? this.els.genericModalInput.value : null;
+                    if (type === 'prompt' && !value) return;
+
+                    this.els.genericModal.classList.remove('active');
+                    onConfirm(value);
+                };
+
+                this.els.genericModalFooter.appendChild(cancelBtn);
+                this.els.genericModalFooter.appendChild(okBtn);
+            }
+        }
+
+        if (this.els.genericModal) {
+            this.els.genericModal.classList.add('active');
+        }
+    }
+
     updateInputState() {
         const chatId = this.chats.activeChatId;
         const chat = this.chats.get(chatId);
@@ -634,7 +740,6 @@ class UIManager {
                         bubbleColor = this.darkenColor(activeColor, 45);
                     }
 
-                    // Use darkened color for consistency
                     prompt.style.borderColor = bubbleColor;
                     prompt.style.boxShadow = `0 0 0 1px ${bubbleColor}`;
 
@@ -735,10 +840,14 @@ class UIManager {
                 el.querySelector('.share').onclick = () => this.sharePersona(p);
                 el.querySelector('.edit').onclick = () => this.showPersonaEditor(p);
                 el.querySelector('.delete').onclick = () => {
-                    if (confirm(`Excluir persona "${p.name}"?`)) {
-                        this.personas.delete(p.id);
-                        this.renderPersonasList();
-                    }
+                    this.showDialog(`Excluir persona "${p.name}"?`, {
+                        title: 'Confirmar Exclusão',
+                        type: 'confirm',
+                        onConfirm: () => {
+                            this.personas.delete(p.id);
+                            this.renderPersonasList();
+                        }
+                    });
                 };
             }
 
@@ -773,7 +882,7 @@ class UIManager {
         const icon = this.els.inputPersonaIcon.value.trim() || '🤖';
 
         if (!name) {
-            alert('Nome é obrigatório');
+            this.showDialog('Nome é obrigatório', { title: 'Erro' });
             return;
         }
 
@@ -838,21 +947,21 @@ class UIManager {
                             }
                         }
                     });
-                    alert(`${imported} persona(s) importada(s)${skipped > 0 ? `, ${skipped} ignorada(s) (duplicadas)` : ''}`);
+                    this.showDialog(`${imported} persona(s) importada(s)${skipped > 0 ? `, ${skipped} ignorada(s) (duplicadas)` : ''}`, { title: 'Importação Concluída' });
                     this.renderPersonasList();
                 } else if (data.name && data.prompt !== undefined) {
                     if (existingNames.includes(data.name.toLowerCase())) {
-                        alert(`Persona "${data.name}" já existe.`);
+                        this.showDialog(`Persona "${data.name}" já existe.`, { title: 'Importação Falhou' });
                     } else {
                         this.personas.create(data.name, data.prompt, data.color || '#f2511b', data.icon || '🤖');
-                        alert(`Persona "${data.name}" importada com sucesso!`);
+                        this.showDialog(`Persona "${data.name}" importada com sucesso!`, { title: 'Importação Concluída' });
                         this.renderPersonasList();
                     }
                 } else {
-                    alert('Arquivo inválido. Formato não reconhecido.');
+                    this.showDialog('Arquivo inválido. Formato não reconhecido.', { title: 'Erro' });
                 }
             } catch (err) {
-                alert('Erro ao ler arquivo: ' + err.message);
+                this.showDialog('Erro ao ler arquivo: ' + err.message, { title: 'Erro' });
             }
         };
         reader.readAsText(file);
@@ -893,44 +1002,61 @@ class UIManager {
                 const data = JSON.parse(e.target.result);
 
                 if (data.type === 'chats' && data.chats) {
-                    const replace = confirm('Deseja SUBSTITUIR todos os chats existentes?\n\nOK = Substituir tudo\nCancelar = Adicionar novos (ignorar duplicados)');
+                    this.showDialog('Como deseja importar os chats?', {
+                        title: 'Importar Chats',
+                        type: 'custom',
+                        buttons: [
+                            {
+                                text: 'Adicionar (Sem Duplicados)',
+                                class: 'btn-primary',
+                                onClick: () => {
+                                    const existingChats = this.chats.getAll();
+                                    let imported = 0;
+                                    let skipped = 0;
 
-                    if (replace) {
-                        localStorage.setItem('chats', JSON.stringify(data.chats));
-                        this.chats.chats = data.chats;
-                        alert(`${data.chats.length} chat(s) importado(s) com sucesso!`);
-                    } else {
-                        const existingChats = this.chats.getAll();
-                        let imported = 0;
-                        let skipped = 0;
+                                    data.chats.forEach(chat => {
+                                        const isDuplicate = existingChats.some(existing =>
+                                            existing.title === chat.title &&
+                                            existing.messages.length === chat.messages.length
+                                        );
 
-                        data.chats.forEach(chat => {
-                            const isDuplicate = existingChats.some(existing =>
-                                existing.title === chat.title &&
-                                existing.messages.length === chat.messages.length
-                            );
-
-                            if (isDuplicate) {
-                                skipped++;
-                            } else {
-                                chat.id = 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                                this.chats.chats.push(chat);
-                                imported++;
+                                        if (isDuplicate) {
+                                            skipped++;
+                                        } else {
+                                            chat.id = 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                            this.chats.chats.push(chat);
+                                            imported++;
+                                        }
+                                    });
+                                    this.chats.save();
+                                    this.showDialog(`${imported} chat(s) importado(s)${skipped > 0 ? `, ${skipped} ignorado(s) (duplicadas)` : ''}`, { title: 'Importação Concluída' });
+                                    this.renderChatList();
+                                    if (this.chats.chats.length > 0) this.switchChat(this.chats.chats[0].id);
+                                }
+                            },
+                            {
+                                text: 'Substituir Tudo',
+                                class: 'btn-primary-outline',
+                                onClick: () => {
+                                    localStorage.setItem('chats', JSON.stringify(data.chats));
+                                    this.chats.chats = data.chats;
+                                    this.showDialog(`${data.chats.length} chat(s) importado(s) com sucesso!`, { title: 'Sucesso' });
+                                    this.renderChatList();
+                                    if (this.chats.chats.length > 0) this.switchChat(this.chats.chats[0].id);
+                                }
+                            },
+                            {
+                                text: 'Cancelar',
+                                class: 'btn-secondary',
+                                onClick: () => { }
                             }
-                        });
-                        this.chats.save();
-                        alert(`${imported} chat(s) importado(s)${skipped > 0 ? `, ${skipped} ignorado(s) (duplicados)` : ''}`);
-                    }
-
-                    this.renderChatList();
-                    if (this.chats.chats.length > 0) {
-                        this.switchChat(this.chats.chats[0].id);
-                    }
+                        ]
+                    });
                 } else {
-                    alert('Arquivo inválido. Formato não reconhecido.');
+                    this.showDialog('Arquivo inválido. Formato não reconhecido.', { title: 'Erro' });
                 }
             } catch (err) {
-                alert('Erro ao ler arquivo: ' + err.message);
+                this.showDialog('Erro ao ler arquivo: ' + err.message, { title: 'Erro' });
             }
         };
         reader.readAsText(file);
