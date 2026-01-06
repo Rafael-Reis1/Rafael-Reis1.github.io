@@ -414,7 +414,14 @@ class UIManager {
             inputPersonaPrompt: document.getElementById('inputPersonaPrompt'),
             inputPersonaColor: document.getElementById('inputPersonaColor'),
             inputPersonaIcon: document.getElementById('inputPersonaIcon'),
-            personaEditor: document.getElementById('personaEditor')
+            personaEditor: document.getElementById('personaEditor'),
+            btnImportPersona: document.getElementById('btnImportPersona'),
+            btnExportAllPersonas: document.getElementById('btnExportAllPersonas'),
+            importPersonaFile: document.getElementById('importPersonaFile'),
+            btnExportChats: document.getElementById('btnExportChats'),
+            btnImportChats: document.getElementById('btnImportChats'),
+            importChatsFile: document.getElementById('importChatsFile'),
+            modalFooter: document.querySelector('.modal-footer')
         };
 
         this.init();
@@ -458,6 +465,13 @@ class UIManager {
         if (this.els.addPersonaBtn) this.els.addPersonaBtn.onclick = () => this.showPersonaEditor();
         if (this.els.cancelPersonaBtn) this.els.cancelPersonaBtn.onclick = () => this.hidePersonaEditor();
         if (this.els.savePersonaBtn) this.els.savePersonaBtn.onclick = () => this.savePersona();
+
+        if (this.els.btnImportPersona) this.els.btnImportPersona.onclick = () => this.els.importPersonaFile?.click();
+        if (this.els.importPersonaFile) this.els.importPersonaFile.onchange = (e) => this.handleImportPersona(e);
+        if (this.els.btnExportAllPersonas) this.els.btnExportAllPersonas.onclick = () => this.exportAllPersonas();
+        if (this.els.btnExportChats) this.els.btnExportChats.onclick = () => this.exportAllChats();
+        if (this.els.btnImportChats) this.els.btnImportChats.onclick = () => this.els.importChatsFile?.click();
+        if (this.els.importChatsFile) this.els.importChatsFile.onchange = (e) => this.handleImportChats(e);
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -705,6 +719,7 @@ class UIManager {
                 <div class="persona-actions">
                     <button class="btn-primary-small start-chat">Conversar</button>
                     ${p.id !== 'default' ? `
+                    <button class="chat-action-btn share" title="Compartilhar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
                     <button class="chat-action-btn edit" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     <button class="chat-action-btn delete" title="Excluir"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                     ` : ''}
@@ -717,6 +732,7 @@ class UIManager {
             };
 
             if (p.id !== 'default') {
+                el.querySelector('.share').onclick = () => this.sharePersona(p);
                 el.querySelector('.edit').onclick = () => this.showPersonaEditor(p);
                 el.querySelector('.delete').onclick = () => {
                     if (confirm(`Excluir persona "${p.name}"?`)) {
@@ -738,6 +754,7 @@ class UIManager {
         this.els.inputPersonaIcon.value = persona ? (persona.icon || '🤖') : '';
         this.els.personasList.style.display = 'none';
         this.els.addPersonaBtn.style.display = 'none';
+        if (this.els.modalFooter) this.els.modalFooter.style.display = 'none';
         this.els.personaEditor.style.display = 'flex';
     }
 
@@ -745,6 +762,7 @@ class UIManager {
         this.els.personaEditor.style.display = 'none';
         this.els.personasList.style.display = '';
         this.els.addPersonaBtn.style.display = '';
+        if (this.els.modalFooter) this.els.modalFooter.style.display = '';
         this.currentEditingId = null;
     }
 
@@ -769,6 +787,154 @@ class UIManager {
         this.renderChatList();
         this.updateInputState();
         this.hidePersonaEditor();
+    }
+
+    exportAllPersonas() {
+        const personas = this.personas.getAll().filter(p => p.id !== 'default');
+        const data = {
+            type: 'personas',
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            personas: personas
+        };
+        this.downloadJSON(data, 'personas-backup.json');
+    }
+
+    sharePersona(persona) {
+        const data = {
+            type: 'persona',
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            name: persona.name,
+            prompt: persona.prompt,
+            color: persona.color,
+            icon: persona.icon
+        };
+        const filename = `persona-${persona.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+        this.downloadJSON(data, filename);
+    }
+
+    handleImportPersona(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                const existingNames = this.personas.getAll().map(p => p.name.toLowerCase());
+
+                if (data.type === 'personas' && data.personas) {
+                    let imported = 0;
+                    let skipped = 0;
+                    data.personas.forEach(p => {
+                        if (p.name && p.prompt !== undefined) {
+                            if (existingNames.includes(p.name.toLowerCase())) {
+                                skipped++;
+                            } else {
+                                this.personas.create(p.name, p.prompt, p.color || '#f2511b', p.icon || '🤖');
+                                existingNames.push(p.name.toLowerCase());
+                                imported++;
+                            }
+                        }
+                    });
+                    alert(`${imported} persona(s) importada(s)${skipped > 0 ? `, ${skipped} ignorada(s) (duplicadas)` : ''}`);
+                    this.renderPersonasList();
+                } else if (data.name && data.prompt !== undefined) {
+                    if (existingNames.includes(data.name.toLowerCase())) {
+                        alert(`Persona "${data.name}" já existe.`);
+                    } else {
+                        this.personas.create(data.name, data.prompt, data.color || '#f2511b', data.icon || '🤖');
+                        alert(`Persona "${data.name}" importada com sucesso!`);
+                        this.renderPersonasList();
+                    }
+                } else {
+                    alert('Arquivo inválido. Formato não reconhecido.');
+                }
+            } catch (err) {
+                alert('Erro ao ler arquivo: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    exportAllChats() {
+        const chats = this.chats.getAll();
+        const data = {
+            type: 'chats',
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            chats: chats
+        };
+        this.downloadJSON(data, 'chats-backup.json');
+    }
+
+    downloadJSON(data, filename) {
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    handleImportChats(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+
+                if (data.type === 'chats' && data.chats) {
+                    const replace = confirm('Deseja substituir todos os chats existentes?\n\nSIM = Substituir tudo\nNÃO = Adicionar novos (ignorar duplicados)');
+
+                    if (replace) {
+                        localStorage.setItem('chats', JSON.stringify(data.chats));
+                        this.chats.chats = data.chats;
+                        alert(`${data.chats.length} chat(s) importado(s) com sucesso!`);
+                    } else {
+                        const existingChats = this.chats.getAll();
+                        let imported = 0;
+                        let skipped = 0;
+
+                        data.chats.forEach(chat => {
+                            const isDuplicate = existingChats.some(existing =>
+                                existing.title === chat.title &&
+                                existing.messages.length === chat.messages.length
+                            );
+
+                            if (isDuplicate) {
+                                skipped++;
+                            } else {
+                                chat.id = 'chat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                                this.chats.chats.push(chat);
+                                imported++;
+                            }
+                        });
+                        this.chats.save();
+                        alert(`${imported} chat(s) importado(s)${skipped > 0 ? `, ${skipped} ignorado(s) (duplicados)` : ''}`);
+                    }
+
+                    this.renderChatList();
+                    if (this.chats.chats.length > 0) {
+                        this.switchChat(this.chats.chats[0].id);
+                    }
+                } else {
+                    alert('Arquivo inválido. Formato não reconhecido.');
+                }
+            } catch (err) {
+                alert('Erro ao ler arquivo: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
     }
 
     async handleSend() {
