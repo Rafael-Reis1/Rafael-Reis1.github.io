@@ -893,7 +893,7 @@ class UIManager {
                 const data = JSON.parse(e.target.result);
 
                 if (data.type === 'chats' && data.chats) {
-                    const replace = confirm('Deseja substituir todos os chats existentes?\n\nSIM = Substituir tudo\nNÃO = Adicionar novos (ignorar duplicados)');
+                    const replace = confirm('Deseja SUBSTITUIR todos os chats existentes?\n\nOK = Substituir tudo\nCancelar = Adicionar novos (ignorar duplicados)');
 
                     if (replace) {
                         localStorage.setItem('chats', JSON.stringify(data.chats));
