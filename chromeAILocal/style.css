@@ -389,7 +389,7 @@ body {
 
 #sendButton:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(242, 81, 27, 0.8);
+    box-shadow: 0 0 25px color-mix(in srgb, var(--current-chat-color, var(--accent-color)) 70%, transparent);
 }
 
 #stopButton {
@@ -1255,8 +1255,7 @@ textarea.modal-input {
     justify-content: center;
     align-items: center;
     min-height: 500px;
-    width: clamp(400px, 100%, 100%);
-    min-width: 800px;
+    width: 100%;
     max-height: 750px;
     overflow: auto;
     scrollbar-width: thin;
@@ -1291,6 +1290,7 @@ textarea.modal-input {
     font-style: italic;
     font-size: 0.85rem;
     background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
 }
 
 .mermaid svg {
@@ -1470,4 +1470,82 @@ textarea.modal-input {
         height: 56px;
         font-size: 1.75rem;
     }
+}
+
+/* Message Action Buttons */
+.rowUser,
+.rowAssistant {
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+
+.message-actions {
+    position: absolute;
+    bottom: -4px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.rowUser .message-actions {
+    right: 0;
+}
+
+.rowAssistant .message-actions {
+    left: 48px;
+}
+
+.rowUser:hover .message-actions,
+.rowAssistant:hover .message-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.action-btn svg {
+    width: 13px;
+    height: 13px;
+}
+
+/* Edit Message Modal */
+.edit-message-textarea {
+    width: 100%;
+    min-height: 120px;
+    max-height: 300px;
+    padding: 1rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-message-textarea:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px rgba(242, 81, 27, 0.2);
 }
