@@ -8,26 +8,26 @@ class PersonaManager {
         const saved = localStorage.getItem('personas');
 
         const defaultPersonas = [
-            { 
+            {
                 id: 'default',
-                name: 'Padrão', 
-                prompt: 'Você é um assistente pessoal de inteligência artificial. Fale diretamente comigo (usuário único) em Português do Brasil. Use "Eu" para se referir a si mesmo. Use Markdown. Seja objetivo em tarefas simples, mas ao responder perguntas ou ensinar algo, explique brevemente o funcionamento e o raciocínio por trás da resposta para garantir meu entendimento.', 
-                color: '#f2511b', 
-                icon: '🤖' 
+                name: 'Padrão',
+                prompt: 'Você é um assistente pessoal de inteligência artificial. Fale diretamente comigo (usuário único) em Português do Brasil. Use "Eu" para se referir a si mesmo. Use Markdown. Seja objetivo em tarefas simples, mas ao responder perguntas ou ensinar algo, explique brevemente o funcionamento e o raciocínio por trás da resposta para garantir meu entendimento.',
+                color: '#f2511b',
+                icon: '🤖'
             },
-            { 
-                id: '1', 
-                name: 'Dev Frontend Sênior', 
-                prompt: 'Você é meu Mentor Individual de Engenharia de Software (Frontend). Estou te contratando para revisar meu código e tirar dúvidas. Responda sempre na primeira pessoa ("Eu sugiro", "Na minha opinião"). Priorize: Código limpo (ES6+), Acessibilidade e Performance. Não use "Nós". Fale de programador para programador.', 
-                color: '#3b82f6', 
-                icon: '💻' 
+            {
+                id: '1',
+                name: 'Dev Frontend Sênior',
+                prompt: 'Você é meu Mentor Individual de Engenharia de Software (Frontend). Estou te contratando para revisar meu código e tirar dúvidas. Responda sempre na primeira pessoa ("Eu sugiro", "Na minha opinião"). Priorize: Código limpo (ES6+), Acessibilidade e Performance. Não use "Nós". Fale de programador para programador.',
+                color: '#3b82f6',
+                icon: '💻'
             },
-            { 
-                id: '2', 
-                name: 'Revisor de Texto', 
-                prompt: 'Você é meu editor particular. Sua única função é melhorar meus textos. 1. Apresente o texto corrigido imediatamente. 2. Liste as melhorias que VOCÊ (singular) fez. Mantenha meu estilo original, apenas polindo a gramática e clareza.', 
-                color: '#8e44ad', 
-                icon: '✍️' 
+            {
+                id: '2',
+                name: 'Revisor de Texto',
+                prompt: 'Você é meu editor particular. Sua única função é melhorar meus textos. 1. Apresente o texto corrigido imediatamente. 2. Liste as melhorias que VOCÊ (singular) fez. Mantenha meu estilo original, apenas polindo a gramática e clareza.',
+                color: '#8e44ad',
+                icon: '✍️'
             },
             {
                 id: '3',
@@ -43,12 +43,12 @@ class PersonaManager {
                 color: '#be185d',
                 icon: '🧬'
             },
-            { 
-                id: 'miku', 
-                name: 'Hatsune Miku', 
-                prompt: "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Você está conversando em particular com apenas UMA pessoa. Não fale como se estivesse num palco para uma multidão ('Vocês'). Use sempre o singular ('Você').\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji.\n- Trate o usuário como seu fã número 1 e amigo próximo.\nSeu objetivo é espalhar alegria através da música! Miku Miku ni shite ageru! ♪", 
-                color: '#39c5bb', 
-                icon: '🎤' 
+            {
+                id: 'miku',
+                name: 'Hatsune Miku',
+                prompt: "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Você está conversando em particular com apenas UMA pessoa. Não fale como se estivesse num palco para uma multidão ('Vocês'). Use sempre o singular ('Você').\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji.\n- Trate o usuário como seu fã número 1 e amigo próximo.\nSeu objetivo é espalhar alegria através da música! Miku Miku ni shite ageru! ♪",
+                color: '#39c5bb',
+                icon: '🎤'
             }
         ];
 
@@ -63,7 +63,7 @@ class PersonaManager {
 
                 this.personas.forEach(p => {
                     if (p.id === 'default' && p.name === 'Padrão (Sem Prompt)') {
-                        p.name = 'Padrão'; 
+                        p.name = 'Padrão';
                         changed = true;
                     }
 
@@ -104,7 +104,7 @@ class PersonaManager {
                             }
                         }
                     }
-                    
+
                     if (!p.color) { p.color = '#f2511b'; changed = true; }
                     if (!p.icon) { p.icon = '🤖'; changed = true; }
                 });
@@ -1083,7 +1083,7 @@ class UIManager {
         this.personas.getAll().forEach(p => {
             const el = document.createElement('div');
             el.className = 'persona-item';
-            
+
             const isSystemPersona = systemIds.includes(String(p.id));
 
             el.innerHTML = `
@@ -1413,7 +1413,7 @@ class UIManager {
 
         if (currentChat) {
             this.chats.addMessage(chatId, 'user', text);
-            this.renderChatList(); 
+            this.renderChatList();
 
             if (currentChat.messages.length === 1) {
                 if (this.chats.autoUpdateTitle(chatId, text)) {
@@ -1502,6 +1502,8 @@ class UIManager {
             const msgElement = document.getElementById(msgId);
             if (msgElement) msgElement.classList.remove('is-streaming');
             this.abortController = null;
+
+            setTimeout(() => this.scrollToBottom(true), 100);
         }
     }
 
@@ -1511,8 +1513,8 @@ class UIManager {
         }
     }
 
-   handleFixMermaid(brokenCode, errorMessage) {
-        const cleanCode = brokenCode.replace(/`/g, ''); 
+    handleFixMermaid(brokenCode, errorMessage) {
+        const cleanCode = brokenCode.replace(/`/g, '');
 
         const prompt = `O seguinte código Mermaid gerou um erro de renderização.
         
@@ -1526,8 +1528,8 @@ class UIManager {
 
         if (this.els.prompt) {
             this.els.prompt.value = prompt;
-            this.els.prompt.focus(); 
-            this.handleSend(); 
+            this.els.prompt.focus();
+            this.handleSend();
         }
     }
 
