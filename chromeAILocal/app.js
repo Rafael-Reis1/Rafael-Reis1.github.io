@@ -515,6 +515,7 @@ class UIManager {
         this.ai = aiService;
         this.personas = personaManager;
         this.abortController = null;
+        this.isLoading = false;
         this.renderBuffer = "";
         this.lastRenderTime = 0;
         this.emojiPicker = new EmojiPicker('inputPersonaIcon', 'emojiPicker');
@@ -1473,6 +1474,11 @@ class UIManager {
     }
 
     async handleSend() {
+        if (this.isLoading) {
+            this.handleStop();
+            return;
+        }
+
         const text = this.els.prompt.value.trim();
         if (!text) return;
 
@@ -1787,7 +1793,7 @@ class UIManager {
     setLoadingState(isLoading) {
         if (this.els.sendBtn) this.els.sendBtn.style.display = isLoading ? 'none' : 'block';
         if (this.els.stopBtn) this.els.stopBtn.style.display = isLoading ? 'block' : 'none';
-        if (this.els.prompt) this.els.prompt.disabled = isLoading;
+        this.isLoading = isLoading;
         if (!isLoading && this.els.prompt) {
             this.els.prompt.focus();
         }
@@ -1796,17 +1802,13 @@ class UIManager {
     adjustTextarea() {
         const el = this.els.prompt;
         if (!el) return;
+
+        const minHeight = 52;
         el.style.height = 'auto';
-        if (el.scrollHeight > 200) {
-            el.style.height = '200px';
-            el.style.overflowY = 'auto';
-        } else {
-            el.style.height = el.scrollHeight + 'px';
-            el.style.overflowY = 'hidden';
-        }
-        if (el.value === '') {
-            el.style.height = 'auto';
-        }
+
+        const newHeight = Math.max(minHeight, Math.min(200, el.scrollHeight));
+        el.style.height = newHeight + 'px';
+        el.style.overflowY = el.scrollHeight > 200 ? 'auto' : 'hidden';
     }
 
     addCopyButtons(element) {
