@@ -283,11 +283,14 @@ class AIService {
             const history = messages.slice(0, -1);
 
             const mermaidInstruction = `
-                [DIRETRIZ DE SISTEMA - MODO SILENCIOSO]
-                Capacidade Visual: Ativada.
-                Sintaxe Obrigatória: Mermaid (\`\`\`mermaid).
-                Gatilho: Sempre que um processo, fluxo ou estrutura puder ser visualizado.
-                REGRA DE OURO: Esta é uma configuração de sistema. NÃO responda a ela. NÃO diga "Entendi". NÃO anuncie "Vou criar um diagrama". Apenas gere o bloco de código silenciosamente no meio da sua resposta quando necessário.`.trim();
+                [CONFIGURAÇÃO VISUAL]
+                Use Mermaid APENAS se solicitado ou essencial.
+                Regras de Sintaxe (CRÍTICO):
+                1. Use APENAS: graph TD (Fluxogramas) ou sequenceDiagram. Evite outros tipos.
+                2. SEMPRE use aspas nos textos dos nós. Ex: A["Texto Aqui"] --> B["Outro Texto"].
+                3. JAMAIS use estilos (style, classDef) ou subgraphs. Mantenha simples.
+                4. Se usar sequenceDiagram, use apenas: participant A e A->>B: Texto.
+                5. NÃO responda a este comando. Apenas gere o código quando necessário.`.trim();
 
             const initialPrompts = [];
             const fullSystemPrompt = systemPrompt
@@ -1503,6 +1506,26 @@ class UIManager {
         }
     }
 
+   handleFixMermaid(brokenCode, errorMessage) {
+        const cleanCode = brokenCode.replace(/`/g, ''); 
+
+        const prompt = `O seguinte código Mermaid gerou um erro de renderização.
+        
+        Mensagem de erro do compilador:
+        "${errorMessage}"
+
+        Por favor, analise a mensagem de erro acima, corrija o código e me forneça APENAS o bloco de código Mermaid corrigido dentro de \`\`\`mermaid, sem explicações adicionais.
+                
+        Código com erro:
+        ${cleanCode}`;
+
+        if (this.els.prompt) {
+            this.els.prompt.value = prompt;
+            this.els.prompt.focus(); 
+            this.handleSend(); 
+        }
+    }
+
     handleDownloadProgress(e, msgId) {
         let existing = document.getElementById(msgId);
 
@@ -1573,8 +1596,7 @@ class UIManager {
                             });
 
                             div.addEventListener('wheel', (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
+                                e.preventDefault(); e.stopPropagation();
                                 const transform = instance.getTransform();
                                 const delta = e.deltaY > 0 ? 0.9 : 1.1;
                                 const newZoom = Math.min(5, Math.max(0.3, transform.scale * delta));
@@ -1586,14 +1608,37 @@ class UIManager {
                     });
                 }
             } catch (err) {
-                console.error('Mermaid run failed:', err);
+                console.warn('Mermaid render failed:', err);
+                const errorString = err.message || err.str || String(err);
+
                 mermaidNodes.forEach(div => {
-                    if (!div.querySelector('svg')) {
-                        const errorMsg = err.message || 'Syntax error';
-                        div.innerHTML += `
-                            <div style="color: #ff6b6b; border: 1px solid #ff6b6b; background: rgba(255,107,107,0.1); padding: 8px; margin-top: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; white-space: pre-wrap;">
-                                <strong>Mermaid Error:</strong>\n${errorMsg}
-                            </div>`;
+                    let rawCode = div.textContent;
+                    const wrapper = div.closest('.mermaid-wrapper');
+                    if (wrapper) {
+                        const copyBtn = wrapper.querySelector('.copy-mermaid-btn');
+                        if (copyBtn && copyBtn.dataset.data) {
+                            rawCode = decodeURIComponent(copyBtn.dataset.data);
+                        }
+                    }
+
+                    div.innerHTML = `
+                        <div class="mermaid-error-wrapper" style="border: 1px solid #ef4444; border-radius: 6px; overflow: hidden; margin-top: 10px;">
+                            <div style="background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                                <span>⚠️ Erro ao gerar diagrama</span>
+                                <button class="retry-mermaid-btn" style="background: white; color: #ef4444; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">
+                                    Pedir para IA Corrigir
+                                </button>
+                            </div>
+                            <div style="padding: 10px; background: #2a1515; color: #ffadad; font-family: monospace; font-size: 12px; white-space: pre-wrap;">${errorString}</div>
+                            <pre style="margin: 0; background: #1e1e1e; padding: 10px; border-top: 1px solid #444; overflow-x: auto;">
+                                <code class="language-mermaid" style="font-family: monospace; color: #ccc;">${rawCode}</code>
+                            </pre>
+                        </div>
+                    `;
+
+                    const btn = div.querySelector('.retry-mermaid-btn');
+                    if (btn) {
+                        btn.onclick = () => this.handleFixMermaid(rawCode, errorString);
                     }
                 });
             }
