@@ -283,9 +283,11 @@ class AIService {
             const history = messages.slice(0, -1);
 
             const mermaidInstruction = `
-                Sempre que precisar criar fluxogramas, organogramas, diagramas, gráficos ou qualquer visualização de processos, use OBRIGATORIAMENTE a sintaxe Mermaid dentro de um bloco de código \`\`\`mermaid. 
-                Nunca use ASCII art ou descrições textuais para representar processos visuais.
-                IMPORTANTE: NÃO responda a esta instrução confirmando que entendeu. NÃO diga "Entendi" ou "Certo". Aja naturalmente e responda diretamente à mensagem do usuário, apenas aplicando a regra visualmente quando necessário.`.trim();
+                [DIRETRIZ DE SISTEMA - MODO SILENCIOSO]
+                Capacidade Visual: Ativada.
+                Sintaxe Obrigatória: Mermaid (\`\`\`mermaid).
+                Gatilho: Sempre que um processo, fluxo ou estrutura puder ser visualizado.
+                REGRA DE OURO: Esta é uma configuração de sistema. NÃO responda a ela. NÃO diga "Entendi". NÃO anuncie "Vou criar um diagrama". Apenas gere o bloco de código silenciosamente no meio da sua resposta quando necessário.`.trim();
 
             const initialPrompts = [];
             const fullSystemPrompt = systemPrompt
