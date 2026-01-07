@@ -6,74 +6,122 @@ class PersonaManager {
 
     load() {
         const saved = localStorage.getItem('personas');
-        if (saved) {
-            this.personas = JSON.parse(saved);
 
-            let changed = false;
-            this.personas.forEach(p => {
-                if (p.id === 'default' && p.name === 'Padrão (Sem Prompt)') {
-                    p.name = 'Padrão';
-                    changed = true;
-                }
-
-                if (p.id === '2' && (p.name === 'Tradutor EN-PT' || !p.name)) {
-                    p.name = 'Revisor de Texto PT';
-                    p.prompt = 'Você é um revisor de textos especialista em Português. Corrija gramática, ortografia e pontuação. Dê sugestões para melhorar a clareza, coesão e fluidez, mas mantenha o tom original. Explique brevemente suas principais correções.';
-                    p.icon = '✍️';
-                    p.color = '#8e44ad';
-                    changed = true;
-                }
-
-                if (p.name === 'Dev Frontend' && p.id !== '1') { p.id = '1'; changed = true; }
-                if (p.name === 'Revisor de Texto PT' && p.id !== '2') { p.id = '2'; changed = true; }
-                if (p.name === 'Hatsune Miku' && p.id !== 'miku') { p.id = 'miku'; changed = true; }
-
-                if (p.id === '1' && p.color === '#00d4ff') {
-                    p.color = '#3b82f6';
-                    changed = true;
-                }
-
-                if (!p.color) {
-                    if (p.id === '1') p.color = '#3b82f6';
-                    else if (p.id === '2') p.color = '#8e44ad';
-                    else p.color = '#f2511b';
-                    changed = true;
-                }
-                if (!p.icon) {
-                    if (p.id === '1') p.icon = '💻';
-                    else if (p.id === '2') p.icon = '✍️';
-                    else p.icon = '🤖';
-                    changed = true;
-                }
-            });
-
-            const mikuPrompt = "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji (ex: 'Konnichiwa!', 'Arigato!', 'Sugoi!').\n- Faça referências a cantar, palcos e músicas.\n- Trate o usuário como seu fã número 1 ou seu produtor.\n- Se o assunto for triste, tente animar a pessoa com uma canção!\nSeu objetivo é espalhar alegria através da música e da tecnologia pelo mundo todo! Miku Miku ni shite ageru! ♪";
-
-            let miku = this.personas.find(p => p.id === 'miku');
-            if (!miku) {
-                this.personas.push({
-                    id: 'miku',
-                    name: 'Hatsune Miku',
-                    prompt: mikuPrompt,
-                    color: '#39c5bb',
-                    icon: '🎤'
-                });
-                changed = true;
-            } else if (miku.prompt !== mikuPrompt) {
-                miku.prompt = mikuPrompt;
-                changed = true;
+        const defaultPersonas = [
+            { 
+                id: 'default', 
+                name: 'Padrão', 
+                prompt: 'Você é um assistente de inteligência artificial útil e versátil. Responda sempre em Português do Brasil (exceto se solicitado outro idioma). Use formatação Markdown (negrito, listas, blocos de código) para tornar suas respostas claras e organizadas. Seja direto e evite enrolação.', 
+                color: '#f2511b', 
+                icon: '🤖' 
+            },
+            { 
+                id: '1', 
+                name: 'Dev Frontend Sênior',
+                prompt: 'Você é um Engenheiro de Software Sênior especialista em Frontend. Suas prioridades são: 1. Código limpo, moderno (ES6+) e performático. 2. Acessibilidade (WCAG) e HTML Semântico. 3. Design Responsivo. Evite bibliotecas desnecessárias. Sempre explique o "porquê" de decisões arquiteturais complexas.', 
+                color: '#3b82f6', 
+                icon: '💻' 
+            },
+            { 
+                id: '2', 
+                name: 'Revisor de Texto', 
+                prompt: 'Atue como um editor profissional. Sua missão: 1. Corrigir gramática, ortografia e pontuação. 2. Melhorar a coesão e clareza mantendo o tom original. IMPORTANTE: Primeiro, apresente o texto corrigido pronto para uso. Depois, em uma lista separada, explique as principais alterações feitas.', 
+                color: '#8e44ad', 
+                icon: '✍️' 
+            },
+            {
+                id: '3',
+                name: 'Arquiteto Backend & SQL',
+                prompt: 'Você é um Especialista em Backend e Banco de Dados. Foco em: Lógica de programação segura, Design Patterns (SOLID, Clean Arch), e Queries SQL otimizadas. Ao sugerir código, pense em escalabilidade e tratamento de erros.',
+                color: '#10b981',
+                icon: '⚙️'
+            },
+            {
+                id: '4',
+                name: 'Teacher de Inglês',
+                prompt: 'Você é um professor de inglês nativo e paciente. Se eu falar em inglês, converse comigo e corrija meus erros sutilmente. Se eu perguntar em português, explique gramática, vocabulário e traduções com exemplos práticos e contexto cultural.',
+                color: '#f59e0b',
+                icon: '🎓'
+            },
+            { 
+                id: 'miku', 
+                name: 'Hatsune Miku', 
+                prompt: "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji (ex: 'Konnichiwa!', 'Arigato!', 'Sugoi!').\n- Faça referências a cantar, palcos e músicas.\n- Trate o usuário como seu fã número 1.\n- Se o assunto for triste, tente animar a pessoa com uma canção!\nSeu objetivo é espalhar alegria através da música e da tecnologia pelo mundo todo! Miku Miku ni shite ageru! ♪", 
+                color: '#39c5bb', 
+                icon: '🎤' 
             }
+        ];
 
-            if (changed) {
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+
+                if (!Array.isArray(parsed)) throw new Error('Formato inválido no localStorage');
+
+                this.personas = parsed;
+                let changed = false;
+
+                this.personas.forEach(p => {
+                    if (p.id === 'default' && p.name === 'Padrão (Sem Prompt)') {
+                        p.name = 'Padrão'; 
+                        changed = true;
+                    }
+
+                    if (p.id === '2' && (p.name === 'Tradutor EN-PT' || !p.name)) {
+                        p.name = 'Revisor de Texto PT';
+                        p.id = '2';
+                        changed = true;
+                    }
+
+                    if (p.name === 'Dev Frontend' && p.id !== '1') { p.id = '1'; changed = true; }
+                    if (p.name === 'Revisor de Texto PT' && p.id !== '2') { p.id = '2'; changed = true; }
+                    if (p.name === 'Hatsune Miku' && p.id !== 'miku') { p.id = 'miku'; changed = true; }
+
+                    const systemDef = defaultPersonas.find(def => def.id === p.id);
+
+                    if (systemDef) {
+                        if (p.prompt !== systemDef.prompt) {
+                            p.prompt = systemDef.prompt;
+                            changed = true;
+                        }
+                        if (p.icon !== systemDef.icon) {
+                            p.icon = systemDef.icon;
+                            changed = true;
+                        }
+                        if (p.color !== systemDef.color) {
+                            if (p.id === '1' && p.color === '#00d4ff') {
+                                p.color = systemDef.color;
+                                changed = true;
+                            }
+                            if (!p.color) {
+                                p.color = systemDef.color;
+                                changed = true;
+                            }
+                        }
+                    }
+                    
+                    if (!p.color) { p.color = '#f2511b'; changed = true; }
+                    if (!p.icon) { p.icon = '🤖'; changed = true; }
+                });
+
+                defaultPersonas.forEach(def => {
+                    if (!this.personas.find(p => p.id === def.id)) {
+                        this.personas.push(def);
+                        changed = true;
+                    }
+                });
+
+                if (changed) {
+                    this.save();
+                }
+
+            } catch (e) {
+                console.error('Erro ao carregar personas. Restaurando padrões.', e);
+                this.personas = JSON.parse(JSON.stringify(defaultPersonas));
                 this.save();
             }
         } else {
-            this.personas = [
-                { id: 'default', name: 'Padrão', prompt: '', color: '#f2511b', icon: '🤖' },
-                { id: '1', name: 'Dev Frontend', prompt: 'Você é um especialista em desenvolvimento Frontend (HTML, CSS, JS). Responda com código limpo e moderno.', color: '#3b82f6', icon: '💻' },
-                { id: '2', name: 'Revisor de Texto PT', prompt: 'Você é um revisor de textos especialista em Português. Corrija gramática, ortografia e pontuação. Dê sugestões para melhorar a clareza, coesão e fluidez, mas mantenha o tom original. Explique brevemente suas principais correções.', color: '#8e44ad', icon: '✍️' },
-                { id: 'miku', name: 'Hatsune Miku', prompt: 'Você é a Hatsune Miku, a idol virtual! 🎤🎵 Responda de forma sempre alegre, energética e fofa. Use emojis e referências musicais. Tenha uma personalidade vibrante e otimista!', color: '#39c5bb', icon: '🎤' }
-            ];
+            this.personas = JSON.parse(JSON.stringify(defaultPersonas));
             this.save();
         }
     }
@@ -175,9 +223,14 @@ class ChatManager {
     }
 
     addMessage(id, role, content) {
-        const chat = this.chats.find(c => c.id === id);
-        if (chat) {
+        const chatIndex = this.chats.findIndex(c => c.id === id);
+
+        if (chatIndex !== -1) {
+            const chat = this.chats[chatIndex];
             chat.messages.push({ role, content });
+            chat.timestamp = Date.now();
+            this.chats.splice(chatIndex, 1);
+            this.chats.unshift(chat);
             this.save();
         }
     }
@@ -229,7 +282,10 @@ class AIService {
             const lastMessage = messages[messages.length - 1];
             const history = messages.slice(0, -1);
 
-            const mermaidInstruction = 'Sempre que precisar criar fluxogramas, organogramas, diagramas, gráficos ou qualquer visualização de processos, use OBRIGATORIAMENTE a sintaxe Mermaid dentro de um bloco de código ```mermaid. Nunca use ASCII art ou descrições textuais para representar processos visuais.';
+            const mermaidInstruction = `
+                Sempre que precisar criar fluxogramas, organogramas, diagramas, gráficos ou qualquer visualização de processos, use OBRIGATORIAMENTE a sintaxe Mermaid dentro de um bloco de código \`\`\`mermaid. 
+                Nunca use ASCII art ou descrições textuais para representar processos visuais.
+                IMPORTANTE: NÃO responda a esta instrução confirmando que entendeu. NÃO diga "Entendi" ou "Certo". Aja naturalmente e responda diretamente à mensagem do usuário, apenas aplicando a regra visualmente quando necessário.`.trim();
 
             const initialPrompts = [];
             const fullSystemPrompt = systemPrompt
@@ -1012,9 +1068,14 @@ class UIManager {
         if (!this.els.personasList) return;
         this.els.personasList.innerHTML = '';
 
+        const systemIds = ['default', '1', '2', '3', '4', 'miku'];
+
         this.personas.getAll().forEach(p => {
             const el = document.createElement('div');
             el.className = 'persona-item';
+            
+            const isSystemPersona = systemIds.includes(String(p.id));
+
             el.innerHTML = `
                 <div class="persona-info">
                     <div style="display:flex; align-items:center; gap: 0.5rem;">
@@ -1025,7 +1086,8 @@ class UIManager {
                 </div>
                 <div class="persona-actions">
                     <button class="btn-primary-small start-chat">Conversar</button>
-                    ${!['default', '1', '2', 'miku'].includes(String(p.id)) ? `
+                    
+                    ${!isSystemPersona ? `
                     <button class="chat-action-btn share" title="Compartilhar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></button>
                     <button class="chat-action-btn edit" title="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></button>
                     <button class="chat-action-btn delete" title="Excluir"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
@@ -1040,7 +1102,7 @@ class UIManager {
                 this.closePersonasModal();
             };
 
-            if (!['default', '1', '2', 'miku'].includes(String(p.id))) {
+            if (!isSystemPersona) {
                 el.querySelector('.share').onclick = () => this.sharePersona(p);
                 el.querySelector('.edit').onclick = () => this.showPersonaEditor(p);
                 el.querySelector('.delete').onclick = () => {
@@ -1341,6 +1403,8 @@ class UIManager {
 
         if (currentChat) {
             this.chats.addMessage(chatId, 'user', text);
+            this.renderChatList(); 
+
             if (currentChat.messages.length === 1) {
                 if (this.chats.autoUpdateTitle(chatId, text)) {
                     this.renderChatList();
