@@ -122,11 +122,17 @@ body {
 .messages {
     display: flex;
     flex-direction: column;
+    align-items: center;
     height: 100%;
     width: 100%;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     padding: 2rem;
-    padding: 2rem;
+}
+
+.messages>* {
+    width: 100%;
+    max-width: 800px;
 }
 
 ::-webkit-scrollbar {
@@ -321,6 +327,8 @@ body {
 
 .form-group {
     width: 100%;
+    max-width: 848px;
+    margin: 0 auto;
     display: flex;
     padding: 0 1.25rem 1.25rem 1.25rem;
     align-items: center;
@@ -329,11 +337,11 @@ body {
 
 .form-control {
     flex: 1;
-    padding: 1rem 1.5rem;
+    padding: 14px 1.5rem;
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     font-size: 1rem;
-    line-height: 1.5;
+    line-height: 24px;
     min-height: 52px;
     max-height: 200px;
     overflow-y: auto;
@@ -342,8 +350,9 @@ body {
     color: var(--text-primary);
     resize: none;
     outline: none;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     font-family: var(--font-body);
+    box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -354,6 +363,7 @@ body {
 
 .form-control::placeholder {
     color: var(--text-secondary);
+    line-height: 24px;
 }
 
 #sendButton,
