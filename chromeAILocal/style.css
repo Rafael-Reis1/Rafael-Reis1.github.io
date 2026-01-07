@@ -1205,7 +1205,7 @@ textarea.modal-input {
 }
 
 .copy-mermaid-btn,
-.expand-mermaid-btn {
+.reset-zoom-btn {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
@@ -1217,7 +1217,7 @@ textarea.modal-input {
 }
 
 .copy-mermaid-btn:hover,
-.expand-mermaid-btn:hover {
+.reset-zoom-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
 }
@@ -1233,10 +1233,11 @@ textarea.modal-input {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     transition: max-height 0.3s ease;
+    cursor: grab;
 }
 
-.mermaid.expanded {
-    max-height: none;
+.mermaid:active {
+    cursor: grabbing;
 }
 
 .mermaid::-webkit-scrollbar {
