@@ -1497,14 +1497,23 @@ class UIManager {
                 if (window.panzoom) {
                     mermaidNodes.forEach(div => {
                         const svg = div.querySelector('svg');
-                        if (svg && !svg.dataset.panzoomApplied) {
-                            svg.dataset.panzoomApplied = 'true';
+                        if (svg && !div.dataset.panzoomApplied) {
+                            div.dataset.panzoomApplied = 'true';
                             const instance = panzoom(svg, {
                                 maxZoom: 5,
                                 minZoom: 0.3,
                                 bounds: true,
                                 boundsPadding: 0.1
                             });
+
+                            div.addEventListener('wheel', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const transform = instance.getTransform();
+                                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                                const newZoom = Math.min(5, Math.max(0.3, transform.scale * delta));
+                                instance.zoomTo(e.clientX, e.clientY, newZoom / transform.scale);
+                            }, { passive: false });
 
                             div._panzoomInstance = instance;
                         }
