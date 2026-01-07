@@ -530,8 +530,8 @@ class UIManager {
                             <div class="mermaid-top-bar">
                                 <span class="mermaid-label">Diagrama</span>
                                 <div style="display: flex; gap: 8px;">
-                                    <button class="expand-mermaid-btn">
-                                        Expandir
+                                    <button class="reset-zoom-btn">
+                                        Reset Zoom
                                     </button>
                                     <button class="copy-mermaid-btn" data-data="${encodedCode}">
                                         Copiar Código
@@ -1446,6 +1446,23 @@ class UIManager {
         if (!isStreaming && mermaidNodes.length > 0 && window.mermaid) {
             try {
                 await mermaid.run({ nodes: mermaidNodes });
+
+                if (window.panzoom) {
+                    mermaidNodes.forEach(div => {
+                        const svg = div.querySelector('svg');
+                        if (svg && !svg.dataset.panzoomApplied) {
+                            svg.dataset.panzoomApplied = 'true';
+                            const instance = panzoom(svg, {
+                                maxZoom: 5,
+                                minZoom: 0.3,
+                                bounds: true,
+                                boundsPadding: 0.1
+                            });
+
+                            div._panzoomInstance = instance;
+                        }
+                    });
+                }
             } catch (err) {
                 console.error('Mermaid run failed:', err);
                 mermaidNodes.forEach(div => {
@@ -1586,12 +1603,14 @@ class UIManager {
             };
         });
 
-        element.querySelectorAll('.expand-mermaid-btn').forEach(btn => {
+        element.querySelectorAll('.reset-zoom-btn').forEach(btn => {
             btn.onclick = () => {
                 const wrapper = btn.closest('.mermaid-wrapper');
-                const mermaid = wrapper.querySelector('.mermaid');
-                mermaid.classList.toggle('expanded');
-                btn.textContent = mermaid.classList.contains('expanded') ? 'Recolher' : 'Expandir';
+                const mermaidDiv = wrapper.querySelector('.mermaid');
+                if (mermaidDiv._panzoomInstance) {
+                    mermaidDiv._panzoomInstance.moveTo(0, 0);
+                    mermaidDiv._panzoomInstance.zoomAbs(0, 0, 1);
+                }
             };
         });
     }
