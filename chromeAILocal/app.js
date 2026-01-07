@@ -789,7 +789,11 @@ class UIManager {
         if (this.els.messages) this.els.messages.innerHTML = '';
 
         if (chat) {
-            chat.messages.forEach(msg => this.renderMessage(msg.role, msg.content, false));
+            if (chat.messages.length === 0) {
+                this.renderSuggestionPills();
+            } else {
+                chat.messages.forEach(msg => this.renderMessage(msg.role, msg.content, false));
+            }
         }
 
         setTimeout(() => this.scrollToBottom(true), 50);
@@ -799,6 +803,70 @@ class UIManager {
 
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
+        }
+    }
+
+    renderSuggestionPills() {
+        if (!this.els.messages) return;
+
+        const suggestions = [
+            { icon: '💡', text: 'Explique um conceito', prompt: 'Explique de forma simples o conceito de ' },
+            { icon: '💻', text: 'Escreva código', prompt: 'Escreva um código em ' },
+            { icon: '📝', text: 'Revise meu texto', prompt: 'Revise e melhore o seguinte texto:\n' },
+            { icon: '🌐', text: 'Traduza algo', prompt: 'Traduza o seguinte texto para ' },
+            { icon: '🎨', text: 'Crie uma ideia', prompt: 'Me dê ideias criativas para ' },
+            { icon: '📊', text: 'Analise dados', prompt: 'Analise os seguintes dados:\n' },
+            { icon: '🔍', text: 'Resuma um texto', prompt: 'Resuma o seguinte texto:\n' },
+            { icon: '🧠', text: 'Tire uma dúvida', prompt: 'Tenho uma dúvida sobre ' }
+        ];
+
+        const chat = this.chats.get(this.chats.activeChatId);
+        const persona = chat ? this.personas.getAll().find(p => p.name === chat.personaName) : null;
+        const personaColor = persona?.color || '#f2511b';
+        const personaIcon = persona?.icon || '🤖';
+        const personaName = persona?.name || 'Assistente';
+
+        const container = document.createElement('div');
+        container.className = 'suggestion-pills-container';
+        container.innerHTML = `
+            <div class="suggestion-welcome">
+                <div class="suggestion-avatar" style="background-color: ${personaColor}20; color: ${personaColor};">
+                    ${personaIcon}
+                </div>
+                <h2>Olá! Como posso ajudar?</h2>
+                <p>Escolha uma sugestão abaixo ou digite sua própria mensagem.</p>
+            </div>
+            <div class="suggestion-pills">
+                ${suggestions.map(s => `
+                    <button class="suggestion-pill" data-prompt="${encodeURIComponent(s.prompt)}">
+                        <span class="pill-icon">${s.icon}</span>
+                        <span class="pill-text">${s.text}</span>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+
+        container.querySelectorAll('.suggestion-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                const prompt = decodeURIComponent(pill.dataset.prompt);
+                if (this.els.prompt) {
+                    this.els.prompt.value = prompt;
+                    this.els.prompt.focus();
+                    this.adjustTextarea();
+                    // Coloca o cursor no final do texto
+                    this.els.prompt.selectionStart = this.els.prompt.selectionEnd = prompt.length;
+                }
+            });
+        });
+
+        this.els.messages.appendChild(container);
+    }
+
+    removeSuggestionPills() {
+        if (!this.els.messages) return;
+        const container = this.els.messages.querySelector('.suggestion-pills-container');
+        if (container) {
+            container.remove();
         }
     }
 
@@ -1422,6 +1490,7 @@ class UIManager {
             }
         }
 
+        this.removeSuggestionPills();
         this.renderMessage('user', text);
         this.els.prompt.value = '';
         this.adjustTextarea();
