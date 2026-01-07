@@ -214,7 +214,9 @@ class AIService {
     }
 
     async generateStream(messages, systemPrompt, callbacks, signal) {
-        const { onChunk, onDownloadProgress } = callbacks;
+        const { onChunk, onDownloadProgress, onStats } = callbacks;
+        const startTime = Date.now();
+        let fullResponse = '';
 
         try {
             if (this.session) {
@@ -227,10 +229,13 @@ class AIService {
             const lastMessage = messages[messages.length - 1];
             const history = messages.slice(0, -1);
 
+            const mermaidInstruction = 'Sempre que precisar criar fluxogramas, organogramas, diagramas, gráficos ou qualquer visualização de processos, use OBRIGATORIAMENTE a sintaxe Mermaid dentro de um bloco de código ```mermaid. Nunca use ASCII art ou descrições textuais para representar processos visuais.';
+
             const initialPrompts = [];
-            if (systemPrompt) {
-                initialPrompts.push({ role: 'system', content: systemPrompt });
-            }
+            const fullSystemPrompt = systemPrompt
+                ? `${mermaidInstruction}\n\n${systemPrompt}`
+                : mermaidInstruction;
+            initialPrompts.push({ role: 'system', content: fullSystemPrompt });
             initialPrompts.push(...history);
 
             const options = {
@@ -246,12 +251,43 @@ class AIService {
 
             const stream = await this.session.promptStreaming(lastMessage.content, { signal });
             const reader = stream.getReader();
+            let firstTokenTime = null;
 
             while (true) {
                 if (signal?.aborted) break;
                 const { done, value } = await reader.read();
                 if (done) break;
-                onChunk(value);
+                if (!firstTokenTime) firstTokenTime = Date.now();
+                fullResponse += value;
+                onChunk(fullResponse);
+            }
+
+            if (onStats && fullResponse) {
+                try {
+                    const endTime = Date.now();
+                    const durationSeconds = (endTime - startTime) / 1000;
+                    const ttftMs = firstTokenTime ? (firstTokenTime - startTime) : 0;
+
+                    const generationTimeSeconds = firstTokenTime ? (endTime - firstTokenTime) / 1000 : durationSeconds;
+
+                    let tokenCount;
+                    if (this.session && typeof this.session.countPromptTokens === 'function') {
+                        tokenCount = await this.session.countPromptTokens(fullResponse);
+                    } else {
+                        tokenCount = Math.ceil(fullResponse.length / 4);
+                    }
+
+                    const tokensPerSecond = generationTimeSeconds > 0 ? (tokenCount / generationTimeSeconds).toFixed(1) : 0;
+
+                    onStats({
+                        tokens: tokenCount,
+                        duration: durationSeconds.toFixed(2),
+                        tokensPerSecond,
+                        ttft: ttftMs
+                    });
+                } catch (statsErr) {
+                    console.warn('Could not calculate stats:', statsErr);
+                }
             }
 
         } finally {
@@ -676,6 +712,8 @@ class UIManager {
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
         }
+
+        setTimeout(() => { if (this.els.prompt) this.els.prompt.focus(); }, 100);
     }
 
     switchChat(id) {
@@ -688,8 +726,8 @@ class UIManager {
             chat.messages.forEach(msg => this.renderMessage(msg.role, msg.content, false));
         }
 
-        this.scrollToBottom();
-        this.scrollToBottom();
+        setTimeout(() => this.scrollToBottom(true), 50);
+
         this.renderChatList();
         this.updateInputState();
 
@@ -1339,6 +1377,7 @@ class UIManager {
 
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
             const systemPrompt = currentChat ? currentChat.systemPrompt : '';
+            let responseStats = null;
 
             await this.ai.generateStream(
                 context,
@@ -1352,11 +1391,14 @@ class UIManager {
                             firstChunk = false;
                         }
 
-                        fullResponse += text;
+                        fullResponse = text;
                         this.throttledRender(fullResponse, msgElement, false);
                     },
                     onDownloadProgress: (e) => {
                         this.handleDownloadProgress(e, downloadMsgId);
+                    },
+                    onStats: (stats) => {
+                        responseStats = stats;
                     }
                 },
                 this.abortController.signal
@@ -1365,6 +1407,11 @@ class UIManager {
             this.throttledRender(fullResponse, msgElement, true);
             this.chats.addMessage(chatId, 'assistant', fullResponse);
             this.addCopyButtons(msgElement);
+
+            if (responseStats) {
+                const statsHtml = `<div class="message-stats">Tokens: ${responseStats.tokens} · Velocidade: ${responseStats.tokensPerSecond} tok/s · Primeiro token: ${responseStats.ttft}ms · Tempo total: ${responseStats.duration}s</div>`;
+                msgElement.insertAdjacentHTML('beforeend', statsHtml);
+            }
 
         } catch (error) {
             if (this.abortController?.signal.aborted || error.name === 'AbortError') {

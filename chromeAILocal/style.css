@@ -271,6 +271,17 @@ body {
     color: red;
 }
 
+.message-stats {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: 'Inter', monospace;
+    letter-spacing: 0.02em;
+}
+
 .rowAssistant .message pre {
     border-radius: 10px;
     overflow-x: auto;
@@ -1227,7 +1238,10 @@ textarea.modal-input {
     padding: 1.5rem;
     display: flex;
     justify-content: center;
-    min-height: 50px;
+    align-items: center;
+    min-height: 500px;
+    width: clamp(400px, 100%, 100%);
+    min-width: 800px;
     max-height: 750px;
     overflow: auto;
     scrollbar-width: thin;
@@ -1251,6 +1265,11 @@ textarea.modal-input {
 }
 
 .mermaid-placeholder {
+    width: 100%;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 1.5rem;
     text-align: center;
     color: var(--text-secondary);
