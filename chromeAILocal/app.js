@@ -754,6 +754,8 @@ class UIManager {
         } else {
             this.switchChat(this.chats.getAll()[0].id);
         }
+        
+        this.adjustTextarea();
     }
 
     toggleSidebar() {
@@ -794,6 +796,7 @@ class UIManager {
                 this.renderSuggestionPills();
             } else {
                 chat.messages.forEach(msg => this.renderMessage(msg.role, msg.content, false));
+                this.updateMessageActions();
             }
         }
 
@@ -1579,6 +1582,7 @@ class UIManager {
             this.abortController = null;
 
             setTimeout(() => this.scrollToBottom(true), 100);
+            this.updateMessageActions();
         }
     }
 
@@ -1605,6 +1609,246 @@ class UIManager {
             this.els.prompt.value = prompt;
             this.els.prompt.focus();
             this.handleSend();
+        }
+    }
+
+    handleRegenerate() {
+        if (this.isLoading) return;
+
+        const chatId = this.chats.activeChatId;
+        const chat = this.chats.get(chatId);
+        if (!chat || chat.messages.length < 2) return;
+
+        const lastMessage = chat.messages[chat.messages.length - 1];
+        if (lastMessage.role !== 'assistant') return;
+
+        chat.messages.pop();
+        this.chats.save();
+
+        const rows = this.els.messages.querySelectorAll('.rowAssistant');
+        if (rows.length > 0) {
+            rows[rows.length - 1].remove();
+        }
+
+        const lastUserMessage = chat.messages[chat.messages.length - 1];
+        if (!lastUserMessage || lastUserMessage.role !== 'user') return;
+
+        this.regenerateResponse(lastUserMessage.content);
+    }
+
+    handleEditLastMessage() {
+        if (this.isLoading) return;
+
+        const chatId = this.chats.activeChatId;
+        const chat = this.chats.get(chatId);
+        if (!chat || chat.messages.length === 0) return;
+
+        let lastUserIndex = -1;
+        for (let i = chat.messages.length - 1; i >= 0; i--) {
+            if (chat.messages[i].role === 'user') {
+                lastUserIndex = i;
+                break;
+            }
+        }
+        if (lastUserIndex === -1) return;
+
+        const lastUserMessage = chat.messages[lastUserIndex].content;
+        const messagesToRemove = chat.messages.length - lastUserIndex;
+
+        this.showEditMessageModal(lastUserMessage, (editedMessage) => {
+            if (!editedMessage || !editedMessage.trim()) return;
+
+            for (let i = 0; i < messagesToRemove; i++) {
+                chat.messages.pop();
+            }
+            this.chats.save();
+
+            const allRows = this.els.messages.querySelectorAll('.rowUser, .rowAssistant');
+            const totalRows = allRows.length;
+            for (let i = 0; i < messagesToRemove && i < totalRows; i++) {
+                allRows[totalRows - 1 - i].remove();
+            }
+
+            this.chats.addMessage(chatId, 'user', editedMessage.trim());
+            this.renderMessage('user', editedMessage.trim());
+            this.renderChatList();
+            this.regenerateResponse(editedMessage.trim());
+        });
+    }
+
+    showEditMessageModal(currentMessage, onConfirm) {
+        const modalHtml = `
+            <div class="modal active" id="editMessageModal">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>Editar Mensagem</h2>
+                        <button class="close-modal" id="closeEditModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea id="editMessageTextarea" class="modal-input edit-message-textarea" rows="6">${currentMessage.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+                    </div>
+                    <div class="modal-footer" style="flex-direction: row; justify-content: flex-end; gap: 0.5rem;">
+                        <button id="cancelEditBtn" class="btn-secondary">Cancelar</button>
+                        <button id="confirmEditBtn" class="btn-primary">Salvar e Reenviar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById('editMessageModal');
+        const textarea = document.getElementById('editMessageTextarea');
+        const closeBtn = document.getElementById('closeEditModal');
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        const confirmBtn = document.getElementById('confirmEditBtn');
+
+        const closeModal = () => {
+            modal.remove();
+        };
+
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+        closeBtn.onclick = closeModal;
+        cancelBtn.onclick = closeModal;
+        modal.onclick = (e) => {
+            if (e.target === modal) closeModal();
+        };
+
+        confirmBtn.onclick = () => {
+            const editedMessage = textarea.value;
+            closeModal();
+            onConfirm(editedMessage);
+        };
+
+        textarea.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                confirmBtn.click();
+            }
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        };
+    }
+
+    async regenerateResponse(userMessage) {
+        const chatId = this.chats.activeChatId;
+        const currentChat = this.chats.get(chatId);
+
+        const msgId = 'msg-' + Date.now();
+        const skeletonHtml = `
+            <div class="message" id="${msgId}">
+                <div class="skeleton-loading">
+                    <div class="skeleton-line"></div>
+                </div>
+            </div>
+        `;
+        this.addMessageToDOM(skeletonHtml, 'assistant');
+
+        this.setLoadingState(true);
+        this.abortController = new AbortController();
+
+        try {
+            if (!(await this.ai.isAvailable())) {
+                throw new Error('API de IA não disponível. Verifique as flags do Chrome.');
+            }
+
+            let fullResponse = "";
+            let firstChunk = true;
+            const msgElement = document.getElementById(msgId);
+            const downloadMsgId = 'download-progress-msg';
+
+            const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
+            context.push({ role: 'user', content: userMessage });
+
+            await this.ai.generateStream(
+                context,
+                currentChat?.systemPrompt || '',
+                {
+                    onChunk: (text) => {
+                        if (firstChunk) {
+                            const downloadEl = document.getElementById(downloadMsgId);
+                            if (downloadEl) downloadEl.closest('.rowAssistant')?.remove();
+                            firstChunk = false;
+                        }
+                        if (msgElement) {
+                            this.throttledRender(text, msgElement, false);
+                            fullResponse = text;
+                        }
+                    },
+                    onDownloadProgress: (e) => this.handleDownloadProgress(e, downloadMsgId),
+                    onStats: (stats) => {
+                        if (msgElement) {
+                            msgElement.innerHTML += `<div class="message-stats">${stats.tokens} tokens · ${stats.tokensPerSecond} t/s · ${stats.duration}s · TTFT: ${stats.ttft}ms</div>`;
+                        }
+                    }
+                },
+                this.abortController.signal
+            );
+
+            if (fullResponse && msgElement) {
+                this.throttledRender(fullResponse, msgElement, true);
+                this.addCopyButtons(msgElement);
+                if (currentChat) {
+                    this.chats.addMessage(chatId, 'assistant', fullResponse);
+                }
+            }
+
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                const msgElement = document.getElementById(msgId);
+                if (msgElement) {
+                    msgElement.innerHTML = `<p class="error-message">Erro: ${err.message}</p>`;
+                }
+            }
+        } finally {
+            this.setLoadingState(false);
+            this.abortController = null;
+            this.updateMessageActions();
+        }
+    }
+
+    updateMessageActions() {
+        this.els.messages.querySelectorAll('.message-actions').forEach(el => el.remove());
+
+        const chatId = this.chats.activeChatId;
+        const chat = this.chats.get(chatId);
+        if (!chat || chat.messages.length === 0 || this.isLoading) return;
+
+        const userRows = this.els.messages.querySelectorAll('.rowUser');
+        const assistantRows = this.els.messages.querySelectorAll('.rowAssistant');
+
+        if (userRows.length > 0) {
+            const lastUserRow = userRows[userRows.length - 1];
+            const editBtn = document.createElement('div');
+            editBtn.className = 'message-actions';
+            editBtn.innerHTML = `
+                <button class="action-btn edit-btn" title="Editar mensagem">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </button>
+            `;
+            editBtn.querySelector('.edit-btn').onclick = () => this.handleEditLastMessage();
+            lastUserRow.appendChild(editBtn);
+        }
+
+        if (assistantRows.length > 0) {
+            const lastAssistantRow = assistantRows[assistantRows.length - 1];
+            const regenBtn = document.createElement('div');
+            regenBtn.className = 'message-actions';
+            regenBtn.innerHTML = `
+                <button class="action-btn regen-btn" title="Regenerar resposta">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+            `;
+            regenBtn.querySelector('.regen-btn').onclick = () => this.handleRegenerate();
+            lastAssistantRow.appendChild(regenBtn);
         }
     }
 
@@ -1794,6 +2038,11 @@ class UIManager {
         if (this.els.sendBtn) this.els.sendBtn.style.display = isLoading ? 'none' : 'block';
         if (this.els.stopBtn) this.els.stopBtn.style.display = isLoading ? 'block' : 'none';
         this.isLoading = isLoading;
+
+        if (isLoading) {
+            this.els.messages.querySelectorAll('.message-actions').forEach(el => el.remove());
+        }
+
         if (!isLoading && this.els.prompt) {
             this.els.prompt.focus();
         }
