@@ -1154,9 +1154,24 @@ ${code}
         setTimeout(() => { if (this.els.prompt) this.els.prompt.focus(); }, 100);
     }
 
+    reconstructCodeState(chatId) {
+        this.codeState = { html: null, css: null, js: null };
+        const chat = this.chats.get(chatId);
+        if (!chat) return;
+
+        chat.messages.forEach(msg => {
+            if (msg.role === 'assistant') {
+                const blocks = this.extractCodeForPreview(msg.content);
+                if (blocks) {
+                    this.updateCodeState(blocks);
+                }
+            }
+        });
+    }
+
     switchChat(id) {
         this.chats.activeChatId = id;
-        this.codeState = { html: null, css: null, js: null };
+        this.reconstructCodeState(id);
         const chat = this.chats.get(id);
 
         if (this.els.messages) this.els.messages.innerHTML = '';
