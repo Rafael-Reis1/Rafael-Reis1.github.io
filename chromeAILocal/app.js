@@ -1929,9 +1929,16 @@ ${code}
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
             let systemPrompt = currentChat ? currentChat.systemPrompt : '';
 
-            systemPrompt += "\n\nREGRA TÉCNICA OBRIGATÓRIA: TODO elemento HTML gerado DEVE ter um atributo 'id'.\n1. Se editando: MANTENHA o id original.\n2. Se criando novo: CRIE um id único e semântico (ex: id='novo-item').\nO sistema de visualização EXIGE ids para aplicar as mudanças corretamente. Não gere elementos sem ID.";
+            systemPrompt += "\n\nREGRAS TÉCNICAS OBRIGATÓRIAS:\n1. TODO elemento HTML DEVE ter 'id'. Mantenha IDs existentes.\n2. ECONOMIA DE TOKENS: Ao editar, gere APENAS o bloco HTML do elemento alterado (ex: apenas o <div id='container'>...</div>) e não o arquivo todo, a menos que o usuário peça explicitamente a página completa.\nO sistema fará o merge automático pelo ID.";
 
             let responseStats = null;
+
+            if (this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js)) {
+                const combinedCode = this.combineCode(this.codeState);
+                if (combinedCode && combinedCode.length < 5000) {
+                    systemPrompt += `\n\nCONTEXTO ATUAL (Estado do Projeto):\nUse este código como referência absoluta para suas edições.\n\`\`\`html\n${combinedCode}\n\`\`\``;
+                }
+            }
 
             await this.ai.generateStream(
                 context,
