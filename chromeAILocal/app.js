@@ -1172,6 +1172,16 @@ ${code}
     switchChat(id) {
         this.chats.activeChatId = id;
         this.reconstructCodeState(id);
+
+        if (this.codeState.html) {
+            const combinedHtml = this.combineCode(this.codeState);
+            this.openCanvas(combinedHtml);
+        } else {
+            if (this.els.mainWrapper && this.els.mainWrapper.classList.contains('canvas-open')) {
+                this.closeCanvas();
+            }
+        }
+
         const chat = this.chats.get(id);
 
         if (this.els.messages) this.els.messages.innerHTML = '';
@@ -2443,7 +2453,7 @@ ${code}
             const buttonsContainer = document.createElement('div');
             buttonsContainer.className = 'code-block-buttons';
 
-            if (isHtml && codeContent.length > 20) {
+            if ((isHtml || (this.codeState && this.codeState.html)) && codeContent.length > 20) {
                 const previewBtn = document.createElement('button');
                 previewBtn.className = 'code-header-btn preview-btn';
                 previewBtn.innerHTML = `
