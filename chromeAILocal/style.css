@@ -366,6 +366,9 @@ body {
 .form-control::placeholder {
     color: var(--text-secondary);
     line-height: 24px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #sendButton,
