@@ -754,7 +754,7 @@ class UIManager {
         } else {
             this.switchChat(this.chats.getAll()[0].id);
         }
-        
+
         this.adjustTextarea();
     }
 
@@ -1488,7 +1488,7 @@ class UIManager {
         const chatId = this.chats.activeChatId;
         const currentChat = this.chats.get(chatId);
 
-        if (currentChat) {
+        if (currentChat && !this.skipUserMessage) {
             this.chats.addMessage(chatId, 'user', text);
             this.renderChatList();
 
@@ -1500,7 +1500,12 @@ class UIManager {
         }
 
         this.removeSuggestionPills();
-        this.renderMessage('user', text);
+
+        if (!this.skipUserMessage) {
+            this.renderMessage('user', text);
+        }
+        this.skipUserMessage = false;
+
         this.els.prompt.value = '';
         this.adjustTextarea();
 
@@ -1613,27 +1618,42 @@ class UIManager {
     }
 
     handleRegenerate() {
+        // Bloqueia se já está carregando
         if (this.isLoading) return;
 
         const chatId = this.chats.activeChatId;
         const chat = this.chats.get(chatId);
-        if (!chat || chat.messages.length < 2) return;
+        if (!chat || chat.messages.length < 1) return;
+
+        // Encontra a última mensagem do usuário
+        let lastUserMessage = null;
+        for (let i = chat.messages.length - 1; i >= 0; i--) {
+            if (chat.messages[i].role === 'user') {
+                lastUserMessage = chat.messages[i].content;
+                break;
+            }
+        }
+        if (!lastUserMessage) return;
+
+        this.els.messages.querySelectorAll('.skeleton-loading').forEach(skeleton => {
+            const row = skeleton.closest('.rowAssistant');
+            if (row) row.remove();
+        });
 
         const lastMessage = chat.messages[chat.messages.length - 1];
-        if (lastMessage.role !== 'assistant') return;
+        if (lastMessage.role === 'assistant') {
+            chat.messages.pop();
+            this.chats.save();
 
-        chat.messages.pop();
-        this.chats.save();
-
-        const rows = this.els.messages.querySelectorAll('.rowAssistant');
-        if (rows.length > 0) {
-            rows[rows.length - 1].remove();
+            const rows = this.els.messages.querySelectorAll('.rowAssistant');
+            if (rows.length > 0) {
+                rows[rows.length - 1].remove();
+            }
         }
 
-        const lastUserMessage = chat.messages[chat.messages.length - 1];
-        if (!lastUserMessage || lastUserMessage.role !== 'user') return;
-
-        this.regenerateResponse(lastUserMessage.content);
+        this.skipUserMessage = true;
+        this.els.prompt.value = lastUserMessage;
+        this.handleSend();
     }
 
     handleEditLastMessage() {
@@ -1658,6 +1678,11 @@ class UIManager {
         this.showEditMessageModal(lastUserMessage, (editedMessage) => {
             if (!editedMessage || !editedMessage.trim()) return;
 
+            this.els.messages.querySelectorAll('.skeleton-loading').forEach(skeleton => {
+                const row = skeleton.closest('.rowAssistant');
+                if (row) row.remove();
+            });
+
             for (let i = 0; i < messagesToRemove; i++) {
                 chat.messages.pop();
             }
@@ -1669,10 +1694,8 @@ class UIManager {
                 allRows[totalRows - 1 - i].remove();
             }
 
-            this.chats.addMessage(chatId, 'user', editedMessage.trim());
-            this.renderMessage('user', editedMessage.trim());
-            this.renderChatList();
-            this.regenerateResponse(editedMessage.trim());
+            this.els.prompt.value = editedMessage.trim();
+            this.handleSend();
         });
     }
 
@@ -1730,83 +1753,6 @@ class UIManager {
                 closeModal();
             }
         };
-    }
-
-    async regenerateResponse(userMessage) {
-        const chatId = this.chats.activeChatId;
-        const currentChat = this.chats.get(chatId);
-
-        const msgId = 'msg-' + Date.now();
-        const skeletonHtml = `
-            <div class="message" id="${msgId}">
-                <div class="skeleton-loading">
-                    <div class="skeleton-line"></div>
-                </div>
-            </div>
-        `;
-        this.addMessageToDOM(skeletonHtml, 'assistant');
-
-        this.setLoadingState(true);
-        this.abortController = new AbortController();
-
-        try {
-            if (!(await this.ai.isAvailable())) {
-                throw new Error('API de IA não disponível. Verifique as flags do Chrome.');
-            }
-
-            let fullResponse = "";
-            let firstChunk = true;
-            const msgElement = document.getElementById(msgId);
-            const downloadMsgId = 'download-progress-msg';
-
-            const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
-            context.push({ role: 'user', content: userMessage });
-
-            await this.ai.generateStream(
-                context,
-                currentChat?.systemPrompt || '',
-                {
-                    onChunk: (text) => {
-                        if (firstChunk) {
-                            const downloadEl = document.getElementById(downloadMsgId);
-                            if (downloadEl) downloadEl.closest('.rowAssistant')?.remove();
-                            firstChunk = false;
-                        }
-                        if (msgElement) {
-                            this.throttledRender(text, msgElement, false);
-                            fullResponse = text;
-                        }
-                    },
-                    onDownloadProgress: (e) => this.handleDownloadProgress(e, downloadMsgId),
-                    onStats: (stats) => {
-                        if (msgElement) {
-                            msgElement.innerHTML += `<div class="message-stats">${stats.tokens} tokens · ${stats.tokensPerSecond} t/s · ${stats.duration}s · TTFT: ${stats.ttft}ms</div>`;
-                        }
-                    }
-                },
-                this.abortController.signal
-            );
-
-            if (fullResponse && msgElement) {
-                this.throttledRender(fullResponse, msgElement, true);
-                this.addCopyButtons(msgElement);
-                if (currentChat) {
-                    this.chats.addMessage(chatId, 'assistant', fullResponse);
-                }
-            }
-
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                const msgElement = document.getElementById(msgId);
-                if (msgElement) {
-                    msgElement.innerHTML = `<p class="error-message">Erro: ${err.message}</p>`;
-                }
-            }
-        } finally {
-            this.setLoadingState(false);
-            this.abortController = null;
-            this.updateMessageActions();
-        }
     }
 
     updateMessageActions() {
