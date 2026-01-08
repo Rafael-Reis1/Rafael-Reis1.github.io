@@ -2544,3 +2544,88 @@ const personaManager = new PersonaManager();
 const chatManager = new ChatManager();
 const aiService = new AIService();
 const uiManager = new UIManager(chatManager, aiService, personaManager);
+
+class CodeSecurity {
+    /**
+     * @param {string} originalCode
+     * @param {string} newCode
+     * @param {string} language
+     * @returns {string}
+     */
+    static apply(originalCode, newCode, language) {
+        switch (language.toLowerCase()) {
+            case 'css':
+                return this.applyCSS(originalCode, newCode);
+            case 'javascript':
+            case 'js':
+                return this.applyJS(originalCode, newCode);
+            case 'html':
+                return this.applyHTML(originalCode, newCode);
+            default:
+                return originalCode + '\n' + newCode;
+        }
+    }
+
+    static applyCSS(original, newRules) {
+        return `${original}\n\n/* AI Fix applied at ${new Date().toLocaleTimeString()} */\n${newRules}`;
+    }
+
+    static applyJS(original, newCode) {
+        let updatedCode = original;
+        let replacedCount = 0;
+
+        const functionRegex = /function\s+([a-zA-Z0-9_$]+)\s*\([^)]*\)\s*\{[\s\S]*?\n\}/gm;
+        let match;
+
+        const newFunctions = [];
+        while ((match = functionRegex.exec(newCode)) !== null) {
+            newFunctions.push({ name: match[1], fullCode: match[0] });
+        }
+
+        newFunctions.forEach(func => {
+            const oldFuncRegex = new RegExp(`function\\s+${func.name}\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}`, 'gm');
+
+            if (oldFuncRegex.test(updatedCode)) {
+                updatedCode = updatedCode.replace(oldFuncRegex, `/* [Replaced by AI] function ${func.name} ... */`);
+                replacedCount++;
+                console.log(`[CodeSecurity] Replaced function ${func.name}`);
+            }
+        });
+
+        const classRegex = /class\s+([a-zA-Z0-9_$]+)\s*\{[\s\S]*?\n\}/gm;
+
+        return `${updatedCode}\n\n// AI Fix applied at ${new Date().toLocaleTimeString()}\n${newCode}`;
+    }
+
+    static applyHTML(original, newSnippet) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(original, 'text/html');
+
+        const template = document.createElement('template');
+        template.innerHTML = newSnippet;
+        const newContent = template.content;
+
+        const elementsWithId = newContent.querySelectorAll('[id]');
+        let replacedCount = 0;
+
+        elementsWithId.forEach(newEl => {
+            const id = newEl.id;
+            const originalEl = doc.getElementById(id);
+
+            if (originalEl) {
+                originalEl.replaceWith(newEl.cloneNode(true));
+                replacedCount++;
+                console.log(`[CodeSecurity] Replaced element #${id}`);
+            }
+        });
+
+        if (replacedCount === 0) {
+            console.warn('[CodeSecurity] No matching IDs found in HTML. Appending to body.');
+            doc.body.insertAdjacentHTML('beforeend', newSnippet);
+        }
+
+        return doc.documentElement.outerHTML;
+    }
+}
+
+window.CodeSecurity = CodeSecurity;
