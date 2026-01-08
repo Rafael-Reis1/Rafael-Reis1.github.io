@@ -559,9 +559,17 @@ class UIManager {
             genericModalCancelBtn: document.getElementById('genericModalCancelBtn'),
             closeGenericModalBtn: document.getElementById('closeGenericModal'),
             genericModalInput: document.getElementById('genericModalInput'),
-            genericModalFooter: document.getElementById('genericModalFooter')
+            genericModalFooter: document.getElementById('genericModalFooter'),
+            mainWrapper: document.getElementById('mainWrapper'),
+            canvasContainer: document.getElementById('canvasContainer'),
+            canvasFrame: document.getElementById('canvasFrame'),
+            closeCanvasBtn: document.getElementById('closeCanvas'),
+            refreshCanvasBtn: document.getElementById('refreshCanvas')
         };
 
+        this.currentCanvasCode = '';
+        this.currentBlobUrl = null;
+        this.codeState = { html: null, css: null, js: null };
         this.init();
     }
 
@@ -754,8 +762,368 @@ class UIManager {
         } else {
             this.switchChat(this.chats.getAll()[0].id);
         }
-
         this.adjustTextarea();
+        this.initCanvas();
+    }
+
+    initCanvas() {
+        if (this.els.closeCanvasBtn) {
+            this.els.closeCanvasBtn.onclick = () => this.closeCanvas();
+        }
+        if (this.els.refreshCanvasBtn) {
+            this.els.refreshCanvasBtn.onclick = () => this.refreshCanvas();
+        }
+    }
+
+    openCanvas(code) {
+        this.currentCanvasCode = code;
+        if (!this.els.mainWrapper) return;
+
+        const container = this.els.mainWrapper.querySelector('.container');
+        const canvas = this.els.canvasContainer;
+        if (!container || !canvas) return;
+
+        const startWidth = container.offsetWidth;
+        const targetWidth = 400;
+        const duration = 350;
+        const startTime = performance.now();
+
+        this.els.mainWrapper.classList.add('canvas-open');
+        this.els.mainWrapper.classList.remove('canvas-closing');
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+
+            const currentWidth = startWidth - (startWidth - targetWidth) * eased;
+            container.style.width = currentWidth + 'px';
+            canvas.style.opacity = eased;
+            canvas.style.width = (eased * 100) + '%';
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                container.style.width = targetWidth + 'px';
+                canvas.style.opacity = '1';
+                canvas.style.width = '';
+            }
+        };
+
+        requestAnimationFrame(animate);
+        this.renderCanvasPreview(code);
+    }
+
+    closeCanvas() {
+        if (!this.els.mainWrapper) return;
+
+        const container = this.els.mainWrapper.querySelector('.container');
+        const canvas = this.els.canvasContainer;
+        if (!container || !canvas) return;
+
+        const startWidth = 400;
+        const targetWidth = this.els.mainWrapper.offsetWidth;
+        const duration = 350;
+        const startTime = performance.now();
+
+        this.els.mainWrapper.classList.add('canvas-closing');
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+
+            const currentWidth = startWidth + (targetWidth - startWidth) * eased;
+            container.style.width = currentWidth + 'px';
+            canvas.style.opacity = 1 - eased;
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.els.mainWrapper.classList.remove('canvas-open');
+                this.els.mainWrapper.classList.remove('canvas-closing');
+                container.style.width = '';
+                canvas.style.opacity = '';
+                canvas.style.width = '';
+            }
+        };
+        requestAnimationFrame(animate);
+        this.currentCanvasCode = '';
+    }
+
+    extractCodeForPreview(text) {
+        if (!text) return null;
+
+        const allBlocks = [...text.matchAll(/```(\w*)\s*([\s\S]*?)```/gi)];
+
+        let html = null;
+        let css = null;
+        let js = null;
+
+        for (const match of allBlocks) {
+            const lang = match[1].toLowerCase().trim();
+            const content = match[2];
+
+            if (['html', 'xml'].includes(lang)) {
+                html = content;
+            } else if (['css'].includes(lang)) {
+                css = content;
+            } else if (['js', 'javascript'].includes(lang)) {
+                js = content;
+            } else if (lang === '') {
+                const trimmed = content.trim();
+
+                if (trimmed.startsWith('<') || trimmed.includes('<!DOCTYPE') || trimmed.includes('</div>')) {
+                    html = content;
+                } else if (trimmed.includes('{') && trimmed.includes(':') && !trimmed.includes('function') && !trimmed.includes('const ') && !trimmed.includes('let ') && !trimmed.includes('var ')) {
+                    css = content;
+                } else {
+                    js = content;
+                }
+            }
+        }
+
+        return { html, css, js };
+    }
+
+    combineCode(blocks) {
+        let { html, css, js } = blocks;
+
+        if (!html && !css && !js) return null;
+
+        if (!html) {
+            html = '<div id="app" style="padding: 20px;"></div>';
+        }
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const links = doc.querySelectorAll('link[rel="stylesheet"]');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.match(/^(http|https|\/\/)/i)) {
+                    link.remove();
+                }
+            });
+
+            const scripts = doc.querySelectorAll('script[src]');
+            scripts.forEach(script => {
+                const src = script.getAttribute('src');
+                if (src && !src.match(/^(http|https|\/\/)/i)) {
+                    script.remove();
+                }
+            });
+
+            if (css) {
+                const style = doc.createElement('style');
+                style.textContent = css;
+                doc.head.appendChild(style);
+            }
+
+            if (js) {
+                const script = doc.createElement('script');
+                script.textContent = js;
+                doc.body.appendChild(script);
+            }
+
+            if (!doc.querySelector('meta[name="viewport"]')) {
+                const meta = doc.createElement('meta');
+                meta.name = 'viewport';
+                meta.content = 'width=device-width, initial-scale=1.0';
+                doc.head.prepend(meta);
+            }
+
+            const baseStyle = doc.createElement('style');
+            let baseCss = 'body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }';
+
+            if (!html.toLowerCase().includes('<body')) {
+                baseCss += ' body { padding: 1rem; }';
+            }
+
+            baseStyle.textContent = baseCss;
+            if (doc.head.firstChild) {
+                doc.head.insertBefore(baseStyle, doc.head.firstChild);
+            } else {
+                doc.head.appendChild(baseStyle);
+            }
+
+            return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+
+        } catch (e) {
+            console.error('[Preview] ERRO FATAL no combineCode:', e);
+            return html;
+        }
+    }
+
+    smartMerge(oldCode, newCode, type) {
+        if (!newCode) return oldCode;
+        if (!oldCode) return newCode;
+
+        if (type === 'html') {
+            if (newCode.toLowerCase().includes('<!doctype') || newCode.toLowerCase().includes('<html') || newCode.toLowerCase().includes('<body')) {
+                return newCode;
+            }
+
+            try {
+                const parser = new DOMParser();
+                const oldDoc = parser.parseFromString(oldCode || '', 'text/html');
+                const newDoc = parser.parseFromString(newCode, 'text/html');
+
+                const newElements = Array.from(newDoc.body.children);
+
+                if (newElements.length === 0) {
+                    if (oldCode && oldCode.includes('</body>')) {
+                        return oldCode.replace('</body>', newCode + '</body>');
+                    }
+                    return oldCode + '\n' + newCode;
+                }
+
+                let modified = false;
+
+                newElements.forEach(newEl => {
+                    if (newEl.id) {
+                        const oldEl = oldDoc.getElementById(newEl.id);
+                        if (oldEl) {
+                            oldEl.replaceWith(newEl.cloneNode(true));
+                            modified = true;
+                            return;
+                        }
+                    }
+
+                    const sameTags = oldDoc.getElementsByTagName(newEl.tagName);
+                    if (sameTags.length === 1) {
+                        sameTags[0].replaceWith(newEl.cloneNode(true));
+                        modified = true;
+                        return;
+                    }
+
+                    if (newEl.className) {
+                        const sameClassMatches = Array.from(sameTags).filter(el => el.className === newEl.className);
+                        if (sameClassMatches.length === 1) {
+                            sameClassMatches[0].replaceWith(newEl.cloneNode(true));
+                            modified = true;
+                            return;
+                        }
+                    }
+
+                    const newText = newEl.textContent ? newEl.textContent.trim() : '';
+                    if (newText.length > 2) {
+                        const textMatches = Array.from(sameTags).filter(el => el.textContent.trim() === newText);
+                        if (textMatches.length === 1) {
+                            textMatches[0].replaceWith(newEl.cloneNode(true));
+                            modified = true;
+                            return;
+                        }
+                    }
+
+                    oldDoc.body.appendChild(newEl.cloneNode(true));
+                    modified = true;
+                });
+
+                if (modified) {
+                    return oldDoc.documentElement.outerHTML;
+                }
+            } catch (e) {
+                console.error('Erro no merge HTML:', e);
+                return newCode;
+            }
+        }
+
+        if (type === 'css') {
+            if (oldCode.length > 50 && newCode.length < oldCode.length * 0.8) {
+                return oldCode + '\n/* Patch */\n' + newCode;
+            }
+        }
+
+        if (type === 'js') {
+            if (oldCode.length > 100 && newCode.length < oldCode.length * 0.5) {
+                return oldCode + '\n\n// Patch\n' + newCode;
+            }
+        }
+
+        return newCode;
+    }
+
+    updateCodeState(blocks) {
+        if (!blocks) return;
+        if (blocks.html) this.codeState.html = this.smartMerge(this.codeState.html, blocks.html, 'html');
+        if (blocks.css) this.codeState.css = this.smartMerge(this.codeState.css, blocks.css, 'css');
+        if (blocks.js) this.codeState.js = this.smartMerge(this.codeState.js, blocks.js, 'js');
+    }
+
+    checkAutoUpdateCanvas(text, force = false) {
+        if (!this.els.mainWrapper) return;
+
+        const now = Date.now();
+        if (!this.lastCanvasUpdate) this.lastCanvasUpdate = 0;
+
+        if (!force && now - this.lastCanvasUpdate < 500) return;
+
+        const blocks = this.extractCodeForPreview(text);
+        if (!blocks) return;
+
+        if (force) {
+            this.updateCodeState(blocks);
+        }
+
+        const merged = {
+            html: this.smartMerge(this.codeState.html, blocks.html, 'html'),
+            css: this.smartMerge(this.codeState.css, blocks.css, 'css'),
+            js: this.smartMerge(this.codeState.js, blocks.js, 'js')
+        };
+
+        const combinedHtml = this.combineCode(merged);
+
+        if (!this.els.mainWrapper.classList.contains('canvas-open') && blocks.html && combinedHtml) {
+            this.openCanvas(combinedHtml);
+            this.lastCanvasUpdate = now;
+            return;
+        }
+
+        if (combinedHtml && combinedHtml.length > 10 && combinedHtml !== this.currentCanvasCode) {
+            this.currentCanvasCode = combinedHtml;
+            this.renderCanvasPreview(combinedHtml);
+            this.lastCanvasUpdate = now;
+        }
+    }
+
+    refreshCanvas() {
+        if (this.currentCanvasCode) {
+            this.renderCanvasPreview(this.currentCanvasCode);
+        }
+    }
+
+    renderCanvasPreview(code) {
+        if (!this.els.canvasFrame) return;
+
+        let fullHtml = code;
+        if (!code.toLowerCase().includes('<!doctype') && !code.toLowerCase().includes('<html')) {
+            fullHtml = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 1rem; }
+    </style>
+</head>
+<body>
+${code}
+</body>
+</html>`;
+        }
+
+        const blob = new Blob([fullHtml], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+
+        if (this.currentBlobUrl) {
+            URL.revokeObjectURL(this.currentBlobUrl);
+        }
+
+        this.currentBlobUrl = url;
+        this.els.canvasFrame.src = url;
+        this.els.canvasFrame.removeAttribute('srcdoc');
     }
 
     toggleSidebar() {
@@ -778,6 +1146,7 @@ class UIManager {
 
         const chat = this.chats.create(systemPrompt, personaName, personaIcon, personaColor);
         this.switchChat(chat.id);
+        this.codeState = { html: null, css: null, js: null };
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
         }
@@ -787,6 +1156,7 @@ class UIManager {
 
     switchChat(id) {
         this.chats.activeChatId = id;
+        this.codeState = { html: null, css: null, js: null };
         const chat = this.chats.get(id);
 
         if (this.els.messages) this.els.messages.innerHTML = '';
@@ -857,7 +1227,6 @@ class UIManager {
                     this.els.prompt.value = prompt;
                     this.els.prompt.focus();
                     this.adjustTextarea();
-                    // Coloca o cursor no final do texto
                     this.els.prompt.selectionStart = this.els.prompt.selectionEnd = prompt.length;
                 }
             });
@@ -1533,7 +1902,10 @@ class UIManager {
             const downloadMsgId = 'download-progress-msg';
 
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
-            const systemPrompt = currentChat ? currentChat.systemPrompt : '';
+            let systemPrompt = currentChat ? currentChat.systemPrompt : '';
+
+            systemPrompt += "\n\nREGRA TÉCNICA OBRIGATÓRIA: TODO elemento HTML gerado DEVE ter um atributo 'id'.\n1. Se editando: MANTENHA o id original.\n2. Se criando novo: CRIE um id único e semântico (ex: id='novo-item').\nO sistema de visualização EXIGE ids para aplicar as mudanças corretamente. Não gere elementos sem ID.";
+
             let responseStats = null;
 
             await this.ai.generateStream(
@@ -1550,6 +1922,7 @@ class UIManager {
 
                         fullResponse = text;
                         this.throttledRender(fullResponse, msgElement, false);
+                        this.checkAutoUpdateCanvas(fullResponse);
                     },
                     onDownloadProgress: (e) => {
                         this.handleDownloadProgress(e, downloadMsgId);
@@ -1563,7 +1936,8 @@ class UIManager {
 
             this.throttledRender(fullResponse, msgElement, true);
             this.chats.addMessage(chatId, 'assistant', fullResponse);
-            this.addCopyButtons(msgElement);
+            this.addCopyButtons(msgElement, fullResponse);
+            this.checkAutoUpdateCanvas(fullResponse, true);
 
             if (responseStats) {
                 const statsHtml = `<div class="message-stats">Tokens: ${responseStats.tokens} · Velocidade: ${responseStats.tokensPerSecond} tok/s · Primeiro token: ${responseStats.ttft}ms · Tempo total: ${responseStats.duration}s</div>`;
@@ -1574,7 +1948,7 @@ class UIManager {
             if (this.abortController?.signal.aborted || error.name === 'AbortError') {
                 if (fullResponse) {
                     this.chats.addMessage(chatId, 'assistant', fullResponse);
-                    this.addCopyButtons(msgElement);
+                    this.addCopyButtons(msgElement, fullResponse);
                 }
             } else {
                 const msgElement = document.getElementById(msgId);
@@ -1586,7 +1960,7 @@ class UIManager {
             if (msgElement) msgElement.classList.remove('is-streaming');
             this.abortController = null;
 
-            setTimeout(() => this.scrollToBottom(true), 100);
+            setTimeout(() => this.scrollToBottom(), 100);
             this.updateMessageActions();
         }
     }
@@ -1618,14 +1992,12 @@ class UIManager {
     }
 
     handleRegenerate() {
-        // Bloqueia se já está carregando
         if (this.isLoading) return;
 
         const chatId = this.chats.activeChatId;
         const chat = this.chats.get(chatId);
         if (!chat || chat.messages.length < 1) return;
 
-        // Encontra a última mensagem do usuário
         let lastUserMessage = null;
         for (let i = chat.messages.length - 1; i >= 0; i--) {
             if (chat.messages[i].role === 'user') {
@@ -1939,7 +2311,7 @@ class UIManager {
                 const el = document.getElementById(id);
                 if (el) {
                     this.renderMarkdownUpdate(content, el);
-                    this.addCopyButtons(el);
+                    this.addCopyButtons(el, content);
                 }
             }, 0);
         }
@@ -1972,7 +2344,7 @@ class UIManager {
         if (!this.els.messages) return;
 
         const el = this.els.messages;
-        const threshold = 100;
+        const threshold = 150;
         const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
 
         if (force || isNearBottom) {
@@ -2006,28 +2378,108 @@ class UIManager {
         el.style.overflowY = el.scrollHeight > 200 ? 'auto' : 'hidden';
     }
 
-    addCopyButtons(element) {
+    addCopyButtons(element, rawText = null) {
         element.querySelectorAll('pre').forEach(pre => {
             if (pre.parentNode.classList.contains('code-block-wrapper')) return;
 
             const wrapper = document.createElement('div');
             wrapper.className = 'code-block-wrapper';
 
-            const btn = document.createElement('button');
-            btn.className = 'copy-code-button';
-            btn.textContent = 'Copiar';
-            btn.onclick = () => {
-                const code = pre.querySelector('code');
-                if (code) {
-                    navigator.clipboard.writeText(code.innerText);
-                    btn.textContent = 'Copiado!';
-                    setTimeout(() => btn.textContent = 'Copiar', 2000);
+            const codeElement = pre.querySelector('code');
+            const codeContent = codeElement ? codeElement.innerText : '';
+
+            let language = 'código';
+            if (codeElement) {
+                const classes = codeElement.className.split(' ');
+                for (const cls of classes) {
+                    if (cls.startsWith('language-')) {
+                        language = cls.replace('language-', '');
+                        break;
+                    } else if (cls.startsWith('hljs-')) {
+                        continue;
+                    } else if (cls === 'hljs') {
+                        continue;
+                    }
                 }
+                if (language === 'código') {
+                    for (const cls of classes) {
+                        if (!cls.startsWith('hljs') && cls !== 'hljs') {
+                            language = cls;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const isHtml = codeElement && (
+                codeElement.classList.contains('language-html') ||
+                language === 'html' ||
+                codeContent.toLowerCase().includes('<!doctype html') ||
+                (codeContent.includes('<html') && codeContent.includes('</html>'))
+            );
+
+            const header = document.createElement('div');
+            header.className = 'code-block-header';
+
+            const langLabel = document.createElement('span');
+            langLabel.className = 'code-block-lang';
+            langLabel.textContent = language.toUpperCase();
+
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'code-block-buttons';
+
+            if (isHtml && codeContent.length > 20) {
+                const previewBtn = document.createElement('button');
+                previewBtn.className = 'code-header-btn preview-btn';
+                previewBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>Visualizar</span>
+                `;
+                previewBtn.onclick = () => {
+                    if (rawText) {
+                        const blocks = this.extractCodeForPreview(rawText);
+                        this.updateCodeState(blocks);
+
+                        const merged = {
+                            html: this.smartMerge(this.codeState.html, blocks.html, 'html'),
+                            css: this.smartMerge(this.codeState.css, blocks.css, 'css'),
+                            js: this.smartMerge(this.codeState.js, blocks.js, 'js')
+                        };
+
+                        const combined = this.combineCode(merged);
+                        this.openCanvas(combined || codeContent);
+                    } else {
+                        this.openCanvas(codeContent);
+                    }
+                };
+                buttonsContainer.appendChild(previewBtn);
+            }
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-header-btn copy-btn';
+            copyBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copiar</span>
+            `;
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(codeContent);
+                copyBtn.querySelector('span').textContent = 'Copiado!';
+                setTimeout(() => copyBtn.querySelector('span').textContent = 'Copiar', 2000);
             };
+            buttonsContainer.appendChild(copyBtn);
+
+            header.appendChild(langLabel);
+            header.appendChild(buttonsContainer);
 
             pre.parentNode.insertBefore(wrapper, pre);
+            wrapper.appendChild(header);
             wrapper.appendChild(pre);
-            wrapper.appendChild(btn);
         });
 
         element.querySelectorAll('.copy-mermaid-btn').forEach(btn => {
