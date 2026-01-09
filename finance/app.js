@@ -15,6 +15,14 @@ try {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+db.enablePersistence()
+    .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            console.warn('Persistência falhou: Múltiplas abas abertas.');
+        } else if (err.code == 'unimplemented') {
+            console.warn('Persistência não suportada neste navegador.');
+        }
+    });
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 const CATEGORIES = {
@@ -70,8 +78,7 @@ const CATEGORY_COLORS = {
 class FinanceManager {
     constructor() {
         this.transactions = [];
-        this._hasPendingChanges = localStorage.getItem('finance_pending') === 'true';
-        this.load();
+        this._hasPendingChanges = false;
     }
 
     get hasPendingChanges() {
@@ -80,26 +87,13 @@ class FinanceManager {
 
     set hasPendingChanges(value) {
         this._hasPendingChanges = value;
-        if (value) {
-            localStorage.setItem('finance_pending', 'true');
-        } else {
-            localStorage.removeItem('finance_pending');
-        }
     }
 
     load() {
-        try {
-            const data = localStorage.getItem('finance_transactions');
-            this.transactions = data ? JSON.parse(data) : [];
-        } catch (e) {
-            console.error('Erro ao carregar transações:', e);
-            this.transactions = [];
-        }
+        this.transactions = [];
     }
 
     save(onSyncError = null, onOffline = null) {
-        localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
-
         if (auth.currentUser && navigator.onLine) {
             this.syncToCloud(auth.currentUser).then(() => {
                 this.hasPendingChanges = false;
@@ -116,7 +110,6 @@ class FinanceManager {
     clear() {
         this.transactions = [];
         this.hasPendingChanges = false;
-        localStorage.removeItem('finance_transactions');
     }
 
     async syncToCloud(user) {
@@ -144,7 +137,6 @@ class FinanceManager {
 
                     this.transactions = cloudTransactions;
 
-                    this.save();
                     return true;
                 }
             } else {
@@ -356,6 +348,9 @@ class UIController {
         this.pendingDeleteId = null;
         this.pendingImportData = null;
 
+        this.currentPage = 1;
+        this.itemsPerPage = 50;
+
         this.btnLogin = document.getElementById('btnLogin');
         this.loginText = document.getElementById('loginText');
         this.userInfo = document.getElementById('userInfo');
@@ -386,7 +381,6 @@ class UIController {
         this.noIncomeData = document.getElementById('noIncomeData');
 
         this.searchInput = document.getElementById('searchInput');
-        this.searchInput = document.getElementById('searchInput');
         this.btnOpenFilters = document.getElementById('btnOpenFilters');
         this.activeFiltersContainer = document.getElementById('activeFilters');
 
@@ -415,6 +409,13 @@ class UIController {
         this.btnAddTransaction = document.getElementById('btnAddTransaction');
         this.fileInput = document.getElementById('fileInput');
 
+        this.paginationControls = document.getElementById('paginationControls');
+        this.btnPrevPage = document.getElementById('btnPrevPage');
+        this.btnNextPage = document.getElementById('btnNextPage');
+        this.pageInfo = document.getElementById('pageInfo');
+        this.loginOverlay = document.getElementById('loginOverlay');
+        this.btnLoginOverlay = document.getElementById('btnLoginOverlay');
+
         this.toast = document.getElementById('toast');
 
         this.isEditing = false;
@@ -434,7 +435,24 @@ class UIController {
             auth.signOut();
             this.userDropdown.classList.remove('active');
             this.render();
-            this.showToast('Dados locais limpos. Você saiu.', 'success');
+            this.showToast('Você saiu com sucesso.', 'success');
+        });
+
+        this.btnLoginOverlay.addEventListener('click', () => this.handleAuthClick());
+
+        this.btnPrevPage.addEventListener('click', () => {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.render();
+            }
+        });
+
+        this.btnNextPage.addEventListener('click', () => {
+            const totalPages = Math.ceil(this.fm.getFilteredTransactions(this.currentFilters).length / this.itemsPerPage);
+            if (this.currentPage < totalPages) {
+                this.currentPage++;
+                this.render();
+            }
         });
 
         document.addEventListener('click', (e) => {
@@ -606,6 +624,17 @@ class UIController {
         document.getElementById('editDate').value = today;
     }
 
+    getCategoryColor(type, category) {
+        if (type === 'income') return 'var(--income-color)';
+        return CATEGORY_COLORS[category] || 'var(--text-primary)';
+    }
+
+    getCategoryColorBg(type, category) {
+        if (type === 'income') return 'rgba(34, 197, 94, 0.1)';
+        const color = CATEGORY_COLORS[category];
+        return color ? color + '20' : 'rgba(255, 255, 255, 0.05)';
+    }
+
     updateEditCategoryOptions(preserveValue = null) {
         const type = document.getElementById('editType').value;
         const categorySelect = document.getElementById('editCategory');
@@ -657,9 +686,9 @@ class UIController {
             if (this.chart) {
                 this.chart.destroy();
                 this.chart = null;
+                this.noChartData.style.display = 'block';
+                this.chartCanvas.style.display = 'none';
             }
-            this.chartCanvas.style.display = 'none';
-            this.noChartData.style.display = 'block';
         }
 
         if (!typeFilter || typeFilter === 'income') {
@@ -668,22 +697,13 @@ class UIController {
             if (this.incomeChart) {
                 this.incomeChart.destroy();
                 this.incomeChart = null;
+                this.noIncomeData.style.display = 'block';
+                this.incomeChartCanvas.style.display = 'none';
             }
-            this.incomeChartCanvas.style.display = 'none';
-            this.noIncomeData.style.display = 'block';
         }
 
         this.updateFilterOptions();
         this.renderTransactionsList();
-    }
-
-    openFilterModal() {
-        this.filterStartDate.value = this.currentFilters.startDate;
-        this.filterEndDate.value = this.currentFilters.endDate;
-        this.filterType.value = this.currentFilters.type;
-        this.filterCategory.value = this.currentFilters.category;
-
-        this.openModal(this.filterModal);
     }
 
     renderActiveFilters() {
@@ -925,54 +945,75 @@ class UIController {
         if (transactions.length === 0) {
             this.transactionsList.innerHTML = '';
             this.noTransactions.style.display = 'flex';
+            this.paginationControls.style.display = 'none';
             return;
         }
 
         this.noTransactions.style.display = 'none';
-        this.transactionsList.innerHTML = transactions.map(t => this.createTransactionItem(t)).join('');
+        this.paginationControls.style.display = 'flex';
 
-        this.transactionsList.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.openEditModal(btn.dataset.id));
-        });
+        const totalItems = transactions.length;
+        const totalPages = Math.ceil(totalItems / this.itemsPerPage);
 
-        this.transactionsList.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.openDeleteModal(btn.dataset.id));
-        });
-    }
+        if (this.currentPage > totalPages) this.currentPage = totalPages || 1;
+        if (this.currentPage < 1) this.currentPage = 1;
 
-    createTransactionItem(t) {
-        const emoji = CATEGORIES[t.type]?.[t.category] || '💵';
-        const categoryName = CATEGORY_NAMES[t.category] || t.category;
-        const [year, month, day] = t.date.split('T')[0].split('-');
-        const date = `${day}/${month}/${year}`;
-        const sign = t.type === 'income' ? '+' : '-';
+        const start = (this.currentPage - 1) * this.itemsPerPage;
+        const end = start + this.itemsPerPage;
+        const pageItems = transactions.slice(start, end);
 
-        return `
-            <div class="transaction-item ${t.type}">
+        this.pageInfo.textContent = `Página ${this.currentPage} de ${totalPages}`;
+        this.btnPrevPage.disabled = this.currentPage === 1;
+        this.btnNextPage.disabled = this.currentPage === totalPages;
+
+        pageItems.forEach(t => {
+            const el = document.createElement('div');
+            el.className = `transaction-item ${t.type}`;
+
+            const icon = CATEGORIES[t.type][t.category] || (t.type === 'expense' ? '💸' : '💰');
+            const categoryName = CATEGORY_NAMES[t.category] || t.category;
+            const sign = t.type === 'income' ? '+' : '-';
+            const date = new Date(t.date + 'T12:00:00');
+
+            el.innerHTML = `
                 <div class="transaction-info">
-                    <div class="transaction-icon">${emoji}</div>
+                    <div class="transaction-icon" style="background: ${this.getCategoryColorBg(t.type, t.category)}; color: ${this.getCategoryColor(t.type, t.category)}">
+                        ${icon}
+                    </div>
                     <div class="transaction-details">
-                        <span class="transaction-description">${this.escapeHtml(t.description)}</span>
-                        <span class="transaction-meta">${categoryName} • ${date}</span>
+                        <span class="transaction-desc">${t.description}</span>
+                        <div class="transaction-meta">
+                            <span class="transaction-date">${date.toLocaleDateString('pt-BR')}</span>
+                            <span class="transaction-cat">${categoryName}</span>
+                        </div>
                     </div>
                 </div>
-                <span class="transaction-amount">${sign} ${this.formatCurrency(t.amount)}</span>
                 <div class="transaction-actions">
-                    <button class="action-btn edit-btn" data-id="${t.id}" title="Editar">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn delete delete-btn" data-id="${t.id}" title="Excluir">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                    </button>
+                    <span class="transaction-amount ${t.type}">
+                        ${sign} ${this.formatCurrency(t.amount)}
+                    </span>
+                    <div class="action-buttons">
+                        <button class="action-btn edit" title="Editar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete" title="Excluir">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+
+            el.querySelector('.edit').addEventListener('click', () => this.openEditModal(t.id));
+            el.querySelector('.delete').addEventListener('click', () => this.openDeleteModal(t.id));
+
+            this.transactionsList.appendChild(el);
+        });
     }
 
     openAddModal() {
