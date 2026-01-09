@@ -14,6 +14,7 @@ try {
     console.error('Firebase Init Error', e);
 }
 const auth = firebase.auth();
+const db = firebase.firestore();
 db.enablePersistence()
     .catch((err) => {
         if (err.code == 'failed-precondition') {
