@@ -1,0 +1,840 @@
+const CATEGORIES = {
+    expense: {
+        alimentacao: '🍔',
+        transporte: '🚗',
+        moradia: '🏠',
+        saude: '💊',
+        educacao: '📚',
+        lazer: '🎮',
+        compras: '🛒',
+        servicos: '🔧',
+        outros_despesa: '📦'
+    },
+    income: {
+        salario: '💼',
+        freelance: '💻',
+        investimentos: '📈',
+        presente: '🎁',
+        outros_receita: '💰'
+    }
+};
+
+const CATEGORY_NAMES = {
+    alimentacao: 'Alimentação',
+    transporte: 'Transporte',
+    moradia: 'Moradia',
+    saude: 'Saúde',
+    educacao: 'Educação',
+    lazer: 'Lazer',
+    compras: 'Compras',
+    servicos: 'Serviços',
+    outros_despesa: 'Outros',
+    salario: 'Salário',
+    freelance: 'Freelance',
+    investimentos: 'Investimentos',
+    presente: 'Presente',
+    outros_receita: 'Outros'
+};
+
+const CATEGORY_COLORS = {
+    alimentacao: '#f97316',
+    transporte: '#3b82f6',
+    moradia: '#8b5cf6',
+    saude: '#ef4444',
+    educacao: '#06b6d4',
+    lazer: '#ec4899',
+    compras: '#84cc16',
+    servicos: '#f59e0b',
+    outros_despesa: '#6b7280'
+};
+
+class FinanceManager {
+    constructor() {
+        this.transactions = [];
+        this.load();
+    }
+
+    load() {
+        try {
+            const data = localStorage.getItem('finance_transactions');
+            this.transactions = data ? JSON.parse(data) : [];
+        } catch (e) {
+            console.error('Erro ao carregar transações:', e);
+            this.transactions = [];
+        }
+    }
+
+    save() {
+        localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
+    }
+
+    getAll() {
+        return [...this.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    get(id) {
+        return this.transactions.find(t => t.id === id);
+    }
+
+    add(transaction) {
+        const newTransaction = {
+            id: this.generateId(),
+            ...transaction,
+            createdAt: new Date().toISOString()
+        };
+        this.transactions.push(newTransaction);
+        this.save();
+        return newTransaction;
+    }
+
+    update(id, data) {
+        const index = this.transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+            this.transactions[index] = { ...this.transactions[index], ...data };
+            this.save();
+            return this.transactions[index];
+        }
+        return null;
+    }
+
+    delete(id) {
+        const index = this.transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+            this.transactions.splice(index, 1);
+            this.save();
+            return true;
+        }
+        return false;
+    }
+
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    // Cálculos
+    getBalance() {
+        return this.transactions.reduce((acc, t) => {
+            return t.type === 'income' ? acc + t.amount : acc - t.amount;
+        }, 0);
+    }
+
+    getMonthlyIncome(year, month) {
+        return this.transactions
+            .filter(t => {
+                const d = new Date(t.date);
+                return t.type === 'income' && d.getFullYear() === year && d.getMonth() === month;
+            })
+            .reduce((acc, t) => acc + t.amount, 0);
+    }
+
+    getMonthlyExpense(year, month) {
+        return this.transactions
+            .filter(t => {
+                const d = new Date(t.date);
+                return t.type === 'expense' && d.getFullYear() === year && d.getMonth() === month;
+            })
+            .reduce((acc, t) => acc + t.amount, 0);
+    }
+
+    getExpensesByCategory(year, month) {
+        const expenses = this.transactions.filter(t => {
+            const d = new Date(t.date);
+            return t.type === 'expense' && d.getFullYear() === year && d.getMonth() === month;
+        });
+
+        const byCategory = {};
+        expenses.forEach(t => {
+            if (!byCategory[t.category]) {
+                byCategory[t.category] = 0;
+            }
+            byCategory[t.category] += t.amount;
+        });
+
+        return byCategory;
+    }
+
+    getIncomesByCategory(year, month) {
+        const incomes = this.transactions.filter(t => {
+            const d = new Date(t.date);
+            return t.type === 'income' && d.getFullYear() === year && d.getMonth() === month;
+        });
+
+        const byCategory = {};
+        incomes.forEach(t => {
+            if (!byCategory[t.category]) {
+                byCategory[t.category] = 0;
+            }
+            byCategory[t.category] += t.amount;
+        });
+
+        return byCategory;
+    }
+
+    getFilteredTransactions(filters = {}) {
+        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        return this.transactions.filter(t => {
+            if (filters.month) {
+                const d = new Date(t.date);
+                const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                if (m !== filters.month) return false;
+            }
+            if (filters.type && t.type !== filters.type) return false;
+            if (filters.category && t.category !== filters.category) return false;
+            if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+            return true;
+        });
+    }
+
+    getFilteredTotals(filters = {}) {
+        const transactions = this.getFilteredTransactions(filters);
+        const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+        return { income, expense, balance: income - expense };
+    }
+
+    getFilteredExpensesByCategory(filters = {}) {
+        const transactions = this.getFilteredTransactions({ ...filters, type: 'expense' });
+        const byCategory = {};
+        transactions.forEach(t => {
+            if (!byCategory[t.category]) byCategory[t.category] = 0;
+            byCategory[t.category] += t.amount;
+        });
+        return byCategory;
+    }
+
+    getFilteredIncomesByCategory(filters = {}) {
+        const transactions = this.getFilteredTransactions({ ...filters, type: 'income' });
+        const byCategory = {};
+        transactions.forEach(t => {
+            if (!byCategory[t.category]) byCategory[t.category] = 0;
+            byCategory[t.category] += t.amount;
+        });
+        return byCategory;
+    }
+
+    getAvailableMonths() {
+        const months = new Set();
+        this.transactions.forEach(t => {
+            const d = new Date(t.date);
+            months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+        });
+        return Array.from(months).sort().reverse();
+    }
+
+    getAvailableCategories() {
+        const categories = new Set();
+        this.transactions.forEach(t => categories.add(t.category));
+        return Array.from(categories);
+    }
+
+    export() {
+        return {
+            version: '1.0',
+            exportedAt: new Date().toISOString(),
+            transactions: this.transactions
+        };
+    }
+
+    import(data, replace = false) {
+        if (!data || !data.transactions || !Array.isArray(data.transactions)) {
+            throw new Error('Formato de dados inválido');
+        }
+
+        if (replace) {
+            this.transactions = data.transactions;
+        } else {
+            const existingIds = new Set(this.transactions.map(t => t.id));
+            const newTransactions = data.transactions.filter(t => !existingIds.has(t.id));
+            this.transactions = [...this.transactions, ...newTransactions];
+        }
+
+        this.save();
+        return this.transactions.length;
+    }
+}
+
+class UIController {
+    constructor(financeManager) {
+        this.fm = financeManager;
+        this.chart = null;
+        this.currentFilters = {
+            month: '',
+            type: '',
+            category: '',
+            search: ''
+        };
+        this.pendingDeleteId = null;
+        this.pendingImportData = null;
+
+        this.initElements();
+        this.initEventListeners();
+        this.setDefaultDate();
+        this.render();
+    }
+
+    initElements() {
+        this.balanceValue = document.getElementById('balanceValue');
+        this.incomeValue = document.getElementById('incomeValue');
+        this.expenseValue = document.getElementById('expenseValue');
+        this.incomeLabel = document.getElementById('incomeLabel');
+        this.expenseLabel = document.getElementById('expenseLabel');
+
+        this.chartCanvas = document.getElementById('categoryChart');
+        this.noChartData = document.getElementById('noChartData');
+        this.incomeChartCanvas = document.getElementById('incomeChart');
+        this.noIncomeData = document.getElementById('noIncomeData');
+
+        this.searchInput = document.getElementById('searchInput');
+        this.filterMonth = document.getElementById('filterMonth');
+        this.filterType = document.getElementById('filterType');
+        this.filterCategory = document.getElementById('filterCategory');
+
+        this.transactionsList = document.getElementById('transactionsList');
+        this.noTransactions = document.getElementById('noTransactions');
+
+        this.editModal = document.getElementById('editModal');
+        this.editForm = document.getElementById('editForm');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.deleteModal = document.getElementById('deleteModal');
+        this.deleteInfo = document.getElementById('deleteInfo');
+        this.importModal = document.getElementById('importModal');
+
+        this.btnExport = document.getElementById('btnExport');
+        this.btnImport = document.getElementById('btnImport');
+        this.btnAddTransaction = document.getElementById('btnAddTransaction');
+        this.fileInput = document.getElementById('fileInput');
+
+        this.toast = document.getElementById('toast');
+
+        this.isEditing = false;
+        this.editingId = null;
+    }
+
+    initEventListeners() {
+        this.btnAddTransaction.addEventListener('click', () => this.openAddModal());
+
+        this.searchInput.addEventListener('input', () => {
+            this.currentFilters.search = this.searchInput.value;
+            this.renderDashboard();
+            this.renderChart();
+            this.renderIncomeChart();
+            this.renderTransactionsList();
+        });
+
+        this.filterMonth.addEventListener('change', () => {
+            this.currentFilters.month = this.filterMonth.value;
+            this.renderDashboard();
+            this.renderChart();
+            this.renderIncomeChart();
+            this.renderTransactionsList();
+        });
+
+        this.filterType.addEventListener('change', () => {
+            this.currentFilters.type = this.filterType.value;
+            this.renderTransactionsList();
+        });
+
+        this.filterCategory.addEventListener('change', () => {
+            this.currentFilters.category = this.filterCategory.value;
+            this.renderDashboard();
+            this.renderTransactionsList();
+        });
+
+        this.btnExport.addEventListener('click', () => this.handleExport());
+        this.btnImport.addEventListener('click', () => this.fileInput.click());
+        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+        document.getElementById('closeEditModal').addEventListener('click', () => this.closeModal(this.editModal));
+        document.getElementById('cancelEdit').addEventListener('click', () => this.closeModal(this.editModal));
+        this.editForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        document.getElementById('editType').addEventListener('change', () => this.updateEditCategoryOptions());
+
+        document.getElementById('closeDeleteModal').addEventListener('click', () => this.closeModal(this.deleteModal));
+        document.getElementById('cancelDelete').addEventListener('click', () => this.closeModal(this.deleteModal));
+        document.getElementById('confirmDelete').addEventListener('click', () => this.handleDeleteConfirm());
+
+        document.getElementById('closeImportModal').addEventListener('click', () => this.closeModal(this.importModal));
+        document.getElementById('cancelImport').addEventListener('click', () => this.closeModal(this.importModal));
+        document.getElementById('mergeImport').addEventListener('click', () => this.handleImportConfirm(false));
+        document.getElementById('replaceImport').addEventListener('click', () => this.handleImportConfirm(true));
+
+        [this.editModal, this.deleteModal, this.importModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) this.closeModal(modal);
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.closeModal(this.editModal);
+                this.closeModal(this.deleteModal);
+                this.closeModal(this.importModal);
+            }
+        });
+    }
+
+    setDefaultDate() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('editDate').value = today;
+    }
+
+    updateEditCategoryOptions() {
+        const type = document.getElementById('editType').value;
+        const categorySelect = document.getElementById('editCategory');
+        const optgroups = categorySelect.querySelectorAll('optgroup');
+
+        optgroups.forEach(group => {
+            const isExpense = group.label === 'Despesas';
+            group.style.display = (type === 'expense' && isExpense) || (type === 'income' && !isExpense) ? '' : 'none';
+        });
+
+        const visibleOptions = Array.from(categorySelect.options).filter(opt => {
+            const parent = opt.parentElement;
+            return parent.style.display !== 'none';
+        });
+
+        if (visibleOptions.length > 0 && !visibleOptions.some(opt => opt.value === categorySelect.value)) {
+            categorySelect.value = visibleOptions[0].value;
+        }
+    }
+
+    render() {
+        this.renderDashboard();
+        this.renderChart();
+        this.renderIncomeChart();
+        this.updateFilterOptions();
+        this.renderTransactionsList();
+    }
+
+    renderDashboard() {
+        const totals = this.fm.getFilteredTotals({
+            month: this.currentFilters.month || null,
+            category: this.currentFilters.category || null,
+            search: this.currentFilters.search || null
+        });
+
+        const balance = this.fm.getBalance();
+
+        const hasFilter = this.currentFilters.month || this.currentFilters.category || this.currentFilters.search;
+        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (mês)';
+        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (mês)';
+
+        this.balanceValue.textContent = this.formatCurrency(balance);
+        this.incomeValue.textContent = this.formatCurrency(totals.income);
+        this.expenseValue.textContent = this.formatCurrency(totals.expense);
+    }
+
+    renderChart() {
+        const expenses = this.fm.getFilteredExpensesByCategory({
+            month: this.currentFilters.month || null,
+            search: this.currentFilters.search || null
+        });
+        const categories = Object.keys(expenses);
+
+        if (categories.length === 0) {
+            this.chartCanvas.style.display = 'none';
+            this.noChartData.style.display = 'block';
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
+            return;
+        }
+
+        this.chartCanvas.style.display = 'block';
+        this.noChartData.style.display = 'none';
+
+        const labels = categories.map(c => CATEGORY_NAMES[c] || c);
+        const data = categories.map(c => expenses[c]);
+        const colors = categories.map(c => CATEGORY_COLORS[c] || '#6b7280');
+
+        if (this.chart) {
+            this.chart.data.labels = labels;
+            this.chart.data.datasets[0].data = data;
+            this.chart.data.datasets[0].backgroundColor = colors;
+            this.chart.update();
+        } else {
+            this.chart = new Chart(this.chartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 15,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${this.formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+    }
+
+    renderIncomeChart() {
+        const incomes = this.fm.getFilteredIncomesByCategory({
+            month: this.currentFilters.month || null,
+            search: this.currentFilters.search || null
+        });
+        const categories = Object.keys(incomes);
+
+        const INCOME_COLORS = {
+            salario: '#22c55e',
+            freelance: '#3b82f6',
+            investimentos: '#8b5cf6',
+            presente: '#ec4899',
+            outros_receita: '#06b6d4'
+        };
+
+        if (categories.length === 0) {
+            this.incomeChartCanvas.style.display = 'none';
+            this.noIncomeData.style.display = 'block';
+            if (this.incomeChart) {
+                this.incomeChart.destroy();
+                this.incomeChart = null;
+            }
+            return;
+        }
+
+        this.incomeChartCanvas.style.display = 'block';
+        this.noIncomeData.style.display = 'none';
+
+        const labels = categories.map(c => CATEGORY_NAMES[c] || c);
+        const data = categories.map(c => incomes[c]);
+        const colors = categories.map(c => INCOME_COLORS[c] || '#22c55e');
+
+        if (this.incomeChart) {
+            this.incomeChart.data.labels = labels;
+            this.incomeChart.data.datasets[0].data = data;
+            this.incomeChart.data.datasets[0].backgroundColor = colors;
+            this.incomeChart.update();
+        } else {
+            this.incomeChart = new Chart(this.incomeChartCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 15,
+                                font: {
+                                    family: 'Inter',
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${context.label}: ${this.formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+    }
+
+    updateFilterOptions() {
+        const months = this.fm.getAvailableMonths();
+        this.filterMonth.innerHTML = '<option value="">Todos os meses</option>';
+        months.forEach(m => {
+            const [year, month] = m.split('-');
+            const date = new Date(year, parseInt(month) - 1);
+            const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            this.filterMonth.innerHTML += `<option value="${m}">${label}</option>`;
+        });
+
+        const categories = this.fm.getAvailableCategories();
+        this.filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
+        categories.forEach(c => {
+            const emoji = CATEGORIES.expense[c] || CATEGORIES.income[c] || '';
+            const name = CATEGORY_NAMES[c] || c;
+            this.filterCategory.innerHTML += `<option value="${c}">${emoji} ${name}</option>`;
+        });
+    }
+
+    renderTransactionsList() {
+        let transactions = this.fm.getAll();
+
+        if (this.currentFilters.month) {
+            transactions = transactions.filter(t => {
+                const d = new Date(t.date);
+                const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return m === this.currentFilters.month;
+            });
+        }
+
+        if (this.currentFilters.type) {
+            transactions = transactions.filter(t => t.type === this.currentFilters.type);
+        }
+
+        if (this.currentFilters.category) {
+            transactions = transactions.filter(t => t.category === this.currentFilters.category);
+        }
+
+        if (this.currentFilters.search) {
+            const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const searchTerm = normalize(this.currentFilters.search);
+            transactions = transactions.filter(t => normalize(t.description).includes(searchTerm));
+        }
+
+        if (transactions.length === 0) {
+            this.transactionsList.innerHTML = '';
+            this.noTransactions.style.display = 'block';
+            return;
+        }
+
+        this.noTransactions.style.display = 'none';
+        this.transactionsList.innerHTML = transactions.map(t => this.createTransactionItem(t)).join('');
+
+        this.transactionsList.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.openEditModal(btn.dataset.id));
+        });
+
+        this.transactionsList.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.openDeleteModal(btn.dataset.id));
+        });
+    }
+
+    createTransactionItem(t) {
+        const emoji = CATEGORIES[t.type]?.[t.category] || '💵';
+        const categoryName = CATEGORY_NAMES[t.category] || t.category;
+        const date = new Date(t.date).toLocaleDateString('pt-BR');
+        const sign = t.type === 'income' ? '+' : '-';
+
+        return `
+            <div class="transaction-item ${t.type}">
+                <div class="transaction-info">
+                    <div class="transaction-icon">${emoji}</div>
+                    <div class="transaction-details">
+                        <span class="transaction-description">${this.escapeHtml(t.description)}</span>
+                        <span class="transaction-meta">${categoryName} • ${date}</span>
+                    </div>
+                </div>
+                <span class="transaction-amount">${sign} ${this.formatCurrency(t.amount)}</span>
+                <div class="transaction-actions">
+                    <button class="action-btn edit-btn" data-id="${t.id}" title="Editar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn delete delete-btn" data-id="${t.id}" title="Excluir">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    openAddModal() {
+        this.isEditing = false;
+        this.editingId = null;
+        this.modalTitle.textContent = 'Nova Transação';
+
+        document.getElementById('editId').value = '';
+        document.getElementById('editDescription').value = '';
+        document.getElementById('editAmount').value = '';
+        document.getElementById('editType').value = 'expense';
+        this.updateEditCategoryOptions();
+        this.setDefaultDate();
+
+        this.openModal(this.editModal);
+    }
+
+    openEditModal(id) {
+        const t = this.fm.get(id);
+        if (!t) return;
+
+        this.isEditing = true;
+        this.editingId = id;
+        this.modalTitle.textContent = 'Editar Transação';
+
+        document.getElementById('editId').value = t.id;
+        document.getElementById('editDescription').value = t.description;
+        document.getElementById('editAmount').value = t.amount;
+        document.getElementById('editDate').value = t.date;
+        document.getElementById('editType').value = t.type;
+        this.updateEditCategoryOptions();
+        document.getElementById('editCategory').value = t.category;
+
+        this.openModal(this.editModal);
+    }
+
+    handleFormSubmit(e) {
+        e.preventDefault();
+
+        const data = {
+            description: document.getElementById('editDescription').value.trim(),
+            amount: parseFloat(document.getElementById('editAmount').value),
+            date: document.getElementById('editDate').value,
+            type: document.getElementById('editType').value,
+            category: document.getElementById('editCategory').value
+        };
+
+        if (this.isEditing && this.editingId) {
+            this.fm.update(this.editingId, data);
+            this.showToast('Transação atualizada!', 'success');
+        } else {
+            this.fm.add(data);
+            this.showToast('Transação adicionada!', 'success');
+        }
+
+        this.closeModal(this.editModal);
+        this.render();
+    }
+
+    openDeleteModal(id) {
+        const t = this.fm.get(id);
+        if (!t) return;
+
+        this.pendingDeleteId = id;
+        const sign = t.type === 'income' ? '+' : '-';
+        this.deleteInfo.textContent = `${t.description} ${sign} ${this.formatCurrency(t.amount)}`;
+        this.openModal(this.deleteModal);
+    }
+
+    handleDeleteConfirm() {
+        if (this.pendingDeleteId) {
+            this.fm.delete(this.pendingDeleteId);
+            this.pendingDeleteId = null;
+            this.closeModal(this.deleteModal);
+            this.render();
+            this.showToast('Transação excluída!', 'success');
+        }
+    }
+
+    handleExport() {
+        const data = this.fm.export();
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `financas_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+        this.showToast('Backup exportado com sucesso!', 'success');
+    }
+
+    handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                this.pendingImportData = data;
+                this.openModal(this.importModal);
+            } catch (err) {
+                this.showToast('Arquivo inválido!', 'error');
+            }
+        };
+        reader.readAsText(file);
+        this.fileInput.value = '';
+    }
+
+    handleImportConfirm(replace) {
+        if (!this.pendingImportData) return;
+
+        try {
+            const count = this.fm.import(this.pendingImportData, replace);
+            this.pendingImportData = null;
+            this.closeModal(this.importModal);
+            this.render();
+            this.showToast(`${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`, 'success');
+        } catch (err) {
+            this.showToast('Erro ao importar: ' + err.message, 'error');
+        }
+    }
+
+    formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        }).format(value);
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    openModal(modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeModal(modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    showToast(message, type = '') {
+        this.toast.textContent = message;
+        this.toast.className = `toast show ${type}`;
+
+        setTimeout(() => {
+            this.toast.classList.remove('show');
+        }, 3000);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const financeManager = new FinanceManager();
+    const ui = new UIController(financeManager);
+
+    window.financeApp = { financeManager, ui };
+});
