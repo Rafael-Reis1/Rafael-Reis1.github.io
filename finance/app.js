@@ -747,6 +747,17 @@ class UIController {
 
     removeFilter(key) {
         this.currentFilters[key] = '';
+
+        if (key === 'startDate') this.filterStartDate.value = '';
+        if (key === 'endDate') this.filterEndDate.value = '';
+        if (key === 'type') {
+            this.filterType.value = '';
+            this.updateFilterOptions();
+        }
+        if (key === 'category') this.filterCategory.value = '';
+        if (key === 'search') this.searchInput.value = '';
+
+        this.currentPage = 1;
         this.render();
     }
 
