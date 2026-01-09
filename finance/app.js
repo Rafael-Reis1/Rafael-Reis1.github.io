@@ -275,6 +275,10 @@ class FinanceManager {
 
             if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
             return true;
+        }).sort((a, b) => {
+            const dateParams = b.date.localeCompare(a.date);
+            if (dateParams !== 0) return dateParams;
+            return (b.createdAt || '').localeCompare(a.createdAt || '');
         });
     }
 
