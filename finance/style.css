@@ -545,7 +545,8 @@ input[type=number] {
     font-family: var(--font-heading);
     font-weight: 600;
     font-size: 1rem;
-    margin-right: 1rem;
+    font-size: 1rem;
+    margin-left: 1rem;
     flex-shrink: 0;
 }
 
@@ -559,17 +560,18 @@ input[type=number] {
 
 .transaction-actions {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
-    opacity: 0;
-    transition: opacity 0.2s ease;
 }
 
 .action-buttons {
     display: flex;
     gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-.transaction-item:hover .transaction-actions {
+.transaction-item:hover .action-buttons {
     opacity: 1;
 }
 

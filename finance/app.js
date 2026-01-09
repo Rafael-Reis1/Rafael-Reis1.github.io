@@ -32,17 +32,18 @@ const CATEGORIES = {
         moradia: '🏠',
         saude: '💊',
         educacao: '📚',
-        lazer: '🎮',
+        lazer: '🎬',
+        vestuario: '👕',
         compras: '🛒',
         servicos: '🔧',
-        outros_despesa: '📦'
+        outros: '📦'
     },
     income: {
-        salario: '💼',
-        freelance: '💻',
+        salario: '💰',
+        freelance: '💼',
         investimentos: '📈',
         presente: '🎁',
-        outros_receita: '💰'
+        outros_receita: '📦'
     }
 };
 
@@ -53,9 +54,10 @@ const CATEGORY_NAMES = {
     saude: 'Saúde',
     educacao: 'Educação',
     lazer: 'Lazer',
+    vestuario: 'Vestuário',
     compras: 'Compras',
     servicos: 'Serviços',
-    outros_despesa: 'Outros',
+    outros: 'Outros',
     salario: 'Salário',
     freelance: 'Freelance',
     investimentos: 'Investimentos',
@@ -70,9 +72,10 @@ const CATEGORY_COLORS = {
     saude: '#880e4f',
     educacao: '#795548',
     lazer: '#f06292',
+    vestuario: '#00bcd4',
     compras: '#ffeb3b',
     servicos: '#5d4037',
-    outros_despesa: '#9e9e9e'
+    outros: '#9e9e9e'
 };
 
 class FinanceManager {
@@ -260,7 +263,15 @@ class FinanceManager {
             if (filters.startDate && tDate < filters.startDate) return false;
             if (filters.endDate && tDate > filters.endDate) return false;
             if (filters.type && t.type !== filters.type) return false;
-            if (filters.category && t.category !== filters.category) return false;
+
+            if (filters.category) {
+                if (filters.category === 'outros') {
+                    if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+                } else {
+                    if (t.category !== filters.category) return false;
+                }
+            }
+
             if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
             return true;
         });
@@ -643,34 +654,15 @@ class UIController {
         const type = document.getElementById('editType').value;
         const categorySelect = document.getElementById('editCategory');
 
-        const expenseCategories = {
-            alimentacao: '🍔 Alimentação',
-            transporte: '🚗 Transporte',
-            moradia: '🏠 Moradia',
-            saude: '💊 Saúde',
-            educacao: '📚 Educação',
-            lazer: '🎬 Lazer',
-            vestuario: '👕 Vestuário',
-            servicos: '🔧 Serviços',
-            outros: '📦 Outros'
-        };
-
-        const incomeCategories = {
-            salario: '💰 Salário',
-            freelance: '💼 Freelance',
-            investimentos: '📈 Investimentos',
-            presente: '🎁 Presente',
-            outros_receita: '📦 Outros'
-        };
-
-        const categories = type === 'expense' ? expenseCategories : incomeCategories;
+        const categories = CATEGORIES[type] || {};
 
         categorySelect.innerHTML = '';
 
-        for (const [value, label] of Object.entries(categories)) {
+        for (const [key, icon] of Object.entries(categories)) {
+            const label = CATEGORY_NAMES[key] || key;
             const option = document.createElement('option');
-            option.value = value;
-            option.textContent = label;
+            option.value = key;
+            option.textContent = `${icon} ${label}`;
             categorySelect.appendChild(option);
         }
 
@@ -932,14 +924,26 @@ class UIController {
     }
 
     updateFilterOptions() {
-
-
         const categories = this.fm.getAvailableCategories();
         this.filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
+
+        const uniqueOptions = new Set();
+
         categories.forEach(c => {
-            const emoji = CATEGORIES.expense[c] || CATEGORIES.income[c] || '';
-            const name = CATEGORY_NAMES[c] || c;
-            this.filterCategory.innerHTML += `<option value="${c}">${emoji} ${name}</option>`;
+            let key = c;
+            let emoji = CATEGORIES.expense[c] || CATEGORIES.income[c] || '';
+            let name = CATEGORY_NAMES[c] || c;
+
+            if (c === 'outros' || c === 'outros_receita') {
+                key = 'outros';
+                emoji = '📦';
+                name = 'Outros';
+            }
+
+            if (!uniqueOptions.has(key)) {
+                uniqueOptions.add(key);
+                this.filterCategory.innerHTML += `<option value="${key}">${emoji} ${name}</option>`;
+            }
         });
     }
 
@@ -998,9 +1002,6 @@ class UIController {
                     </div>
                 </div>
                 <div class="transaction-actions">
-                    <span class="transaction-amount ${t.type}">
-                        ${sign} ${this.formatCurrency(t.amount)}
-                    </span>
                     <div class="action-buttons">
                         <button class="action-btn edit" title="Editar">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1015,6 +1016,9 @@ class UIController {
                             </svg>
                         </button>
                     </div>
+                    <span class="transaction-amount ${t.type}">
+                        ${sign} ${this.formatCurrency(t.amount)}
+                    </span>
                 </div>
             `;
 
