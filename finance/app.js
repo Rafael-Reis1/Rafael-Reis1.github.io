@@ -202,7 +202,6 @@ class FinanceManager {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
-    // Cálculos
     getBalance() {
         return this.transactions.reduce((acc, t) => {
             return t.type === 'income' ? acc + t.amount : acc - t.amount;
@@ -607,23 +606,43 @@ class UIController {
         document.getElementById('editDate').value = today;
     }
 
-    updateEditCategoryOptions() {
+    updateEditCategoryOptions(preserveValue = null) {
         const type = document.getElementById('editType').value;
         const categorySelect = document.getElementById('editCategory');
-        const optgroups = categorySelect.querySelectorAll('optgroup');
 
-        optgroups.forEach(group => {
-            const isExpense = group.label === 'Despesas';
-            group.style.display = (type === 'expense' && isExpense) || (type === 'income' && !isExpense) ? '' : 'none';
-        });
+        const expenseCategories = {
+            alimentacao: '🍔 Alimentação',
+            transporte: '🚗 Transporte',
+            moradia: '🏠 Moradia',
+            saude: '💊 Saúde',
+            educacao: '📚 Educação',
+            lazer: '🎬 Lazer',
+            vestuario: '👕 Vestuário',
+            servicos: '🔧 Serviços',
+            outros: '📦 Outros'
+        };
 
-        const visibleOptions = Array.from(categorySelect.options).filter(opt => {
-            const parent = opt.parentElement;
-            return parent.style.display !== 'none';
-        });
+        const incomeCategories = {
+            salario: '💰 Salário',
+            freelance: '💼 Freelance',
+            investimentos: '📈 Investimentos',
+            presente: '🎁 Presente',
+            outros_receita: '📦 Outros'
+        };
 
-        if (visibleOptions.length > 0 && !visibleOptions.some(opt => opt.value === categorySelect.value)) {
-            categorySelect.value = visibleOptions[0].value;
+        const categories = type === 'expense' ? expenseCategories : incomeCategories;
+
+        categorySelect.innerHTML = '';
+
+        for (const [value, label] of Object.entries(categories)) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            categorySelect.appendChild(option);
+        }
+
+        if (preserveValue && categories[preserveValue]) {
+            categorySelect.value = preserveValue;
         }
     }
 
@@ -984,8 +1003,7 @@ class UIController {
         document.getElementById('editAmount').value = t.amount;
         document.getElementById('editDate').value = t.date;
         document.getElementById('editType').value = t.type;
-        this.updateEditCategoryOptions();
-        document.getElementById('editCategory').value = t.category;
+        this.updateEditCategoryOptions(t.category);
 
         this.openModal(this.editModal);
     }
