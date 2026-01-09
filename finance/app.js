@@ -1197,6 +1197,7 @@ class UIController {
 
     updateAuthUI(user) {
         if (user) {
+            this.loginOverlay.style.display = 'none';
             this.btnLogin.style.display = 'none';
             this.userInfo.style.display = 'block';
             this.userAvatar.src = user.photoURL;
@@ -1206,6 +1207,7 @@ class UIController {
             if (this.btnImport) this.btnImport.style.display = 'none';
             if (this.btnExport) this.btnExport.style.display = 'none';
         } else {
+            this.loginOverlay.style.display = 'flex';
             this.btnLogin.style.display = 'flex';
             this.btnLogin.title = 'Login com Google';
             this.loginText.textContent = 'Google Login';
