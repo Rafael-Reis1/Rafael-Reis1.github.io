@@ -111,18 +111,9 @@ class FinanceManager {
                 const data = doc.data();
                 if (data.transactions) {
                     const cloudTransactions = data.transactions;
-                    const merged = [...this.transactions];
 
-                    cloudTransactions.forEach(cloudT => {
-                        const localIndex = merged.findIndex(t => t.id === cloudT.id);
-                        if (localIndex === -1) {
-                            merged.push(cloudT);
-                        } else {
-                            merged[localIndex] = cloudT;
-                        }
-                    });
+                    this.transactions = cloudTransactions;
 
-                    this.transactions = merged;
                     this.save();
                     return true;
                 }
@@ -407,6 +398,30 @@ class UIController {
                     }
                 });
             }
+        });
+
+        const offlineBadge = document.getElementById('offlineBadge');
+
+        window.addEventListener('online', () => {
+            offlineBadge.classList.remove('visible');
+            this.showToast('Conexão restabelecida!', 'success');
+
+            if (auth.currentUser) {
+                this.showToast('Sincronizando...', 'info');
+                this.fm.syncFromCloud(auth.currentUser).then(updated => {
+                    if (updated) {
+                        this.render();
+                        this.showToast('Dados atualizados da nuvem!', 'success');
+                    } else {
+                        this.showToast('Sincronização concluída.', 'success');
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            offlineBadge.classList.add('visible');
+            this.showToast('Você está offline. Alterações serão salvas localmente.', 'info');
         });
 
         this.btnAddTransaction.addEventListener('click', () => this.openAddModal());
@@ -770,7 +785,7 @@ class UIController {
 
         if (transactions.length === 0) {
             this.transactionsList.innerHTML = '';
-            this.noTransactions.style.display = 'block';
+            this.noTransactions.style.display = 'flex';
             return;
         }
 
