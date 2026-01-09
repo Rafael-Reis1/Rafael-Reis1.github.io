@@ -1133,7 +1133,13 @@ class UIController {
 
         this.pendingDeleteId = id;
         const sign = t.type === 'income' ? '+' : '-';
-        this.deleteInfo.textContent = `${t.description} ${sign} ${this.formatCurrency(t.amount)}`;
+
+        const safeDesc = this.escapeHtml(t.description);
+
+        this.deleteInfo.innerHTML = `
+            <span class="delete-desc" title="${safeDesc}">${safeDesc}</span>
+            <span class="delete-amount">${sign} ${this.formatCurrency(t.amount)}</span>
+        `;
         this.openModal(this.deleteModal);
     }
 

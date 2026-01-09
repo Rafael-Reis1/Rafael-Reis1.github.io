@@ -697,6 +697,23 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.2);
     font-weight: 500;
     color: var(--text-primary) !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.delete-desc {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.delete-amount {
+    white-space: nowrap;
+    font-weight: 600;
 }
 
 .modal-content form {
