@@ -174,11 +174,9 @@ class FinanceManager {
         const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         return this.transactions.filter(t => {
-            if (filters.month) {
-                const d = new Date(t.date);
-                const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                if (m !== filters.month) return false;
-            }
+            const tDate = t.date.substring(0, 10);
+            if (filters.startDate && tDate < filters.startDate) return false;
+            if (filters.endDate && tDate > filters.endDate) return false;
             if (filters.type && t.type !== filters.type) return false;
             if (filters.category && t.category !== filters.category) return false;
             if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
@@ -259,7 +257,8 @@ class UIController {
         this.fm = financeManager;
         this.chart = null;
         this.currentFilters = {
-            month: '',
+            startDate: '',
+            endDate: '',
             type: '',
             category: '',
             search: ''
@@ -286,9 +285,19 @@ class UIController {
         this.noIncomeData = document.getElementById('noIncomeData');
 
         this.searchInput = document.getElementById('searchInput');
-        this.filterMonth = document.getElementById('filterMonth');
+        this.searchInput = document.getElementById('searchInput');
+        this.btnOpenFilters = document.getElementById('btnOpenFilters');
+        this.activeFiltersContainer = document.getElementById('activeFilters');
+
+        this.filterModal = document.getElementById('filterModal');
+        this.filterForm = document.getElementById('filterForm');
+        this.filterStartDate = document.getElementById('filterStartDate');
+        this.filterEndDate = document.getElementById('filterEndDate');
         this.filterType = document.getElementById('filterType');
         this.filterCategory = document.getElementById('filterCategory');
+        this.btnClearFilters = document.getElementById('btnClearFilters');
+        this.btnApplyFilters = document.getElementById('btnApplyFilters');
+        this.closeFilterModal = document.getElementById('closeFilterModal');
 
         this.transactionsList = document.getElementById('transactionsList');
         this.noTransactions = document.getElementById('noTransactions');
@@ -322,23 +331,41 @@ class UIController {
             this.renderTransactionsList();
         });
 
-        this.filterMonth.addEventListener('change', () => {
-            this.currentFilters.month = this.filterMonth.value;
-            this.renderDashboard();
-            this.renderChart();
-            this.renderIncomeChart();
-            this.renderTransactionsList();
+        this.btnOpenFilters.addEventListener('click', () => this.openFilterModal());
+        if (this.closeFilterModal) {
+            this.closeFilterModal.addEventListener('click', () => this.closeModal(this.filterModal));
+        }
+
+        this.filterStartDate.addEventListener('change', () => {
+            this.filterEndDate.min = this.filterStartDate.value;
+            if (this.filterEndDate.value && this.filterEndDate.value < this.filterStartDate.value) {
+                this.filterEndDate.value = this.filterStartDate.value;
+            }
         });
 
-        this.filterType.addEventListener('change', () => {
+        this.filterEndDate.addEventListener('change', () => {
+            this.filterStartDate.max = this.filterEndDate.value;
+            if (this.filterStartDate.value && this.filterStartDate.value > this.filterEndDate.value) {
+                this.filterStartDate.value = this.filterEndDate.value;
+            }
+        });
+
+        this.btnClearFilters.addEventListener('click', () => {
+            this.filterForm.reset();
+        });
+
+        this.btnApplyFilters.addEventListener('click', () => {
+            this.currentFilters.startDate = this.filterStartDate.value;
+            this.currentFilters.endDate = this.filterEndDate.value;
             this.currentFilters.type = this.filterType.value;
-            this.renderTransactionsList();
+            this.currentFilters.category = this.filterCategory.value;
+
+            this.closeModal(this.filterModal);
+            this.render();
         });
 
-        this.filterCategory.addEventListener('change', () => {
-            this.currentFilters.category = this.filterCategory.value;
-            this.renderDashboard();
-            this.renderTransactionsList();
+        this.filterModal.addEventListener('click', (e) => {
+            if (e.target === this.filterModal) this.closeModal(this.filterModal);
         });
 
         this.btnExport.addEventListener('click', () => this.handleExport());
@@ -369,7 +396,10 @@ class UIController {
             if (e.key === 'Escape') {
                 this.closeModal(this.editModal);
                 this.closeModal(this.deleteModal);
+                this.closeModal(this.editModal);
+                this.closeModal(this.deleteModal);
                 this.closeModal(this.importModal);
+                this.closeModal(this.filterModal);
             }
         });
     }
@@ -400,6 +430,7 @@ class UIController {
     }
 
     render() {
+        this.renderActiveFilters();
         this.renderDashboard();
         this.renderChart();
         this.renderIncomeChart();
@@ -407,18 +438,71 @@ class UIController {
         this.renderTransactionsList();
     }
 
+    openFilterModal() {
+        this.filterStartDate.value = this.currentFilters.startDate;
+        this.filterEndDate.value = this.currentFilters.endDate;
+        this.filterType.value = this.currentFilters.type;
+        this.filterCategory.value = this.currentFilters.category;
+
+        this.openModal(this.filterModal);
+    }
+
+    renderActiveFilters() {
+        this.activeFiltersContainer.innerHTML = '';
+        const filters = [];
+
+        if (this.currentFilters.startDate) {
+            const [y, m, d] = this.currentFilters.startDate.split('-');
+            filters.push({ key: 'startDate', label: `Início: ${d}/${m}/${y}` });
+        }
+        if (this.currentFilters.endDate) {
+            const [y, m, d] = this.currentFilters.endDate.split('-');
+            filters.push({ key: 'endDate', label: `Fim: ${d}/${m}/${y}` });
+        }
+        if (this.currentFilters.type) {
+            const label = this.currentFilters.type === 'income' ? 'Receitas' : 'Despesas';
+            filters.push({ key: 'type', label: label });
+        }
+        if (this.currentFilters.category) {
+            const name = CATEGORY_NAMES[this.currentFilters.category] || this.currentFilters.category;
+            filters.push({ key: 'category', label: name });
+        }
+
+        filters.forEach(filter => {
+            const chip = document.createElement('div');
+            chip.className = 'filter-chip';
+            chip.innerHTML = `
+                <span>${filter.label}</span>
+                <button type="button" aria-label="Remover filtro">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+            chip.querySelector('button').addEventListener('click', () => this.removeFilter(filter.key));
+            this.activeFiltersContainer.appendChild(chip);
+        });
+    }
+
+    removeFilter(key) {
+        this.currentFilters[key] = '';
+        this.render();
+    }
+
     renderDashboard() {
         const totals = this.fm.getFilteredTotals({
-            month: this.currentFilters.month || null,
+            startDate: this.currentFilters.startDate || null,
+            endDate: this.currentFilters.endDate || null,
             category: this.currentFilters.category || null,
             search: this.currentFilters.search || null
         });
 
         const balance = this.fm.getBalance();
 
-        const hasFilter = this.currentFilters.month || this.currentFilters.category || this.currentFilters.search;
-        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Mês Atual)';
-        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Mês Atual)';
+        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.category || this.currentFilters.search;
+        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
+        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Total)';
 
         this.balanceValue.textContent = this.formatCurrency(balance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
@@ -427,7 +511,8 @@ class UIController {
 
     renderChart() {
         const expenses = this.fm.getFilteredExpensesByCategory({
-            month: this.currentFilters.month || null,
+            startDate: this.currentFilters.startDate || null,
+            endDate: this.currentFilters.endDate || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(expenses);
@@ -500,7 +585,8 @@ class UIController {
 
     renderIncomeChart() {
         const incomes = this.fm.getFilteredIncomesByCategory({
-            month: this.currentFilters.month || null,
+            startDate: this.currentFilters.startDate || null,
+            endDate: this.currentFilters.endDate || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(incomes);
@@ -580,14 +666,7 @@ class UIController {
     }
 
     updateFilterOptions() {
-        const months = this.fm.getAvailableMonths();
-        this.filterMonth.innerHTML = '<option value="">Todos os meses</option>';
-        months.forEach(m => {
-            const [year, month] = m.split('-');
-            const date = new Date(year, parseInt(month) - 1);
-            const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-            this.filterMonth.innerHTML += `<option value="${m}">${label}</option>`;
-        });
+
 
         const categories = this.fm.getAvailableCategories();
         this.filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
@@ -599,29 +678,7 @@ class UIController {
     }
 
     renderTransactionsList() {
-        let transactions = this.fm.getAll();
-
-        if (this.currentFilters.month) {
-            transactions = transactions.filter(t => {
-                const d = new Date(t.date);
-                const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                return m === this.currentFilters.month;
-            });
-        }
-
-        if (this.currentFilters.type) {
-            transactions = transactions.filter(t => t.type === this.currentFilters.type);
-        }
-
-        if (this.currentFilters.category) {
-            transactions = transactions.filter(t => t.category === this.currentFilters.category);
-        }
-
-        if (this.currentFilters.search) {
-            const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            const searchTerm = normalize(this.currentFilters.search);
-            transactions = transactions.filter(t => normalize(t.description).includes(searchTerm));
-        }
+        let transactions = this.fm.getFilteredTransactions(this.currentFilters);
 
         if (transactions.length === 0) {
             this.transactionsList.innerHTML = '';
@@ -644,7 +701,8 @@ class UIController {
     createTransactionItem(t) {
         const emoji = CATEGORIES[t.type]?.[t.category] || '💵';
         const categoryName = CATEGORY_NAMES[t.category] || t.category;
-        const date = new Date(t.date).toLocaleDateString('pt-BR');
+        const [year, month, day] = t.date.split('T')[0].split('-');
+        const date = `${day}/${month}/${year}`;
         const sign = t.type === 'income' ? '+' : '-';
 
         return `
