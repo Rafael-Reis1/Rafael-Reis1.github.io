@@ -581,6 +581,10 @@ class UIController {
             this.render();
         });
 
+        this.filterType.addEventListener('change', () => {
+            this.updateFilterOptions();
+        });
+
         this.filterModal.addEventListener('click', (e) => {
             if (e.target === this.filterModal) this.closeModal(this.filterModal);
         });
@@ -925,12 +929,21 @@ class UIController {
     }
 
     updateFilterOptions() {
+        const selectedType = this.filterType.value;
+        const previousCategory = this.filterCategory.value;
+
         const categories = this.fm.getAvailableCategories();
         this.filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
 
         const uniqueOptions = new Set();
 
         categories.forEach(c => {
+            const isExpense = CATEGORIES.expense[c] || c === 'outros';
+            const isIncome = CATEGORIES.income[c] || c === 'outros_receita';
+
+            if (selectedType === 'expense' && !isExpense) return;
+            if (selectedType === 'income' && !isIncome) return;
+
             let key = c;
             let emoji = CATEGORIES.expense[c] || CATEGORIES.income[c] || '';
             let name = CATEGORY_NAMES[c] || c;
@@ -946,6 +959,10 @@ class UIController {
                 this.filterCategory.innerHTML += `<option value="${key}">${emoji} ${name}</option>`;
             }
         });
+
+        if (previousCategory && uniqueOptions.has(previousCategory)) {
+            this.filterCategory.value = previousCategory;
+        }
     }
 
     renderTransactionsList() {
