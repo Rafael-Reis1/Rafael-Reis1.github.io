@@ -15,14 +15,9 @@ try {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-db.enablePersistence()
-    .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.warn('Persistência falhou: Múltiplas abas abertas.');
-        } else if (err.code == 'unimplemented') {
-            console.warn('Persistência não suportada neste navegador.');
-        }
-    });
+db.settings({
+    cache: firebase.firestore.persistentLocalCache()
+});
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
 const CATEGORIES = {
