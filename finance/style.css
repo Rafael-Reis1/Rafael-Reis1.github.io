@@ -484,6 +484,8 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
     padding: 1rem;
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.15);
@@ -529,7 +531,7 @@ input[type=number] {
     min-width: 0;
 }
 
-.transaction-description {
+.transaction-desc {
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
