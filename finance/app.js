@@ -330,6 +330,12 @@ class UIController {
         this.loginText = document.getElementById('loginText');
         this.userInfo = document.getElementById('userInfo');
         this.userAvatar = document.getElementById('userAvatar');
+        this.userDropdown = document.getElementById('userDropdown');
+        this.btnLogout = document.getElementById('btnLogout');
+        this.userName = document.getElementById('userName');
+        this.userEmail = document.getElementById('userEmail');
+        this.btnImportMenu = document.getElementById('btnImportMenu');
+        this.btnExportMenu = document.getElementById('btnExportMenu');
 
         this.initElements();
         this.initEventListeners();
@@ -387,6 +393,22 @@ class UIController {
 
     initEventListeners() {
         this.btnLogin.addEventListener('click', () => this.handleAuthClick());
+
+        this.userAvatar.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.userDropdown.classList.toggle('active');
+        });
+
+        this.btnLogout.addEventListener('click', () => {
+            auth.signOut();
+            this.userDropdown.classList.remove('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!this.userDropdown.contains(e.target) && !this.userAvatar.contains(e.target)) {
+                this.userDropdown.classList.remove('active');
+            }
+        });
 
         auth.onAuthStateChanged(user => {
             this.updateAuthUI(user);
@@ -471,8 +493,24 @@ class UIController {
             if (e.target === this.filterModal) this.closeModal(this.filterModal);
         });
 
-        this.btnExport.addEventListener('click', () => this.handleExport());
-        this.btnImport.addEventListener('click', () => this.fileInput.click());
+        this.btnExport.addEventListener('click', () => {
+            this.fm.exportData();
+            this.showToast('Dados exportados com sucesso!', 'success');
+        });
+
+        this.btnExportMenu.addEventListener('click', () => {
+            this.fm.exportData();
+            this.showToast('Dados exportados com sucesso!', 'success');
+            this.userDropdown.classList.remove('active');
+        });
+
+        this.btnImport.addEventListener('click', () => this.openImportModal());
+
+        this.btnImportMenu.addEventListener('click', () => {
+            this.openImportModal();
+            this.userDropdown.classList.remove('active');
+        });
+
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
 
         document.getElementById('closeEditModal').addEventListener('click', () => this.closeModal(this.editModal));
@@ -1002,16 +1040,27 @@ class UIController {
 
     updateAuthUI(user) {
         if (user) {
-            this.btnLogin.title = 'Logout';
-            this.loginText.textContent = 'Sair';
+            this.btnLogin.style.display = 'none';
+            this.userInfo.style.display = 'block';
             this.userAvatar.src = user.photoURL;
-            this.userInfo.style.display = 'flex';
+            if (this.userName) this.userName.textContent = user.displayName;
+            if (this.userEmail) this.userEmail.textContent = user.email;
+
+            if (this.btnImport) this.btnImport.style.display = 'none';
+            if (this.btnExport) this.btnExport.style.display = 'none';
         } else {
+            this.btnLogin.style.display = 'flex';
             this.btnLogin.title = 'Login com Google';
             this.loginText.textContent = 'Google Login';
             this.userInfo.style.display = 'none';
+            this.userAvatar.src = '';
+            if (this.userDropdown) this.userDropdown.classList.remove('active');
+
+            if (this.btnImport) this.btnImport.style.display = 'flex';
+            if (this.btnExport) this.btnExport.style.display = 'flex';
         }
     }
+
 
     showToast(message, type = '') {
         this.toast.textContent = message;
