@@ -70,7 +70,21 @@ const CATEGORY_COLORS = {
 class FinanceManager {
     constructor() {
         this.transactions = [];
+        this._hasPendingChanges = localStorage.getItem('finance_pending') === 'true';
         this.load();
+    }
+
+    get hasPendingChanges() {
+        return this._hasPendingChanges;
+    }
+
+    set hasPendingChanges(value) {
+        this._hasPendingChanges = value;
+        if (value) {
+            localStorage.setItem('finance_pending', 'true');
+        } else {
+            localStorage.removeItem('finance_pending');
+        }
     }
 
     load() {
@@ -85,13 +99,21 @@ class FinanceManager {
 
     save() {
         localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
-        if (auth.currentUser) {
-            this.syncToCloud(auth.currentUser);
+
+        if (auth.currentUser && navigator.onLine) {
+            this.syncToCloud(auth.currentUser).then(() => {
+                this.hasPendingChanges = false;
+            }).catch(() => {
+                this.hasPendingChanges = true;
+            });
+        } else if (auth.currentUser) {
+            this.hasPendingChanges = true;
         }
     }
 
     clear() {
         this.transactions = [];
+        this.hasPendingChanges = false;
         localStorage.removeItem('finance_transactions');
     }
 
@@ -435,18 +457,30 @@ class UIController {
 
         const offlineBadge = document.getElementById('offlineBadge');
 
-        window.addEventListener('online', () => {
+        window.addEventListener('online', async () => {
             offlineBadge.classList.remove('visible');
             this.showToast('Conexão restabelecida!', 'success');
 
             if (auth.currentUser) {
-                this.fm.syncFromCloud(auth.currentUser).then(updated => {
+                if (this.fm.hasPendingChanges) {
+                    try {
+                        await this.fm.syncToCloud(auth.currentUser);
+                        this.fm.hasPendingChanges = false;
+                        this.showToast('Alterações locais enviadas!', 'success');
+                    } catch (e) {
+                        this.showToast('Erro ao enviar alterações locais.', 'error');
+                        return;
+                    }
+                }
+
+                try {
+                    const updated = await this.fm.syncFromCloud(auth.currentUser);
                     if (updated) {
                         this.render();
                     }
-                }).catch(() => {
-                    this.showToast('Erro ao sincronizar. Tente novamente.', 'error');
-                });
+                } catch (e) {
+                    this.showToast('Erro ao baixar dados da nuvem.', 'error');
+                }
             }
         });
 
@@ -959,6 +993,10 @@ class UIController {
             this.showToast('Transação adicionada!', 'success');
         }
 
+        if (!navigator.onLine) {
+            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+        }
+
         this.closeModal(this.editModal);
         this.render();
     }
@@ -980,6 +1018,10 @@ class UIController {
             this.closeModal(this.deleteModal);
             this.render();
             this.showToast('Transação excluída!', 'success');
+
+            if (!navigator.onLine) {
+                this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+            }
         }
     }
 
