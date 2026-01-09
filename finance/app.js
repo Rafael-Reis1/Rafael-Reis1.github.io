@@ -417,8 +417,8 @@ class UIController {
         const balance = this.fm.getBalance();
 
         const hasFilter = this.currentFilters.month || this.currentFilters.category || this.currentFilters.search;
-        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (mês)';
-        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (mês)';
+        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Mês Atual)';
+        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Mês Atual)';
 
         this.balanceValue.textContent = this.formatCurrency(balance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
