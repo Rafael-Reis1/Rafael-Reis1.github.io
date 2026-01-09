@@ -433,12 +433,12 @@ class UIController {
         const categories = Object.keys(expenses);
 
         if (categories.length === 0) {
-            this.chartCanvas.style.display = 'none';
-            this.noChartData.style.display = 'block';
             if (this.chart) {
                 this.chart.destroy();
                 this.chart = null;
             }
+            this.chartCanvas.style.display = 'none';
+            this.noChartData.style.display = 'block';
             return;
         }
 
@@ -514,12 +514,12 @@ class UIController {
         };
 
         if (categories.length === 0) {
-            this.incomeChartCanvas.style.display = 'none';
-            this.noIncomeData.style.display = 'block';
             if (this.incomeChart) {
                 this.incomeChart.destroy();
                 this.incomeChart = null;
             }
+            this.incomeChartCanvas.style.display = 'none';
+            this.noIncomeData.style.display = 'block';
             return;
         }
 
