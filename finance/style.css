@@ -327,6 +327,7 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .form-group label {
@@ -858,6 +859,10 @@ input[type=number] {
         box-sizing: border-box;
     }
 
+    #activeFilters {
+        padding: 0;
+    }
+
     .toast {
         left: 1rem;
         right: 1rem;
@@ -905,5 +910,57 @@ input[type=number] {
 
     .chart-container {
         height: 200px;
+    }
+}
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(242, 81, 27, 0.1);
+    border: 1px solid rgba(242, 81, 27, 0.2);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+    background: rgba(242, 81, 27, 0.2);
+}
+
+.filter-chip button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.filter-chip button:hover {
+    color: var(--expense-color);
+}
+
+.filter-chip button:hover {
+    color: var(--expense-color);
+}
+
+@media (max-width: 768px) {
+    #activeFilters {
+        padding: 0;
     }
 }

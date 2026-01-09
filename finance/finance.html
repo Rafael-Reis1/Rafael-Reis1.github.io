@@ -126,18 +126,16 @@
                     </div>
                     <div class="filters">
                         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Pesquisar...">
-                        <select id="filterMonth" class="filter-select">
-                            <option value="">Todos os meses</option>
-                        </select>
-                        <select id="filterType" class="filter-select">
-                            <option value="">Todos os tipos</option>
-                            <option value="income">Receitas</option>
-                            <option value="expense">Despesas</option>
-                        </select>
-                        <select id="filterCategory" class="filter-select">
-                            <option value="">Todas as categorias</option>
-                        </select>
+                        <button id="btnOpenFilters" class="btn btn-secondary" title="Filtros"
+                            style="min-width: unset; padding: 0 1rem;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                        </button>
                     </div>
+                </div>
+                <div id="activeFilters" class="active-filters">
                 </div>
                 <div class="transactions-list" id="transactionsList">
                     <p class="no-data-message" id="noTransactions">Nenhuma transação encontrada. Adicione sua primeira
@@ -204,6 +202,45 @@
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="cancelEdit">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Filtrar Transações</h3>
+                <button class="modal-close" id="closeFilterModal">&times;</button>
+            </div>
+            <form id="filterForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filterStartDate">Data Início</label>
+                        <input type="date" id="filterStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterEndDate">Data Fim</label>
+                        <input type="date" id="filterEndDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="filterType">Tipo</label>
+                    <select id="filterType">
+                        <option value="">Todos os tipos</option>
+                        <option value="income">Receitas</option>
+                        <option value="expense">Despesas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filterCategory">Categoria</label>
+                    <select id="filterCategory">
+                        <option value="">Todas as categorias</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="btnClearFilters" class="btn btn-secondary">Limpar Tudo</button>
+                    <button type="button" id="btnApplyFilters" class="btn btn-primary">Aplicar Filtros</button>
                 </div>
             </form>
         </div>
