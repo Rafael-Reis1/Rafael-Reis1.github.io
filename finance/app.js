@@ -24,6 +24,8 @@ db.enablePersistence()
         }
     });
 
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
 const CATEGORIES = {
     expense: {
         alimentacao: '🍔',
