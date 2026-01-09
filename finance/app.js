@@ -97,7 +97,7 @@ class FinanceManager {
         }
     }
 
-    save(onSyncError = null) {
+    save(onSyncError = null, onOffline = null) {
         localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
 
         if (auth.currentUser && navigator.onLine) {
@@ -109,6 +109,7 @@ class FinanceManager {
             });
         } else if (auth.currentUser) {
             this.hasPendingChanges = true;
+            if (onOffline) onOffline();
         }
     }
 
@@ -166,32 +167,32 @@ class FinanceManager {
         return this.transactions.find(t => t.id === id);
     }
 
-    add(transaction, onSyncError = null) {
+    add(transaction, onSyncError = null, onOffline = null) {
         const newTransaction = {
             id: this.generateId(),
             ...transaction,
             createdAt: new Date().toISOString()
         };
         this.transactions.push(newTransaction);
-        this.save(onSyncError);
+        this.save(onSyncError, onOffline);
         return newTransaction;
     }
 
-    update(id, data, onSyncError = null) {
+    update(id, data, onSyncError = null, onOffline = null) {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions[index] = { ...this.transactions[index], ...data };
-            this.save(onSyncError);
+            this.save(onSyncError, onOffline);
             return this.transactions[index];
         }
         return null;
     }
 
-    delete(id, onSyncError = null) {
+    delete(id, onSyncError = null, onOffline = null) {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions.splice(index, 1);
-            this.save(onSyncError);
+            this.save(onSyncError, onOffline);
             return true;
         }
         return false;
@@ -1004,16 +1005,16 @@ class UIController {
             this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
         };
 
+        const offlineCallback = () => {
+            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+        };
+
         if (this.isEditing && this.editingId) {
-            this.fm.update(this.editingId, data, syncErrorCallback);
+            this.fm.update(this.editingId, data, syncErrorCallback, offlineCallback);
             this.showToast('Transação atualizada!', 'success');
         } else {
-            this.fm.add(data, syncErrorCallback);
+            this.fm.add(data, syncErrorCallback, offlineCallback);
             this.showToast('Transação adicionada!', 'success');
-        }
-
-        if (!navigator.onLine) {
-            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
         }
 
         this.closeModal(this.editModal);
@@ -1036,15 +1037,15 @@ class UIController {
                 this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
             };
 
-            this.fm.delete(this.pendingDeleteId, syncErrorCallback);
+            const offlineCallback = () => {
+                this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+            };
+
+            this.fm.delete(this.pendingDeleteId, syncErrorCallback, offlineCallback);
             this.pendingDeleteId = null;
             this.closeModal(this.deleteModal);
             this.render();
             this.showToast('Transação excluída!', 'success');
-
-            if (!navigator.onLine) {
-                this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
-            }
         }
     }
 
