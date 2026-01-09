@@ -570,6 +570,9 @@ class UIController {
 
         this.btnClearFilters.addEventListener('click', () => {
             this.filterForm.reset();
+            this.filterEndDate.min = '';
+            this.filterStartDate.max = '';
+            this.updateFilterOptions();
         });
 
         this.btnApplyFilters.addEventListener('click', () => {
@@ -760,8 +763,14 @@ class UIController {
     removeFilter(key) {
         this.currentFilters[key] = '';
 
-        if (key === 'startDate') this.filterStartDate.value = '';
-        if (key === 'endDate') this.filterEndDate.value = '';
+        if (key === 'startDate') {
+            this.filterStartDate.value = '';
+            this.filterEndDate.min = '';
+        }
+        if (key === 'endDate') {
+            this.filterEndDate.value = '';
+            this.filterStartDate.max = '';
+        }
         if (key === 'type') {
             this.filterType.value = '';
             this.updateFilterOptions();
