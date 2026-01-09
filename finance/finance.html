@@ -13,6 +13,9 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js" defer></script>
 </head>
@@ -29,6 +32,17 @@
                 <h1>💰 Finanças Pessoais</h1>
             </div>
             <div class="header-actions">
+                <button id="btnLogin" class="btn btn-secondary" title="Login com Google">
+                    <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor">
+                        <path
+                            d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.013-1.133 8.013-3.227 2.04-2.053 2.627-5.067 2.627-7.427 0-.747-.054-1.467-.16-2.147H12.48z" />
+                    </svg>
+                    <span id="loginText">Google Login</span>
+                </button>
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <img id="userAvatar" src="" alt="User" class="user-avatar">
+                </div>
                 <button id="btnImport" class="btn btn-secondary" title="Importar dados">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

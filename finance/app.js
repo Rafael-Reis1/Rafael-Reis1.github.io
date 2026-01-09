@@ -1,3 +1,22 @@
+const firebaseConfig = {
+    apiKey: "AIzaSyCvI-ATmTj-zAzbGnKLx1Fq7i29KoULwro",
+    authDomain: "finance-app-e50b8.firebaseapp.com",
+    projectId: "finance-app-e50b8",
+    storageBucket: "finance-app-e50b8.firebasestorage.app",
+    messagingSenderId: "339147531228",
+    appId: "1:339147531228:web:6eb3aca1de8798e6d52519",
+    measurementId: "G-ZHX9XRD3TK"
+};
+
+try {
+    firebase.initializeApp(firebaseConfig);
+} catch (e) {
+    console.error('Firebase Init Error', e);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
 const CATEGORIES = {
     expense: {
         alimentacao: '🍔',
@@ -66,6 +85,56 @@ class FinanceManager {
 
     save() {
         localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
+        if (auth.currentUser) {
+            this.syncToCloud(auth.currentUser);
+        }
+    }
+
+    async syncToCloud(user) {
+        if (!user) return;
+        try {
+            await db.collection('finance_data').doc(user.uid).set({
+                transactions: this.transactions,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log('Dados salvos na nuvem');
+        } catch (error) {
+            console.error('Erro ao salvar na nuvem:', error);
+        }
+    }
+
+    async syncFromCloud(user) {
+        if (!user) return;
+        try {
+            const doc = await db.collection('finance_data').doc(user.uid).get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data.transactions) {
+                    const cloudTransactions = data.transactions;
+                    const merged = [...this.transactions];
+
+                    cloudTransactions.forEach(cloudT => {
+                        const localIndex = merged.findIndex(t => t.id === cloudT.id);
+                        if (localIndex === -1) {
+                            merged.push(cloudT);
+                        } else {
+                            merged[localIndex] = cloudT;
+                        }
+                    });
+
+                    this.transactions = merged;
+                    this.save();
+                    return true;
+                }
+            } else {
+                if (this.transactions.length > 0) {
+                    this.syncToCloud(user);
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao baixar da nuvem:', error);
+        }
+        return false;
     }
 
     getAll() {
@@ -266,6 +335,11 @@ class UIController {
         this.pendingDeleteId = null;
         this.pendingImportData = null;
 
+        this.btnLogin = document.getElementById('btnLogin');
+        this.loginText = document.getElementById('loginText');
+        this.userInfo = document.getElementById('userInfo');
+        this.userAvatar = document.getElementById('userAvatar');
+
         this.initElements();
         this.initEventListeners();
         this.setDefaultDate();
@@ -321,6 +395,20 @@ class UIController {
     }
 
     initEventListeners() {
+        this.btnLogin.addEventListener('click', () => this.handleAuthClick());
+
+        auth.onAuthStateChanged(user => {
+            this.updateAuthUI(user);
+            if (user) {
+                this.fm.syncFromCloud(user).then(updated => {
+                    if (updated) {
+                        this.render();
+                        this.showToast('Dados sincronizados da nuvem!', 'success');
+                    }
+                });
+            }
+        });
+
         this.btnAddTransaction.addEventListener('click', () => this.openAddModal());
 
         this.searchInput.addEventListener('input', () => {
@@ -878,6 +966,36 @@ class UIController {
     closeModal(modal) {
         modal.classList.remove('active');
         document.body.style.overflow = '';
+    }
+
+    handleAuthClick() {
+        if (auth.currentUser) {
+            auth.signOut().then(() => {
+                this.showToast('Você saiu com sucesso!', 'success');
+            }).catch(e => {
+                this.showToast('Erro ao sair.', 'error');
+            });
+        } else {
+            auth.signInWithPopup(googleProvider).then((result) => {
+                this.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
+            }).catch((error) => {
+                console.error(error);
+                this.showToast('Erro no login Google.', 'error');
+            });
+        }
+    }
+
+    updateAuthUI(user) {
+        if (user) {
+            this.btnLogin.title = 'Logout';
+            this.loginText.textContent = 'Sair';
+            this.userAvatar.src = user.photoURL;
+            this.userInfo.style.display = 'flex';
+        } else {
+            this.btnLogin.title = 'Login com Google';
+            this.loginText.textContent = 'Google Login';
+            this.userInfo.style.display = 'none';
+        }
     }
 
     showToast(message, type = '') {
