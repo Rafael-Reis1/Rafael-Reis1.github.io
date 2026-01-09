@@ -210,7 +210,7 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Finanças Pessoais',
+            name: 'Financeiro Pessoal',
             description: "Gerencie suas finanças com dashboard interativo, gráficos por categoria, filtros avançados e backup em JSON.",
             html_url: '/finance/finance.html',
             language: 'JavaScript',

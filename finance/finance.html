@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="App de gerenciamento de finanças pessoais - Controle suas receitas e despesas">
-    <title>Finanças Pessoais</title>
+    <title>Financeiro Pessoal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -41,7 +41,7 @@
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
                 </a>
-                <h1>💰 Finanças Pessoais</h1>
+                <h1>💰 Financeiro Pessoal</h1>
             </div>
             <div class="header-actions">
                 <button id="btnLogin" class="btn btn-secondary" title="Login com Google" style="display: none;">
@@ -200,12 +200,60 @@
                 </div>
                 <div class="transactions-list" id="transactionsList">
                 </div>
+
+                <div id="paginationControls" class="pagination-controls" style="display: none;">
+                    <button id="btnPrevPage" class="btn btn-secondary btn-sm" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Anterior
+                    </button>
+                    <span id="pageInfo" class="page-info">Página 1</span>
+                    <button id="btnNextPage" class="btn btn-secondary btn-sm">
+                        Próximo
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
                 <div id="noTransactions" class="empty-state" style="display: none;">
                     <h3>Nenhuma transação ainda</h3>
                     <p>Clique em "+ Nova Transação" para começar a controlar seus gastos!</p>
                 </div>
             </section>
         </main>
+    </div>
+
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-icon">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+            </div>
+            <h2>Bem-vindo ao Financeiro Pessoal</h2>
+            <p>Para sincronizar seus dados em todos os dispositivos com segurança, é necessário fazer login com sua
+                conta Google.</p>
+            <p class="login-note">Este aplicativo não armazena dados locais para garantir que suas finanças estejam
+                sempre atualizadas na nuvem.</p>
+            <button id="btnLoginOverlay" class="btn btn-primary btn-lg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.013-1.133 8.013-3.227 2.04-2.053 2.627-5.067 2.627-7.427 0-.747-.054-1.467-.16-2.147H12.48z" />
+                </svg>
+                Fazer Login com Google
+            </button>
+            <a href="../index.html" class="btn btn-text-only"
+                style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">
+                Voltar para o Portfolio
+            </a>
+            </button>
+        </div>
     </div>
 
     <div id="editModal" class="modal">
