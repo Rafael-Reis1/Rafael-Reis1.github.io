@@ -424,7 +424,6 @@ class UIController {
                 this.fm.syncFromCloud(user).then(updated => {
                     if (updated) {
                         this.render();
-                        this.showToast('Dados sincronizados da nuvem!', 'success');
                     }
                 });
             }
@@ -437,13 +436,9 @@ class UIController {
             this.showToast('Conexão restabelecida!', 'success');
 
             if (auth.currentUser) {
-                this.showToast('Sincronizando...', 'info');
                 this.fm.syncFromCloud(auth.currentUser).then(updated => {
                     if (updated) {
                         this.render();
-                        this.showToast('Dados atualizados da nuvem!', 'success');
-                    } else {
-                        this.showToast('Sincronização concluída.', 'success');
                     }
                 });
             }
