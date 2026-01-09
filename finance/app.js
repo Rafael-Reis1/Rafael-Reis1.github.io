@@ -37,15 +37,15 @@ const CATEGORY_NAMES = {
 };
 
 const CATEGORY_COLORS = {
-    alimentacao: '#f97316',
-    transporte: '#3b82f6',
-    moradia: '#8b5cf6',
-    saude: '#ef4444',
-    educacao: '#06b6d4',
-    lazer: '#ec4899',
-    compras: '#84cc16',
-    servicos: '#f59e0b',
-    outros_despesa: '#6b7280'
+    alimentacao: '#ff7043',
+    transporte: '#ffca28',
+    moradia: '#d32f2f',
+    saude: '#880e4f',
+    educacao: '#795548',
+    lazer: '#f06292',
+    compras: '#ffeb3b',
+    servicos: '#5d4037',
+    outros_despesa: '#9e9e9e'
 };
 
 class FinanceManager {
@@ -592,11 +592,11 @@ class UIController {
         const categories = Object.keys(incomes);
 
         const INCOME_COLORS = {
-            salario: '#22c55e',
-            freelance: '#3b82f6',
-            investimentos: '#8b5cf6',
-            presente: '#ec4899',
-            outros_receita: '#06b6d4'
+            salario: '#16a34a',
+            freelance: '#4f46e5',
+            investimentos: '#9333ea',
+            presente: '#06b6d4',
+            outros_receita: '#475569'
         };
 
         if (categories.length === 0) {
