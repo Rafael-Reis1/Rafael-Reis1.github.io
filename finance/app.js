@@ -579,8 +579,30 @@ class UIController {
     render() {
         this.renderActiveFilters();
         this.renderDashboard();
-        this.renderChart();
-        this.renderIncomeChart();
+
+        const typeFilter = this.currentFilters.type;
+        if (!typeFilter || typeFilter === 'expense') {
+            this.renderChart();
+        } else {
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
+            this.chartCanvas.style.display = 'none';
+            this.noChartData.style.display = 'block';
+        }
+
+        if (!typeFilter || typeFilter === 'income') {
+            this.renderIncomeChart();
+        } else {
+            if (this.incomeChart) {
+                this.incomeChart.destroy();
+                this.incomeChart = null;
+            }
+            this.incomeChartCanvas.style.display = 'none';
+            this.noIncomeData.style.display = 'block';
+        }
+
         this.updateFilterOptions();
         this.renderTransactionsList();
     }
@@ -641,13 +663,14 @@ class UIController {
         const totals = this.fm.getFilteredTotals({
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
+            type: this.currentFilters.type || null,
             category: this.currentFilters.category || null,
             search: this.currentFilters.search || null
         });
 
         const balance = this.fm.getBalance();
 
-        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.category || this.currentFilters.search;
+        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.search;
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
         this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Total)';
 
@@ -660,6 +683,7 @@ class UIController {
         const expenses = this.fm.getFilteredExpensesByCategory({
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
+            category: this.currentFilters.category || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(expenses);
@@ -734,6 +758,7 @@ class UIController {
         const incomes = this.fm.getFilteredIncomesByCategory({
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
+            category: this.currentFilters.category || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(incomes);
