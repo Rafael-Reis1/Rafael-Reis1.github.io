@@ -997,6 +997,7 @@ class UIController {
                         <span class="transaction-desc">${t.description}</span>
                         <div class="transaction-meta">
                             <span class="transaction-date">${date.toLocaleDateString('pt-BR')}</span>
+                            -
                             <span class="transaction-cat">${categoryName}</span>
                         </div>
                     </div>
