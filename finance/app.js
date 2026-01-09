@@ -97,7 +97,7 @@ class FinanceManager {
         }
     }
 
-    save() {
+    save(onSyncError = null) {
         localStorage.setItem('finance_transactions', JSON.stringify(this.transactions));
 
         if (auth.currentUser && navigator.onLine) {
@@ -105,6 +105,7 @@ class FinanceManager {
                 this.hasPendingChanges = false;
             }).catch(() => {
                 this.hasPendingChanges = true;
+                if (onSyncError) onSyncError();
             });
         } else if (auth.currentUser) {
             this.hasPendingChanges = true;
@@ -165,32 +166,32 @@ class FinanceManager {
         return this.transactions.find(t => t.id === id);
     }
 
-    add(transaction) {
+    add(transaction, onSyncError = null) {
         const newTransaction = {
             id: this.generateId(),
             ...transaction,
             createdAt: new Date().toISOString()
         };
         this.transactions.push(newTransaction);
-        this.save();
+        this.save(onSyncError);
         return newTransaction;
     }
 
-    update(id, data) {
+    update(id, data, onSyncError = null) {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions[index] = { ...this.transactions[index], ...data };
-            this.save();
+            this.save(onSyncError);
             return this.transactions[index];
         }
         return null;
     }
 
-    delete(id) {
+    delete(id, onSyncError = null) {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions.splice(index, 1);
-            this.save();
+            this.save(onSyncError);
             return true;
         }
         return false;
@@ -442,16 +443,30 @@ class UIController {
             }
         });
 
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async (user) => {
             this.updateAuthUI(user);
             if (user) {
-                this.fm.syncFromCloud(user).then(updated => {
-                    if (updated) {
-                        this.render();
+                if (this.fm.hasPendingChanges && navigator.onLine) {
+                    try {
+                        await this.fm.syncToCloud(user);
+                        this.fm.hasPendingChanges = false;
+                        this.showToast('Alterações pendentes enviadas!', 'success');
+                    } catch (e) {
+                        this.showToast('Erro ao enviar alterações pendentes.', 'error');
+                        return;
                     }
-                }).catch(() => {
-                    this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
-                });
+                }
+
+                if (navigator.onLine) {
+                    try {
+                        const updated = await this.fm.syncFromCloud(user);
+                        if (updated) {
+                            this.render();
+                        }
+                    } catch (e) {
+                        this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
+                    }
+                }
             }
         });
 
@@ -985,11 +1000,15 @@ class UIController {
             category: document.getElementById('editCategory').value
         };
 
+        const syncErrorCallback = () => {
+            this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
+        };
+
         if (this.isEditing && this.editingId) {
-            this.fm.update(this.editingId, data);
+            this.fm.update(this.editingId, data, syncErrorCallback);
             this.showToast('Transação atualizada!', 'success');
         } else {
-            this.fm.add(data);
+            this.fm.add(data, syncErrorCallback);
             this.showToast('Transação adicionada!', 'success');
         }
 
@@ -1013,7 +1032,11 @@ class UIController {
 
     handleDeleteConfirm() {
         if (this.pendingDeleteId) {
-            this.fm.delete(this.pendingDeleteId);
+            const syncErrorCallback = () => {
+                this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
+            };
+
+            this.fm.delete(this.pendingDeleteId, syncErrorCallback);
             this.pendingDeleteId = null;
             this.closeModal(this.deleteModal);
             this.render();
