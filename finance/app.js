@@ -102,9 +102,10 @@ class FinanceManager {
                 transactions: this.transactions,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            console.log('Dados salvos na nuvem');
+            console.log('Dados sincronizados com a nuvem');
         } catch (error) {
             console.error('Erro ao salvar na nuvem:', error);
+            throw error;
         }
     }
 
@@ -129,6 +130,7 @@ class FinanceManager {
             }
         } catch (error) {
             console.error('Erro ao baixar da nuvem:', error);
+            throw error;
         }
         return false;
     }
@@ -425,6 +427,8 @@ class UIController {
                     if (updated) {
                         this.render();
                     }
+                }).catch(() => {
+                    this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
                 });
             }
         });
@@ -440,6 +444,8 @@ class UIController {
                     if (updated) {
                         this.render();
                     }
+                }).catch(() => {
+                    this.showToast('Erro ao sincronizar. Tente novamente.', 'error');
                 });
             }
         });
