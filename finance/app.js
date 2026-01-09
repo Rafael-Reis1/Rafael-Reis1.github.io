@@ -90,6 +90,11 @@ class FinanceManager {
         }
     }
 
+    clear() {
+        this.transactions = [];
+        localStorage.removeItem('finance_transactions');
+    }
+
     async syncToCloud(user) {
         if (!user) return;
         try {
@@ -400,8 +405,11 @@ class UIController {
         });
 
         this.btnLogout.addEventListener('click', () => {
+            this.fm.clear();
             auth.signOut();
             this.userDropdown.classList.remove('active');
+            this.render();
+            this.showToast('Dados locais limpos. Você saiu.', 'success');
         });
 
         document.addEventListener('click', (e) => {
@@ -494,20 +502,18 @@ class UIController {
         });
 
         this.btnExport.addEventListener('click', () => {
-            this.fm.exportData();
-            this.showToast('Dados exportados com sucesso!', 'success');
+            this.handleExport();
         });
 
         this.btnExportMenu.addEventListener('click', () => {
-            this.fm.exportData();
-            this.showToast('Dados exportados com sucesso!', 'success');
+            this.handleExport();
             this.userDropdown.classList.remove('active');
         });
 
-        this.btnImport.addEventListener('click', () => this.openImportModal());
+        this.btnImport.addEventListener('click', () => this.fileInput.click());
 
         this.btnImportMenu.addEventListener('click', () => {
-            this.openImportModal();
+            this.fileInput.click();
             this.userDropdown.classList.remove('active');
         });
 
