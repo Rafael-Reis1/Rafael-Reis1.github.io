@@ -1320,8 +1320,12 @@ input[type=number] {
 }
 
 @media (max-width: 600px) {
+    .login-overlay {
+        padding: 1rem;
+    }
+
     .login-card {
-        padding: 2rem;
+        padding: 1.5rem;
     }
 
     .login-icon {
