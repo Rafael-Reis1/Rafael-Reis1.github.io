@@ -621,6 +621,14 @@ class UIController {
         document.getElementById('mergeImport').addEventListener('click', () => this.handleImportConfirm(false));
         document.getElementById('replaceImport').addEventListener('click', () => this.handleImportConfirm(true));
 
+        const amountInput = document.getElementById('editAmount');
+        amountInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value === '') value = '0';
+            const amount = (parseInt(value) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            e.target.value = amount;
+        });
+
         [this.editModal, this.deleteModal, this.importModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.closeModal(modal);
@@ -1088,7 +1096,7 @@ class UIController {
 
         document.getElementById('editId').value = t.id;
         document.getElementById('editDescription').value = t.description;
-        document.getElementById('editAmount').value = t.amount;
+        document.getElementById('editAmount').value = t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         document.getElementById('editDate').value = t.date;
         document.getElementById('editType').value = t.type;
         this.updateEditCategoryOptions(t.category);
@@ -1099,9 +1107,12 @@ class UIController {
     handleFormSubmit(e) {
         e.preventDefault();
 
+        const rawAmount = document.getElementById('editAmount').value;
+        const parseAmount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
+
         const data = {
             description: document.getElementById('editDescription').value.trim(),
-            amount: parseFloat(document.getElementById('editAmount').value),
+            amount: parseAmount,
             date: document.getElementById('editDate').value,
             type: document.getElementById('editType').value,
             category: document.getElementById('editCategory').value
