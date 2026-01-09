@@ -858,8 +858,8 @@ input[type=number] {
     }
 
     .transaction-item {
-        flex-wrap: wrap;
-        gap: 0.75rem;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
     }
 
     .transaction-amount {
@@ -868,7 +868,7 @@ input[type=number] {
 
     .transaction-actions {
         opacity: 1;
-        width: 100%;
+        width: auto;
         justify-content: flex-end;
     }
 
