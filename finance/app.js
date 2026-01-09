@@ -526,6 +526,7 @@ class UIController {
 
         this.searchInput.addEventListener('input', () => {
             this.currentFilters.search = this.searchInput.value;
+            this.currentPage = 1;
             this.renderDashboard();
             this.renderChart();
             this.renderIncomeChart();
@@ -561,6 +562,9 @@ class UIController {
             this.currentFilters.type = this.filterType.value;
             this.currentFilters.category = this.filterCategory.value;
 
+            this.currentFilters.category = this.filterCategory.value;
+
+            this.currentPage = 1;
             this.closeModal(this.filterModal);
             this.render();
         });
@@ -942,8 +946,9 @@ class UIController {
     renderTransactionsList() {
         let transactions = this.fm.getFilteredTransactions(this.currentFilters);
 
+        this.transactionsList.innerHTML = '';
+
         if (transactions.length === 0) {
-            this.transactionsList.innerHTML = '';
             this.noTransactions.style.display = 'flex';
             this.paginationControls.style.display = 'none';
             return;
@@ -970,7 +975,11 @@ class UIController {
             const el = document.createElement('div');
             el.className = `transaction-item ${t.type}`;
 
-            const icon = CATEGORIES[t.type][t.category] || (t.type === 'expense' ? '💸' : '💰');
+            let icon = CATEGORIES[t.type]?.[t.category];
+            if (!icon) {
+                icon = CATEGORIES.expense[t.category] || CATEGORIES.income[t.category];
+            }
+            icon = icon || (t.type === 'expense' ? '💸' : '💰');
             const categoryName = CATEGORY_NAMES[t.category] || t.category;
             const sign = t.type === 'income' ? '+' : '-';
             const date = new Date(t.date + 'T12:00:00');
@@ -1014,6 +1023,10 @@ class UIController {
 
             this.transactionsList.appendChild(el);
         });
+    }
+
+    openFilterModal() {
+        this.openModal(this.filterModal);
     }
 
     openAddModal() {
@@ -1196,6 +1209,9 @@ class UIController {
     }
 
     updateAuthUI(user) {
+        const authLoading = document.getElementById('authLoading');
+        const authContent = document.getElementById('authContent');
+
         if (user) {
             this.loginOverlay.style.display = 'none';
             this.btnLogin.style.display = 'none';
@@ -1208,6 +1224,10 @@ class UIController {
             if (this.btnExport) this.btnExport.style.display = 'none';
         } else {
             this.loginOverlay.style.display = 'flex';
+
+            if (authLoading) authLoading.style.display = 'none';
+            if (authContent) authContent.style.display = 'flex';
+
             this.btnLogin.style.display = 'flex';
             this.btnLogin.title = 'Login com Google';
             this.loginText.textContent = 'Google Login';
