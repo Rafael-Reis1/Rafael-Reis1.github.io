@@ -280,32 +280,67 @@ function fetchAndDisplayRepos() {
     const reposTitle = document.querySelector('.subtitleReposi');
     const reposContainer = document.getElementById('repos');
 
-    if (reposTitle) reposTitle.style.display = 'none';
+    const CACHE_KEY = 'github_repos_cache';
+    const CACHE_DURATION = 5 * 60 * 1000;
 
-    fetch('https://api.github.com/users/Rafael-Reis1/repos')
-        .then(response => response.json())
-        .then(data => {
-            const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
-            const filteredData = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
+    const cached = localStorage.getItem(CACHE_KEY);
+    const now = new Date().getTime();
 
-            reposContainer.innerHTML = '';
+    let shouldFetch = true;
 
-            if (filteredData.length > 0) {
-                if (reposTitle) reposTitle.style.display = 'block';
-
-                filteredData.forEach(repo => {
-                    if (repo.description) {
-                        const card = createRepoCard(repo);
-                        reposContainer.appendChild(card);
-                    }
-                });
-
-                setupAnimations();
+    if (cached) {
+        try {
+            const { timestamp, data } = JSON.parse(cached);
+            if (now - timestamp < CACHE_DURATION) {
+                console.log('Using cached GitHub data');
+                processRepos(data);
+                shouldFetch = false;
             }
-        })
-        .catch(err => {
-            console.error('Error fetching repos:', err);
-        });
+        } catch (e) {
+            console.warn('Cache inválido, buscando novamente...');
+        }
+    }
+
+    if (shouldFetch) {
+        fetch('https://api.github.com/users/Rafael-Reis1/repos')
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: new Date().getTime(),
+                    data: data
+                }));
+                processRepos(data);
+            })
+            .catch(err => {
+                console.error('Error fetching repos:', err);
+                const reposTitle = document.querySelector('.subtitleReposi');
+                if (reposTitle) reposTitle.style.display = 'none';
+            });
+    }
+
+    function processRepos(data) {
+        const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
+        const filteredData = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
+
+        reposContainer.innerHTML = '';
+
+        if (filteredData.length > 0) {
+            const reposTitle = document.querySelector('.subtitleReposi');
+            if (reposTitle) reposTitle.style.display = 'block';
+
+            filteredData.forEach(repo => {
+                if (repo.description) {
+                    const card = createRepoCard(repo);
+                    reposContainer.appendChild(card);
+                }
+            });
+
+            setupAnimations();
+        }
+    }
 }
 
 function createFeaturedCard(repo) {
