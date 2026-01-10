@@ -267,32 +267,45 @@ function fetchAndDisplayRepos() {
         }
     ];
 
+    const featuredContainer = document.querySelector('.destaquesContainer');
+    featuredContainer.innerHTML = '';
+
+    extraRepos.forEach(repo => {
+        const card = createFeaturedCard(repo);
+        featuredContainer.appendChild(card);
+    });
+
+    setupAnimations();
+
+    const reposTitle = document.querySelector('.subtitleReposi');
+    const reposContainer = document.getElementById('repos');
+
+    if (reposTitle) reposTitle.style.display = 'none';
+
     fetch('https://api.github.com/users/Rafael-Reis1/repos')
         .then(response => response.json())
         .then(data => {
             const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
             const filteredData = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
 
-            const allRepos = [...extraRepos, ...filteredData];
-            const featuredContainer = document.querySelector('.destaquesContainer');
-            const reposContainer = document.getElementById('repos');
-
-            featuredContainer.innerHTML = '';
             reposContainer.innerHTML = '';
 
-            allRepos.forEach(repo => {
-                if (repo.featured) {
-                    const card = createFeaturedCard(repo);
-                    featuredContainer.appendChild(card);
-                } else if (repo.description) {
-                    const card = createRepoCard(repo);
-                    reposContainer.appendChild(card);
-                }
-            });
+            if (filteredData.length > 0) {
+                if (reposTitle) reposTitle.style.display = 'block';
 
-            setupAnimations();
+                filteredData.forEach(repo => {
+                    if (repo.description) {
+                        const card = createRepoCard(repo);
+                        reposContainer.appendChild(card);
+                    }
+                });
+
+                setupAnimations();
+            }
         })
-        .catch(err => console.error('Error fetching repos:', err));
+        .catch(err => {
+            console.error('Error fetching repos:', err);
+        });
 }
 
 function createFeaturedCard(repo) {
