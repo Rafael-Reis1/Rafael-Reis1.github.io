@@ -97,60 +97,68 @@ class FinanceManager {
         this.transactions = [];
     }
 
-    save(onSyncError = null, onOffline = null) {
-        if (auth.currentUser && navigator.onLine) {
-            this.syncToCloud(auth.currentUser).then(() => {
-                this.hasPendingChanges = false;
-            }).catch(() => {
-                this.hasPendingChanges = true;
-                if (onSyncError) onSyncError();
-            });
-        } else if (auth.currentUser) {
-            this.hasPendingChanges = true;
-            if (onOffline) onOffline();
-        }
-    }
-
     clear() {
         this.transactions = [];
         this.hasPendingChanges = false;
     }
 
-    async syncToCloud(user) {
+    async migrateLegacyData(user) {
         if (!user) return;
+        const userRef = db.collection('finance_data').doc(user.uid);
+
         try {
-            await db.collection('finance_data').doc(user.uid).set({
-                transactions: this.transactions,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log('Dados sincronizados com a nuvem');
-        } catch (error) {
-            console.error('Erro ao salvar na nuvem:', error);
-            throw error;
+            const doc = await userRef.get();
+            if (doc.exists && doc.data().transactions && Array.isArray(doc.data().transactions)) {
+                console.log('Iniciando migração de dados...');
+                const legacyTransactions = doc.data().transactions;
+                const total = legacyTransactions.length;
+
+                if (total === 0) return;
+
+                for (let i = 0; i < total; i += 500) {
+                    const chunk = legacyTransactions.slice(i, i + 500);
+                    const batch = db.batch();
+
+                    chunk.forEach(t => {
+                        const ref = userRef.collection('transactions').doc(t.id);
+                        batch.set(ref, t);
+                    });
+
+                    await batch.commit();
+                    console.log(`Migrados ${Math.min(i + 500, total)} de ${total} registros.`);
+                }
+
+                await userRef.update({
+                    transactions: firebase.firestore.FieldValue.delete(),
+                    migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('Migração concluída com sucesso!');
+            }
+        } catch (e) {
+            console.error('Erro na migração:', e);
         }
     }
 
     async syncFromCloud(user) {
         if (!user) return;
+
         try {
-            const doc = await db.collection('finance_data').doc(user.uid).get();
-            if (doc.exists) {
-                const data = doc.data();
-                if (data.transactions) {
-                    const cloudTransactions = data.transactions;
+            await this.migrateLegacyData(user);
 
-                    this.transactions = cloudTransactions;
+            const snapshot = await db.collection('finance_data').doc(user.uid).collection('transactions').get();
 
-                    return true;
-                }
+            if (!snapshot.empty) {
+                this.transactions = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                return true;
             } else {
                 if (this.transactions.length > 0) {
-                    this.syncToCloud(user);
                 }
             }
         } catch (error) {
             console.error('Erro ao baixar da nuvem:', error);
-            throw error;
         }
         return false;
     }
@@ -169,8 +177,24 @@ class FinanceManager {
             ...transaction,
             createdAt: new Date().toISOString()
         };
+
         this.transactions.push(newTransaction);
-        this.save(onSyncError, onOffline);
+
+        if (auth.currentUser) {
+            if (navigator.onLine) {
+                db.collection('finance_data').doc(auth.currentUser.uid)
+                    .collection('transactions').doc(newTransaction.id).set(newTransaction)
+                    .catch(() => {
+                        this.hasPendingChanges = true;
+                        if (onSyncError) onSyncError();
+                    });
+            } else {
+                db.collection('finance_data').doc(auth.currentUser.uid)
+                    .collection('transactions').doc(newTransaction.id).set(newTransaction);
+                if (onOffline) onOffline();
+            }
+        }
+
         return newTransaction;
     }
 
@@ -178,8 +202,20 @@ class FinanceManager {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions[index] = { ...this.transactions[index], ...data };
-            this.save(onSyncError, onOffline);
-            return this.transactions[index];
+            const updatedTransaction = this.transactions[index];
+
+            if (auth.currentUser) {
+                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
+                    .collection('transactions').doc(id);
+
+                ref.update(data).catch((e) => {
+                    console.error(e);
+                    if (onSyncError) onSyncError();
+                });
+
+                if (!navigator.onLine && onOffline) onOffline();
+            }
+            return updatedTransaction;
         }
         return null;
     }
@@ -188,7 +224,18 @@ class FinanceManager {
         const index = this.transactions.findIndex(t => t.id === id);
         if (index !== -1) {
             this.transactions.splice(index, 1);
-            this.save(onSyncError, onOffline);
+
+            if (auth.currentUser) {
+                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
+                    .collection('transactions').doc(id);
+
+                ref.delete().catch((e) => {
+                    console.error(e);
+                    if (onSyncError) onSyncError();
+                });
+
+                if (!navigator.onLine && onOffline) onOffline();
+            }
             return true;
         }
         return false;
@@ -332,20 +379,64 @@ class FinanceManager {
         };
     }
 
-    import(data, replace = false) {
+    async import(data, replace = false) {
         if (!data || !data.transactions || !Array.isArray(data.transactions)) {
             throw new Error('Formato de dados inválido');
         }
 
+        const newImportedData = data.transactions;
+
         if (replace) {
-            this.transactions = data.transactions;
+            this.transactions = newImportedData;
+
+            if (auth.currentUser) {
+                const userRef = db.collection('finance_data').doc(auth.currentUser.uid);
+                const collectionRef = userRef.collection('transactions');
+
+                const snapshot = await collectionRef.get();
+                const totalToDelete = snapshot.size;
+                const deleteDocs = snapshot.docs;
+
+                for (let i = 0; i < totalToDelete; i += 500) {
+                    const batch = db.batch();
+                    deleteDocs.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+
+                const totalToAdd = newImportedData.length;
+                for (let i = 0; i < totalToAdd; i += 500) {
+                    const chunk = newImportedData.slice(i, i + 500);
+                    const batch = db.batch();
+                    chunk.forEach(t => {
+                        const ref = collectionRef.doc(t.id);
+                        batch.set(ref, t);
+                    });
+                    await batch.commit();
+                }
+            }
+
         } else {
             const existingIds = new Set(this.transactions.map(t => t.id));
-            const newTransactions = data.transactions.filter(t => !existingIds.has(t.id));
-            this.transactions = [...this.transactions, ...newTransactions];
+            const distinctNew = newImportedData.filter(t => !existingIds.has(t.id));
+
+            this.transactions = [...this.transactions, ...distinctNew];
+
+            if (auth.currentUser && distinctNew.length > 0) {
+                const collectionRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
+                const totalToAdd = distinctNew.length;
+
+                for (let i = 0; i < totalToAdd; i += 500) {
+                    const chunk = distinctNew.slice(i, i + 500);
+                    const batch = db.batch();
+                    chunk.forEach(t => {
+                        const ref = collectionRef.doc(t.id);
+                        batch.set(ref, t);
+                    });
+                    await batch.commit();
+                }
+            }
         }
 
-        this.save();
         return this.transactions.length;
     }
 }
@@ -479,27 +570,14 @@ class UIController {
 
         auth.onAuthStateChanged(async (user) => {
             this.updateAuthUI(user);
-            if (user) {
-                if (this.fm.hasPendingChanges && navigator.onLine) {
-                    try {
-                        await this.fm.syncToCloud(user);
-                        this.fm.hasPendingChanges = false;
-                        this.showToast('Alterações pendentes enviadas!', 'success');
-                    } catch (e) {
-                        this.showToast('Erro ao enviar alterações pendentes.', 'error');
-                        return;
+            if (user && navigator.onLine) {
+                try {
+                    const updated = await this.fm.syncFromCloud(user);
+                    if (updated) {
+                        this.render();
                     }
-                }
-
-                if (navigator.onLine) {
-                    try {
-                        const updated = await this.fm.syncFromCloud(user);
-                        if (updated) {
-                            this.render();
-                        }
-                    } catch (e) {
-                        this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
-                    }
+                } catch (e) {
+                    this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
                 }
             }
         });
@@ -511,17 +589,6 @@ class UIController {
             this.showToast('Conexão restabelecida!', 'success');
 
             if (auth.currentUser) {
-                if (this.fm.hasPendingChanges) {
-                    try {
-                        await this.fm.syncToCloud(auth.currentUser);
-                        this.fm.hasPendingChanges = false;
-                        this.showToast('Alterações locais enviadas!', 'success');
-                    } catch (e) {
-                        this.showToast('Erro ao enviar alterações locais.', 'error');
-                        return;
-                    }
-                }
-
                 try {
                     const updated = await this.fm.syncFromCloud(auth.currentUser);
                     if (updated) {
@@ -1218,11 +1285,11 @@ class UIController {
         this.fileInput.value = '';
     }
 
-    handleImportConfirm(replace) {
+    async handleImportConfirm(replace) {
         if (!this.pendingImportData) return;
 
         try {
-            const count = this.fm.import(this.pendingImportData, replace);
+            const count = await this.fm.import(this.pendingImportData, replace);
             this.pendingImportData = null;
             this.closeModal(this.importModal);
             this.render();
