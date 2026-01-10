@@ -93,16 +93,11 @@ class FinanceManager {
 
         this.stopListener();
 
-        console.log('Iniciando Snapshot Listener...');
+
         const collectionRef = db.collection('finance_data').doc(user.uid).collection('transactions');
 
         this.unsubscribeListener = collectionRef.onSnapshot((snapshot) => {
-            const changes = snapshot.docChanges();
-            let hasChanges = false;
 
-            changes.forEach((change) => {
-                console.log(`Dados alterados: ${change.type} - ${change.doc.id}`);
-            });
 
             this.transactions = snapshot.docs.map(doc => ({
                 id: doc.id,
@@ -117,7 +112,7 @@ class FinanceManager {
 
     stopListener() {
         if (this.unsubscribeListener) {
-            console.log('Parando Snapshot Listener...');
+
             this.unsubscribeListener();
             this.unsubscribeListener = null;
         }
