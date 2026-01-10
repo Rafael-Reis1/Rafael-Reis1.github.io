@@ -275,8 +275,6 @@ function fetchAndDisplayRepos() {
         featuredContainer.appendChild(card);
     });
 
-    setupAnimations();
-
     const reposTitle = document.querySelector('.subtitleReposi');
     const reposContainer = document.getElementById('repos');
 
