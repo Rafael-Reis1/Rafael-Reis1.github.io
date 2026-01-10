@@ -731,6 +731,11 @@ input[type=number] {
     border-top: 1px solid var(--glass-border);
 }
 
+.modal-content form .modal-actions {
+    width: calc(100% + 2.5rem);
+    margin: 1rem -1.25rem -1.25rem -1.25rem;
+}
+
 .import-actions {
     flex-wrap: wrap;
 }
