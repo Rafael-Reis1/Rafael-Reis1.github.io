@@ -83,6 +83,44 @@ class FinanceManager {
     constructor() {
         this.transactions = [];
         this._hasPendingChanges = false;
+        this.unsubscribeListener = null;
+    }
+
+    async initListener(user, onUpdateCallback) {
+        if (!user) return;
+
+        await this.migrateLegacyData(user);
+
+        this.stopListener();
+
+        console.log('Iniciando Snapshot Listener...');
+        const collectionRef = db.collection('finance_data').doc(user.uid).collection('transactions');
+
+        this.unsubscribeListener = collectionRef.onSnapshot((snapshot) => {
+            const changes = snapshot.docChanges();
+            let hasChanges = false;
+
+            changes.forEach((change) => {
+                console.log(`Dados alterados: ${change.type} - ${change.doc.id}`);
+            });
+
+            this.transactions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            if (onUpdateCallback) onUpdateCallback();
+        }, (error) => {
+            console.error('Erro no Listener:', error);
+        });
+    }
+
+    stopListener() {
+        if (this.unsubscribeListener) {
+            console.log('Parando Snapshot Listener...');
+            this.unsubscribeListener();
+            this.unsubscribeListener = null;
+        }
     }
 
     get hasPendingChanges() {
@@ -139,29 +177,7 @@ class FinanceManager {
         }
     }
 
-    async syncFromCloud(user) {
-        if (!user) return;
 
-        try {
-            await this.migrateLegacyData(user);
-
-            const snapshot = await db.collection('finance_data').doc(user.uid).collection('transactions').get();
-
-            if (!snapshot.empty) {
-                this.transactions = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                return true;
-            } else {
-                if (this.transactions.length > 0) {
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao baixar da nuvem:', error);
-        }
-        return false;
-    }
 
     getAll() {
         return [...this.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -570,15 +586,14 @@ class UIController {
 
         auth.onAuthStateChanged(async (user) => {
             this.updateAuthUI(user);
-            if (user && navigator.onLine) {
-                try {
-                    const updated = await this.fm.syncFromCloud(user);
-                    if (updated) {
-                        this.render();
-                    }
-                } catch (e) {
-                    this.showToast('Erro ao sincronizar. Verifique sua conexão.', 'error');
-                }
+            if (user) {
+                await this.fm.initListener(user, () => {
+                    this.render();
+                });
+            } else {
+                this.fm.stopListener();
+                this.fm.clear();
+                this.render();
             }
         });
 
@@ -587,17 +602,6 @@ class UIController {
         window.addEventListener('online', async () => {
             offlineBadge.classList.remove('visible');
             this.showToast('Conexão restabelecida!', 'success');
-
-            if (auth.currentUser) {
-                try {
-                    const updated = await this.fm.syncFromCloud(auth.currentUser);
-                    if (updated) {
-                        this.render();
-                    }
-                } catch (e) {
-                    this.showToast('Erro ao baixar dados da nuvem.', 'error');
-                }
-            }
         });
 
         window.addEventListener('offline', () => {
@@ -1325,6 +1329,7 @@ class UIController {
     handleAuthClick() {
         if (auth.currentUser) {
             auth.signOut().then(() => {
+                this.fm.stopListener();
                 this.showToast('Você saiu com sucesso!', 'success');
             }).catch(e => {
                 this.showToast('Erro ao sair.', 'error');
