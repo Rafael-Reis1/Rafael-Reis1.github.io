@@ -639,6 +639,7 @@ iframe {
     font-size: 1.5rem;
     margin-top: 2rem;
     margin-left: 20px;
+    display: none;
 }
 
 ::view-transition-old(shared-curriculo-area) {
