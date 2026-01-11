@@ -1260,12 +1260,9 @@ class UIController {
                         ${hasSeries ? `
                         <button class="action-btn series-btn" onclick="app.openSeriesModal('${t.groupId}')" title="Ver Série">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M8 6h13"></path>
-                                <path d="M8 12h13"></path>
-                                <path d="M8 18h13"></path>
-                                <path d="M3 6h.01"></path>
-                                <path d="M3 12h.01"></path>
-                                <path d="M3 18h.01"></path>
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                <polyline points="2 17 12 22 22 17"></polyline>
+                                <polyline points="2 12 12 17 22 12"></polyline>
                             </svg>
                         </button>
                         ` : ''}
@@ -1483,16 +1480,16 @@ class UIController {
         summaryContainer.innerHTML = `
             <div class="series-stat">
                 <span>Total das parcelas</span>
-                <strong>R$ ${this.formatCurrency(totalAmount)}</strong>
+                <strong>${this.formatCurrency(totalAmount)}</strong> <!-- Fix -->
             </div>
             <div class="series-stat">
                 <span>Restante</span>
-                <strong>R$ ${this.formatCurrency(remainingAmount)}</strong>
+                <strong>${this.formatCurrency(remainingAmount)}</strong>
             </div>
         `;
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setHours(23, 59, 59, 999);
 
         transactions.forEach(t => {
             const tDate = new Date(t.date + 'T12:00:00');
