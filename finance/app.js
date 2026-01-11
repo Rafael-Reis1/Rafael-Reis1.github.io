@@ -1311,7 +1311,7 @@ class UIController {
 
         isRecurringInput.checked = false;
         isRecurringInput.disabled = false;
-        if (recurringGroup) recurringGroup.style.visibility = 'visible';
+        if (recurringGroup) recurringGroup.style.display = 'flex';
 
         document.getElementById('recurringOptions').style.display = 'none';
 
@@ -1340,7 +1340,7 @@ class UIController {
         const isRecurringInput = document.getElementById('isRecurring');
         const recurringGroup = isRecurringInput.closest('.checkbox-group');
 
-        if (recurringGroup) recurringGroup.style.visibility = 'hidden';
+        if (recurringGroup) recurringGroup.style.display = 'none';
 
         isRecurringInput.checked = t.isRecurring || false;
         isRecurringInput.disabled = true;
