@@ -1018,9 +1018,13 @@ input[type=number] {
         text-decoration: underline;
     }
 
-    .header-actions .btn {
+    .header-actions .btn:not(.btn-icon) {
         padding: 0 0.5rem;
         height: 32px;
+    }
+
+    .btn-icon {
+        flex-shrink: 0;
     }
 
     .btn span {
