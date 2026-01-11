@@ -1905,25 +1905,47 @@ input[type=number] {
     text-decoration: line-through;
 }
 
+.btn-activate-sub,
+.btn-delete-sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
 .btn-activate-sub {
     color: #4CAF50;
-    /* Green */
+    border-color: rgba(76, 175, 80, 0.3);
     background: rgba(76, 175, 80, 0.1);
 }
 
 .btn-activate-sub:hover {
     background: rgba(76, 175, 80, 0.2);
-    color: #81C784;
+    border-color: #4CAF50;
+    transform: translateY(-2px);
 }
 
 .btn-delete-sub {
     color: var(--expense-color);
+    border-color: rgba(242, 81, 27, 0.3);
     background: rgba(242, 81, 27, 0.1);
 }
 
 .btn-delete-sub:hover {
     background: rgba(242, 81, 27, 0.2);
-    color: #ff6b6b;
+    border-color: var(--expense-color);
+    transform: translateY(-2px);
+}
+
+.btn-delete-sub svg {
+    stroke: white;
 }
 
 .subs-item-info {
