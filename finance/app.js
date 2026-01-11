@@ -698,6 +698,7 @@ class FinanceManager {
             const subscriptions = await this.getSubscriptions();
 
             for (const sub of subscriptions) {
+                if (sub.active === false) continue;
                 if (sub.lastGenerated === currentMonth) continue;
 
                 const day = Math.min(sub.day, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
