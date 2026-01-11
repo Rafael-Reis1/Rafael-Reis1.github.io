@@ -115,8 +115,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
