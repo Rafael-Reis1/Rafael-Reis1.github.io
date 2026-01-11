@@ -840,6 +840,10 @@ class UIController {
         this.cancelSubInfo = document.getElementById('cancelSubInfo');
         this.cancelingSubId = null;
 
+        this.deleteSubModal = document.getElementById('deleteSubModal');
+        this.deleteSubInfo = document.getElementById('deleteSubInfo');
+        this.deletingSubId = null;
+
         this.isEditing = false;
         this.editingId = null;
     }
@@ -1038,6 +1042,7 @@ class UIController {
                 this.closeModal(seriesModal);
                 this.closeModal(this.subsModal);
                 this.closeModal(this.cancelSubModal);
+                this.closeModal(this.deleteSubModal);
             }
         });
 
@@ -1138,6 +1143,29 @@ class UIController {
 
         this.cancelSubModal.addEventListener('click', (e) => {
             if (e.target === this.cancelSubModal) this.closeModal(this.cancelSubModal);
+        });
+
+        // Delete Sub Modal Listeners
+        document.getElementById('closeDeleteSubModal').addEventListener('click', () => this.closeModal(this.deleteSubModal));
+        document.getElementById('cancelDeleteSub').addEventListener('click', () => this.closeModal(this.deleteSubModal));
+
+        document.getElementById('confirmDeleteSub').addEventListener('click', async () => {
+            if (this.deletingSubId) {
+                try {
+                    await this.fm.deleteSubscription(this.deletingSubId);
+                    this.closeModal(this.deleteSubModal);
+                    this.showToast('Assinatura excluída permanentemente', 'success');
+                    this.renderSubscriptionsList();
+                    this.deletingSubId = null;
+                } catch (error) {
+                    console.error('Erro ao excluir assinatura:', error);
+                    this.showToast('Erro ao excluir assinatura', 'error');
+                }
+            }
+        });
+
+        this.deleteSubModal.addEventListener('click', (e) => {
+            if (e.target === this.deleteSubModal) this.closeModal(this.deleteSubModal);
         });
     }
 
@@ -1925,17 +1953,10 @@ class UIController {
                         }
                     });
 
-                    div.querySelector('.btn-delete-sub').addEventListener('click', async (e) => {
-                        if (confirm('Tem certeza que deseja excluir esta assinatura permanentemente?')) {
-                            const id = e.currentTarget.dataset.id;
-                            try {
-                                await this.fm.deleteSubscription(id);
-                                this.showToast('Assinatura excluída com sucesso!', 'success');
-                            } catch (error) {
-                                console.error(error);
-                                this.showToast('Erro ao excluir assinatura', 'error');
-                            }
-                        }
+                    div.querySelector('.btn-delete-sub').addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.id;
+                        const name = sub.name;
+                        this.openDeleteSubModal(id, name);
                     });
                 }
 
@@ -1954,6 +1975,14 @@ class UIController {
             <span class="delete-amount">${amount}/mês</span>
         `;
         this.openModal(this.cancelSubModal);
+    }
+
+    openDeleteSubModal(id, name) {
+        this.deletingSubId = id;
+        this.deleteSubInfo.innerHTML = `
+            <span class="delete-desc">${this.escapeHtml(name)}</span>
+        `;
+        this.openModal(this.deleteSubModal);
     }
 
     showSubsListView() {
