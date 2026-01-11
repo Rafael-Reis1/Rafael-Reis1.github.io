@@ -300,6 +300,7 @@
                             <input type="date" id="editDate" required>
                         </div>
                         <div class="form-group checkbox-group">
+                            <label class="spacer-label">Spacer</label>
                             <label class="custom-checkbox-container">
                                 <input type="checkbox" id="isRecurring">
                                 <span class="custom-checkmark"></span>
@@ -410,8 +411,8 @@
             </div>
             <div class="modal-actions column" id="seriesDeleteActions" style="display: none;">
                 <p>Esta transação tem parcelas:</p>
-                <button class="btn btn-secondary" id="deleteSingle">Apenas esta</button>
-                <button class="btn btn-warning" id="deleteFuture">Esta e futuras</button>
+                <button class="btn btn-secondary" id="deleteSingle">Excluir esta</button>
+                <button class="btn btn-danger" id="deleteFuture">Desta em diante</button>
                 <button class="btn btn-danger" id="deleteAll">Todas as parcelas</button>
                 <button class="btn btn-secondary" id="cancelSeriesDelete">Cancelar</button>
             </div>

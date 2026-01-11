@@ -450,7 +450,8 @@ input[type=number] {
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 0.75rem 1rem;
+    height: 45px;
+    padding: 0 1rem;
     border-radius: 10px;
     border: 1px solid var(--glass-border);
     background: rgba(0, 0, 0, 0.2);
@@ -924,12 +925,7 @@ input[type=number] {
         gap: 1rem;
     }
 
-    .modal-actions.column {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-        width: 100%;
-    }
+
 
     .modal-actions.column p {
         grid-column: 1 / -1;
@@ -959,8 +955,6 @@ input[type=number] {
         color: var(--text-secondary);
         font-size: 0.875rem;
     }
-
-
 
     .btn-warning {
         background: transparent;
@@ -1553,6 +1547,10 @@ input[type=number] {
         display: contents;
     }
 
+    .spacer-label {
+        display: none;
+    }
+
     .checkbox-group {
         grid-column: 1 / -1;
         flex-direction: row;
@@ -1622,6 +1620,7 @@ input[type=number] {
 .series-item.future {
     background: rgba(245, 158, 11, 0.05);
     border-color: rgba(245, 158, 11, 0.2);
+    opacity: 0.9;
 }
 
 .series-item.paid {
@@ -1678,7 +1677,7 @@ input[type=number] {
 .input-group-split {
     display: flex;
     gap: 0.75rem;
-    align-items: flex-end;
+    align-items: flex-start;
 }
 
 .input-group-split .form-group {
@@ -1687,5 +1686,19 @@ input[type=number] {
 
 .input-group-split .checkbox-group {
     flex: 0 0 auto;
-    margin-bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.spacer-label {
+    visibility: hidden;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.input-group-split .custom-checkbox-container {
+    height: 45px;
+    display: flex;
+    align-items: center;
 }
