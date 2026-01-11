@@ -183,30 +183,64 @@ class FinanceManager {
     }
 
     add(transaction, onSyncError = null, onOffline = null) {
-        const newTransaction = {
-            id: this.generateId(),
-            ...transaction,
-            createdAt: new Date().toISOString()
-        };
+        let transactionsToAdd = [];
+        const installments = transaction.installments || 1;
+        const groupId = installments > 1 ? this.generateId() : null;
 
-        this.transactions.push(newTransaction);
+        if (installments > 1) {
+            const baseDate = new Date(transaction.date + 'T12:00:00');
+
+            for (let i = 0; i < installments; i++) {
+                const newDate = new Date(baseDate);
+                newDate.setMonth(baseDate.getMonth() + i);
+
+                const y = newDate.getFullYear();
+                const m = String(newDate.getMonth() + 1).padStart(2, '0');
+                const d = String(newDate.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${m}-${d}`;
+
+                transactionsToAdd.push({
+                    id: this.generateId(),
+                    ...transaction,
+                    description: `${transaction.description} (${i + 1}/${installments})`,
+                    date: dateStr,
+                    groupId: groupId,
+                    installmentCurrent: i + 1,
+                    installmentTotal: installments,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        } else {
+            transactionsToAdd.push({
+                id: this.generateId(),
+                ...transaction,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        this.transactions.push(...transactionsToAdd);
 
         if (auth.currentUser) {
+            const batch = db.batch();
+            const userRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
+
+            transactionsToAdd.forEach(t => {
+                const ref = userRef.doc(t.id);
+                batch.set(ref, t);
+            });
+
             if (navigator.onLine) {
-                db.collection('finance_data').doc(auth.currentUser.uid)
-                    .collection('transactions').doc(newTransaction.id).set(newTransaction)
-                    .catch(() => {
-                        this.hasPendingChanges = true;
-                        if (onSyncError) onSyncError();
-                    });
+                batch.commit().catch(() => {
+                    this.hasPendingChanges = true;
+                    if (onSyncError) onSyncError();
+                });
             } else {
-                db.collection('finance_data').doc(auth.currentUser.uid)
-                    .collection('transactions').doc(newTransaction.id).set(newTransaction);
+                batch.commit();
                 if (onOffline) onOffline();
             }
         }
 
-        return newTransaction;
+        return transactionsToAdd[0];
     }
 
     update(id, data, onSyncError = null, onOffline = null) {
@@ -232,24 +266,46 @@ class FinanceManager {
     }
 
     delete(id, onSyncError = null, onOffline = null) {
-        const index = this.transactions.findIndex(t => t.id === id);
-        if (index !== -1) {
-            this.transactions.splice(index, 1);
+        return this.deleteSeries(null, 'single', null, id, onSyncError, onOffline);
+    }
 
-            if (auth.currentUser) {
-                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
-                    .collection('transactions').doc(id);
+    deleteSeries(groupId, mode, referenceDate = null, id = null, onSyncError = null, onOffline = null) {
+        let transactionsToDelete = [];
 
-                ref.delete().catch((e) => {
-                    console.error(e);
+        if (mode === 'single') {
+            const t = this.get(id);
+            if (t) transactionsToDelete.push(t);
+        } else if (mode === 'future') {
+            transactionsToDelete = this.transactions.filter(t => t.groupId === groupId && t.date >= referenceDate);
+        } else if (mode === 'all') {
+            transactionsToDelete = this.transactions.filter(t => t.groupId === groupId);
+        }
+
+        if (transactionsToDelete.length === 0) return false;
+
+        const idsToDelete = new Set(transactionsToDelete.map(t => t.id));
+        this.transactions = this.transactions.filter(t => !idsToDelete.has(t.id));
+
+        if (auth.currentUser) {
+            const batch = db.batch();
+            const userRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
+
+            transactionsToDelete.forEach(t => {
+                const ref = userRef.doc(t.id);
+                batch.delete(ref);
+            });
+
+            if (navigator.onLine) {
+                batch.commit().catch(() => {
+                    this.hasPendingChanges = true;
                     if (onSyncError) onSyncError();
                 });
-
-                if (!navigator.onLine && onOffline) onOffline();
+            } else {
+                batch.commit();
+                if (onOffline) onOffline();
             }
-            return true;
         }
-        return false;
+        return true;
     }
 
     generateId() {
@@ -257,9 +313,29 @@ class FinanceManager {
     }
 
     getBalance() {
-        return this.transactions.reduce((acc, t) => {
-            return t.type === 'income' ? acc + t.amount : acc - t.amount;
-        }, 0);
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return this.transactions
+            .filter(t => t.date <= dateStr)
+            .reduce((acc, t) => {
+                return t.type === 'income' ? acc + t.amount : acc - t.amount;
+            }, 0);
+    }
+
+    getFutureExpenses() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return this.transactions
+            .filter(t => t.date > dateStr && t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
     }
 
     getMonthlyIncome(year, month) {
@@ -316,6 +392,14 @@ class FinanceManager {
 
     getFilteredTransactions(filters = {}) {
         const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        if (!filters.startDate && !filters.endDate) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            filters.endDate = `${year}-${month}-${day}`;
+        }
 
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
@@ -685,9 +769,20 @@ class UIController {
         this.editForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
         document.getElementById('editType').addEventListener('change', () => this.updateEditCategoryOptions());
 
+        const recurringCheckbox = document.getElementById('isRecurring');
+        const recurringOptions = document.getElementById('recurringOptions');
+        recurringCheckbox.addEventListener('change', (e) => {
+            recurringOptions.style.display = e.target.checked ? 'flex' : 'none';
+        });
+
         document.getElementById('closeDeleteModal').addEventListener('click', () => this.closeModal(this.deleteModal));
         document.getElementById('cancelDelete').addEventListener('click', () => this.closeModal(this.deleteModal));
         document.getElementById('confirmDelete').addEventListener('click', () => this.handleDeleteConfirm());
+
+        document.getElementById('deleteSingle').addEventListener('click', () => this.handleSeriesDelete('single'));
+        document.getElementById('deleteFuture').addEventListener('click', () => this.handleSeriesDelete('future'));
+        document.getElementById('deleteAll').addEventListener('click', () => this.handleSeriesDelete('all'));
+        document.getElementById('cancelSeriesDelete').addEventListener('click', () => this.closeModal(this.deleteModal));
 
         document.getElementById('closeImportModal').addEventListener('click', () => this.closeModal(this.importModal));
         document.getElementById('cancelImport').addEventListener('click', () => this.closeModal(this.importModal));
@@ -861,6 +956,7 @@ class UIController {
         });
 
         const balance = this.fm.getBalance();
+        const futureExpenses = this.fm.getFutureExpenses();
 
         const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.search;
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
@@ -869,6 +965,11 @@ class UIController {
         this.balanceValue.textContent = this.formatCurrency(balance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
         this.expenseValue.textContent = this.formatCurrency(totals.expense);
+
+        const futureElement = document.getElementById('futureValue');
+        if (futureElement) {
+            futureElement.textContent = this.formatCurrency(futureExpenses);
+        }
     }
 
     renderChart() {
@@ -1162,6 +1263,12 @@ class UIController {
         document.getElementById('editDescription').value = '';
         document.getElementById('editAmount').value = '';
         document.getElementById('editType').value = 'expense';
+
+        document.getElementById('isRecurring').checked = false;
+        document.getElementById('recurringOptions').style.display = 'none';
+        document.getElementById('recurringFrequency').value = 'monthly';
+        document.getElementById('recurringInstallments').value = '';
+
         this.updateEditCategoryOptions();
         this.setDefaultDate();
 
@@ -1200,6 +1307,16 @@ class UIController {
             category: document.getElementById('editCategory').value
         };
 
+        const isRecurring = document.getElementById('isRecurring').checked;
+        if (isRecurring && !this.isEditing) {
+            data.isRecurring = true;
+            data.frequency = document.getElementById('recurringFrequency').value;
+            const installments = parseInt(document.getElementById('recurringInstallments').value);
+            if (installments && installments > 1) {
+                data.installments = installments;
+            }
+        }
+
         const syncErrorCallback = () => {
             this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
         };
@@ -1213,7 +1330,7 @@ class UIController {
             this.showToast('Transação atualizada!', 'success');
         } else {
             this.fm.add(data, syncErrorCallback, offlineCallback);
-            this.showToast('Transação adicionada!', 'success');
+            this.showToast(data.installments ? 'Parcelas geradas com sucesso!' : 'Transação adicionada!', 'success');
         }
 
         this.closeModal(this.editModal);
@@ -1225,32 +1342,68 @@ class UIController {
         if (!t) return;
 
         this.pendingDeleteId = id;
-        const sign = t.type === 'income' ? '+' : '-';
+        this.pendingDeleteGroup = t.groupId || null;
+        this.pendingDeleteDate = t.date;
 
+        const sign = t.type === 'income' ? '+' : '-';
         const safeDesc = this.escapeHtml(t.description);
 
         this.deleteInfo.innerHTML = `
             <span class="delete-desc" title="${safeDesc}">${safeDesc}</span>
             <span class="delete-amount">${sign} ${this.formatCurrency(t.amount)}</span>
         `;
+
+        const defaultActions = document.getElementById('defaultDeleteActions');
+        const seriesActions = document.getElementById('seriesDeleteActions');
+
+        if (this.pendingDeleteGroup) {
+            defaultActions.style.display = 'none';
+            seriesActions.style.display = 'flex';
+        } else {
+            defaultActions.style.display = 'flex';
+            seriesActions.style.display = 'none';
+        }
+
         this.openModal(this.deleteModal);
     }
 
     handleDeleteConfirm() {
         if (this.pendingDeleteId) {
-            const syncErrorCallback = () => {
-                this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
-            };
+            this.handleSeriesDelete('single');
+        }
+    }
 
-            const offlineCallback = () => {
-                this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
-            };
+    handleSeriesDelete(mode) {
+        if (!this.pendingDeleteId) return;
 
-            this.fm.delete(this.pendingDeleteId, syncErrorCallback, offlineCallback);
+        const syncErrorCallback = () => {
+            this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
+        };
+
+        const offlineCallback = () => {
+            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+        };
+
+        const success = this.fm.deleteSeries(
+            this.pendingDeleteGroup,
+            mode,
+            this.pendingDeleteDate,
+            this.pendingDeleteId,
+            syncErrorCallback,
+            offlineCallback
+        );
+
+        if (success) {
             this.pendingDeleteId = null;
+            this.pendingDeleteGroup = null;
+            this.pendingDeleteDate = null;
             this.closeModal(this.deleteModal);
             this.render();
-            this.showToast('Transação excluída!', 'success');
+
+            let msg = 'Transação excluída!';
+            if (mode === 'future') msg = 'Transações futuras excluídas!';
+            if (mode === 'all') msg = 'Série excluída com sucesso!';
+            this.showToast(msg, 'success');
         }
     }
 

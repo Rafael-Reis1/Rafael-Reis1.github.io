@@ -284,6 +284,24 @@
                         <input type="date" id="editDate" required>
                     </div>
                 </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="isRecurring">
+                    <label for="isRecurring">Repetir / Parcelar?</label>
+                </div>
+
+                <div id="recurringOptions" class="form-row" style="display: none;">
+                    <div class="form-group">
+                        <label for="recurringFrequency">Frequência</label>
+                        <select id="recurringFrequency">
+                            <option value="monthly">Mensalmente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="recurringInstallments">Parcelas (Opcional)</label>
+                        <input type="number" id="recurringInstallments" placeholder="Ex: 10 (Vazio = Fixo)" min="2">
+                    </div>
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="editType">Tipo</label>
@@ -373,9 +391,16 @@
                 <p>Tem certeza que deseja excluir esta transação?</p>
                 <p class="delete-info" id="deleteInfo"></p>
             </div>
-            <div class="modal-actions">
+            <div class="modal-actions" id="defaultDeleteActions">
                 <button class="btn btn-secondary" id="cancelDelete">Cancelar</button>
                 <button class="btn btn-danger" id="confirmDelete">Excluir</button>
+            </div>
+            <div class="modal-actions column" id="seriesDeleteActions" style="display: none;">
+                <p>Esta transação repete. Como excluir?</p>
+                <button class="btn btn-secondary" id="deleteSingle">Apenas esta</button>
+                <button class="btn btn-warning" id="deleteFuture">Esta e futuras</button>
+                <button class="btn btn-danger" id="deleteAll">Todas as parcelas</button>
+                <button class="btn btn-text cancel-series" id="cancelSeriesDelete">Cancelar</button>
             </div>
         </div>
     </div>
