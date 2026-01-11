@@ -1364,11 +1364,14 @@ class UIController {
 
         const isRecurring = document.getElementById('isRecurring').checked;
         if (isRecurring && !this.isEditing) {
-            data.isRecurring = true;
             const installments = parseInt(document.getElementById('recurringInstallments').value);
-            if (installments && installments > 1) {
-                data.installments = installments;
+            if (!installments || installments < 2) {
+                this.showToast('Informe o número de parcelas (mínimo 2)', 'error');
+                document.getElementById('recurringInstallments').focus();
+                return;
             }
+            data.isRecurring = true;
+            data.installments = installments;
         }
 
         const syncErrorCallback = () => {
