@@ -1921,32 +1921,32 @@ input[type=number] {
 }
 
 .btn-activate-sub {
-    color: #4CAF50;
-    border-color: rgba(76, 175, 80, 0.3);
-    background: rgba(76, 175, 80, 0.1);
+    color: var(--text-secondary);
+    background: var(--glass-bg);
+    border-color: transparent;
 }
 
 .btn-activate-sub:hover {
     background: rgba(76, 175, 80, 0.2);
-    border-color: #4CAF50;
-    transform: translateY(-2px);
+    color: #4CAF50;
+    border-color: transparent;
 }
 
+
+
 .btn-delete-sub {
-    color: var(--expense-color);
-    border-color: rgba(242, 81, 27, 0.3);
-    background: rgba(242, 81, 27, 0.1);
+    color: var(--text-secondary);
+    background: var(--glass-bg);
+    border-color: transparent;
 }
 
 .btn-delete-sub:hover {
-    background: rgba(242, 81, 27, 0.2);
-    border-color: var(--expense-color);
-    transform: translateY(-2px);
+    background: rgba(220, 53, 69, 0.2);
+    color: var(--danger-color);
+    border-color: transparent;
 }
 
-.btn-delete-sub svg {
-    stroke: white;
-}
+
 
 .subs-item-info {
     display: flex;
@@ -2025,8 +2025,8 @@ input[type=number] {
 }
 
 .btn-edit-sub:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    background: var(--glass-bg-hover);
+    color: var(--text-primary);
 }
 
 .btn-cancel-sub:hover {
