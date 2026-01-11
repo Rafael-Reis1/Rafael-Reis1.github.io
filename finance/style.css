@@ -899,6 +899,7 @@ input[type=number] {
     flex-direction: column;
     width: auto;
     min-width: unset;
+    margin-bottom: 0;
 }
 
 .spacer-label {
