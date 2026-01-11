@@ -1722,3 +1722,48 @@ input[type=number] {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
 }
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    border-color: var(--accent-color);
+}
+
+.btn-icon.active {
+    background: rgba(242, 81, 27, 0.1);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.privacy-mode .card-value,
+.privacy-mode .transaction-amount,
+.privacy-mode .delete-amount,
+.privacy-mode .series-stat strong,
+.privacy-mode .series-item-amount {
+    filter: blur(8px);
+    user-select: none;
+    transition: filter 0.3s ease;
+}
+
+.privacy-mode .card-value:hover,
+.privacy-mode .transaction-amount:hover,
+.privacy-mode .delete-amount:hover,
+.privacy-mode .series-stat strong:hover,
+.privacy-mode .series-item-amount:hover {
+    filter: blur(0);
+}
