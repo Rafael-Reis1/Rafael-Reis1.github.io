@@ -1359,7 +1359,6 @@ class UIController {
         const isRecurring = document.getElementById('isRecurring').checked;
         if (isRecurring && !this.isEditing) {
             data.isRecurring = true;
-            data.frequency = document.getElementById('recurringFrequency').value;
             const installments = parseInt(document.getElementById('recurringInstallments').value);
             if (installments && installments > 1) {
                 data.installments = installments;
