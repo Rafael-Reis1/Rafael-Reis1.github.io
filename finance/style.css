@@ -1893,6 +1893,39 @@ input[type=number] {
     border-radius: 12px;
 }
 
+.subs-item.inactive {
+    background: rgba(242, 81, 27, 0.15);
+    border-color: rgba(242, 81, 27, 0.3);
+    opacity: 0.8;
+}
+
+.subs-item.inactive .subs-name,
+.subs-item.inactive .subs-amount {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: line-through;
+}
+
+.btn-activate-sub {
+    color: #4CAF50;
+    /* Green */
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.btn-activate-sub:hover {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81C784;
+}
+
+.btn-delete-sub {
+    color: var(--expense-color);
+    background: rgba(242, 81, 27, 0.1);
+}
+
+.btn-delete-sub:hover {
+    background: rgba(242, 81, 27, 0.2);
+    color: #ff6b6b;
+}
+
 .subs-item-info {
     display: flex;
     align-items: center;
