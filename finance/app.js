@@ -650,6 +650,28 @@ class FinanceManager {
         await subRef.update({ active: false });
     }
 
+    async activateSubscription(id) {
+        if (!auth.currentUser) return;
+
+        const subRef = db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .doc(id);
+
+        await subRef.update({ active: true });
+    }
+
+    async deleteSubscription(id) {
+        if (!auth.currentUser) return;
+
+        const subRef = db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .doc(id);
+
+        await subRef.delete();
+    }
+
     async updateSubscription(id, data) {
         if (!auth.currentUser) return;
 
@@ -1822,7 +1844,48 @@ class UIController {
             subscriptions.forEach(sub => {
                 const icon = CATEGORIES.expense[sub.category] || '📦';
                 const div = document.createElement('div');
-                div.className = 'subs-item';
+                const isActive = sub.active !== false;
+                div.className = `subs-item ${isActive ? '' : 'inactive'}`;
+
+                let actionButtons = '';
+                if (isActive) {
+                    actionButtons = `
+                        <button class="btn-edit-sub" data-id="${sub.id}" title="Editar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-cancel-sub" data-id="${sub.id}" title="Cancelar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    `;
+                } else {
+                    actionButtons = `
+                         <button class="btn-edit-sub" data-id="${sub.id}" title="Editar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-activate-sub" data-id="${sub.id}" title="Reativar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </button>
+                        <button class="btn-delete-sub" data-id="${sub.id}" title="Excluir Permanentemente">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    `;
+                }
+
                 div.innerHTML = `
                     <div class="subs-item-info">
                         <span class="subs-icon">${icon}</span>
@@ -1833,18 +1896,7 @@ class UIController {
                     </div>
                     <div class="subs-item-actions">
                         <div class="subs-action-buttons">
-                            <button class="btn-edit-sub" data-id="${sub.id}" title="Editar">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </button>
-                            <button class="btn-cancel-sub" data-id="${sub.id}" title="Cancelar">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
+                            ${actionButtons}
                         </div>
                         <span class="subs-amount">${this.formatCurrency(sub.amount)}</span>
                     </div>
@@ -1854,12 +1906,38 @@ class UIController {
                     this.showSubsFormView(true, sub);
                 });
 
-                div.querySelector('.btn-cancel-sub').addEventListener('click', (e) => {
-                    const id = e.currentTarget.dataset.id;
-                    const name = sub.name;
-                    const amount = this.formatCurrency(sub.amount);
-                    this.openCancelSubModal(id, name, amount);
-                });
+                if (isActive) {
+                    div.querySelector('.btn-cancel-sub').addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.id;
+                        const name = sub.name;
+                        const amount = this.formatCurrency(sub.amount);
+                        this.openCancelSubModal(id, name, amount);
+                    });
+                } else {
+                    div.querySelector('.btn-activate-sub').addEventListener('click', async (e) => {
+                        const id = e.currentTarget.dataset.id;
+                        try {
+                            await this.fm.activateSubscription(id);
+                            this.showToast('Assinatura reativada com sucesso!', 'success');
+                        } catch (error) {
+                            console.error(error);
+                            this.showToast('Erro ao reativar assinatura', 'error');
+                        }
+                    });
+
+                    div.querySelector('.btn-delete-sub').addEventListener('click', async (e) => {
+                        if (confirm('Tem certeza que deseja excluir esta assinatura permanentemente?')) {
+                            const id = e.currentTarget.dataset.id;
+                            try {
+                                await this.fm.deleteSubscription(id);
+                                this.showToast('Assinatura excluída com sucesso!', 'success');
+                            } catch (error) {
+                                console.error(error);
+                                this.showToast('Erro ao excluir assinatura', 'error');
+                            }
+                        }
+                    });
+                }
 
                 this.subsList.appendChild(div);
             });
