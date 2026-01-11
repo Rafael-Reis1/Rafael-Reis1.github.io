@@ -82,8 +82,11 @@ const CATEGORY_COLORS = {
 class FinanceManager {
     constructor() {
         this.transactions = [];
+        this.subscriptions = [];
         this._hasPendingChanges = false;
         this.unsubscribeListener = null;
+        this.unsubscribeSubsListener = null;
+        this.onSubsUpdateCallback = null;
     }
 
     async initListener(user, onUpdateCallback) {
@@ -93,12 +96,9 @@ class FinanceManager {
 
         this.stopListener();
 
+        const transactionsRef = db.collection('finance_data').doc(user.uid).collection('transactions');
 
-        const collectionRef = db.collection('finance_data').doc(user.uid).collection('transactions');
-
-        this.unsubscribeListener = collectionRef.onSnapshot((snapshot) => {
-
-
+        this.unsubscribeListener = transactionsRef.onSnapshot((snapshot) => {
             this.transactions = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -106,15 +106,35 @@ class FinanceManager {
 
             if (onUpdateCallback) onUpdateCallback();
         }, (error) => {
-            console.error('Erro no Listener:', error);
+            console.error('Erro no Listener de Transações:', error);
+        });
+
+        const subsRef = db.collection('finance_data').doc(user.uid).collection('subscriptions');
+
+        this.unsubscribeSubsListener = subsRef.onSnapshot((snapshot) => {
+            this.subscriptions = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            if (this.onSubsUpdateCallback) this.onSubsUpdateCallback();
+        }, (error) => {
+            console.error('Erro no Listener de Assinaturas:', error);
         });
     }
 
     stopListener() {
         if (this.unsubscribeListener) {
-
             this.unsubscribeListener();
             this.unsubscribeListener = null;
+        }
+        this.stopSubscriptionsListener();
+    }
+
+    stopSubscriptionsListener() {
+        if (this.unsubscribeSubsListener) {
+            this.unsubscribeSubsListener();
+            this.unsubscribeSubsListener = null;
         }
     }
 
@@ -615,16 +635,8 @@ class FinanceManager {
         return subscription;
     }
 
-    async getSubscriptions() {
-        if (!auth.currentUser) return [];
-
-        const snapshot = await db.collection('finance_data')
-            .doc(auth.currentUser.uid)
-            .collection('subscriptions')
-            .where('active', '==', true)
-            .get();
-
-        return snapshot.docs.map(doc => doc.data());
+    getSubscriptions() {
+        return this.subscriptions;
     }
 
     async cancelSubscription(id) {
@@ -1784,15 +1796,21 @@ class UIController {
     }
 
     async openSubsModal() {
-        await this.renderSubscriptionsList();
+        this.renderSubscriptionsList();
         this.openModal(this.subsModal);
+
+        this.fm.onSubsUpdateCallback = () => {
+            if (this.subsModal.classList.contains('active')) {
+                this.renderSubscriptionsList();
+            }
+        };
     }
 
-    async renderSubscriptionsList() {
+    renderSubscriptionsList() {
         this.subsList.innerHTML = '';
 
         try {
-            const subscriptions = await this.fm.getSubscriptions();
+            const subscriptions = this.fm.getSubscriptions();
 
             if (subscriptions.length === 0) {
                 this.noSubs.style.display = 'block';
