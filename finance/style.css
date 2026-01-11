@@ -35,7 +35,7 @@
 
 html {
     scrollbar-width: thin;
-    scrollbar-color: var(--text-secondary) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 body {
@@ -48,8 +48,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -57,13 +57,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .app-container {
@@ -262,83 +262,72 @@ body {
     color: var(--expense-color);
 }
 
-.card.future {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
-    border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.card.future h3 {
+.future .card-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
     color: #fbbf24;
 }
 
-.toggle-group {
+.checkbox-group {
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 0px;
+}
+
+.custom-checkbox-container {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    flex-direction: row;
-    margin-bottom: 1rem;
-    background: transparent;
-    padding: 0;
-    border: none;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-    flex-shrink: 0;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
+    gap: 0.5rem;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.2);
-    transition: .4s;
-    border-radius: 24px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-input:checked+.slider {
-    background-color: var(--accent-color);
-}
-
-input:focus+.slider {
-    box-shadow: 0 0 1px var(--accent-color);
-}
-
-input:checked+.slider:before {
-    transform: translateX(20px);
-}
-
-.toggle-label {
-    cursor: pointer;
-    font-weight: normal;
-    color: var(--text-secondary) !important;
-    margin-bottom: 0 !important;
     font-size: 0.95rem;
+    color: var(--text-secondary);
+    user-select: none;
+    height: 48px;
 }
+
+.custom-checkbox-container input {
+    display: none;
+}
+
+.custom-checkmark {
+    height: 20px;
+    width: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.custom-checkmark:after {
+    content: "";
+    display: none;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.custom-checkbox-container input:checked~.custom-checkmark {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.custom-checkbox-container input:checked~.custom-checkmark:after {
+    display: block;
+}
+
+.custom-checkbox-container:hover .custom-checkmark {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-checkbox-container input:checked~.checkbox-label {
+    color: var(--text-primary);
+}
+
+
 
 .full-width {
     grid-column: 1 / -1;
@@ -652,11 +641,18 @@ input[type=number] {
 
 .transaction-actions {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.25rem;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
     margin-left: auto;
-    min-width: 100px;
+    min-width: 150px;
+}
+
+.transaction-amount {
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+    order: 2;
 }
 
 .action-buttons {
@@ -664,6 +660,7 @@ input[type=number] {
     gap: 0.5rem;
     opacity: 0;
     transition: opacity 0.2s ease;
+    order: 1;
 }
 
 .transaction-item:hover .action-buttons {
@@ -917,8 +914,8 @@ input[type=number] {
     }
 
     .modal-actions.column {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 0.75rem;
     }
 
@@ -926,17 +923,23 @@ input[type=number] {
         width: 100%;
         justify-content: center;
         height: auto;
-        padding: 0.75rem;
+        padding: 0.75rem 0.5rem;
         white-space: normal;
         text-align: center;
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.2;
     }
 
     .modal-actions.column p {
+        grid-column: 1 / -1;
         text-align: center;
         margin-bottom: 0.5rem;
         color: var(--text-secondary);
         font-size: 0.875rem;
     }
+
+
 
     .btn-warning {
         background: transparent;
@@ -1615,4 +1618,11 @@ input[type=number] {
 .series-list::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    width: 100%;
 }

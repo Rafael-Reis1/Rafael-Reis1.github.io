@@ -208,6 +208,7 @@ class FinanceManager {
                 transactionsToAdd.push({
                     id: this.generateId(),
                     ...transaction,
+                    amount: amount,
                     description: `${transaction.description} (${i + 1}/${installments})`,
                     date: dateStr,
                     groupId: groupId,
@@ -403,8 +404,22 @@ class FinanceManager {
     }
 
     getFilteredTransactions(filters = {}) {
-        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');        // Default to "Current Month" logic removed locally to respect user preference (Show All / No Filter)
+        if (!filters.endDate) {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${day}`;
 
+            if (!filters.startDate || filters.startDate <= todayStr) {
+                filters.endDate = todayStr;
+                
+                const endInput = document.getElementById('filterEndDate');
+                if (endInput) endInput.value = filters.endDate;
+            }
+        }
+
+        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
@@ -1429,6 +1444,57 @@ class UIController {
             if (mode === 'all') msg = 'Série excluída com sucesso!';
             this.showToast(msg, 'success');
         }
+    }
+
+
+    openSeriesModal(groupId) {
+        const transactions = this.fm.getGroupTransactions(groupId);
+        if (!transactions || transactions.length === 0) return;
+
+        this.seriesModal = document.getElementById('seriesModal');
+        const listContainer = document.getElementById('seriesList');
+        const summaryContainer = document.getElementById('seriesSummary');
+
+        listContainer.innerHTML = '';
+
+        const totalAmount = transactions.reduce((acc, t) => acc + t.amount, 0);
+        const remaining = transactions.filter(t => new Date(t.date) > new Date()).reduce((acc, t) => acc + t.amount, 0);
+
+        summaryContainer.innerHTML = `
+            <div class="series-stat">
+                <span>Total da Série</span>
+                <strong>${this.formatCurrency(totalAmount)}</strong>
+            </div>
+            <div class="series-stat">
+                <span>Restante</span>
+                <strong>${this.formatCurrency(remaining)}</strong>
+            </div>
+        `;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        transactions.forEach(t => {
+            const tDate = new Date(t.date + 'T12:00:00');
+            const isFuture = tDate > today;
+            const isPaid = !isFuture;
+
+            const div = document.createElement('div');
+            div.className = `series-item ${isPaid ? 'paid' : 'future'}`;
+
+            div.innerHTML = `
+                <div class="series-item-info">
+                    <span class="series-date">${this.formatDate(t.date)}</span>
+                    <span class="series-desc">${t.installmentCurrent ? `${t.installmentCurrent}/${t.installmentTotal}` : ''} - ${this.escapeHtml(t.description)}</span>
+                </div>
+                <div class="series-item-amount currency-${t.type}">
+                    ${this.formatCurrency(t.amount)}
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+
+        this.openModal(this.seriesModal);
     }
 
     handleExport() {
