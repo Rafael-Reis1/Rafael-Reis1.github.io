@@ -281,7 +281,8 @@ body {
     font-size: 0.95rem;
     color: var(--text-secondary);
     user-select: none;
-    height: 48px;
+    height: 42px;
+    padding-top: 1.5rem;
 }
 
 .custom-checkbox-container input {

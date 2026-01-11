@@ -413,7 +413,7 @@ class FinanceManager {
 
             if (!filters.startDate || filters.startDate <= todayStr) {
                 filters.endDate = todayStr;
-                
+
                 const endInput = document.getElementById('filterEndDate');
                 if (endInput) endInput.value = filters.endDate;
             }
@@ -586,6 +586,16 @@ class UIController {
 
         this.initElements();
         this.initEventListeners();
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        this.currentFilters.endDate = todayStr;
+        if (this.filterEndDate) this.filterEndDate.value = todayStr;
+
         this.setDefaultDate();
         this.render();
     }
@@ -1305,7 +1315,7 @@ class UIController {
 
         document.getElementById('isRecurring').checked = false;
         document.getElementById('recurringOptions').style.display = 'none';
-        document.getElementById('recurringFrequency').value = 'monthly';
+
         document.getElementById('recurringInstallments').value = '';
 
         this.updateEditCategoryOptions();
