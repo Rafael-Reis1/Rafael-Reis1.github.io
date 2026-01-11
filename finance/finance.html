@@ -92,6 +92,15 @@
                             </svg>
                             Importar Backup
                         </button>
+                        <button id="btnSubscriptions" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+                                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                                <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
+                            </svg>
+                            Assinaturas Fixas
+                        </button>
                         <div class="dropdown-divider"></div>
                         <button id="btnLogout" class="dropdown-item danger">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -461,6 +470,56 @@
                 <button class="btn btn-primary" id="mergeImport">Mesclar Dados</button>
                 <button class="btn btn-danger" id="replaceImport">Substituir Tudo</button>
             </div>
+        </div>
+    </div>
+
+    <div id="subsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assinaturas Fixas</h3>
+                <button class="modal-close" id="closeSubsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="subsList" class="subs-list"></div>
+                <p id="noSubs" class="no-data-message" style="display: none;">Nenhuma assinatura cadastrada</p>
+            </div>
+            <form id="subsForm">
+                <div class="form-group">
+                    <label for="subsName">Nome da Assinatura</label>
+                    <input type="text" id="subsName" placeholder="Ex: Netflix, Spotify" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="subsAmount">Valor (R$)</label>
+                        <input type="text" id="subsAmount" inputmode="numeric" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subsDay">Dia do Vencimento</label>
+                        <input type="number" id="subsDay" min="1" max="31" placeholder="1-31" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="subsCategory">Categoria</label>
+                    <select id="subsCategory" required>
+                        <optgroup label="Despesas">
+                            <option value="alimentacao">🍔 Alimentação</option>
+                            <option value="transporte">🚗 Transporte</option>
+                            <option value="moradia">🏠 Moradia</option>
+                            <option value="saude">💊 Saúde</option>
+                            <option value="educacao">📚 Educação</option>
+                            <option value="lazer" selected>🎬 Lazer</option>
+                            <option value="vestuario">👕 Vestuário</option>
+                            <option value="compras">🛒 Compras</option>
+                            <option value="servicos">🔧 Serviços</option>
+                            <option value="outros">📦 Outros</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelSubs">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </form>
         </div>
     </div>
 

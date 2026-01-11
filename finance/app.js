@@ -552,6 +552,103 @@ class FinanceManager {
 
         return this.transactions.length;
     }
+
+    async addSubscription(data) {
+        if (!auth.currentUser) return null;
+
+        const subscription = {
+            id: this.generateId(),
+            name: data.name,
+            amount: data.amount,
+            category: data.category,
+            day: data.day,
+            active: true,
+            lastGenerated: '',
+            createdAt: new Date().toISOString()
+        };
+
+        const subRef = db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .doc(subscription.id);
+
+        await subRef.set(subscription);
+        return subscription;
+    }
+
+    async getSubscriptions() {
+        if (!auth.currentUser) return [];
+
+        const snapshot = await db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .where('active', '==', true)
+            .get();
+
+        return snapshot.docs.map(doc => doc.data());
+    }
+
+    async cancelSubscription(id) {
+        if (!auth.currentUser) return;
+
+        const subRef = db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .doc(id);
+
+        await subRef.update({ active: false });
+    }
+
+    async checkRecurringExpenses() {
+        if (!auth.currentUser) return;
+
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+        try {
+            const subscriptions = await this.getSubscriptions();
+
+            for (const sub of subscriptions) {
+                if (sub.lastGenerated === currentMonth) continue;
+
+                const day = Math.min(sub.day, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
+                const transactionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                const batch = db.batch();
+
+                const transactionId = this.generateId();
+                const transactionRef = db.collection('finance_data')
+                    .doc(auth.currentUser.uid)
+                    .collection('transactions')
+                    .doc(transactionId);
+
+                const transaction = {
+                    id: transactionId,
+                    description: `${sub.name} (Assinatura)`,
+                    amount: sub.amount,
+                    date: transactionDate,
+                    type: 'expense',
+                    category: sub.category,
+                    subscriptionId: sub.id,
+                    createdAt: new Date().toISOString()
+                };
+
+                batch.set(transactionRef, transaction);
+
+                const subRef = db.collection('finance_data')
+                    .doc(auth.currentUser.uid)
+                    .collection('subscriptions')
+                    .doc(sub.id);
+
+                batch.update(subRef, { lastGenerated: currentMonth });
+
+                await batch.commit();
+                console.log(`Assinatura "${sub.name}" gerada para ${currentMonth}`);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar assinaturas:', error);
+        }
+    }
 }
 
 class UIController {
@@ -644,6 +741,12 @@ class UIController {
 
         this.toast = document.getElementById('toast');
 
+        this.subsModal = document.getElementById('subsModal');
+        this.subsForm = document.getElementById('subsForm');
+        this.subsList = document.getElementById('subsList');
+        this.noSubs = document.getElementById('noSubs');
+        this.btnSubscriptions = document.getElementById('btnSubscriptions');
+
         this.isEditing = false;
         this.editingId = null;
     }
@@ -693,6 +796,7 @@ class UIController {
                 await this.fm.initListener(user, () => {
                     this.render();
                 });
+                await this.fm.checkRecurringExpenses();
             } else {
                 this.fm.stopListener();
                 this.fm.clear();
@@ -860,6 +964,55 @@ class UIController {
             privacyIconHide.style.display = isActive ? 'block' : 'none';
             localStorage.setItem('privacyMode', isActive);
             this.showToast(isActive ? 'Modo privacidade ativado' : 'Modo privacidade desativado', 'success');
+        });
+
+        this.btnSubscriptions.addEventListener('click', () => {
+            this.userDropdown.classList.remove('active');
+            this.openSubsModal();
+        });
+
+        document.getElementById('closeSubsModal').addEventListener('click', () => this.closeModal(this.subsModal));
+        document.getElementById('cancelSubs').addEventListener('click', () => this.closeModal(this.subsModal));
+
+        this.subsModal.addEventListener('click', (e) => {
+            if (e.target === this.subsModal) this.closeModal(this.subsModal);
+        });
+
+        const subsAmountInput = document.getElementById('subsAmount');
+        subsAmountInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value === '') value = '0';
+            const amount = (parseInt(value) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            e.target.value = amount;
+        });
+
+        this.subsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const rawAmount = document.getElementById('subsAmount').value;
+            const amount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
+            const day = parseInt(document.getElementById('subsDay').value);
+
+            if (day < 1 || day > 31) {
+                this.showToast('Dia deve ser entre 1 e 31', 'error');
+                return;
+            }
+
+            const data = {
+                name: document.getElementById('subsName').value.trim(),
+                amount: amount,
+                day: day,
+                category: document.getElementById('subsCategory').value
+            };
+
+            try {
+                await this.fm.addSubscription(data);
+                this.showToast('Assinatura adicionada!', 'success');
+                this.subsForm.reset();
+                this.renderSubscriptionsList();
+            } catch (error) {
+                this.showToast('Erro ao adicionar assinatura', 'error');
+            }
         });
     }
 
@@ -1537,6 +1690,64 @@ class UIController {
         });
 
         this.openModal(this.seriesModal);
+    }
+
+    async openSubsModal() {
+        await this.renderSubscriptionsList();
+        this.openModal(this.subsModal);
+    }
+
+    async renderSubscriptionsList() {
+        this.subsList.innerHTML = '';
+
+        try {
+            const subscriptions = await this.fm.getSubscriptions();
+
+            if (subscriptions.length === 0) {
+                this.noSubs.style.display = 'block';
+                return;
+            }
+
+            this.noSubs.style.display = 'none';
+
+            subscriptions.forEach(sub => {
+                const icon = CATEGORIES.expense[sub.category] || '📦';
+                const div = document.createElement('div');
+                div.className = 'subs-item';
+                div.innerHTML = `
+                    <div class="subs-item-info">
+                        <span class="subs-icon">${icon}</span>
+                        <div class="subs-details">
+                            <span class="subs-name">${this.escapeHtml(sub.name)}</span>
+                            <span class="subs-meta">Dia ${sub.day} • ${CATEGORY_NAMES[sub.category] || sub.category}</span>
+                        </div>
+                    </div>
+                    <div class="subs-item-actions">
+                        <span class="subs-amount">${this.formatCurrency(sub.amount)}</span>
+                        <button class="btn-cancel-sub" data-id="${sub.id}" title="Cancelar assinatura">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+
+                div.querySelector('.btn-cancel-sub').addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    if (confirm('Cancelar esta assinatura?')) {
+                        await this.fm.cancelSubscription(id);
+                        this.showToast('Assinatura cancelada', 'success');
+                        this.renderSubscriptionsList();
+                    }
+                });
+
+                this.subsList.appendChild(div);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar assinaturas:', error);
+            this.showToast('Erro ao carregar assinaturas', 'error');
+        }
     }
 
     handleExport() {
