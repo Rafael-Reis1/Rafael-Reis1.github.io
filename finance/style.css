@@ -954,7 +954,6 @@ input[type=number] {
 }
 
 @media (max-width: 768px) {
-
     html,
     body {
         overflow-x: hidden;
@@ -1942,6 +1941,11 @@ input[type=number] {
 @media (max-width: 768px) {
     .subs-action-buttons {
         opacity: 1;
+    }
+
+    .subs-list {
+        padding: 20px 24px 20px 24px;
+        scrollbar-gutter: stable;
     }
 }
 
