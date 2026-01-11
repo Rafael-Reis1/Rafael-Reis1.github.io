@@ -189,6 +189,9 @@ class FinanceManager {
 
         if (installments > 1) {
             const baseDate = new Date(transaction.date + 'T12:00:00');
+            const installmentValue = Math.round((transaction.amount / installments) * 100) / 100; // Round to 2 decimals
+            const totalCalculated = installmentValue * installments;
+            const diff = Math.round((transaction.amount - totalCalculated) * 100) / 100;
 
             for (let i = 0; i < installments; i++) {
                 const newDate = new Date(baseDate);
@@ -198,6 +201,9 @@ class FinanceManager {
                 const m = String(newDate.getMonth() + 1).padStart(2, '0');
                 const d = String(newDate.getDate()).padStart(2, '0');
                 const dateStr = `${y}-${m}-${d}`;
+
+                let amount = installmentValue;
+                if (i === 0 && diff !== 0) amount += diff;
 
                 transactionsToAdd.push({
                     id: this.generateId(),
@@ -397,32 +403,8 @@ class FinanceManager {
     }
 
     getFilteredTransactions(filters = {}) {
-        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');        // Default to "Current Month" logic removed locally to respect user preference (Show All / No Filter)
 
-        if (!filters.startDate && !filters.endDate) {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
-
-            const firstDay = new Date(year, month, 1);
-            const fYear = firstDay.getFullYear();
-            const fMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
-            const fDay = String(firstDay.getDate()).padStart(2, '0');
-            filters.startDate = `${fYear}-${fMonth}-${fDay}`;
-
-            const lastDay = new Date(year, month + 1, 0);
-            const lYear = lastDay.getFullYear();
-            const lMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
-            const lDay = String(lastDay.getDate()).padStart(2, '0');
-            filters.endDate = `${lYear}-${lMonth}-${lDay}`;
-
-            const startInput = document.getElementById('filterStartDate');
-            const endInput = document.getElementById('filterEndDate');
-            if (startInput && endInput) {
-                startInput.value = filters.startDate;
-                endInput.value = filters.endDate;
-            }
-        }
 
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
@@ -1615,5 +1597,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const financeManager = new FinanceManager();
     const ui = new UIController(financeManager);
 
+    window.app = ui;
     window.financeApp = { financeManager, ui };
 });
