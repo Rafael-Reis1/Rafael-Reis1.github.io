@@ -1502,7 +1502,7 @@ class UIController {
             div.innerHTML = `
                 <div class="series-item-info">
                     <span class="series-date">${this.formatDate(t.date)}</span>
-                    <span class="series-desc">${t.installmentCurrent ? `${t.installmentCurrent}/${t.installmentTotal}` : ''} - ${this.escapeHtml(t.description)}</span>
+                    <span class="series-desc">${this.escapeHtml(t.description)}</span>
                 </div>
                 <div class="series-item-amount currency-${t.type}">
                     ${this.formatCurrency(t.amount)}
