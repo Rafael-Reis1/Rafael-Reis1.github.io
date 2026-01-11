@@ -34,7 +34,8 @@
 }
 
 html {
-    scrollbar-color: var(--accent-color) var(--body-bg);
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-secondary) transparent;
 }
 
 body {
@@ -47,23 +48,22 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 5px;
+    height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 4px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    transition: background 0.3s;
+    border-radius: 3px;
+    transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-color);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .app-container {
@@ -274,20 +274,19 @@ body {
 .toggle-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     flex-direction: row;
     margin-bottom: 1rem;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    border: 1px solid var(--glass-border);
+    background: transparent;
+    padding: 0;
+    border: none;
 }
 
 .switch {
     position: relative;
     display: inline-block;
-    width: 48px;
-    height: 24px;
+    width: 40px;
+    height: 20px;
     flex-shrink: 0;
 }
 
@@ -304,26 +303,20 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
     transition: .4s;
+    border-radius: 24px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 14px;
+    width: 14px;
     left: 3px;
     bottom: 3px;
     background-color: white;
     transition: .4s;
-}
-
-.slider.round {
-    border-radius: 24px;
-}
-
-.slider.round:before {
     border-radius: 50%;
 }
 
@@ -336,14 +329,15 @@ input:focus+.slider {
 }
 
 input:checked+.slider:before {
-    transform: translateX(24px);
+    transform: translateX(20px);
 }
 
 .toggle-label {
     cursor: pointer;
-    font-weight: 500;
-    color: var(--text-primary) !important;
+    font-weight: normal;
+    color: var(--text-secondary) !important;
     margin-bottom: 0 !important;
+    font-size: 0.95rem;
 }
 
 .full-width {
@@ -658,8 +652,11 @@ input[type=number] {
 
 .transaction-actions {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    margin-left: auto;
+    min-width: 100px;
 }
 
 .action-buttons {
