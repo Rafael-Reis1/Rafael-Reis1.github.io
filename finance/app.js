@@ -599,6 +599,22 @@ class FinanceManager {
         await subRef.update({ active: false });
     }
 
+    async updateSubscription(id, data) {
+        if (!auth.currentUser) return;
+
+        const subRef = db.collection('finance_data')
+            .doc(auth.currentUser.uid)
+            .collection('subscriptions')
+            .doc(id);
+
+        await subRef.update({
+            name: data.name,
+            amount: data.amount,
+            day: data.day,
+            category: data.category
+        });
+    }
+
     async checkRecurringExpenses() {
         if (!auth.currentUser) return;
 
@@ -947,6 +963,8 @@ class UIController {
                 this.closeModal(this.importModal);
                 this.closeModal(this.filterModal);
                 this.closeModal(seriesModal);
+                this.closeModal(this.subsModal);
+                this.closeModal(this.cancelSubModal);
             }
         });
 
@@ -982,6 +1000,10 @@ class UIController {
             if (e.target === this.subsModal) this.closeModal(this.subsModal);
         });
 
+        // View toggle buttons
+        document.getElementById('btnAddSub').addEventListener('click', () => this.showSubsFormView(false));
+        document.getElementById('backToSubsList').addEventListener('click', () => this.showSubsListView());
+
         const subsAmountInput = document.getElementById('subsAmount');
         subsAmountInput.addEventListener('input', (e) => {
             let value = e.target.value.replace(/\D/g, '');
@@ -996,6 +1018,7 @@ class UIController {
             const rawAmount = document.getElementById('subsAmount').value;
             const amount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
             const day = parseInt(document.getElementById('subsDay').value);
+            const editId = document.getElementById('subsEditId').value;
 
             if (day < 1 || day > 31) {
                 this.showToast('Dia deve ser entre 1 e 31', 'error');
@@ -1010,12 +1033,20 @@ class UIController {
             };
 
             try {
-                await this.fm.addSubscription(data);
-                this.showToast('Despesa fixa adicionada!', 'success');
+                if (editId) {
+                    await this.fm.updateSubscription(editId, data);
+                    this.showToast('Despesa fixa atualizada!', 'success');
+                } else {
+                    await this.fm.addSubscription(data);
+                    await this.fm.checkRecurringExpenses();
+                    this.showToast('Despesa fixa adicionada!', 'success');
+                }
                 this.subsForm.reset();
+                document.getElementById('subsEditId').value = '';
+                this.showSubsListView();
                 this.renderSubscriptionsList();
             } catch (error) {
-                this.showToast('Erro ao adicionar despesa fixa', 'error');
+                this.showToast('Erro ao salvar despesa fixa', 'error');
             }
         });
 
@@ -1744,15 +1775,27 @@ class UIController {
                         </div>
                     </div>
                     <div class="subs-item-actions">
+                        <div class="subs-action-buttons">
+                            <button class="btn-edit-sub" data-id="${sub.id}" title="Editar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-cancel-sub" data-id="${sub.id}" title="Cancelar">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
                         <span class="subs-amount">${this.formatCurrency(sub.amount)}</span>
-                        <button class="btn-cancel-sub" data-id="${sub.id}" title="Cancelar assinatura">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
                     </div>
                 `;
+
+                div.querySelector('.btn-edit-sub').addEventListener('click', () => {
+                    this.showSubsFormView(true, sub);
+                });
 
                 div.querySelector('.btn-cancel-sub').addEventListener('click', (e) => {
                     const id = e.currentTarget.dataset.id;
@@ -1776,6 +1819,34 @@ class UIController {
             <span class="delete-amount">${amount}/mês</span>
         `;
         this.openModal(this.cancelSubModal);
+    }
+
+    showSubsListView() {
+        document.getElementById('subsListView').style.display = 'block';
+        document.getElementById('subsFormView').style.display = 'none';
+        document.getElementById('subsModalTitle').textContent = 'Despesas Fixas';
+        this.subsForm.reset();
+        document.getElementById('subsEditId').value = '';
+    }
+
+    showSubsFormView(isEdit = false, sub = null) {
+        document.getElementById('subsListView').style.display = 'none';
+        document.getElementById('subsFormView').style.display = 'block';
+
+        if (isEdit && sub) {
+            document.getElementById('subsModalTitle').textContent = 'Editar Despesa Fixa';
+            document.getElementById('subsName').value = sub.name;
+            document.getElementById('subsAmount').value = (sub.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            document.getElementById('subsDay').value = sub.day;
+            document.getElementById('subsCategory').value = sub.category;
+            document.getElementById('subsEditId').value = sub.id;
+            document.getElementById('subsSubmitBtn').textContent = 'Salvar';
+        } else {
+            document.getElementById('subsModalTitle').textContent = 'Nova Despesa Fixa';
+            this.subsForm.reset();
+            document.getElementById('subsEditId').value = '';
+            document.getElementById('subsSubmitBtn').textContent = 'Adicionar';
+        }
     }
 
     handleExport() {
