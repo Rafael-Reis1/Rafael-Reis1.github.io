@@ -747,6 +747,10 @@ class UIController {
         this.noSubs = document.getElementById('noSubs');
         this.btnSubscriptions = document.getElementById('btnSubscriptions');
 
+        this.cancelSubModal = document.getElementById('cancelSubModal');
+        this.cancelSubInfo = document.getElementById('cancelSubInfo');
+        this.cancelingSubId = null;
+
         this.isEditing = false;
         this.editingId = null;
     }
@@ -1007,12 +1011,29 @@ class UIController {
 
             try {
                 await this.fm.addSubscription(data);
-                this.showToast('Assinatura adicionada!', 'success');
+                this.showToast('Despesa fixa adicionada!', 'success');
                 this.subsForm.reset();
                 this.renderSubscriptionsList();
             } catch (error) {
-                this.showToast('Erro ao adicionar assinatura', 'error');
+                this.showToast('Erro ao adicionar despesa fixa', 'error');
             }
+        });
+
+        document.getElementById('closeCancelSubModal').addEventListener('click', () => this.closeModal(this.cancelSubModal));
+        document.getElementById('cancelSubNo').addEventListener('click', () => this.closeModal(this.cancelSubModal));
+
+        document.getElementById('cancelSubYes').addEventListener('click', async () => {
+            if (this.cancelingSubId) {
+                await this.fm.cancelSubscription(this.cancelingSubId);
+                this.closeModal(this.cancelSubModal);
+                this.showToast('Despesa fixa cancelada', 'success');
+                this.renderSubscriptionsList();
+                this.cancelingSubId = null;
+            }
+        });
+
+        this.cancelSubModal.addEventListener('click', (e) => {
+            if (e.target === this.cancelSubModal) this.closeModal(this.cancelSubModal);
         });
     }
 
@@ -1733,13 +1754,11 @@ class UIController {
                     </div>
                 `;
 
-                div.querySelector('.btn-cancel-sub').addEventListener('click', async (e) => {
+                div.querySelector('.btn-cancel-sub').addEventListener('click', (e) => {
                     const id = e.currentTarget.dataset.id;
-                    if (confirm('Cancelar esta assinatura?')) {
-                        await this.fm.cancelSubscription(id);
-                        this.showToast('Assinatura cancelada', 'success');
-                        this.renderSubscriptionsList();
-                    }
+                    const name = sub.name;
+                    const amount = this.formatCurrency(sub.amount);
+                    this.openCancelSubModal(id, name, amount);
                 });
 
                 this.subsList.appendChild(div);
@@ -1748,6 +1767,15 @@ class UIController {
             console.error('Erro ao carregar assinaturas:', error);
             this.showToast('Erro ao carregar assinaturas', 'error');
         }
+    }
+
+    openCancelSubModal(id, name, amount) {
+        this.cancelingSubId = id;
+        this.cancelSubInfo.innerHTML = `
+            <span class="delete-desc">${this.escapeHtml(name)}</span>
+            <span class="delete-amount">${amount}/mês</span>
+        `;
+        this.openModal(this.cancelSubModal);
     }
 
     handleExport() {
