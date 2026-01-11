@@ -262,6 +262,33 @@ body {
     color: var(--expense-color);
 }
 
+.card.future {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.card.future h3 {
+    color: #fbbf24;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--primary-color);
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
 .card-content {
     display: flex;
     flex-direction: column;
@@ -289,6 +316,13 @@ body {
 
 .expense .card-value {
     color: var(--expense-color);
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .content-grid {
@@ -815,6 +849,44 @@ input[type=number] {
         gap: 0.5rem;
     }
 
+    .modal-actions {
+        padding: 1.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .modal-actions.column {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .modal-actions.column p {
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .btn-warning {
+        background: transparent;
+        border: 1px solid #f59e0b;
+        color: #f59e0b;
+    }
+
+    .btn-warning:hover {
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .btn-text {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        text-decoration: underline;
+    }
+
     .header-actions .btn {
         padding: 0 0.5rem;
         height: 32px;
@@ -832,6 +904,10 @@ input[type=number] {
         padding: 0.75rem;
         max-width: 100%;
         box-sizing: border-box;
+    }
+
+    .cards-container {
+        grid-template-columns: 1fr;
     }
 
     .dashboard {
