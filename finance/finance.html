@@ -493,24 +493,38 @@
     <div id="subsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Despesas Fixas</h3>
+                <h3 id="subsModalTitle">Despesas Fixas</h3>
                 <button class="modal-close" id="closeSubsModal">&times;</button>
             </div>
-            <div class="modal-body">
-                <div id="subsList" class="subs-list"></div>
-                <div id="noSubs" class="empty-state" style="display: none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="1.5">
-                        <rect x="3" y="4" width="18" height="16" rx="2" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                        <line x1="7" y1="15" x2="11" y2="15" />
-                    </svg>
-                    <p>Nenhuma despesa fixa cadastrada</p>
-                    <span>Cadastre despesas recorrentes como Netflix, aluguel, internet...</span>
+
+            <div id="subsListView">
+                <div class="modal-body">
+                    <div id="subsList" class="subs-list"></div>
+                    <div id="noSubs" class="empty-state" style="display: none;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <rect x="3" y="4" width="18" height="16" rx="2" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                            <line x1="7" y1="15" x2="11" y2="15" />
+                        </svg>
+                        <p>Nenhuma despesa fixa cadastrada</p>
+                        <span>Cadastre despesas recorrentes como Netflix, aluguel, internet...</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelSubs">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="btnAddSub">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Adicionar
+                    </button>
                 </div>
             </div>
-            <div class="subs-form-section">
-                <h4>Nova Despesa Fixa</h4>
+
+            <div id="subsFormView" style="display: none;">
                 <form id="subsForm">
                     <div class="form-group">
                         <label for="subsName">Nome</label>
@@ -543,9 +557,10 @@
                             </optgroup>
                         </select>
                     </div>
+                    <input type="hidden" id="subsEditId" value="">
                     <div class="modal-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelSubs">Fechar</button>
-                        <button type="submit" class="btn btn-primary">Adicionar</button>
+                        <button type="button" class="btn btn-secondary" id="backToSubsList">Voltar</button>
+                        <button type="submit" class="btn btn-primary" id="subsSubmitBtn">Adicionar</button>
                     </div>
                 </form>
             </div>
