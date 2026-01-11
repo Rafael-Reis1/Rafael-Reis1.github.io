@@ -1772,9 +1772,59 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-height: 250px;
+    max-height: 200px;
     overflow-y: auto;
-    margin-bottom: 1rem;
+}
+
+.subs-list:empty+.empty-state {
+    display: flex !important;
+}
+
+.empty-state {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.empty-state svg {
+    opacity: 0.5;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.empty-state span {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.subs-form-section {
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.subs-form-section h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.subs-form-section form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .subs-item {
