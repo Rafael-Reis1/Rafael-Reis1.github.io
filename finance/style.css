@@ -33,9 +33,28 @@
     box-sizing: border-box;
 }
 
-html {
+* {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
 }
 
 body {
@@ -45,25 +64,6 @@ body {
     min-height: 100vh;
     font-family: var(--font-body);
     line-height: 1.6;
-}
-
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    transition: background 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
 }
 
 .app-container {
@@ -918,6 +918,8 @@ input[type=number] {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 0.75rem;
+        width: 100%;
+        /* Ensure full width */
     }
 
     .modal-actions.column .btn {
@@ -1522,6 +1524,29 @@ input[type=number] {
 
     .transaction-amount {
         margin-left: 0;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .checkbox-group {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        height: auto;
+        padding-top: 0.5rem;
+    }
+
+    .checkbox-group label[style*="visibility: hidden"] {
+        display: none;
+    }
+
+    .custom-checkbox-container {
+        height: auto;
+        margin-left: 0.25rem;
     }
 }
 
