@@ -271,22 +271,83 @@ body {
     color: #fbbf24;
 }
 
-.checkbox-group {
+.toggle-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
+    flex-direction: row;
     margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
 }
 
-.checkbox-group input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    accent-color: var(--primary-color);
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    flex-shrink: 0;
 }
 
-.checkbox-group label {
-    margin-bottom: 0;
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
     cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--accent-color);
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px var(--accent-color);
+}
+
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-label {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary) !important;
+    margin-bottom: 0 !important;
+}
+
+.full-width {
+    grid-column: 1 / -1;
 }
 
 .card-content {
@@ -861,6 +922,16 @@ input[type=number] {
     .modal-actions.column {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .modal-actions.column .btn {
+        width: 100%;
+        justify-content: center;
+        height: auto;
+        padding: 0.75rem;
+        white-space: normal;
+        text-align: center;
     }
 
     .modal-actions.column p {
@@ -1444,7 +1515,107 @@ input[type=number] {
         opacity: 1;
     }
 
+    .action-buttons {
+        opacity: 1;
+    }
+
     .transaction-amount {
         margin-left: 0;
     }
+}
+
+.series-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.series-stat {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.series-stat span {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.series-stat strong {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.series-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.series-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid transparent;
+}
+
+.series-item.future {
+    background: rgba(245, 158, 11, 0.05);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.series-item.paid {
+    opacity: 0.7;
+}
+
+.series-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.series-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.series-desc {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.series-item-amount {
+    font-weight: 600;
+}
+
+.currency-expense {
+    color: var(--expense-color);
+}
+
+.currency-income {
+    color: var(--income-color);
+}
+
+.series-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.series-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.series-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
 }
