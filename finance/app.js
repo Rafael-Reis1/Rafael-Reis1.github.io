@@ -1259,13 +1259,13 @@ class UIController {
                     <div class="action-buttons">
                         ${hasSeries ? `
                         <button class="action-btn series-btn" onclick="app.openSeriesModal('${t.groupId}')" title="Ver Série">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="8" y1="6" x2="21" y2="6"></line>
-                                <line x1="8" y1="12" x2="21" y2="12"></line>
-                                <line x1="8" y1="18" x2="21" y2="18"></line>
-                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 6h13"></path>
+                                <path d="M8 12h13"></path>
+                                <path d="M8 18h13"></path>
+                                <path d="M3 6h.01"></path>
+                                <path d="M3 12h.01"></path>
+                                <path d="M3 18h.01"></path>
                             </svg>
                         </button>
                         ` : ''}
@@ -1475,17 +1475,19 @@ class UIController {
 
         listContainer.innerHTML = '';
 
-        const totalAmount = transactions.reduce((acc, t) => acc + t.amount, 0);
-        const remaining = transactions.filter(t => new Date(t.date) > new Date()).reduce((acc, t) => acc + t.amount, 0);
+        const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+        const remainingAmount = transactions
+            .filter(t => new Date(t.date) >= new Date())
+            .reduce((sum, t) => sum + t.amount, 0);
 
         summaryContainer.innerHTML = `
             <div class="series-stat">
-                <span>Total da Série</span>
-                <strong>${this.formatCurrency(totalAmount)}</strong>
+                <span>Total das parcelas</span>
+                <strong>R$ ${this.formatCurrency(totalAmount)}</strong>
             </div>
             <div class="series-stat">
                 <span>Restante</span>
-                <strong>${this.formatCurrency(remaining)}</strong>
+                <strong>R$ ${this.formatCurrency(remainingAmount)}</strong>
             </div>
         `;
 
