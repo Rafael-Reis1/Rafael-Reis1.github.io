@@ -308,6 +308,12 @@ class FinanceManager {
         return true;
     }
 
+    getGroupTransactions(groupId) {
+        return this.transactions
+            .filter(t => t.groupId === groupId)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
@@ -396,9 +402,26 @@ class FinanceManager {
         if (!filters.startDate && !filters.endDate) {
             const today = new Date();
             const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            filters.endDate = `${year}-${month}-${day}`;
+            const month = today.getMonth();
+
+            const firstDay = new Date(year, month, 1);
+            const fYear = firstDay.getFullYear();
+            const fMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+            const fDay = String(firstDay.getDate()).padStart(2, '0');
+            filters.startDate = `${fYear}-${fMonth}-${fDay}`;
+
+            const lastDay = new Date(year, month + 1, 0);
+            const lYear = lastDay.getFullYear();
+            const lMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
+            const lDay = String(lastDay.getDate()).padStart(2, '0');
+            filters.endDate = `${lYear}-${lMonth}-${lDay}`;
+
+            const startInput = document.getElementById('filterStartDate');
+            const endInput = document.getElementById('filterEndDate');
+            if (startInput && endInput) {
+                startInput.value = filters.startDate;
+                endInput.value = filters.endDate;
+            }
         }
 
         return this.transactions.filter(t => {
@@ -784,6 +807,8 @@ class UIController {
         document.getElementById('deleteAll').addEventListener('click', () => this.handleSeriesDelete('all'));
         document.getElementById('cancelSeriesDelete').addEventListener('click', () => this.closeModal(this.deleteModal));
 
+        document.getElementById('closeSeriesModal').addEventListener('click', () => this.closeModal(document.getElementById('seriesModal')));
+
         document.getElementById('closeImportModal').addEventListener('click', () => this.closeModal(this.importModal));
         document.getElementById('cancelImport').addEventListener('click', () => this.closeModal(this.importModal));
         document.getElementById('mergeImport').addEventListener('click', () => this.handleImportConfirm(false));
@@ -965,10 +990,15 @@ class UIController {
         this.balanceValue.textContent = this.formatCurrency(balance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
         this.expenseValue.textContent = this.formatCurrency(totals.expense);
-
         const futureElement = document.getElementById('futureValue');
-        if (futureElement) {
+        const futureCard = document.querySelector('.card.future');
+        if (futureElement && futureCard) {
             futureElement.textContent = this.formatCurrency(futureExpenses);
+            if (futureExpenses === 0) {
+                futureCard.style.display = 'none';
+            } else {
+                futureCard.style.display = 'flex';
+            }
         }
     }
 
@@ -1207,6 +1237,7 @@ class UIController {
             const categoryName = CATEGORY_NAMES[t.category] || t.category;
             const sign = t.type === 'income' ? '+' : '-';
             const date = new Date(t.date + 'T12:00:00');
+            const hasSeries = t.groupId;
 
             el.innerHTML = `
                 <div class="transaction-info">
@@ -1214,32 +1245,43 @@ class UIController {
                         ${icon}
                     </div>
                     <div class="transaction-details">
-                        <span class="transaction-desc">${t.description}</span>
+                        <span class="transaction-desc" title="${this.escapeHtml(t.description)}">${this.escapeHtml(t.description)}</span>
                         <div class="transaction-meta">
-                            <span class="transaction-date">${date.toLocaleDateString('pt-BR')}</span>
-                            -
-                            <span class="transaction-cat">${categoryName}</span>
+                            ${this.formatDate(t.date)} ${t.category ? `• ${this.getCategoryName(t.category)}` : ''} 
+                            ${t.installmentCurrent ? `• ${t.installmentCurrent}/${t.installmentTotal}` : ''}
                         </div>
                     </div>
                 </div>
                 <div class="transaction-actions">
+                    <span class="transaction-amount ${t.type}">
+                        ${sign} ${this.formatCurrency(t.amount)}
+                    </span>
                     <div class="action-buttons">
-                        <button class="action-btn edit" title="Editar">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        ${hasSeries ? `
+                        <button class="action-btn series-btn" onclick="app.openSeriesModal('${t.groupId}')" title="Ver Série">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                        </button>
+                        ` : ''}
+                        <button class="action-btn edit" onclick="app.openEditModal('${t.id}')" title="Editar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button class="action-btn delete" title="Excluir">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button class="action-btn delete" onclick="app.openDeleteModal('${t.id}')" title="Excluir">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                             </svg>
                         </button>
                     </div>
-                    <span class="transaction-amount ${t.type}">
-                        ${sign} ${this.formatCurrency(t.amount)}
-                    </span>
                 </div>
             `;
 

@@ -285,21 +285,25 @@
                     </div>
                 </div>
 
-                <div class="form-group checkbox-group">
-                    <input type="checkbox" id="isRecurring">
-                    <label for="isRecurring">Repetir / Parcelar?</label>
+                <div class="form-group toggle-group">
+                    <label class="switch">
+                        <input type="checkbox" id="isRecurring">
+                        <span class="slider round"></span>
+                    </label>
+                    <label for="isRecurring" class="toggle-label">Repetir / Parcelar?</label>
                 </div>
 
                 <div id="recurringOptions" class="form-row" style="display: none;">
-                    <div class="form-group">
+                    <div class="form-group" style="display: none;"> <!-- Hidden as it's the only option -->
                         <label for="recurringFrequency">Frequência</label>
                         <select id="recurringFrequency">
                             <option value="monthly">Mensalmente</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="recurringInstallments">Parcelas (Opcional)</label>
-                        <input type="number" id="recurringInstallments" placeholder="Ex: 10 (Vazio = Fixo)" min="2">
+                    <div class="form-group full-width">
+                        <label for="recurringInstallments">Número de Parcelas</label>
+                        <input type="number" id="recurringInstallments"
+                            placeholder="Ex: 10 (Deixe vazio para fixo mensal)" min="2">
                     </div>
                 </div>
                 <div class="form-row">
@@ -401,6 +405,20 @@
                 <button class="btn btn-warning" id="deleteFuture">Esta e futuras</button>
                 <button class="btn btn-danger" id="deleteAll">Todas as parcelas</button>
                 <button class="btn btn-text cancel-series" id="cancelSeriesDelete">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="seriesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes da Série</h3>
+                <button class="modal-close" id="closeSeriesModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="series-summary" id="seriesSummary"></div>
+                <div class="series-list" id="seriesList">
+                </div>
             </div>
         </div>
     </div>
