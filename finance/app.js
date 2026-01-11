@@ -1307,8 +1307,12 @@ class UIController {
         document.getElementById('editType').value = 'expense';
 
         const isRecurringInput = document.getElementById('isRecurring');
+        const recurringGroup = isRecurringInput.closest('.checkbox-group');
+
         isRecurringInput.checked = false;
         isRecurringInput.disabled = false;
+        if (recurringGroup) recurringGroup.style.visibility = 'visible';
+
         document.getElementById('recurringOptions').style.display = 'none';
 
         document.getElementById('recurringInstallments').value = '';
@@ -1334,6 +1338,10 @@ class UIController {
         document.getElementById('editType').value = t.type;
 
         const isRecurringInput = document.getElementById('isRecurring');
+        const recurringGroup = isRecurringInput.closest('.checkbox-group');
+
+        if (recurringGroup) recurringGroup.style.visibility = 'hidden';
+
         isRecurringInput.checked = t.isRecurring || false;
         isRecurringInput.disabled = true;
         document.getElementById('recurringOptions').style.display = 'none';
@@ -1407,7 +1415,7 @@ class UIController {
 
         if (this.pendingDeleteGroup) {
             defaultActions.style.display = 'none';
-            seriesActions.style.display = 'flex';
+            seriesActions.style.display = 'grid';
         } else {
             defaultActions.style.display = 'flex';
             seriesActions.style.display = 'none';

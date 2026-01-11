@@ -38,21 +38,25 @@
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
+::-webkit-scrollbar,
 *::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
+::-webkit-scrollbar-track,
 *::-webkit-scrollbar-track {
     background: transparent;
 }
 
+::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     transition: background 0.2s ease;
 }
 
+::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
 }
@@ -269,9 +273,11 @@ body {
 
 .checkbox-group {
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding-bottom: 0px;
+    flex-direction: row;
+    align-items: center;
+    align-self: flex-end;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0;
 }
 
 .custom-checkbox-container {
