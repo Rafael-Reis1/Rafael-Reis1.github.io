@@ -823,20 +823,22 @@ class UIController {
             e.target.value = amount;
         });
 
-        [this.editModal, this.deleteModal, this.importModal].forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.closeModal(modal);
-            });
+        const seriesModal = document.getElementById('seriesModal');
+        [this.editModal, this.deleteModal, this.importModal, this.filterModal, seriesModal].forEach(modal => {
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeModal(modal);
+                });
+            }
         });
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeModal(this.editModal);
                 this.closeModal(this.deleteModal);
-                this.closeModal(this.editModal);
-                this.closeModal(this.deleteModal);
                 this.closeModal(this.importModal);
                 this.closeModal(this.filterModal);
+                this.closeModal(seriesModal);
             }
         });
     }
