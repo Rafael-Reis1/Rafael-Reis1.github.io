@@ -136,6 +136,21 @@ body {
     gap: 0.75rem;
 }
 
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    object-fit: cover;
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+}
+
+.user-avatar:hover {
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -954,6 +969,7 @@ input[type=number] {
 }
 
 @media (max-width: 768px) {
+
     html,
     body {
         overflow-x: hidden;
@@ -1867,6 +1883,9 @@ input[type=number] {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
+    margin-right: 0.5rem;
 }
 
 .subs-icon {
@@ -1881,6 +1900,9 @@ input[type=number] {
 .subs-name {
     font-weight: 500;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .subs-meta {
