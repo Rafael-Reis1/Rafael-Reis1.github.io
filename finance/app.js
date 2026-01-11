@@ -404,7 +404,10 @@ class FinanceManager {
     }
 
     getFilteredTransactions(filters = {}) {
-        if (!filters.endDate) {
+        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        let effectiveEndDate = filters.endDate;
+        if (!effectiveEndDate) {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -412,19 +415,14 @@ class FinanceManager {
             const todayStr = `${year}-${month}-${day}`;
 
             if (!filters.startDate || filters.startDate <= todayStr) {
-                filters.endDate = todayStr;
-
-                const endInput = document.getElementById('filterEndDate');
-                if (endInput) endInput.value = filters.endDate;
+                effectiveEndDate = todayStr;
             }
         }
-
-        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
-            if (filters.endDate && tDate > filters.endDate) return false;
+            if (effectiveEndDate && tDate > effectiveEndDate) return false;
             if (filters.type && t.type !== filters.type) return false;
 
             if (filters.category) {
@@ -590,11 +588,7 @@ class UIController {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
 
-        this.currentFilters.endDate = todayStr;
-        if (this.filterEndDate) this.filterEndDate.value = todayStr;
 
         this.setDefaultDate();
         this.render();
@@ -1255,7 +1249,6 @@ class UIController {
                         <span class="transaction-desc" title="${this.escapeHtml(t.description)}">${this.escapeHtml(t.description)}</span>
                         <div class="transaction-meta">
                             ${this.formatDate(t.date)} ${t.category ? `• ${this.getCategoryName(t.category)}` : ''} 
-                            ${t.installmentCurrent ? `• ${t.installmentCurrent}/${t.installmentTotal}` : ''}
                         </div>
                     </div>
                 </div>
@@ -1313,7 +1306,9 @@ class UIController {
         document.getElementById('editAmount').value = '';
         document.getElementById('editType').value = 'expense';
 
-        document.getElementById('isRecurring').checked = false;
+        const isRecurringInput = document.getElementById('isRecurring');
+        isRecurringInput.checked = false;
+        isRecurringInput.disabled = false;
         document.getElementById('recurringOptions').style.display = 'none';
 
         document.getElementById('recurringInstallments').value = '';
@@ -1337,6 +1332,12 @@ class UIController {
         document.getElementById('editAmount').value = t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         document.getElementById('editDate').value = t.date;
         document.getElementById('editType').value = t.type;
+
+        const isRecurringInput = document.getElementById('isRecurring');
+        isRecurringInput.checked = t.isRecurring || false;
+        isRecurringInput.disabled = true;
+        document.getElementById('recurringOptions').style.display = 'none';
+
         this.updateEditCategoryOptions(t.category);
 
         this.openModal(this.editModal);
