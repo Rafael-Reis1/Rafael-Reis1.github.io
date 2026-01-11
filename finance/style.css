@@ -154,6 +154,10 @@ body {
     object-fit: cover;
     border: 1px solid var(--glass-border);
     transition: all 0.2s ease;
+    display: block;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 .user-avatar:hover {
