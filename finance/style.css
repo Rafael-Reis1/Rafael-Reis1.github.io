@@ -1949,8 +1949,7 @@ input[type=number] {
 }
 
 #subsListView .modal-body {
-    padding-top: 0;
-    padding-bottom: 0;
+    padding: 0;
 }
 
 .privacy-mode .subs-amount {
