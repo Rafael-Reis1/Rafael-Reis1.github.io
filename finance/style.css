@@ -1780,8 +1780,26 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-height: 200px;
+    max-height: 350px;
     overflow-y: auto;
+    padding-right: 4px;
+}
+
+.subs-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.subs-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.subs-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.subs-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .subs-list:empty+.empty-state {
