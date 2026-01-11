@@ -484,11 +484,21 @@ class FinanceManager {
         return Array.from(categories);
     }
 
-    export() {
+    async export() {
+        let subscriptions = [];
+        if (auth.currentUser) {
+            const subsSnapshot = await db.collection('finance_data')
+                .doc(auth.currentUser.uid)
+                .collection('subscriptions')
+                .get();
+            subscriptions = subsSnapshot.docs.map(doc => doc.data());
+        }
+
         return {
-            version: '1.0',
+            version: '1.1',
             exportedAt: new Date().toISOString(),
-            transactions: this.transactions
+            transactions: this.transactions,
+            subscriptions: subscriptions
         };
     }
 
@@ -547,6 +557,35 @@ class FinanceManager {
                     });
                     await batch.commit();
                 }
+            }
+        }
+
+        if (data.subscriptions && Array.isArray(data.subscriptions) && auth.currentUser) {
+            const subsRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('subscriptions');
+            let subsToImport = data.subscriptions;
+
+            if (replace) {
+                const subsSnapshot = await subsRef.get();
+                const subsToDelete = subsSnapshot.docs;
+                for (let i = 0; i < subsToDelete.length; i += 500) {
+                    const batch = db.batch();
+                    subsToDelete.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+            } else {
+                const currentSubsSnapshot = await subsRef.get();
+                const existingSubIds = new Set(currentSubsSnapshot.docs.map(doc => doc.id));
+                subsToImport = subsToImport.filter(s => !existingSubIds.has(s.id));
+            }
+
+            for (let i = 0; i < subsToImport.length; i += 500) {
+                const chunk = subsToImport.slice(i, i + 500);
+                const batch = db.batch();
+                chunk.forEach(s => {
+                    const ref = subsRef.doc(s.id);
+                    batch.set(ref, s);
+                });
+                await batch.commit();
             }
         }
 
@@ -1849,8 +1888,8 @@ class UIController {
         }
     }
 
-    handleExport() {
-        const data = this.fm.export();
+    async handleExport() {
+        const data = await this.fm.export();
         const json = JSON.stringify(data, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
