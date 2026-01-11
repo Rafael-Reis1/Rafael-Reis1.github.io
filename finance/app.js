@@ -841,6 +841,26 @@ class UIController {
                 this.closeModal(seriesModal);
             }
         });
+
+        const btnPrivacy = document.getElementById('btnPrivacy');
+        const privacyIconShow = document.getElementById('privacyIconShow');
+        const privacyIconHide = document.getElementById('privacyIconHide');
+
+        if (localStorage.getItem('privacyMode') === 'true') {
+            document.body.classList.add('privacy-mode');
+            btnPrivacy.classList.add('active');
+            privacyIconShow.style.display = 'none';
+            privacyIconHide.style.display = 'block';
+        }
+
+        btnPrivacy.addEventListener('click', () => {
+            const isActive = document.body.classList.toggle('privacy-mode');
+            btnPrivacy.classList.toggle('active', isActive);
+            privacyIconShow.style.display = isActive ? 'none' : 'block';
+            privacyIconHide.style.display = isActive ? 'block' : 'none';
+            localStorage.setItem('privacyMode', isActive);
+            this.showToast(isActive ? 'Modo privacidade ativado' : 'Modo privacidade desativado', 'success');
+        });
     }
 
     setDefaultDate() {
