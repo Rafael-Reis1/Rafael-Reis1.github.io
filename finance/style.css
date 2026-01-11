@@ -134,12 +134,13 @@ body {
 .header-actions {
     display: flex;
     gap: 0.75rem;
+    align-items: center;
 }
 
 .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
     cursor: pointer;
     object-fit: cover;
     border: 1px solid var(--glass-border);
@@ -1886,15 +1887,19 @@ input[type=number] {
     min-width: 0;
     flex: 1;
     margin-right: 0.5rem;
+    flex-shrink: 1;
 }
 
 .subs-icon {
     font-size: 1.5rem;
+    flex-shrink: 0;
 }
 
 .subs-details {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 
 .subs-name {
@@ -1903,6 +1908,7 @@ input[type=number] {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .subs-meta {
