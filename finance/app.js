@@ -1520,6 +1520,20 @@ class UIController {
         }
     }
 
+    getCategoryName(key) {
+        return CATEGORY_NAMES[key] || key;
+    }
+
+    getCategoryColor(type, key) {
+        if (type === 'income') return 'var(--income-color)';
+        return CATEGORY_COLORS[key] || 'var(--text-primary)';
+    }
+
+    getCategoryColorBg(type, key) {
+        if (type === 'income') return 'rgba(34, 197, 94, 0.1)';
+        return 'rgba(255, 255, 255, 0.05)';
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
