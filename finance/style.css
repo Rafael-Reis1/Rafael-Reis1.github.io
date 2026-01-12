@@ -2141,10 +2141,55 @@ input[type=number] {
     justify-content: center;
 }
 
-@media (display-mode: standalone) {
+.btn-install {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    width: 36px;
+    height: 36px;
+    justify-content: flex-start;
+    padding: 0;
+    position: relative;
+    border-radius: 10px;
+}
 
+.btn-install svg {
+    min-width: 36px;
+    height: 100%;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-install span {
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    padding-right: 1rem;
+}
+
+@media (hover: hover) {
+    .btn-install:hover {
+        width: 140px;
+        background: var(--glass-bg-hover);
+        border-color: var(--accent-color);
+    }
+
+    .btn-install:hover span {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        display: inline-block;
+    }
+}
+
+@media (display-mode: standalone) {
     .btn-back,
-    a[href*="index.html"] {
-        display: none;
+    a[href*="index.html"],
+    #installAppBtn {
+        display: none !important;
     }
 }
