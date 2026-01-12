@@ -641,12 +641,16 @@ input[type=number] {
     width: 45px;
     height: 45px;
     font-size: 1.5rem;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    background: var(--glass-bg);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.series-item.future .transaction-icon {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
 }
 
 .series-item {
