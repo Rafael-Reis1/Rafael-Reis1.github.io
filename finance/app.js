@@ -15,12 +15,10 @@ try {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
-db.enablePersistence()
+db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            console.warn('Persistência falhou: Múltiplas abas abertas.');
-        } else if (err.code == 'unimplemented') {
-            console.warn('Persistência não suportada neste navegador.');
+        if (err.code == 'unimplemented') {
+            console.warn('Persistência offline indisponível neste navegador/modo.');
         }
     });
 
