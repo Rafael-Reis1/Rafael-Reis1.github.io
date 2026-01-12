@@ -175,7 +175,8 @@ iframe {
 
 #informacaoSobre {
     margin-top: 2.5rem;
-    font-weight: 300;
+    line-height: 1.6;
+    font-weight: 400;
 }
 
 .infosCurriculo {
@@ -446,22 +447,6 @@ iframe {
     scrollbar-width: thin;
 }
 
-.habilidadesBox {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 9rem;
-    width: 8.75rem;
-    min-width: 8.75rem;
-    padding: 1.25rem;
-    border-radius: 20px;
-    background-color: var(--base-color);
-}
-
-.habilidadesBox img {
-    object-fit: cover;
-}
-
 #habilidadesH3 {
     margin-top: 0.9375rem;
     font-size: 1.5rem;
@@ -643,6 +628,44 @@ iframe {
     display: none;
 }
 
+.habilidadesBox {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 9rem;
+    width: 8.75rem;
+    min-width: 8.75rem;
+    padding: 1.25rem;
+    border-radius: 20px;
+    background-color: var(--base-color);
+    position: relative; 
+    flex-direction: column;
+}
+
+.habilidadesBox img {
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.habilidadesBox:hover img {
+    transform: translateY(-15px);
+}
+
+.legenda-tech {
+    position: absolute;
+    bottom: 15px;
+    opacity: 0;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.habilidadesBox:hover .legenda-tech {
+    opacity: 1;
+}
+
 ::view-transition-old(shared-curriculo-area) {
     animation: fade-out-shrink 0.2s cubic-bezier(.34, .88, .34, 1) forwards;
 }
@@ -775,5 +798,13 @@ iframe {
 
     .detalhesGithub>div {
         width: 100%;
+    }
+
+    .habilidadesBox img {
+        transform: translateY(-15px);
+    }
+
+    .legenda-tech {
+        opacity: 1;
     }
 }
