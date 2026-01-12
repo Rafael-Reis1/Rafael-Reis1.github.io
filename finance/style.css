@@ -1259,7 +1259,8 @@ input[type=number] {
     }
 
     .transaction-icon,
-    .subs-icon {
+    .subs-icon,
+    .series-item .transaction-icon {
         display: none;
     }
 
