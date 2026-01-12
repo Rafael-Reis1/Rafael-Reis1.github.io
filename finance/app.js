@@ -1831,15 +1831,17 @@ class UIController {
             const div = document.createElement('div');
             div.className = `series-item ${isPaid ? 'paid' : 'future'}`;
 
+            const icon = CATEGORIES.expense[t.category] || CATEGORIES.income[t.category] || '📦';
             div.innerHTML = `
-                <div class="series-item-info">
-                    <span class="series-date">${this.formatDate(t.date)}</span>
-                    <span class="series-desc">${this.escapeHtml(t.description)}</span>
-                </div>
-                <div class="series-item-amount currency-${t.type}">
-                    ${this.formatCurrency(t.amount)}
-                </div>
-            `;
+            <span class="transaction-icon">${icon}</span>
+            <div class="series-item-info">
+                <span class="series-desc">${this.escapeHtml(t.description)}</span>
+                <span class="series-date">${this.formatDate(t.date)} • ${CATEGORY_NAMES[t.category] || t.category}</span>
+            </div>
+            <div class="series-item-amount currency-${t.type}">
+                ${this.formatCurrency(t.amount)}
+            </div>
+        `;
             listContainer.appendChild(div);
         });
 
