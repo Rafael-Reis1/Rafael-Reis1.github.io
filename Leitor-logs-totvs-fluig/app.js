@@ -1162,7 +1162,6 @@ document.addEventListener('keydown', function (e) {
             }
         }
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-        // Copy Active Line
         const conteudoArquivoLog = document.getElementById('conteudoArquivoLog');
         const currentActive = conteudoArquivoLog.querySelector('.log-line.active');
         if (currentActive) {
