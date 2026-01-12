@@ -1038,9 +1038,30 @@ input[type=number] {
 
 @media (max-width: 768px) {
 
-    html,
     body {
         overflow-x: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        overscroll-behavior-y: none;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    input,
+    textarea {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+
+    .btn:active,
+    .action-btn:active,
+    .btn-icon:active {
+        transform: scale(0.96);
+    }
+
+    .card:active {
+        transform: scale(0.98);
     }
 
     .app-container {
