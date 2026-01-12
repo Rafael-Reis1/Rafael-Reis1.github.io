@@ -954,6 +954,11 @@ input[type=number] {
     box-shadow: var(--income-glow);
 }
 
+.toast.info {
+    border-color: #3b82f6;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
 .toast.error {
     border-color: var(--expense-color);
     box-shadow: var(--expense-glow);
