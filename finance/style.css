@@ -2115,3 +2115,34 @@ input[type=number] {
 .privacy-mode .subs-amount:hover {
     filter: blur(0);
 }
+
+.login-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    padding: 1rem;
+    border-radius: 16px;
+    background: var(--accent-gradient);
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.login-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.toast {
+    text-align: center;
+    justify-content: center;
+}
+
+@media (display-mode: standalone) {
+
+    .btn-back,
+    a[href*="index.html"] {
+        display: none;
+    }
+}
