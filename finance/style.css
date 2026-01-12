@@ -402,6 +402,10 @@ body {
     color: var(--expense-color);
 }
 
+.future .card-value {
+    color: #fbbf24;
+}
+
 .cards-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1206,7 +1210,8 @@ input[type=number] {
         gap: 0.25rem;
     }
 
-    .transaction-icon {
+    .transaction-icon,
+    .subs-icon {
         display: none;
     }
 
