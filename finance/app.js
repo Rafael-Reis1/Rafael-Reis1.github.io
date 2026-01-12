@@ -212,13 +212,20 @@ class FinanceManager {
             const diff = Math.round((transaction.amount - totalCalculated) * 100) / 100;
 
             for (let i = 0; i < installments; i++) {
-                const newDate = new Date(baseDate);
-                newDate.setMonth(baseDate.getMonth() + i);
+                const originalDay = baseDate.getDate();
+                const currentMonth = baseDate.getMonth();
+                const targetMonth = currentMonth + i;
 
-                const y = newDate.getFullYear();
-                const m = String(newDate.getMonth() + 1).padStart(2, '0');
-                const d = String(newDate.getDate()).padStart(2, '0');
-                const dateStr = `${y}-${m}-${d}`;
+                const y = baseDate.getFullYear() + Math.floor(targetMonth / 12);
+                const m = targetMonth % 12;
+
+                const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+                const targetDay = Math.min(originalDay, daysInMonth);
+
+                const mFormatted = String(m + 1).padStart(2, '0');
+                const dFormatted = String(targetDay).padStart(2, '0');
+                const dateStr = `${y}-${mFormatted}-${dFormatted}`;
 
                 let amount = installmentValue;
                 if (i === 0 && diff !== 0) amount += diff;
