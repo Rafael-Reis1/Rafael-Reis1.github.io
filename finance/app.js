@@ -207,7 +207,7 @@ class FinanceManager {
 
         if (installments > 1) {
             const baseDate = new Date(transaction.date + 'T12:00:00');
-            const installmentValue = Math.round((transaction.amount / installments) * 100) / 100; // Round to 2 decimals
+            const installmentValue = Math.round((transaction.amount / installments) * 100) / 100;
             const totalCalculated = installmentValue * installments;
             const diff = Math.round((transaction.amount - totalCalculated) * 100) / 100;
 
