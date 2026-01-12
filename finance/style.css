@@ -2153,12 +2153,10 @@ input[type=number] {
 }
 
 .btn-install svg {
-    min-width: 36px;
-    height: 100%;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: 0 8px;
+    flex-shrink: 0;
 }
 
 .btn-install span {
@@ -2187,6 +2185,7 @@ input[type=number] {
 }
 
 @media (display-mode: standalone) {
+
     .btn-back,
     a[href*="index.html"],
     #installAppBtn {
