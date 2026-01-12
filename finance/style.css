@@ -2155,7 +2155,7 @@ input[type=number] {
 .btn-install svg {
     width: 20px;
     height: 20px;
-    margin: 0 8px;
+    margin: 0 7px;
     flex-shrink: 0;
 }
 
