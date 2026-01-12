@@ -900,15 +900,11 @@ class UIController {
             }
         });
 
-        const offlineBadge = document.getElementById('offlineBadge');
-
         window.addEventListener('online', async () => {
-            offlineBadge.classList.remove('visible');
             this.showToast('Conexão restabelecida!', 'success');
         });
 
         window.addEventListener('offline', () => {
-            offlineBadge.classList.add('visible');
             this.showToast('Você está offline. Alterações serão salvas localmente.', 'info');
         });
 
@@ -1077,7 +1073,6 @@ class UIController {
             if (e.target === this.subsModal) this.closeModal(this.subsModal);
         });
 
-        // View toggle buttons
         document.getElementById('btnAddSub').addEventListener('click', () => this.showSubsFormView(false));
         document.getElementById('backToSubsList').addEventListener('click', () => this.showSubsListView());
 
@@ -1144,7 +1139,6 @@ class UIController {
             if (e.target === this.cancelSubModal) this.closeModal(this.cancelSubModal);
         });
 
-        // Delete Sub Modal Listeners
         document.getElementById('closeDeleteSubModal').addEventListener('click', () => this.closeModal(this.deleteSubModal));
         document.getElementById('cancelDeleteSub').addEventListener('click', () => this.closeModal(this.deleteSubModal));
 
