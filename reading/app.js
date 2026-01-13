@@ -531,10 +531,18 @@ const App = {
         this.state.books = StorageService.getBooks();
         this.updateCounts();
 
+        const allowedStatuses = ['read', 'reading', 're-reading', 'rereading'];
         const totalPagesRead = this.state.books.reduce((total, book) => {
             const completedCycles = book.timesRead || 0;
-            const currentProgress = book.readPages || 0;
-            return total + (completedCycles * book.pages) + currentProgress;
+            const isActiveStatus = allowedStatuses.includes(book.status);
+
+            let totalForBook = completedCycles * book.pages;
+
+            if (isActiveStatus) {
+                totalForBook += (book.readPages || 0);
+            }
+
+            return total + totalForBook;
         }, 0);
 
         if (this.dom.totalPagesRead) {
@@ -913,35 +921,35 @@ const App = {
 
         if (id) {
             const existingBook = this.state.books.find(b => b.id === id);
+            if (existingBook) {
+                const isRereading = formData.status === 'rereading' || formData.status === 're-reading';
+                const wasRereading = existingBook.status === 'rereading' || existingBook.status === 're-reading';
+                const isActive = ['read', 'reading', 're-reading', 'rereading'].includes(formData.status);
 
-            let newReadPages = parseInt(formData.pages) || 0;
-            const isRereading = formData.status === 'rereading' || formData.status === 're-reading';
-            const wasRereading = existingBook.status === 'rereading' || existingBook.status === 're-reading';
-            let newTimesRead = existingBook.timesRead || 0;
+                let newReadPages = existingBook.readPages || 0;
+                let newTimesRead = existingBook.timesRead || 0;
 
-            if (isRereading && !wasRereading) {
-                newReadPages = 0;
-                if (existingBook.status === 'read' || existingBook.readPages >= existingBook.pages) {
-                    newTimesRead++;
+                if (formData.status === 'read') {
+                    newReadPages = parseInt(formData.pages) || 0;
+                } else if (isRereading && !wasRereading) {
+                    newReadPages = 0;
+                    if (existingBook.status === 'read' || existingBook.readPages >= existingBook.pages) {
+                        newTimesRead++;
+                    }
+                } else if (!isActive) {
+                    newReadPages = 0;
                 }
-            } else if (existingBook) {
-                newReadPages = existingBook.readPages || 0;
-                if (isRereading && !wasRereading) newReadPages = 0;
-            }
 
-            if (formData.status === 'read') {
-                newReadPages = parseInt(formData.pages) || 0;
+                const updatedBook = {
+                    ...existingBook,
+                    ...formData,
+                    pages: parseInt(formData.pages) || 0,
+                    readPages: newReadPages,
+                    timesRead: newTimesRead,
+                    rating: parseFloat(formData.rating) || 0
+                };
+                StorageService.updateBook(updatedBook);
             }
-
-            const updatedBook = {
-                ...existingBook,
-                ...formData,
-                pages: parseInt(formData.pages) || 0,
-                readPages: newReadPages,
-                timesRead: newTimesRead,
-                rating: parseFloat(formData.rating) || 0
-            };
-            StorageService.updateBook(updatedBook);
         } else {
             const newBookData = {
                 ...formData,
