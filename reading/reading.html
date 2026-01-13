@@ -106,22 +106,91 @@
                     <div class="nav-group">
                         <h3 class="nav-title">Coleções</h3>
                         <a href="#" class="nav-item" data-filter="favorite">
-                            <span class="nav-icon">❤️</span>
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                            </div>
                             <span class="nav-label">Favorito</span>
                             <span class="nav-count" id="count-favorite">0</span>
                         </a>
+                        <a href="#" class="nav-item" data-filter="desired">
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.62 0-2.98 1.28-3 2.88l-.01-.01C11.98 3.28 10.62 2 9 2c-1.66 0-3 1.34-3 3 0 .35.07.69.18 1H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6zm-8-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.12c.07-.31.12-.64.12-1 0-.55.45-1 1-1zm-6 1c0-.55.45-1 1-1s1 .45 1 1c0 .36.05.69.12 1H8c-.55 0-1-.45-1-1zm13 13H4v-2h15v2zm0-5H4V8h5.08L7 10.83l1.54 1.28 2.45-3.11H13l2.45 3.11 1.54-1.28L14.92 8H20v6z" />
+                                </svg>
+                            </div>
+                            <span class="nav-label">Desejado</span>
+                            <span class="nav-count" id="count-desired">0</span>
+                        </a>
+                        <a href="#" class="nav-item" data-filter="rated">
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 8.19 8.63 1 9.24l5.46 4.73L4.82 21z" />
+                                </svg>
+                            </div>
+                            <span class="nav-label">Avaliado</span>
+                            <span class="nav-count" id="count-rated">0</span>
+                        </a>
+                        <a href="#" class="nav-item" data-filter="reviewed">
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+                                </svg>
+                            </div>
+                            <span class="nav-label">Resenhado</span>
+                            <span class="nav-count" id="count-reviewed">0</span>
+                        </a>
                         <a href="#" class="nav-item" data-filter="owned">
-                            <span class="nav-icon">📦</span>
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 8h-3V4H7v4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6h6v2H9V6zm11 14H4v-8h16v8z" />
+                                </svg>
+                            </div>
                             <span class="nav-label">Tenho</span>
                             <span class="nav-count" id="count-owned">0</span>
                         </a>
+                        <a href="#" class="nav-item" data-filter="lent">
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+                                </svg>
+                            </div>
+                            <span class="nav-label">Emprestei</span>
+                            <span class="nav-count" id="count-lent">0</span>
+                        </a>
+                        <a href="#" class="nav-item" data-filter="target">
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-8c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5 1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5z" />
+                                </svg>
+                            </div>
+                            <span class="nav-label">Meta de leitura</span>
+                            <span class="nav-count" id="count-target">0</span>
+                        </a>
                         <a href="#" class="nav-item" data-filter="ebook">
-                            <span class="nav-icon">📱</span>
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm9 16H6V8h12v12z" />
+                                </svg>
+                            </div>
                             <span class="nav-label">Ebook / Digital</span>
                             <span class="nav-count" id="count-ebook">0</span>
                         </a>
                         <a href="#" class="nav-item" data-filter="audiobook">
-                            <span class="nav-icon">🎧</span>
+                            <div class="nav-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                                </svg>
+                            </div>
                             <span class="nav-label">AudioBook</span>
                             <span class="nav-count" id="count-audiobook">0</span>
                         </a>
@@ -137,22 +206,56 @@
 
                     <div class="toolbar-center">
                         <div class="year-filters">
-                            <button class="chip active" data-year="all">Todos</button>
-                            <button class="chip" data-year="2026">2026</button>
-                            <button class="chip" data-year="2025">2025</button>
-                            <button class="chip" data-year="2024">2024</button>
                         </div>
                     </div>
 
                     <div class="toolbar-right">
-                        <button class="btn btn-secondary btn-icon" title="Organizar">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="3" y1="6" x2="21" y2="6"></line>
-                                <line x1="3" y1="12" x2="21" y2="12"></line>
-                                <line x1="3" y1="18" x2="21" y2="18"></line>
-                            </svg>
-                        </button>
+                        <div class="sort-dropdown-container">
+                            <button id="btnSort" class="btn btn-secondary btn-icon" title="Organizar">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div id="sortDropdown" class="dropdown-menu">
+                                <div class="dropdown-header">Ordenar por</div>
+                                <button class="dropdown-item active" data-sort="recent">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    Recentes
+                                </button>
+                                <button class="dropdown-item" data-sort="title">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="15 14 20 9 15 4"></polyline>
+                                        <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+                                    </svg>
+                                    Título
+                                </button>
+                                <button class="dropdown-item" data-sort="author">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    Autor
+                                </button>
+                                <button class="dropdown-item" data-sort="rating">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                    Avaliação
+                                </button>
+                            </div>
+                        </div>
                         <button id="btnAddBook" class="btn btn-primary" title="Adicionar Livro">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -181,6 +284,21 @@
             </div>
             <form id="bookForm" autocomplete="off">
                 <input type="hidden" id="bookId">
+
+                <div class="form-row search-row">
+                    <div class="form-group full-width api-search-group">
+                        <label for="apiSearch">
+                            <span>✨ Localizar Livro Automaticamente</span>
+                        </label>
+                        <div class="search-input-wrapper">
+                            <input type="text" id="apiSearch" placeholder="Digite o nome do livro ou autor...">
+                            <div class="search-loader" id="searchLoader"></div>
+                        </div>
+                        <div class="api-results" id="apiResults"></div>
+                    </div>
+                </div>
+
+                <div class="form-divider"><span>Ou preencha manualmente</span></div>
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label for="bookTitle">Título</label>
@@ -239,7 +357,7 @@
                     </div>
                 </div>
 
-                <div class="form-row">
+                <div class="form-row" style="display: none;">
                     <div class="form-group full-width">
                         <label for="bookCover">Capa (URL)</label>
                         <input type="url" id="bookCover" placeholder="https://exemplo.com/capa.jpg">
@@ -250,16 +368,75 @@
                     <label>Tags</label>
                     <div class="tags-container">
                         <label class="tag-checkbox">
-                            <input type="checkbox" name="tags" value="favorite"> ❤️ Favorito
+                            <input type="checkbox" name="tags" value="favorite">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                            <span>Favorito</span>
                         </label>
                         <label class="tag-checkbox">
-                            <input type="checkbox" name="tags" value="owned"> 📦 Tenho
+                            <input type="checkbox" name="tags" value="desired">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.62 0-2.98 1.28-3 2.88l-.01-.01C11.98 3.28 10.62 2 9 2c-1.66 0-3 1.34-3 3 0 .35.07.69.18 1H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6zm-8-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.12c.07-.31.12-.64.12-1 0-.55.45-1 1-1zm-6 1c0-.55.45-1 1-1s1 .45 1 1c0 .36.05.69.12 1H8c-.55 0-1-.45-1-1zm13 13H4v-2h15v2zm0-5H4V8h5.08L7 10.83l1.54 1.28 2.45-3.11H13l2.45 3.11 1.54-1.28L14.92 8H20v6z" />
+                            </svg>
+                            <span>Desejado</span>
                         </label>
                         <label class="tag-checkbox">
-                            <input type="checkbox" name="tags" value="ebook"> 📱 Ebook
+                            <input type="checkbox" name="tags" value="rated">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 8.19 8.63 1 9.24l5.46 4.73L4.82 21z" />
+                            </svg>
+                            <span>Avaliado</span>
                         </label>
                         <label class="tag-checkbox">
-                            <input type="checkbox" name="tags" value="audiobook"> 🎧 AudioBook
+                            <input type="checkbox" name="tags" value="reviewed">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+                            </svg>
+                            <span>Resenhado</span>
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tags" value="owned">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M20 8h-3V4H7v4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6h6v2H9V6zm11 14H4v-8h16v8z" />
+                            </svg>
+                            <span>Tenho</span>
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tags" value="lent">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+                            </svg>
+                            <span>Emprestei</span>
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tags" value="target">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-8c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5 1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5z" />
+                            </svg>
+                            <span>Meta</span>
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tags" value="ebook">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm9 16H6V8h12v12z" />
+                            </svg>
+                            <span>Ebook</span>
+                        </label>
+                        <label class="tag-checkbox">
+                            <input type="checkbox" name="tags" value="audiobook">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                            </svg>
+                            <span>AudioBook</span>
                         </label>
                     </div>
                 </div>
