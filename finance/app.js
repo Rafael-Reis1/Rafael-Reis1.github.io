@@ -2078,6 +2078,7 @@ class UIController {
     }
 
     async openSubsModal() {
+        this.showSubsListView();
         this.renderSubscriptionsList();
         this.openModal(this.subsModal);
 
@@ -2218,7 +2219,8 @@ class UIController {
     }
 
     showSubsListView() {
-        document.getElementById('subsListView').style.display = 'block';
+        this.subsModal.classList.add('showing-list');
+        document.getElementById('subsListView').style.display = 'flex';
         document.getElementById('subsFormView').style.display = 'none';
         document.getElementById('subsModalTitle').textContent = 'Despesas Fixas';
         this.subsForm.reset();
@@ -2226,6 +2228,7 @@ class UIController {
     }
 
     showSubsFormView(isEdit = false, sub = null) {
+        this.subsModal.classList.remove('showing-list');
         document.getElementById('subsListView').style.display = 'none';
         document.getElementById('subsFormView').style.display = 'block';
 
