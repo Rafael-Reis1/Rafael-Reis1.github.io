@@ -1,4 +1,26 @@
 
+const debounce = (fn, delay) => {
+    let timeoutId;
+    return (...args) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+    };
+};
+
+const GoogleBooksAPI = {
+    async search(query) {
+        if (!query || query.length < 3) return [];
+        try {
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`);
+            const data = await response.json();
+            return data.items || [];
+        } catch (error) {
+            console.error('API Error:', error);
+            return [];
+        }
+    }
+};
+
 const BookModel = {
     create(data) {
         return {
@@ -48,7 +70,9 @@ const App = {
     state: {
         filter: 'all',
         yearFilter: 'all',
-        books: []
+        books: [],
+        searchResults: [],
+        sortBy: 'recent'
     },
 
     init() {
@@ -69,12 +93,17 @@ const App = {
                 rereading: document.getElementById('count-rereading'),
                 abandoned: document.getElementById('count-abandoned'),
                 favorite: document.getElementById('count-favorite'),
+                desired: document.getElementById('count-desired'),
+                rated: document.getElementById('count-rated'),
+                reviewed: document.getElementById('count-reviewed'),
                 owned: document.getElementById('count-owned'),
+                lent: document.getElementById('count-lent'),
+                target: document.getElementById('count-target'),
                 ebook: document.getElementById('count-ebook'),
                 audiobook: document.getElementById('count-audiobook'),
             },
             resultsCount: document.getElementById('resultsCount'),
-            yearChips: document.querySelectorAll('.chip[data-year]'),
+            yearContainer: document.querySelector('.year-filters'),
 
             addBtn: document.getElementById('btnAddBook'),
             modal: document.getElementById('bookModal'),
@@ -87,7 +116,17 @@ const App = {
             statusHiddenInput: document.getElementById('bookStatus'),
             triggerText: document.getElementById('triggerText'),
             triggerIndicator: document.getElementById('triggerIndicator'),
-            customOptions: document.querySelectorAll('.custom-option')
+            customOptions: document.querySelectorAll('.custom-option'),
+
+            apiSearch: document.getElementById('apiSearch'),
+            apiResults: document.getElementById('apiResults'),
+            apiSearch: document.getElementById('apiSearch'),
+            apiResults: document.getElementById('apiResults'),
+            searchLoader: document.getElementById('searchLoader'),
+
+            btnSort: document.getElementById('btnSort'),
+            sortDropdown: document.getElementById('sortDropdown'),
+            sortOptions: document.querySelectorAll('.dropdown-item[data-sort]')
         };
     },
 
@@ -103,16 +142,43 @@ const App = {
             });
         });
 
-        this.dom.yearChips.forEach(chip => {
-            chip.addEventListener('click', (e) => {
-                this.dom.yearChips.forEach(c => c.classList.remove('active'));
-                e.target.classList.add('active');
-                this.state.yearFilter = e.target.dataset.year;
-                this.render();
+        this.dom.yearContainer.addEventListener('click', (e) => {
+            const chip = e.target.closest('.chip');
+            if (!chip) return;
+
+            this.dom.yearContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            this.state.yearFilter = chip.dataset.year;
+            this.render();
+        });
+
+        this.dom.addBtn.addEventListener('click', () => {
+            this.openModal();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.sort-dropdown-container')) {
+                this.dom.sortDropdown.classList.remove('show');
+            }
+        });
+
+        this.dom.btnSort.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.dom.sortDropdown.classList.toggle('show');
+        });
+
+        this.dom.sortOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                const sortType = e.currentTarget.dataset.sort;
+                this.setSort(sortType);
+
+                this.dom.sortOptions.forEach(opt => opt.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+
+                this.dom.sortDropdown.classList.remove('show');
             });
         });
 
-        this.dom.addBtn.addEventListener('click', () => this.openModal());
         this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
 
@@ -158,12 +224,26 @@ const App = {
                 this.dom.statusOptions.classList.remove('open');
                 this.dom.statusTrigger.parentElement.classList.remove('active');
             }
+
+            if (this.dom.apiResults.classList.contains('active') && !e.target.closest('.api-search-group')) {
+                this.dom.apiResults.classList.remove('active');
+            }
         });
+
+        this.dom.apiSearch.addEventListener('input', debounce((e) => {
+            this.handleAPISearch(e.target.value);
+        }, 500));
     },
 
     refresh() {
         this.state.books = StorageService.getBooks();
         this.updateCounts();
+        this.renderYearFilters();
+        this.render();
+    },
+
+    setSort(sortType) {
+        this.state.sortBy = sortType;
         this.render();
     },
 
@@ -188,14 +268,28 @@ const App = {
         return filtered;
     },
 
+    renderYearFilters() {
+        if (!this.dom.yearContainer) return;
+
+        const years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+
+        let html = `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
+
+        years.forEach(year => {
+            html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
+        });
+
+        this.dom.yearContainer.innerHTML = html;
+    },
+
     render() {
-        const booksToShow = this.getFilteredBooks();
+        const filtered = this.getFilteredBooks();
+        const sorted = this.sortBooks(filtered);
 
-        this.dom.resultsCount.textContent = `${booksToShow.length} encontrados`;
-
+        this.dom.resultsCount.textContent = `${sorted.length} encontrados`;
         this.dom.grid.innerHTML = '';
 
-        if (booksToShow.length === 0) {
+        if (sorted.length === 0) {
             this.dom.grid.innerHTML = `
                 <div class="empty-state">
                     <p>Nenhum livro encontrado nesta categoria.</p>
@@ -204,7 +298,7 @@ const App = {
             return;
         }
 
-        booksToShow.forEach(book => {
+        sorted.forEach(book => {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
             card.innerHTML = `
@@ -240,6 +334,22 @@ const App = {
                 </div>
             `;
             this.dom.grid.appendChild(card);
+        });
+    },
+
+    sortBooks(books) {
+        return [...books].sort((a, b) => {
+            switch (this.state.sortBy) {
+                case 'title':
+                    return a.title.localeCompare(b.title);
+                case 'author':
+                    return a.author.localeCompare(b.author);
+                case 'rating':
+                    return b.rating - a.rating;
+                case 'recent':
+                default:
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+            }
         });
     },
 
@@ -302,7 +412,12 @@ const App = {
         this.dom.counts.abandoned.textContent = count(b => b.status === 'abandoned');
 
         this.dom.counts.favorite.textContent = count(b => b.tags && b.tags.includes('favorite'));
+        this.dom.counts.desired.textContent = count(b => b.tags && b.tags.includes('desired'));
+        this.dom.counts.rated.textContent = count(b => b.tags && b.tags.includes('rated'));
+        this.dom.counts.reviewed.textContent = count(b => b.tags && b.tags.includes('reviewed'));
         this.dom.counts.owned.textContent = count(b => b.tags && b.tags.includes('owned'));
+        this.dom.counts.lent.textContent = count(b => b.tags && b.tags.includes('lent'));
+        this.dom.counts.target.textContent = count(b => b.tags && b.tags.includes('target'));
         this.dom.counts.ebook.textContent = count(b => b.tags && b.tags.includes('ebook'));
         this.dom.counts.audiobook.textContent = count(b => b.tags && b.tags.includes('audiobook'));
     },
@@ -314,11 +429,96 @@ const App = {
     closeModal() {
         this.dom.modal.classList.remove('active');
         this.dom.bookForm.reset();
+        this.dom.apiResults.classList.remove('active');
+        this.dom.apiResults.innerHTML = '';
+        this.dom.apiSearch.value = '';
+        document.getElementById('modalTitle').textContent = 'Adicionar Livro';
+        document.getElementById('bookId').value = '';
 
         setTimeout(() => {
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
         }, 100);
+    },
+
+    async handleAPISearch(query) {
+        if (!query || query.length < 3) {
+            this.dom.apiResults.classList.remove('active');
+            return;
+        }
+
+        this.dom.searchLoader.style.display = 'block';
+        const results = await GoogleBooksAPI.search(query);
+        this.dom.searchLoader.style.display = 'none';
+
+        this.state.searchResults = results;
+        this.displayAPIResults(results);
+    },
+
+    displayAPIResults(books) {
+        if (books.length === 0) {
+            this.dom.apiResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); font-size: 0.85rem;">Nenhum livro encontrado.</div>';
+            this.dom.apiResults.classList.add('active');
+            return;
+        }
+
+        let html = '';
+        books.forEach(book => {
+            const info = book.volumeInfo;
+            const cover = info.imageLinks ? info.imageLinks.thumbnail : 'https://placehold.co/45x65?text=Capa';
+            const title = info.title;
+            const author = info.authors ? info.authors.join(', ') : 'Autor desconhecido';
+
+            html += `
+                <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
+                    <img src="${cover}" class="api-result-cover" alt="${title}">
+                    <div class="api-result-info">
+                        <div class="api-result-title">${title}</div>
+                        <div class="api-result-author">${author}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        this.dom.apiResults.innerHTML = html;
+        this.dom.apiResults.classList.add('active');
+    },
+
+    async selectBookFromAPI(bookId) {
+        const cachedBook = this.state.searchResults.find(b => b.id === bookId);
+
+        if (cachedBook) {
+            this.populateFormWithBook(cachedBook.volumeInfo);
+            this.dom.apiResults.classList.remove('active');
+            this.dom.apiSearch.value = '';
+            document.getElementById('bookTitle').focus();
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
+            const data = await response.json();
+            this.populateFormWithBook(data.volumeInfo);
+
+            this.dom.apiResults.classList.remove('active');
+            this.dom.apiSearch.value = '';
+            document.getElementById('bookTitle').focus();
+        } catch (error) {
+            console.error('Error selecting book:', error);
+        }
+    },
+
+    populateFormWithBook(info) {
+        document.getElementById('bookTitle').value = info.title || '';
+        document.getElementById('bookAuthor').value = info.authors ? info.authors[0] : '';
+        document.getElementById('bookPages').value = info.pageCount || '';
+
+        let coverUrl = '';
+        if (info.imageLinks) {
+            coverUrl = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
+            if (coverUrl) coverUrl = coverUrl.replace('http:', 'https:');
+        }
+        document.getElementById('bookCover').value = coverUrl;
     },
 
     editBook(id) {
