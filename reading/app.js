@@ -33,6 +33,7 @@ const BookModel = {
             tags: data.tags || [],
             rating: 0,
             readPages: 0,
+            history: [],
             createdAt: new Date().toISOString(),
             year: new Date().getFullYear()
         };
@@ -126,9 +127,33 @@ const App = {
 
             btnSort: document.getElementById('btnSort'),
             sortDropdown: document.getElementById('sortDropdown'),
-            sortOptions: document.querySelectorAll('.dropdown-item[data-sort]')
+            sortDropdown: document.getElementById('sortDropdown'),
+            sortOptions: document.querySelectorAll('.dropdown-item[data-sort]'),
+
+            historyModal: document.getElementById('historyModal'),
+            closeHistoryModalBtn: document.getElementById('closeHistoryModal'),
+            historyForm: document.getElementById('historyForm'),
+            historyList: document.getElementById('historyList'),
+            historyProgressBar: document.getElementById('historyProgressBar'),
+            historyProgressText: document.getElementById('historyProgressText'),
+
+            deleteModal: document.getElementById('deleteModal'),
+            closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
+            cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
+            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+            deleteModalMessage: document.getElementById('deleteModalMessage'),
+
+            messageModal: document.getElementById('messageModal'),
+            messageOkBtn: document.getElementById('messageOkBtn'),
+            messageTitle: document.getElementById('messageTitle'),
+            messageText: document.getElementById('messageText'),
+            messageIcon: document.getElementById('messageIcon')
         };
     },
+
+    deleteCallback: null,
+
+
 
     bindEvents() {
         this.dom.sidebarLinks.forEach(link => {
@@ -179,8 +204,7 @@ const App = {
             });
         });
 
-        this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
-        this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
+
 
         this.dom.statusTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -210,7 +234,38 @@ const App = {
 
         this.dom.bookForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleSaveBook();
+            this.handleBookSubmit();
+        });
+
+        this.dom.historyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const bookId = document.getElementById('historyBookId').value;
+            let val = parseInt(document.getElementById('newCurrentPage').value);
+            const isPercentage = document.getElementById('isPercentage').checked;
+
+            if (isPercentage) {
+                const book = this.state.books.find(b => b.id === bookId);
+                if (book) {
+                    val = Math.round((val / 100) * book.pages);
+                }
+            }
+
+            this.updateProgress(bookId, val);
+        });
+
+        document.getElementById('isPercentage').addEventListener('change', (e) => {
+            const input = document.getElementById('newCurrentPage');
+            const label = document.getElementById('lblHistoryInput');
+
+            if (e.target.checked) {
+                label.textContent = 'Porcentagem Concluída';
+                input.placeholder = '0-100';
+                input.max = 100;
+            } else {
+                label.textContent = 'Página Atual';
+                input.placeholder = 'Número da página';
+                input.removeAttribute('max');
+            }
         });
 
         this.dom.grid.addEventListener('click', (e) => this.handleGridClick(e));
@@ -230,9 +285,67 @@ const App = {
             }
         });
 
+        this.setupModalCloseAttributes(this.dom.modal, () => this.closeModal());
+        this.setupModalCloseAttributes(this.dom.historyModal, () => {
+            this.dom.historyModal.classList.remove('active');
+        });
+        this.setupModalCloseAttributes(this.dom.deleteModal, () => this.closeDeleteModal());
+        this.setupModalCloseAttributes(this.dom.messageModal, () => {
+            this.dom.messageModal.classList.remove('active');
+        });
+
+        this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
+        this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
+        this.dom.closeHistoryModalBtn.addEventListener('click', () => {
+            this.dom.historyModal.classList.remove('active');
+        });
+
+        this.dom.closeDeleteModalBtn.addEventListener('click', () => this.closeDeleteModal());
+        this.dom.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
+
+        this.dom.deleteModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+
+        this.dom.confirmDeleteBtn.addEventListener('click', () => {
+            if (this.deleteCallback) {
+                this.deleteCallback();
+                this.closeDeleteModal();
+            }
+        });
+
+        this.dom.messageOkBtn.addEventListener('click', () => {
+            this.dom.messageModal.classList.remove('active');
+        });
+
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
             this.handleAPISearch(e.target.value);
         }, 500));
+    },
+
+    setupModalCloseAttributes(modal, closeCallback) {
+        let mousedownTarget = null;
+
+        modal.addEventListener('mousedown', (e) => {
+            mousedownTarget = e.target;
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal && mousedownTarget === modal) {
+                closeCallback();
+            }
+            mousedownTarget = null;
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeCallback();
+            }
+        });
     },
 
     refresh() {
@@ -302,8 +415,8 @@ const App = {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
             card.innerHTML = `
-                <div class="book-cover-container">
-                    <img src="${book.cover}" alt="${book.title}" class="book-cover">
+                <div class="book-cover-container skeleton">
+                    <img src="${book.cover}" alt="${book.title}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')" onerror="this.parentElement.classList.remove('skeleton'); this.src='https://placehold.co/200x300?text=Sem+Capa'">
                     <!-- Bookmark Icon SVG -->
                     <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
                         <path d="M0 0h24v32l-12-8-12 8z"/>
@@ -320,8 +433,10 @@ const App = {
                     </svg>
                 </button>
                 <div class="options-menu" id="menu-${book.id}">
-                    <button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button>
-                    <button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button>
+                    <ul>
+                        <li><button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button></li>
+                        <li><button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button></li>
+                    </ul>
                 </div>
                 
                 <div class="book-footer">
@@ -333,6 +448,23 @@ const App = {
                     </div>
                 </div>
             `;
+
+            if (['reading', 'rereading', 're-reading'].includes(book.status)) {
+                const menuList = card.querySelector('.options-menu ul');
+                const updateItem = document.createElement('li');
+                updateItem.innerHTML = `
+                    <button class="menu-item" onclick="App.openHistoryModal('${book.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        Atualizar Progresso
+                    </button>
+                `;
+                if (menuList) {
+                    menuList.insertBefore(updateItem, menuList.firstChild);
+                }
+            }
             this.dom.grid.appendChild(card);
         });
     },
@@ -383,10 +515,10 @@ const App = {
         const btnDelete = target.closest('.delete-btn');
         if (btnDelete) {
             e.stopPropagation();
-            if (confirm('Tem certeza que deseja excluir este livro?')) {
+            this.openDeleteModal('Tem certeza que deseja excluir este livro?', () => {
                 StorageService.deleteBook(btnDelete.dataset.id);
                 this.refresh();
-            }
+            });
             return;
         }
 
@@ -550,7 +682,7 @@ const App = {
         this.openModal();
     },
 
-    handleSaveBook() {
+    handleBookSubmit() {
         const id = document.getElementById('bookId').value;
 
         const formData = {
@@ -568,7 +700,19 @@ const App = {
 
         if (id) {
             const existingBook = this.state.books.find(b => b.id === id);
-            const updatedBook = { ...existingBook, ...formData, pages: parseInt(formData.pages) || 0 };
+
+            let newReadPages = parseInt(formData.pages) || 0;
+            const isRereading = formData.status === 'rereading' || formData.status === 're-reading';
+            const wasRereading = existingBook.status === 'rereading' || existingBook.status === 're-reading';
+
+            if (isRereading && !wasRereading) {
+                newReadPages = 0;
+            } else if (existingBook) {
+                newReadPages = existingBook.readPages || 0;
+                if (isRereading && !wasRereading) newReadPages = 0;
+            }
+
+            const updatedBook = { ...existingBook, ...formData, pages: parseInt(formData.pages) || 0, readPages: newReadPages };
             StorageService.updateBook(updatedBook);
         } else {
             const newBook = BookModel.create(formData);
@@ -577,8 +721,145 @@ const App = {
 
         this.refresh();
         this.closeModal();
+        this.refresh();
+        this.closeModal();
+    },
+
+    openHistoryModal(bookId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        document.getElementById('historyBookId').value = book.id;
+        document.getElementById('historyBookTitle').textContent = book.title;
+        document.getElementById('historyTotalPages').value = book.pages;
+        document.getElementById('newCurrentPage').value = book.readPages || 0;
+
+        const isPercentage = document.getElementById('isPercentage');
+        isPercentage.checked = false;
+        document.getElementById('lblHistoryInput').textContent = 'Página Atual';
+        document.getElementById('newCurrentPage').placeholder = 'Número da página';
+        document.getElementById('newCurrentPage').removeAttribute('max');
+
+        const percent = Math.round(((book.readPages || 0) / book.pages) * 100);
+        this.dom.historyProgressText.textContent = `${percent}%`;
+        this.dom.historyProgressBar.style.width = `${percent}%`;
+
+        this.renderHistoryList(book);
+
+        this.toggleMenu(bookId);
+        this.dom.historyModal.classList.add('active');
+    },
+
+    renderHistoryList(book) {
+        if (!book.history || book.history.length === 0) {
+            this.dom.historyList.innerHTML = '<p class="empty-msg">Nenhum registro ainda.</p>';
+            return;
+        }
+
+        const sortedHistory = [...book.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        this.dom.historyList.innerHTML = sortedHistory.map(entry => {
+            const date = new Date(entry.date).toLocaleDateString();
+            return `
+                <div class="history-item">
+                    <div class="history-info">
+                        <span class="history-date">${date}</span>
+                        <span class="history-val">Pág. ${entry.page}</span>
+                    </div>
+                    <div class="history-actions">
+                        <div class="action-buttons">
+                            <button type="button" class="action-btn delete" onclick="App.deleteHistoryItem('${book.id}', '${entry.date}')" title="Excluir">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    deleteHistoryItem(bookId, dateStr) {
+        this.openDeleteModal('Tem certeza que deseja excluir esse registro?', () => {
+            const book = this.state.books.find(b => b.id === bookId);
+            if (!book) return;
+
+            book.history = book.history.filter(h => h.date !== dateStr);
+
+            if (book.history.length > 0) {
+                const latest = book.history.reduce((prev, current) => {
+                    return (new Date(prev.date) > new Date(current.date)) ? prev : current;
+                });
+                book.readPages = latest.page;
+            } else {
+                book.readPages = 0;
+            }
+
+            StorageService.updateBook(book);
+
+            this.refresh();
+
+            const percent = Math.round((book.readPages / book.pages) * 100);
+            this.dom.historyProgressText.textContent = `${percent}%`;
+            this.dom.historyProgressBar.style.width = `${percent}%`;
+            document.getElementById('newCurrentPage').value = book.readPages;
+
+            this.renderHistoryList(book);
+        });
+    },
+
+    updateProgress(bookId, newPage) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        if (newPage > book.pages) newPage = book.pages;
+        if (newPage < 0) newPage = 0;
+
+        let wasFinished = false;
+        if (newPage === book.pages) {
+            book.status = 'read';
+            wasFinished = true;
+        }
+
+        book.readPages = newPage;
+
+        if (!book.history) book.history = [];
+        book.history.push({
+            date: new Date().toISOString(),
+            page: newPage
+        });
+
+        StorageService.updateBook(book);
+        this.refresh();
+        this.dom.historyModal.classList.remove('active');
+
+        if (wasFinished) {
+            this.showMessage('Parabéns!', 'Você concluiu este livro! 🎉');
+        }
+    },
+
+    openDeleteModal(message, callback) {
+        this.dom.deleteModalMessage.textContent = message;
+        this.deleteCallback = callback;
+        this.dom.deleteModal.classList.add('active');
+    },
+
+    closeDeleteModal() {
+        this.dom.deleteModal.classList.remove('active');
+        this.deleteCallback = null;
+    },
+
+    showMessage(title, text, icon = '🎉') {
+        this.dom.messageTitle.textContent = title;
+        this.dom.messageText.textContent = text;
+        this.dom.messageIcon.textContent = icon;
+        this.dom.messageModal.classList.add('active');
     }
 };
+
+window.App = App;
 
 document.addEventListener('DOMContentLoaded', () => {
     App.init();

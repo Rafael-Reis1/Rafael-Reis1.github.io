@@ -29,12 +29,7 @@
                 <h1>📚 Minha Biblioteca</h1>
             </div>
             <div class="header-actions">
-                <button id="searchBtn" class="btn btn-icon mobile-only">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                </button>
+                <!-- Search button removed -->
                 <div class="user-info">
                     <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="user-avatar"
                         title="Perfil">
@@ -443,9 +438,91 @@
 
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" id="cancelBook">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="saveBook">Salvar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Livro</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Histórico de Leitura</h3>
+                <button class="modal-close" id="closeHistoryModal">&times;</button>
+            </div>
+
+            <form id="historyForm">
+                <input type="hidden" id="historyBookId">
+                <input type="hidden" id="historyTotalPages">
+
+                <div class="book-progress-summary">
+                    <div class="progress-info">
+                        <span id="historyBookTitle" class="history-title">Título do Livro</span>
+                        <span id="historyProgressText" class="history-percent">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="historyProgressBar"></div>
+                    </div>
+                </div>
+
+                <div class="form-row" style="align-items: center; margin-top: 1rem;">
+                    <div class="form-group">
+                        <label id="lblHistoryInput">Página Atual</label>
+                        <input type="number" id="newCurrentPage" class="form-input" min="0">
+                    </div>
+
+                    <div class="form-group" style="flex: 0 0 auto; margin-top: 1.5rem;">
+                        <label class="tag-checkbox">
+                            <input type="checkbox" id="isPercentage">
+                            <span>É porcentagem?</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="history-log">
+                    <h4>Registro de Leitura</h4>
+                    <div id="historyList" class="history-list">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="document.getElementById('closeHistoryModal').click()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="modal delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar Exclusão</h3>
+                <button class="modal-close" id="closeDeleteModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="delete-icon" style="font-size: 3rem; margin-bottom: 1rem;">🗑️</div>
+                <p id="deleteModalMessage">Tem certeza que deseja excluir?</p>
+                <p class="text-muted" style="font-size: 0.9rem; margin-top: 0.5rem;">Esta ação não pode ser desfeita.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelDeleteBtn">Cancelar</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageModal" class="modal message-modal">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="message-icon" id="messageIcon">🎉</div>
+                <h3 id="messageTitle" style="margin-bottom: 0.5rem;">Título</h3>
+                <p id="messageText" class="text-muted">Mensagem aqui</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="messageOkBtn">OK</button>
+            </div>
         </div>
     </div>
 
