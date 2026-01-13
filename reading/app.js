@@ -82,6 +82,7 @@ const App = {
         this.cacheDOM();
         this.bindEvents();
         this.initDatePicker();
+        this.initStats();
         this.refresh();
     },
 
@@ -490,6 +491,19 @@ const App = {
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
             this.handleAPISearch(e.target.value);
         }, 500));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const activeModal = document.querySelector('.modal.active');
+                if (activeModal) activeModal.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
     },
 
     setupModalCloseAttributes(modal, closeCallback) {
@@ -1072,11 +1086,452 @@ const App = {
         this.deleteCallback = null;
     },
 
+    initStats() {
+        const paginometer = document.getElementById('paginometerCard');
+        if (paginometer) {
+            paginometer.addEventListener('click', () => this.openStatsModal());
+        }
+    },
+
+    openStatsModal() {
+        const modal = document.getElementById('statsModal');
+        const container = document.getElementById('statsContent');
+        if (!modal || !container) return;
+
+        const statsByYear = {};
+
+        this.state.books.forEach(book => {
+            const hasPages = parseInt(book.pages) > 0;
+            const isRead = book.status === 'read';
+
+            if (isRead || (book.timesRead && book.timesRead > 0)) {
+                let year = 'Sem data';
+                if (book.readDate) {
+                    year = new Date(book.readDate).getFullYear();
+                }
+
+                if (!statsByYear[year]) statsByYear[year] = { books: 0, pages: 0 };
+
+                if (isRead) {
+                    statsByYear[year].books += 1;
+                    statsByYear[year].pages += (parseInt(book.pages) || 0);
+                }
+            }
+        });
+
+        let sortedYears = Object.keys(statsByYear).sort((a, b) => b - a);
+
+        if (sortedYears.includes('Sem data')) {
+            sortedYears = sortedYears.filter(y => y !== 'Sem data');
+            sortedYears.push('Sem data');
+        }
+
+        let html = '';
+        if (sortedYears.length === 0) {
+            html = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nenhuma leitura concluída encontrada.</p>';
+        } else {
+            sortedYears.forEach(year => {
+                const data = statsByYear[year];
+                if (data.books === 0) return;
+
+                html += `
+                <div class="stat-year-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; margin-bottom: 0.75rem; border: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: var(--accent-gradient); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem;">
+                            ${year}
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Livros Lidos</div>
+                            <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">${data.books}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">Páginas</div>
+                        <div style="color: var(--accent-color); font-weight: 600; font-size: 1.1rem;">${data.pages.toLocaleString()}</div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        container.innerHTML = html;
+        modal.classList.add('active');
+    },
+
+    closeStatsModal() {
+        const modal = document.getElementById('statsModal');
+        if (modal) modal.classList.remove('active');
+    },
+
     showMessage(title, text, icon = '🎉') {
         this.dom.messageTitle.textContent = title;
         this.dom.messageText.textContent = text;
         this.dom.messageIcon.textContent = icon;
         this.dom.messageModal.classList.add('active');
+    },
+
+    openStatsModal() {
+        const modal = document.getElementById('statsModal');
+        const container = document.getElementById('statsContent');
+        if (!modal || !container) return;
+
+        const statsData = {
+            years: {},
+            all: { books: [], pages: 0, ratingSum: 0, ratedCount: 0, monthlyDist: new Array(12).fill(0) }
+        };
+
+        this.state.books.forEach(book => {
+            if (book.status !== 'read' && (!book.timesRead || book.timesRead === 0)) return;
+
+            let date = book.readDate ? new Date(book.readDate) : new Date(book.createdAt);
+
+            let year = 'Desconhecido';
+            let month = -1;
+
+            if (book.readDate) {
+                const d = new Date(book.readDate);
+                year = d.getFullYear();
+                month = d.getMonth();
+            } else if (book.year) {
+                year = book.year;
+            }
+
+            if (!statsData.years[year]) {
+                statsData.years[year] = {
+                    books: [],
+                    pages: 0,
+                    ratingSum: 0,
+                    ratedCount: 0,
+                    monthlyDist: new Array(12).fill(0)
+                };
+            }
+
+            const yData = statsData.years[year];
+            yData.books.push(book);
+            yData.pages += (parseInt(book.pages) || 0);
+            if (book.rating > 0) {
+                yData.ratingSum += book.rating;
+                yData.ratedCount++;
+            }
+            if (month >= 0) {
+                yData.monthlyDist[month]++;
+            }
+
+            statsData.all.books.push(book);
+            statsData.all.pages += (parseInt(book.pages) || 0);
+            if (book.rating > 0) {
+                statsData.all.ratingSum += book.rating;
+                statsData.all.ratedCount++;
+            }
+            if (month >= 0) {
+                statsData.all.monthlyDist[month]++;
+            }
+        });
+
+        this.statsState = {
+            data: statsData,
+            selectedYear: 'all'
+        };
+
+        this.renderStatsDashboard();
+        modal.classList.add('active');
+    },
+
+    renderStatsDashboard() {
+        const container = document.getElementById('statsContent');
+        if (!container) return;
+
+        const { data, selectedYear } = this.statsState;
+
+        const years = Object.keys(data.years).sort((a, b) => b - a);
+
+        let filtersHtml = `
+            <div class="stats-filters">
+                <button class="chip ${selectedYear === 'all' ? 'active' : ''}" onclick="App.setStatsYear('all')">Todos</button>
+        `;
+
+        years.forEach(year => {
+            filtersHtml += `<button class="chip ${selectedYear == year ? 'active' : ''}" onclick="App.setStatsYear('${year}')">${year}</button>`;
+        });
+        filtersHtml += `</div>`;
+
+        let currentData = selectedYear === 'all' ? data.all : data.years[selectedYear];
+
+        if (!currentData) currentData = { books: [], pages: 0, ratingSum: 0, ratedCount: 0, monthlyDist: [] };
+
+        const totalBooks = currentData.books.length;
+        const totalPages = currentData.pages;
+        const avgRating = currentData.ratedCount > 0
+            ? (currentData.ratingSum / currentData.ratedCount).toFixed(1)
+            : '-';
+
+        const summaryHtml = `
+            <div class="stats-summary">
+                <div class="summary-card">
+                    <div class="summary-value">${totalBooks}</div>
+                    <div class="summary-label">Livros Lidos</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${totalPages.toLocaleString()}</div>
+                    <div class="summary-label">Páginas Lidas</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">★ ${avgRating}</div>
+                    <div class="summary-label">Média de Avaliação</div>
+                </div>
+            </div>
+        `;
+
+        let chartHtml = '';
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        if (selectedYear === 'all') {
+            const sortedYears = Object.keys(data.years).sort((a, b) => a - b);
+            let barsHtml = '';
+
+            let maxVal = 0;
+            sortedYears.forEach(y => maxVal = Math.max(maxVal, data.years[y].books.length));
+            if (maxVal === 0) maxVal = 1;
+
+            sortedYears.forEach(y => {
+                const count = data.years[y].books.length;
+                const height = Math.max((count / maxVal) * 100, 4);
+
+                barsHtml += `
+                    <div class="bar-group" title="${count} livros em ${y}">
+                        <div class="bar" style="height: ${height}%;"></div>
+                        <div class="bar-tooltip">${count} livros</div>
+                        <div class="bar-label">${y}</div>
+                    </div>
+                `;
+            });
+
+            chartHtml = `
+                <div class="chart-container">
+                    <div class="chart-title">Livros por Ano</div>
+                    <div class="chart-bars">
+                        ${barsHtml}
+                    </div>
+                </div>
+            `;
+
+        } else {
+            let barsHtml = '';
+            let maxVal = Math.max(...currentData.monthlyDist);
+            if (maxVal === 0) maxVal = 1;
+
+            currentData.monthlyDist.forEach((count, index) => {
+                const height = Math.max((count / maxVal) * 100, 4);
+
+                barsHtml += `
+                    <div class="bar-group">
+                        <div class="bar" style="height: ${height}%;"></div>
+                        <div class="bar-tooltip">${count} livros</div>
+                        <div class="bar-label">${monthNames[index]}</div>
+                    </div>
+                `;
+            });
+
+            chartHtml = `
+                <div class="chart-container">
+                    <div class="chart-title">Leituras por Mês (${selectedYear})</div>
+                    <div class="chart-bars">
+                        ${barsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = filtersHtml + summaryHtml + chartHtml;
+    },
+
+    setStatsYear(year) {
+        if (!this.statsState) return;
+        this.statsState.selectedYear = year;
+        this.renderStatsDashboard();
+    },
+
+    closeStatsModal() {
+        const modal = document.getElementById('statsModal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    openStatsModal() {
+        const modal = document.getElementById('statsModal');
+        const container = document.getElementById('statsContent');
+        if (!modal || !container) return;
+
+        const createStatObj = () => ({
+            books: [], booksCount: 0,
+            pages: 0,
+            ratingSum: 0, ratedCount: 0,
+            monthlyDist: new Array(12).fill(0),
+            longestBook: null,
+            shortestBook: null,
+            authors: {}
+        });
+
+        const statsData = {
+            years: {},
+            all: createStatObj()
+        };
+
+        this.state.books.forEach(book => {
+            const isRead = book.status === 'read';
+            const timesRead = book.timesRead || 0;
+            if (!isRead && timesRead === 0) return;
+
+            let year = 'Desconhecido';
+            let month = -1;
+
+            if (book.readDate) {
+                const d = new Date(book.readDate);
+                year = d.getFullYear();
+                month = d.getMonth();
+            } else if (book.year) {
+                year = book.year;
+            }
+
+            if (!statsData.years[year]) statsData.years[year] = createStatObj();
+
+            const updateStats = (target, b) => {
+                target.books.push(b);
+                target.booksCount++;
+                const p = parseInt(b.pages) || 0;
+                target.pages += p;
+
+                if (b.rating > 0) {
+                    target.ratingSum += parseFloat(b.rating);
+                    target.ratedCount++;
+                }
+
+                if (month >= 0) target.monthlyDist[month]++;
+
+                if (p > 0) {
+                    if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = b;
+                    if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = b;
+                }
+
+                if (b.author) {
+                    target.authors[b.author] = (target.authors[b.author] || 0) + 1;
+                }
+            };
+
+            updateStats(statsData.years[year], book);
+            updateStats(statsData.all, book);
+        });
+
+        this.statsState = { data: statsData, selectedYear: 'all' };
+        this.renderStatsDashboard();
+        modal.classList.add('active');
+    },
+
+    renderStatsDashboard() {
+        const container = document.getElementById('statsContent');
+        if (!container) return;
+        const { data, selectedYear } = this.statsState;
+
+        const years = Object.keys(data.years).sort((a, b) => b - a).filter(y => y !== 'Desconhecido');
+        if (data.years['Desconhecido']) years.push('Desconhecido');
+
+        let html = `<div class="stats-filters">
+            <button class="chip ${selectedYear === 'all' ? 'active' : ''}" onclick="App.setStatsYear('all')">Todos</button>`;
+        years.forEach(y => {
+            html += `<button class="chip ${selectedYear == y ? 'active' : ''}" onclick="App.setStatsYear('${y}')">${y}</button>`;
+        });
+        html += `</div>`;
+
+        const current = selectedYear === 'all' ? data.all : data.years[selectedYear];
+        if (!current) { container.innerHTML = html + '<p>Sem dados.</p>'; return; }
+
+        const avg = current.ratedCount > 0 ? (current.ratingSum / current.ratedCount).toFixed(1) : '-';
+
+        let topAuth = '-'; let maxAuth = 0;
+        for (const [auth, cnt] of Object.entries(current.authors)) {
+            if (cnt > maxAuth) { maxAuth = cnt; topAuth = auth; }
+        }
+
+        const mNamesFull = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        let maxMonthVal = 0;
+        let maxMonthIdx = -1;
+        current.monthlyDist.forEach((val, idx) => {
+            if (val > maxMonthVal) {
+                maxMonthVal = val;
+                maxMonthIdx = idx;
+            }
+        });
+        const activeMonth = maxMonthIdx >= 0 ? mNamesFull[maxMonthIdx] : '-';
+
+        const longest = current.longestBook || { title: '-', pages: '' };
+        const shortest = current.shortestBook || { title: '-', pages: '' };
+
+        html += `
+            <div class="stats-summary">
+                <div class="summary-card">
+                    <div class="summary-value">${current.booksCount}</div>
+                    <div class="summary-label">Livros Lidos</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${current.pages.toLocaleString()}</div>
+                    <div class="summary-label">Páginas Lidas</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">★ ${avg}</div>
+                    <div class="summary-label">Média de Avaliação</div>
+                </div>
+            </div>
+
+            <div class="stats-grid-extra" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                 <div class="summary-card" style="align-items: flex-start; text-align: left; padding: 1.25rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Livro Mais Longo</div>
+                    <div style="font-weight: 600; color: white; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;" title="${longest.title}">${longest.title}</div>
+                    <div style="font-size: 0.9rem; color: var(--accent-color);">${longest.pages ? longest.pages + ' pág' : '-'}</div>
+                </div>
+                 <div class="summary-card" style="align-items: flex-start; text-align: left; padding: 1.25rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Livro Mais Curto</div>
+                    <div style="font-weight: 600; color: white; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;" title="${shortest.title}">${shortest.title}</div>
+                    <div style="font-size: 0.9rem; color: var(--accent-color);">${shortest.pages ? shortest.pages + ' pág' : '-'}</div>
+                </div>
+                 <div class="summary-card" style="align-items: flex-start; text-align: left; padding: 1.25rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Autor Mais Lido</div>
+                    <div style="font-weight: 600; color: white; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;" title="${topAuth}">${topAuth}</div>
+                    <div style="font-size: 0.9rem; color: var(--accent-color);">${maxAuth > 0 ? maxAuth + ' livros' : '-'}</div>
+                </div>
+                 <div class="summary-card" style="align-items: flex-start; text-align: left; padding: 1.25rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Mês Mais Ativo</div>
+                    <div style="font-weight: 600; color: white; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;" title="${activeMonth}">${activeMonth}</div>
+                    <div style="font-size: 0.9rem; color: var(--accent-color);">${maxMonthVal > 0 ? maxMonthVal + ' livros' : '-'}</div>
+                </div>
+            </div>
+        `;
+
+        html += `<div class="chart-container">`;
+        if (selectedYear === 'all') {
+            html += `<div class="chart-title">Livros por Ano</div><div class="chart-bars">`;
+            const ySorted = Object.keys(data.years).sort((a, b) => a - b).filter(y => y !== 'Desconhecido');
+            let maxY = 0; ySorted.forEach(y => maxY = Math.max(maxY, data.years[y].booksCount));
+            if (maxY === 0) maxY = 1;
+
+            ySorted.forEach(y => {
+                const c = data.years[y].booksCount;
+                const h = Math.max((c / maxY) * 100, 4);
+                html += `<div class="bar-group" title="${c}"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
+            });
+            html += `</div>`;
+        } else {
+            html += `<div class="chart-title">Leituras Mensais (${selectedYear})</div><div class="chart-bars">`;
+            const mNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            let maxM = Math.max(...current.monthlyDist, 0);
+            if (maxM === 0) maxM = 1;
+
+            current.monthlyDist.forEach((c, i) => {
+                const h = Math.max((c / maxM) * 100, 4);
+                html += `<div class="bar-group" title="${c}"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+            });
+            html += `</div>`;
+        }
+        html += `</div>`;
+
+        container.innerHTML = html;
     }
 };
 

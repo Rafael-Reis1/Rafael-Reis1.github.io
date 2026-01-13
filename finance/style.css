@@ -2502,3 +2502,82 @@ input[type=number] {
         transform: translateX(-50%) !important;
     }
 }
+
+#seriesModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: auto;
+    max-height: 90vh;
+}
+
+#seriesModal .modal-header,
+#seriesModal .modal-actions {
+    flex-shrink: 0;
+}
+
+#seriesModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 0 1.25rem;
+}
+
+.series-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: visible;
+    max-height: none;
+    padding-right: 0.5rem;
+    margin: 1.25rem 0;
+}
+
+#subsListView {
+    display: flex;
+    flex-direction: column;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+#subsListView .modal-body {
+    padding: 0;
+    padding-right: 0.25rem;
+}
+
+#subsListView .modal-actions {
+    position: sticky;
+    bottom: 0;
+    background: #1a1b2e;
+    z-index: 5;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#seriesModal .modal-body::-webkit-scrollbar,
+#subsListView::-webkit-scrollbar {
+    width: 4px;
+}
+
+#seriesModal .modal-body::-webkit-scrollbar-track,
+#subsListView::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
+#seriesModal .modal-body::-webkit-scrollbar-thumb,
+#subsListView::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+#seriesModal .modal-body::-webkit-scrollbar-thumb:hover,
+#subsListView::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+    #subsListView {
+        max-height: 70vh;
+    }
+}
