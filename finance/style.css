@@ -2436,7 +2436,6 @@ input[type=number] {
 .custom-option:hover {
     background: var(--glass-bg-hover);
     color: var(--text-primary);
-    transform: translateX(4px);
 }
 
 .custom-option.selected {
