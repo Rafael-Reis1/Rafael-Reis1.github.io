@@ -158,7 +158,7 @@ class CustomSelect {
     createOptionElement(option) {
         const div = document.createElement('div');
         div.classList.add('custom-option');
-        div.textContent = option.textContent;
+        div.innerHTML = this.formatContent(option.textContent);
         div.dataset.value = option.value;
 
         if (option.selected) {
@@ -197,7 +197,7 @@ class CustomSelect {
                 textSpan.classList.add('trigger-text');
                 this.trigger.prepend(textSpan);
             }
-            textSpan.textContent = selectedOption.textContent;
+            textSpan.innerHTML = this.formatContent(selectedOption.textContent);
         }
     }
 
@@ -245,6 +245,17 @@ class CustomSelect {
                 else el.classList.remove('selected');
             });
         });
+    }
+
+    formatContent(text) {
+        const trimmed = text.trim();
+        const emojiMatch = trimmed.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u);
+        if (emojiMatch) {
+            const emoji = emojiMatch[0];
+            const rest = trimmed.substring(emoji.length).trim();
+            return `<span class="opt-icon">${emoji}</span><span class="opt-text">${rest}</span>`;
+        }
+        return trimmed;
     }
 }
 
