@@ -38,7 +38,7 @@ const CATEGORIES = {
         outros: '📦'
     },
     income: {
-        salario: '💰',
+        salario: '💵',
         freelance: '💼',
         investimentos: '📈',
         presente: '🎁',
