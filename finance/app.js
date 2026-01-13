@@ -1676,7 +1676,7 @@ class UIController {
         const previousCategory = this.filterCategory.value;
 
         const categories = this.fm.getAvailableCategories();
-        this.filterCategory.innerHTML = '<option value="">Todas as categorias</option>';
+        this.filterCategory.innerHTML = '<option value="">🔍 Todas as categorias</option>';
 
         const uniqueOptions = new Set();
 
