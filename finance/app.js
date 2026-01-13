@@ -1129,9 +1129,28 @@ class UIController {
 
         this.btnClearFilters.addEventListener('click', () => {
             this.filterForm.reset();
-            this.filterEndDate.min = '';
-            this.filterStartDate.max = '';
+
+            this.currentFilters = {
+                startDate: '',
+                endDate: '',
+                type: '',
+                category: '',
+                search: this.currentFilters.search
+            };
+
+            this.setDatePickerValue(this.filterStartDate, '');
+            this.setDatePickerValue(this.filterEndDate, '');
+
+            if (this.filterStartDate._flatpickr) this.filterStartDate._flatpickr.set('maxDate', '');
+            if (this.filterEndDate._flatpickr) this.filterEndDate._flatpickr.set('minDate', '');
+
+            this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
+            this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
+
             this.updateFilterOptions();
+            this.renderActiveFilters();
+            this.currentPage = 1;
+            this.render();
         });
 
         this.btnApplyFilters.addEventListener('click', () => {
@@ -1478,9 +1497,13 @@ class UIController {
         }
         if (key === 'type') {
             this.filterType.value = '';
+            this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
             this.updateFilterOptions();
         }
-        if (key === 'category') this.filterCategory.value = '';
+        if (key === 'category') {
+            this.filterCategory.value = '';
+            this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         if (key === 'search') this.searchInput.value = '';
 
         this.currentPage = 1;
