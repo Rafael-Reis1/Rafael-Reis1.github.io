@@ -598,7 +598,6 @@ input[type=number] {
     border-top: 1px solid var(--glass-border);
     padding-top: 20px;
     padding-bottom: 20px;
-    margin-top: 1rem;
 }
 
 .transaction-item {
@@ -1111,10 +1110,6 @@ input[type=number] {
         justify-content: flex-end;
         gap: 1rem;
     }
-
-
-
-
 
     .btn-warning {
         background: transparent;
@@ -2464,12 +2459,10 @@ input[type=number] {
     height: auto;
     max-height: 90vh;
     min-height: 0;
-    /* Allow shrinking */
 }
 
 #subsModal.showing-list .modal-content {
     overflow: hidden;
-    /* Prevent double scroll when viewing list */
 }
 
 #seriesModal .modal-header,
@@ -2501,7 +2494,6 @@ input[type=number] {
 
 .series-stat {
     flex: 1;
-    /* Symmetric width */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2548,12 +2540,6 @@ input[type=number] {
     padding: 0;
 }
 
-#subsListView .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 1.25rem;
-}
-
 @media (min-width: 769px) {
 
     .series-list,
@@ -2590,8 +2576,4 @@ input[type=number] {
 .series-list::-webkit-scrollbar-thumb:hover,
 #subsListView .modal-body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
-}
-
-@media (max-width: 768px) {
-    /* Potential mobile adjustments if needed */
 }
