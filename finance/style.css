@@ -2556,7 +2556,7 @@ input[type=number] {
     .series-list,
     #subsListView .modal-body {
         scrollbar-gutter: stable;
-        padding-right: calc(1.25rem - 4px);
+        padding-right: calc(1.25rem - 8px);
     }
 }
 
