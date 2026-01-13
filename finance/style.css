@@ -595,6 +595,10 @@ input[type=number] {
     gap: 0.75rem;
     max-height: 600px;
     overflow-y: auto;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 20px;
+    padding-bottom: 20px;
+    margin-top: 1rem;
 }
 
 .transaction-item {
@@ -1551,7 +1555,6 @@ input[type=number] {
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--glass-border);
 }
