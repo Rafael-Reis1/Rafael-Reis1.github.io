@@ -310,7 +310,7 @@ const App = {
                 stars.forEach(star => {
                     const index = parseInt(star.dataset.index);
                     star.classList.remove('filled', 'half-filled');
-                    star.style.fill = 'transparent'; 
+                    star.style.fill = 'transparent';
 
                     if (val >= index) {
                         star.classList.add('filled');
@@ -654,6 +654,8 @@ const App = {
                     return a.author.localeCompare(b.author);
                 case 'rating':
                     return b.rating - a.rating;
+                case 'read-date':
+                    return new Date(b.readDate || 0) - new Date(a.readDate || 0);
                 case 'recent':
                 default:
                     return new Date(b.createdAt) - new Date(a.createdAt);
