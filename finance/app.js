@@ -944,6 +944,7 @@ class UIController {
 
         this.currentPage = 1;
         this.itemsPerPage = 50;
+        this.mousedownTarget = null;
 
         this.btnLogin = document.getElementById('btnLogin');
         this.loginText = document.getElementById('loginText');
@@ -1159,19 +1160,13 @@ class UIController {
             this.currentFilters.type = this.filterType.value;
             this.currentFilters.category = this.filterCategory.value;
 
-            this.currentFilters.category = this.filterCategory.value;
-
             this.currentPage = 1;
-            this.closeModal(this.filterModal);
+            this.closeModal(this.filterModal, true);
             this.render();
         });
 
         this.filterType.addEventListener('change', () => {
             this.updateFilterOptions();
-        });
-
-        this.filterModal.addEventListener('click', (e) => {
-            if (e.target === this.filterModal) this.closeModal(this.filterModal);
         });
 
         this.btnExport.addEventListener('click', () => {
@@ -1228,10 +1223,27 @@ class UIController {
         });
 
         const seriesModal = document.getElementById('seriesModal');
-        [this.editModal, this.deleteModal, this.importModal, this.filterModal, seriesModal].forEach(modal => {
+        const allModals = [
+            this.editModal,
+            this.deleteModal,
+            this.importModal,
+            this.filterModal,
+            seriesModal,
+            this.subsModal,
+            this.cancelSubModal,
+            this.deleteSubModal
+        ];
+
+        allModals.forEach(modal => {
             if (modal) {
+                modal.addEventListener('mousedown', (e) => {
+                    this.mousedownTarget = e.target;
+                });
+
                 modal.addEventListener('click', (e) => {
-                    if (e.target === modal) this.closeModal(modal);
+                    if (e.target === modal && this.mousedownTarget === modal) {
+                        this.closeModal(modal);
+                    }
                 });
             }
         });
@@ -1276,10 +1288,6 @@ class UIController {
 
         document.getElementById('closeSubsModal').addEventListener('click', () => this.closeModal(this.subsModal));
         document.getElementById('cancelSubs').addEventListener('click', () => this.closeModal(this.subsModal));
-
-        this.subsModal.addEventListener('click', (e) => {
-            if (e.target === this.subsModal) this.closeModal(this.subsModal);
-        });
 
         document.getElementById('btnAddSub').addEventListener('click', () => this.showSubsFormView(false));
         document.getElementById('backToSubsList').addEventListener('click', () => this.showSubsListView());
@@ -1343,10 +1351,6 @@ class UIController {
             }
         });
 
-        this.cancelSubModal.addEventListener('click', (e) => {
-            if (e.target === this.cancelSubModal) this.closeModal(this.cancelSubModal);
-        });
-
         document.getElementById('closeDeleteSubModal').addEventListener('click', () => this.closeModal(this.deleteSubModal));
         document.getElementById('cancelDeleteSub').addEventListener('click', () => this.closeModal(this.deleteSubModal));
 
@@ -1363,10 +1367,6 @@ class UIController {
                     this.showToast('Erro ao excluir assinatura', 'error');
                 }
             }
-        });
-
-        this.deleteSubModal.addEventListener('click', (e) => {
-            if (e.target === this.deleteSubModal) this.closeModal(this.deleteSubModal);
         });
     }
 
@@ -1828,6 +1828,16 @@ class UIController {
     }
 
     openFilterModal() {
+        this.setDatePickerValue(this.filterStartDate, this.currentFilters.startDate);
+        this.setDatePickerValue(this.filterEndDate, this.currentFilters.endDate);
+        this.filterType.value = this.currentFilters.type;
+
+        this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
+        this.updateFilterOptions();
+
+        this.filterCategory.value = this.currentFilters.category;
+        this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
+
         this.openModal(this.filterModal);
     }
 
@@ -1928,7 +1938,7 @@ class UIController {
             this.showToast(data.installments ? 'Parcelas geradas com sucesso!' : 'Transação adicionada!', 'success');
         }
 
-        this.closeModal(this.editModal);
+        this.closeModal(this.editModal, true);
         this.render();
     }
 
@@ -1992,7 +2002,7 @@ class UIController {
             this.pendingDeleteId = null;
             this.pendingDeleteGroup = null;
             this.pendingDeleteDate = null;
-            this.closeModal(this.deleteModal);
+            this.closeModal(this.deleteModal, true);
             this.render();
 
             let msg = 'Transação excluída!';
@@ -2264,7 +2274,7 @@ class UIController {
         try {
             const count = await this.fm.import(this.pendingImportData, replace);
             this.pendingImportData = null;
-            this.closeModal(this.importModal);
+            this.closeModal(this.importModal, true);
             this.render();
             this.showToast(`${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`, 'success');
         } catch (err) {
@@ -2330,9 +2340,24 @@ class UIController {
         document.body.style.overflow = 'hidden';
     }
 
-    closeModal(modal) {
+    closeModal(modal, isSubmit = false) {
+        if (!modal) return;
+
         modal.classList.remove('active');
         document.body.style.overflow = '';
+
+        if (modal === this.editModal) {
+            this.editForm.reset();
+            this.setDefaultDate();
+            document.getElementById('editType').dispatchEvent(new Event('change', { bubbles: true }));
+        } else if (modal === this.subsModal) {
+            this.showSubsListView();
+        }
+        else if (modal === this.filterModal) {
+            if (!isSubmit) {
+                this.filterForm.reset();
+            }
+        }
     }
 
     handleAuthClick() {
