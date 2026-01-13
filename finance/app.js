@@ -1308,6 +1308,11 @@ class UIController {
             const day = parseInt(document.getElementById('subsDay').value);
             const editId = document.getElementById('subsEditId').value;
 
+            if (amount <= 0) {
+                this.showToast('O valor deve ser maior que zero', 'error');
+                return;
+            }
+
             if (day < 1 || day > 31) {
                 this.showToast('Dia deve ser entre 1 e 31', 'error');
                 return;
@@ -1901,6 +1906,11 @@ class UIController {
 
         const rawAmount = document.getElementById('editAmount').value;
         const parseAmount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
+
+        if (parseAmount <= 0) {
+            this.showToast('O valor deve ser maior que zero', 'error');
+            return;
+        }
 
         const data = {
             description: document.getElementById('editDescription').value.trim(),
