@@ -1064,13 +1064,12 @@ input[type=number] {
     .user-avatar:active,
     .btn-back:active,
     .dropdown-item:active,
-    .modal-close:active {
+    .modal-close:active,
+    .summary-card:active,
+    .chart-section:active {
         transform: scale(0.96);
     }
 
-    .card:active {
-        transform: scale(0.98);
-    }
 
     .app-container {
         max-width: 100vw;
