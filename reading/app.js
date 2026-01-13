@@ -531,18 +531,36 @@ const App = {
         this.state.books = StorageService.getBooks();
         this.updateCounts();
 
-        const allowedStatuses = ['read', 'reading', 're-reading', 'rereading'];
+        const activeStatuses = ['read', 'reading', 're-reading', 'rereading', 'abandoned'];
         const totalPagesRead = this.state.books.reduce((total, book) => {
-            const completedCycles = book.timesRead || 0;
-            const isActiveStatus = allowedStatuses.includes(book.status);
+            const isActiveStatus = activeStatuses.includes(book.status);
 
-            let totalForBook = completedCycles * book.pages;
-
-            if (isActiveStatus) {
-                totalForBook += (book.readPages || 0);
+            if (!isActiveStatus) {
+                return total;
             }
 
-            return total + totalForBook;
+            const history = book.history || [];
+            if (history.length === 0) {
+                if (book.status === 'read') return total + (book.pages * (book.timesRead || 1));
+                return total + (book.readPages || 0);
+            }
+
+            let bookTotal = 0;
+            let currentCycleProgress = 0;
+            const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            sortedHistory.forEach(entry => {
+                if (entry.type === 'finish') {
+                    bookTotal += book.pages;
+                    currentCycleProgress = 0;
+                } else if (entry.type === 'start') {
+                    currentCycleProgress = 0;
+                } else {
+                    currentCycleProgress = entry.page || 0;
+                }
+            });
+
+            return total + bookTotal + currentCycleProgress;
         }, 0);
 
         if (this.dom.totalPagesRead) {
@@ -922,21 +940,38 @@ const App = {
         if (id) {
             const existingBook = this.state.books.find(b => b.id === id);
             if (existingBook) {
-                const isRereading = formData.status === 'rereading' || formData.status === 're-reading';
-                const wasRereading = existingBook.status === 'rereading' || existingBook.status === 're-reading';
-                const isActive = ['read', 'reading', 're-reading', 'rereading'].includes(formData.status);
+                const newStatus = formData.status;
+                const oldStatus = existingBook.status;
+
+                const isRereading = newStatus === 'rereading' || newStatus === 're-reading';
+                const wasRereading = oldStatus === 'rereading' || oldStatus === 're-reading';
 
                 let newReadPages = existingBook.readPages || 0;
                 let newTimesRead = existingBook.timesRead || 0;
+                let history = existingBook.history || [];
 
-                if (formData.status === 'read') {
+                if (newStatus === 'read' && oldStatus !== 'read') {
                     newReadPages = parseInt(formData.pages) || 0;
-                } else if (isRereading && !wasRereading) {
+                    history.push({
+                        date: new Date().toISOString(),
+                        page: newReadPages,
+                        type: 'finish'
+                    });
+                } else if ((newStatus === 'reading' || isRereading) && oldStatus === 'read') {
                     newReadPages = 0;
-                    if (existingBook.status === 'read' || existingBook.readPages >= existingBook.pages) {
-                        newTimesRead++;
-                    }
-                } else if (!isActive) {
+                    history.push({
+                        date: new Date().toISOString(),
+                        page: 0,
+                        type: 'start'
+                    });
+                } else if (isRereading && !wasRereading && oldStatus !== 'read') {
+                    newReadPages = 0;
+                    history.push({
+                        date: new Date().toISOString(),
+                        page: 0,
+                        type: 'start'
+                    });
+                } else if (newStatus === 'want-to-read') {
                     newReadPages = 0;
                 }
 
@@ -946,6 +981,7 @@ const App = {
                     pages: parseInt(formData.pages) || 0,
                     readPages: newReadPages,
                     timesRead: newTimesRead,
+                    history: history,
                     rating: parseFloat(formData.rating) || 0
                 };
                 StorageService.updateBook(updatedBook);
@@ -959,8 +995,6 @@ const App = {
             StorageService.saveBook(newBook);
         }
 
-        this.refresh();
-        this.closeModal();
         this.refresh();
         this.closeModal();
     },
@@ -1000,11 +1034,25 @@ const App = {
 
         this.dom.historyList.innerHTML = sortedHistory.map(entry => {
             const date = new Date(entry.date).toLocaleDateString();
+            let label = `Pág. ${entry.page}`;
+            let icon = '📖';
+
+            if (entry.type === 'finish') {
+                label = 'Finalizado';
+                icon = '🏆';
+            } else if (entry.type === 'start') {
+                label = 'Iniciado';
+                icon = '🚀';
+            }
+
             return `
-                <div class="history-item">
+                <div class="history-item ${entry.type || 'progress'}">
                     <div class="history-info">
-                        <span class="history-date">${date}</span>
-                        <span class="history-val">Pág. ${entry.page}</span>
+                        <span class="history-icon">${icon}</span>
+                        <div class="history-details">
+                            <span class="history-date">${date}</span>
+                            <span class="history-val">${label}</span>
+                        </div>
                     </div>
                     <div class="history-actions">
                         <div class="action-buttons">
@@ -1022,23 +1070,31 @@ const App = {
     },
 
     deleteHistoryItem(bookId, dateStr) {
-        this.openDeleteModal('Tem certeza que deseja excluir esse registro?', () => {
-            const book = this.state.books.find(b => b.id === bookId);
-            if (!book) return;
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
 
+        const entryToDelete = book.history.find(h => h.date === dateStr);
+        if (entryToDelete && entryToDelete.type === 'start') {
+            const hasFutureEntries = book.history.some(h => new Date(h.date) > new Date(dateStr));
+            if (hasFutureEntries) {
+                this.showMessage('Atenção', 'Não é possível excluir o início da leitura enquanto houver progresso registrado depois dele.', '⚠️');
+                return;
+            }
+        }
+
+        this.openDeleteModal('Tem certeza que deseja excluir esse registro?', () => {
             book.history = book.history.filter(h => h.date !== dateStr);
 
             if (book.history.length > 0) {
-                const latest = book.history.reduce((prev, current) => {
+                const latest = book.history.filter(h => !h.type || h.type === 'progress' || h.type === 'finish').reduce((prev, current) => {
                     return (new Date(prev.date) > new Date(current.date)) ? prev : current;
-                });
-                book.readPages = latest.page;
+                }, book.history[0]);
+                book.readPages = latest.type === 'finish' ? book.pages : (latest.page || 0);
             } else {
                 book.readPages = 0;
             }
 
             StorageService.updateBook(book);
-
             this.refresh();
 
             const percent = Math.round((book.readPages / book.pages) * 100);
@@ -1058,9 +1114,12 @@ const App = {
         if (newPage < 0) newPage = 0;
 
         let wasFinished = false;
+        let entryType = 'progress';
+
         if (newPage === book.pages) {
             book.status = 'read';
             wasFinished = true;
+            entryType = 'finish';
             if (!book.readDate) {
                 book.readDate = new Date().toISOString().split('T')[0];
             }
@@ -1071,7 +1130,8 @@ const App = {
         if (!book.history) book.history = [];
         book.history.push({
             date: new Date().toISOString(),
-            page: newPage
+            page: newPage,
+            type: entryType
         });
 
         StorageService.updateBook(book);
