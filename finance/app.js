@@ -1356,7 +1356,8 @@ class UIController {
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
-        document.getElementById('editDate').value = `${year}-${month}-${day}`;
+        const dateStr = `${year}-${month}-${day}`;
+        this.setDatePickerValue(document.getElementById('editDate'), dateStr);
     }
 
     getCategoryColor(type, category) {
@@ -1464,12 +1465,16 @@ class UIController {
         this.currentFilters[key] = '';
 
         if (key === 'startDate') {
-            this.filterStartDate.value = '';
-            this.filterEndDate.min = '';
+            this.setDatePickerValue(this.filterStartDate, '');
+            if (this.filterEndDate._flatpickr) {
+                this.filterEndDate._flatpickr.set('minDate', '');
+            }
         }
         if (key === 'endDate') {
-            this.filterEndDate.value = '';
-            this.filterStartDate.max = '';
+            this.setDatePickerValue(this.filterEndDate, '');
+            if (this.filterStartDate._flatpickr) {
+                this.filterStartDate._flatpickr.set('maxDate', '');
+            }
         }
         if (key === 'type') {
             this.filterType.value = '';
@@ -1841,7 +1846,7 @@ class UIController {
         document.getElementById('editId').value = t.id;
         document.getElementById('editDescription').value = t.description;
         document.getElementById('editAmount').value = t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-        document.getElementById('editDate').value = t.date;
+        this.setDatePickerValue(document.getElementById('editDate'), t.date);
         document.getElementById('editType').value = t.type;
 
         const isRecurringInput = document.getElementById('isRecurring');
@@ -2249,6 +2254,15 @@ class UIController {
             style: 'currency',
             currency: 'BRL'
         }).format(value);
+    }
+
+    setDatePickerValue(element, value) {
+        if (!element) return;
+        if (element._flatpickr) {
+            element._flatpickr.setDate(value, true);
+        } else {
+            element.value = value;
+        }
     }
 
     formatDate(dateString) {
