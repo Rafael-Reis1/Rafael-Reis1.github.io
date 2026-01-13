@@ -2415,6 +2415,7 @@ document.addEventListener('DOMContentLoaded', () => {
             allowInput: true,
             onReady: function (selectedDates, dateStr, instance) {
                 const input = instance.altInput;
+                input.setAttribute('inputmode', 'numeric');
                 input.addEventListener('input', (e) => {
                     let v = e.target.value.replace(/\D/g, '');
                     if (v.length > 8) v = v.substring(0, 8);
