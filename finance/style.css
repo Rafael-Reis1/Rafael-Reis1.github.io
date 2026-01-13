@@ -2534,23 +2534,21 @@ input[type=number] {
     flex: 1;
     padding: 1rem 1.25rem 1.25rem 1.25rem;
     margin: 0;
-    scrollbar-gutter: stable;
-}
-
-#subsListView {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-    /* Contain the scrolling body */
-    min-height: 0;
-    padding: 0;
 }
 
 #subsListView .modal-body {
     flex: 1;
     overflow-y: auto;
     padding: 0 1.25rem;
+}
+
+@media (min-width: 769px) {
+
+    .series-list,
+    #subsListView .modal-body {
+        scrollbar-gutter: stable;
+        padding-right: calc(1.25rem - 4px);
+    }
 }
 
 #subsListView .modal-actions {
