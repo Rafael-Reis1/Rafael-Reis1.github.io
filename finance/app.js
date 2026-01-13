@@ -2399,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dateFormat: 'Y-m-d',
             altInput: true,
             altFormat: 'd/m/Y',
-            disableMobile: false,
+            disableMobile: true,
             theme: 'dark',
             allowInput: true,
             onReady: function (selectedDates, dateStr, instance) {

@@ -808,7 +808,7 @@ input[type=number] {
     width: 90%;
     max-width: 500px;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow: visible;
     animation: slideUp 0.3s ease-out;
 }
 
@@ -2392,10 +2392,10 @@ input[type=number] {
     top: calc(100% + 0.5rem);
     left: 0;
     right: 0;
-    background: #1e293b;
+    background: #1a1b2e;
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    z-index: 2000;
+    z-index: 3000;
     display: none;
     max-height: 250px;
     overflow-y: auto;
@@ -2481,21 +2481,21 @@ input[type=number] {
 }
 
 .flatpickr-calendar {
-    background: rgba(30, 41, 59, 0.95) !important;
+    background: #1a1b2e !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
     border: 1px solid var(--glass-border) !important;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6) !important;
     border-radius: 16px !important;
     font-family: var(--font-body) !important;
+    z-index: 3000 !important;
 }
 
 .flatpickr-calendar.arrowTop:before,
 .flatpickr-calendar.arrowTop:after,
 .flatpickr-calendar.arrowBottom:before,
 .flatpickr-calendar.arrowBottom:after {
-    border-bottom-color: #1e293b !important;
-    border-top-color: #1e293b !important;
+    display: none !important;
 }
 
 .flatpickr-month {
