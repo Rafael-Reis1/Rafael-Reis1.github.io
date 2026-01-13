@@ -32,7 +32,9 @@ const BookModel = {
             cover: data.cover || 'https://placehold.co/200x300?text=Sem+Capa',
             tags: data.tags || [],
             rating: 0,
-            readPages: 0,
+            readPages: data.status === 'read' ? (parseInt(data.pages) || 0) : 0,
+            timesRead: 0,
+            readDate: null,
             history: [],
             createdAt: new Date().toISOString(),
             year: new Date().getFullYear()
@@ -79,7 +81,38 @@ const App = {
     init() {
         this.cacheDOM();
         this.bindEvents();
+        this.initDatePicker();
         this.refresh();
+    },
+
+    initDatePicker() {
+        if (typeof flatpickr !== 'undefined') {
+            const config = {
+                locale: 'pt',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd/m/Y',
+                disableMobile: true,
+                theme: 'dark',
+                allowInput: true,
+                onReady: function (selectedDates, dateStr, instance) {
+                    const input = instance.altInput;
+                    input.setAttribute('inputmode', 'numeric');
+                    input.addEventListener('input', (e) => {
+                        let v = e.target.value.replace(/\D/g, '');
+                        if (v.length > 8) v = v.substring(0, 8);
+                        if (v.length > 4) {
+                            e.target.value = `${v.substring(0, 2)}/${v.substring(2, 4)}/${v.substring(4)}`;
+                        } else if (v.length > 2) {
+                            e.target.value = `${v.substring(0, 2)}/${v.substring(2)}`;
+                        } else {
+                            e.target.value = v;
+                        }
+                    });
+                }
+            };
+            this.datePicker = flatpickr("#bookReadDate", config);
+        }
     },
 
     cacheDOM() {
@@ -95,14 +128,15 @@ const App = {
                 abandoned: document.getElementById('count-abandoned'),
                 favorite: document.getElementById('count-favorite'),
                 desired: document.getElementById('count-desired'),
-                rated: document.getElementById('count-rated'),
-                reviewed: document.getElementById('count-reviewed'),
+                borrowed: document.getElementById('count-borrowed'),
+                physical: document.getElementById('count-physical'),
                 owned: document.getElementById('count-owned'),
                 lent: document.getElementById('count-lent'),
                 target: document.getElementById('count-target'),
                 ebook: document.getElementById('count-ebook'),
                 audiobook: document.getElementById('count-audiobook'),
             },
+            totalPagesRead: document.getElementById('total-pages-read'),
             resultsCount: document.getElementById('resultsCount'),
             yearContainer: document.querySelector('.year-filters'),
 
@@ -111,6 +145,7 @@ const App = {
             closeModalBtn: document.getElementById('closeBookModal'),
             cancelModalBtn: document.getElementById('cancelBook'),
             bookForm: document.getElementById('bookForm'),
+            groupReadDate: document.getElementById('groupReadDate'),
 
             statusTrigger: document.getElementById('statusTrigger'),
             statusOptions: document.getElementById('statusOptions'),
@@ -178,6 +213,25 @@ const App = {
         });
 
         this.dom.addBtn.addEventListener('click', () => {
+            this.dom.bookForm.reset();
+            document.getElementById('bookId').value = '';
+
+            this.dom.statusHiddenInput.value = 'want-to-read';
+            this.dom.triggerText.textContent = 'Quero Ler';
+            this.dom.triggerIndicator.className = 'status-indicator status-want';
+            this.dom.customOptions.forEach(op => op.classList.remove('selected'));
+            const defaultOp = Array.from(this.dom.customOptions).find(op => op.dataset.value === 'want-to-read');
+            if (defaultOp) defaultOp.classList.add('selected');
+
+            if (this.dom.groupReadDate) this.dom.groupReadDate.style.display = 'none';
+            if (this.datePicker) this.datePicker.clear();
+
+            const groupRating = document.getElementById('groupRating');
+            if (groupRating) groupRating.style.display = 'none';
+            document.getElementById('bookRating').value = 0;
+            if (this.updateStarRatingWidget) this.updateStarRatingWidget(0);
+
+            document.getElementById('modalTitle').textContent = 'Adicionar Livro';
             this.openModal();
         });
 
@@ -221,6 +275,19 @@ const App = {
 
                 this.dom.statusHiddenInput.value = value;
 
+                if (this.dom.groupReadDate) {
+                    this.dom.groupReadDate.style.display = (value === 'read') ? 'block' : 'none';
+                    if (value === 'read' && this.datePicker && !this.datePicker.input.value) {
+                        this.datePicker.setDate(new Date());
+                    }
+                }
+
+                // Show/Hide Rating
+                const groupRating = document.getElementById('groupRating');
+                if (groupRating) {
+                    groupRating.style.display = (value === 'read') ? 'block' : 'none';
+                }
+
                 this.dom.triggerText.textContent = label;
                 this.dom.triggerIndicator.className = `status-indicator ${statusClass}`;
 
@@ -232,6 +299,86 @@ const App = {
             });
         });
 
+        const starWidget = document.getElementById('starRatingWidget');
+        if (starWidget) {
+            const stars = starWidget.querySelectorAll('.star-icon');
+            const hiddenInput = document.getElementById('bookRating');
+            const ratingDisplay = document.getElementById('ratingValueDisplay');
+
+            const updateStars = (val) => {
+                ratingDisplay.textContent = val.toFixed(1);
+                stars.forEach(star => {
+                    const index = parseInt(star.dataset.index);
+                    star.classList.remove('filled', 'half-filled');
+                    star.style.fill = 'transparent'; 
+
+                    if (val >= index) {
+                        star.classList.add('filled');
+                    } else if (val >= index - 0.5) {
+                        star.classList.add('half-filled');
+                        if (!document.getElementById('halfGradient')) {
+                            const svgNS = "http://www.w3.org/2000/svg";
+                            const defsSvg = document.createElementNS(svgNS, "svg");
+                            defsSvg.style.position = "absolute";
+                            defsSvg.style.width = "0";
+                            defsSvg.style.height = "0";
+                            defsSvg.innerHTML = `<defs><linearGradient id="halfGradient"><stop offset="50%" stop-color="#f2511b"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs>`;
+                            document.body.appendChild(defsSvg);
+                        }
+                        star.style.fill = 'url(#halfGradient)';
+                    }
+                });
+            };
+
+            starWidget.addEventListener('mousemove', (e) => {
+                const targetStar = e.target.closest('.star-icon');
+                if (!targetStar) return;
+
+                const starRect = targetStar.getBoundingClientRect();
+                const starIndex = parseInt(targetStar.dataset.index);
+                const offsetX = e.clientX - starRect.left;
+
+                if (starIndex === 1 && offsetX < (starRect.width * 0.3)) {
+                    updateStars(0);
+                    return;
+                }
+
+                const isLeftHalf = offsetX < (starRect.width / 2);
+                const currentVal = isLeftHalf ? starIndex - 0.5 : starIndex;
+                updateStars(currentVal);
+            });
+
+            starWidget.addEventListener('mouseleave', () => {
+                const savedVal = parseFloat(hiddenInput.value) || 0;
+                updateStars(savedVal);
+            });
+
+            starWidget.addEventListener('click', (e) => {
+                const targetStar = e.target.closest('.star-icon');
+                if (!targetStar) return;
+                const starRect = targetStar.getBoundingClientRect();
+                const starIndex = parseInt(targetStar.dataset.index);
+                const offsetX = e.clientX - starRect.left;
+
+                if (starIndex === 1 && offsetX < (starRect.width * 0.3)) {
+                    hiddenInput.value = 0;
+                    updateStars(0);
+                    return;
+                }
+
+                const isLeftHalf = offsetX < (starRect.width / 2);
+                let val = isLeftHalf ? starIndex - 0.5 : starIndex;
+
+                const currentVal = parseFloat(hiddenInput.value) || 0;
+                if (currentVal === val) val = 0;
+
+                hiddenInput.value = val;
+                updateStars(val);
+            });
+
+            this.updateStarRatingWidget = updateStars;
+        }
+
         this.dom.bookForm.addEventListener('submit', (e) => {
             e.preventDefault();
             this.handleBookSubmit();
@@ -240,17 +387,35 @@ const App = {
         this.dom.historyForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const bookId = document.getElementById('historyBookId').value;
-            let val = parseInt(document.getElementById('newCurrentPage').value);
+            const inputVal = document.getElementById('newCurrentPage').value;
             const isPercentage = document.getElementById('isPercentage').checked;
 
-            if (isPercentage) {
-                const book = this.state.books.find(b => b.id === bookId);
-                if (book) {
-                    val = Math.round((val / 100) * book.pages);
-                }
+            if (inputVal === '') {
+                this.showMessage('Atenção', 'Por favor, informe a página ou porcentagem atual.', '⚠️');
+                return;
             }
 
-            this.updateProgress(bookId, val);
+            let val = parseInt(inputVal);
+            if (val === 0) {
+                this.showMessage('Atenção', 'O valor não pode ser zero.', '⚠️');
+                return;
+            }
+
+            const book = this.state.books.find(b => b.id === bookId);
+            if (!book) return;
+
+            let newPageCount = val;
+
+            if (isPercentage) {
+                newPageCount = Math.round((val / 100) * book.pages);
+            }
+
+            if (newPageCount === (book.readPages || 0)) {
+                this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
+                return;
+            }
+
+            this.updateProgress(bookId, newPageCount);
         });
 
         document.getElementById('isPercentage').addEventListener('change', (e) => {
@@ -351,6 +516,17 @@ const App = {
     refresh() {
         this.state.books = StorageService.getBooks();
         this.updateCounts();
+
+        const totalPagesRead = this.state.books.reduce((total, book) => {
+            const completedCycles = book.timesRead || 0;
+            const currentProgress = book.readPages || 0;
+            return total + (completedCycles * book.pages) + currentProgress;
+        }, 0);
+
+        if (this.dom.totalPagesRead) {
+            this.dom.totalPagesRead.textContent = totalPagesRead.toLocaleString('pt-BR');
+        }
+
         this.renderYearFilters();
         this.render();
     },
@@ -545,8 +721,8 @@ const App = {
 
         this.dom.counts.favorite.textContent = count(b => b.tags && b.tags.includes('favorite'));
         this.dom.counts.desired.textContent = count(b => b.tags && b.tags.includes('desired'));
-        this.dom.counts.rated.textContent = count(b => b.tags && b.tags.includes('rated'));
-        this.dom.counts.reviewed.textContent = count(b => b.tags && b.tags.includes('reviewed'));
+        this.dom.counts.borrowed.textContent = count(b => b.tags && b.tags.includes('borrowed'));
+        this.dom.counts.physical.textContent = count(b => b.tags && b.tags.includes('physical'));
         this.dom.counts.owned.textContent = count(b => b.tags && b.tags.includes('owned'));
         this.dom.counts.lent.textContent = count(b => b.tags && b.tags.includes('lent'));
         this.dom.counts.target.textContent = count(b => b.tags && b.tags.includes('target'));
@@ -663,7 +839,25 @@ const App = {
         document.getElementById('bookPages').value = book.pages;
         document.getElementById('bookCover').value = book.cover;
 
+        if (this.datePicker) {
+            this.datePicker.setDate(book.readDate || null);
+        }
+
         this.dom.statusHiddenInput.value = book.status;
+
+        if (this.dom.groupReadDate) {
+            this.dom.groupReadDate.style.display = (book.status === 'read') ? 'block' : 'none';
+        }
+
+        const groupRating = document.getElementById('groupRating');
+        if (groupRating) {
+            groupRating.style.display = (book.status === 'read') ? 'block' : 'none';
+            const ratingInput = document.getElementById('bookRating');
+            if (ratingInput) ratingInput.value = book.rating || 0;
+            if (this.updateStarRatingWidget) {
+                this.updateStarRatingWidget(book.rating || 0);
+            }
+        }
 
         const matchingOption = Array.from(this.dom.customOptions).find(op => op.dataset.value === book.status);
         if (matchingOption) {
@@ -684,6 +878,7 @@ const App = {
 
     handleBookSubmit() {
         const id = document.getElementById('bookId').value;
+        const readDateVal = document.getElementById('bookReadDate').value;
 
         const formData = {
             title: document.getElementById('bookTitle').value,
@@ -691,6 +886,8 @@ const App = {
             pages: document.getElementById('bookPages').value,
             status: document.getElementById('bookStatus').value,
             cover: document.getElementById('bookCover').value,
+            readDate: readDateVal || null,
+            rating: document.getElementById('bookRating').value || 0,
             tags: []
         };
 
@@ -704,18 +901,37 @@ const App = {
             let newReadPages = parseInt(formData.pages) || 0;
             const isRereading = formData.status === 'rereading' || formData.status === 're-reading';
             const wasRereading = existingBook.status === 'rereading' || existingBook.status === 're-reading';
+            let newTimesRead = existingBook.timesRead || 0;
 
             if (isRereading && !wasRereading) {
                 newReadPages = 0;
+                if (existingBook.status === 'read' || existingBook.readPages >= existingBook.pages) {
+                    newTimesRead++;
+                }
             } else if (existingBook) {
                 newReadPages = existingBook.readPages || 0;
                 if (isRereading && !wasRereading) newReadPages = 0;
             }
 
-            const updatedBook = { ...existingBook, ...formData, pages: parseInt(formData.pages) || 0, readPages: newReadPages };
+            if (formData.status === 'read') {
+                newReadPages = parseInt(formData.pages) || 0;
+            }
+
+            const updatedBook = {
+                ...existingBook,
+                ...formData,
+                pages: parseInt(formData.pages) || 0,
+                readPages: newReadPages,
+                timesRead: newTimesRead,
+                rating: parseFloat(formData.rating) || 0
+            };
             StorageService.updateBook(updatedBook);
         } else {
-            const newBook = BookModel.create(formData);
+            const newBookData = {
+                ...formData,
+                rating: parseFloat(formData.rating) || 0
+            };
+            const newBook = BookModel.create(newBookData);
             StorageService.saveBook(newBook);
         }
 
@@ -732,7 +948,7 @@ const App = {
         document.getElementById('historyBookId').value = book.id;
         document.getElementById('historyBookTitle').textContent = book.title;
         document.getElementById('historyTotalPages').value = book.pages;
-        document.getElementById('newCurrentPage').value = book.readPages || 0;
+        document.getElementById('newCurrentPage').value = '';
 
         const isPercentage = document.getElementById('isPercentage');
         isPercentage.checked = false;
@@ -821,6 +1037,9 @@ const App = {
         if (newPage === book.pages) {
             book.status = 'read';
             wasFinished = true;
+            if (!book.readDate) {
+                book.readDate = new Date().toISOString().split('T')[0];
+            }
         }
 
         book.readPages = newPage;
@@ -836,7 +1055,7 @@ const App = {
         this.dom.historyModal.classList.remove('active');
 
         if (wasFinished) {
-            this.showMessage('Parabéns!', 'Você concluiu este livro! 🎉');
+            this.showMessage('Parabéns!', 'Você concluiu este livro!');
         }
     },
 
