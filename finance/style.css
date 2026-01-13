@@ -2536,6 +2536,15 @@ input[type=number] {
     margin: 0;
 }
 
+#subsListView {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    padding: 0;
+}
+
 #subsListView .modal-body {
     flex: 1;
     overflow-y: auto;
@@ -2558,24 +2567,24 @@ input[type=number] {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-#seriesModal .modal-body::-webkit-scrollbar,
+.series-list::-webkit-scrollbar,
 #subsListView .modal-body::-webkit-scrollbar {
     width: 4px;
 }
 
-#seriesModal .modal-body::-webkit-scrollbar-track,
+.series-list::-webkit-scrollbar-track,
 #subsListView .modal-body::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 2px;
 }
 
-#seriesModal .modal-body::-webkit-scrollbar-thumb,
+.series-list::-webkit-scrollbar-thumb,
 #subsListView .modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 2px;
 }
 
-#seriesModal .modal-body::-webkit-scrollbar-thumb:hover,
+.series-list::-webkit-scrollbar-thumb:hover,
 #subsListView .modal-body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
