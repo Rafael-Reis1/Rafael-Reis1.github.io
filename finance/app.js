@@ -267,6 +267,8 @@ class FinanceManager {
         this.unsubscribeListener = null;
         this.unsubscribeSubsListener = null;
         this.onSubsUpdateCallback = null;
+        this.excludedCategories = new Set();
+        this.excludedIncomeCategories = new Set();
     }
 
     async initListener(user, onUpdateCallback) {
@@ -610,7 +612,7 @@ class FinanceManager {
         return byCategory;
     }
 
-    getFilteredTransactions(filters = {}) {
+    getFilteredTransactions(filters = {}, ignoreExclusions = false) {
         const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         let effectiveEndDate = filters.endDate;
@@ -641,6 +643,12 @@ class FinanceManager {
             }
 
             if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+
+            if (!ignoreExclusions) {
+                if (t.type === 'expense' && this.excludedCategories.has(t.category)) return false;
+                if (t.type === 'income' && this.excludedIncomeCategories.has(t.category)) return false;
+            }
+
             return true;
         }).sort((a, b) => {
             const dateParams = b.date.localeCompare(a.date);
@@ -657,7 +665,7 @@ class FinanceManager {
     }
 
     getFilteredExpensesByCategory(filters = {}) {
-        const transactions = this.getFilteredTransactions({ ...filters, type: 'expense' });
+        const transactions = this.getFilteredTransactions({ ...filters, type: 'expense' }, true);
         const byCategory = {};
         transactions.forEach(t => {
             if (!byCategory[t.category]) byCategory[t.category] = 0;
@@ -667,7 +675,7 @@ class FinanceManager {
     }
 
     getFilteredIncomesByCategory(filters = {}) {
-        const transactions = this.getFilteredTransactions({ ...filters, type: 'income' });
+        const transactions = this.getFilteredTransactions({ ...filters, type: 'income' }, true);
         const byCategory = {};
         transactions.forEach(t => {
             if (!byCategory[t.category]) byCategory[t.category] = 0;
@@ -1546,6 +1554,11 @@ class UIController {
         }
     }
 
+    updateDashboardFiltered() {
+        this.renderDashboard();
+        this.renderTransactionsList();
+    }
+
     renderChart() {
         const expenses = this.fm.getFilteredExpensesByCategory({
             startDate: this.currentFilters.startDate || null,
@@ -1554,6 +1567,7 @@ class UIController {
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(expenses);
+        this.expenseChartCategories = categories;
 
         if (categories.length === 0) {
             if (this.chart) {
@@ -1595,12 +1609,38 @@ class UIController {
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            onClick: (e, legendItem, legend) => {
+                                const index = legendItem.index;
+
+                                Chart.defaults.plugins.legend.onClick(e, legendItem, legend);
+
+                                const category = this.expenseChartCategories[index];
+                                if (this.fm.excludedCategories.has(category)) {
+                                    this.fm.excludedCategories.delete(category);
+                                } else {
+                                    this.fm.excludedCategories.add(category);
+                                }
+
+                                this.updateDashboardFiltered();
+                            },
                             labels: {
                                 color: 'rgba(255, 255, 255, 0.7)',
                                 padding: 15,
                                 font: {
                                     family: 'Inter',
                                     size: 12
+                                },
+                                generateLabels: (chart) => {
+                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                    const labels = original.call(this, chart);
+                                    labels.forEach(label => {
+                                        if (label.hidden) {
+                                            label.textDecoration = 'line-through';
+                                            label.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                                            label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                                        }
+                                    });
+                                    return labels;
                                 }
                             }
                         },
@@ -1629,6 +1669,7 @@ class UIController {
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(incomes);
+        this.incomeChartCategories = categories;
 
         const INCOME_COLORS = {
             salario: '#16a34a',
@@ -1678,12 +1719,38 @@ class UIController {
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            onClick: (e, legendItem, legend) => {
+                                const index = legendItem.index;
+
+                                Chart.defaults.plugins.legend.onClick(e, legendItem, legend);
+
+                                const category = this.incomeChartCategories[index];
+                                if (this.fm.excludedIncomeCategories.has(category)) {
+                                    this.fm.excludedIncomeCategories.delete(category);
+                                } else {
+                                    this.fm.excludedIncomeCategories.add(category);
+                                }
+
+                                this.updateDashboardFiltered();
+                            },
                             labels: {
                                 color: 'rgba(255, 255, 255, 0.7)',
                                 padding: 15,
                                 font: {
                                     family: 'Inter',
                                     size: 12
+                                },
+                                generateLabels: (chart) => {
+                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                    const labels = original.call(this, chart);
+                                    labels.forEach(label => {
+                                        if (label.hidden) {
+                                            label.textDecoration = 'line-through';
+                                            label.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                                            label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                                        }
+                                    });
+                                    return labels;
                                 }
                             }
                         },
