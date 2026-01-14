@@ -11,13 +11,22 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1401261221">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1401261221">
 
-    <script src="app.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + "\ncol: " + col + "\nerror: " + error);
+            return false;
+        };
+    </script>
+    <script src="app.js?v=1401261221" defer></script>
 </head>
 
 <body>
@@ -39,11 +48,53 @@
                 <h1>📚 Minha Biblioteca <span id="currentSectionLabel"></span></h1>
             </div>
             <div class="header-actions">
-                <!-- Search button removed -->
-                <div class="user-info">
-                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="user-avatar"
-                        title="Perfil">
+                <button id="btnLogin" class="btn btn-secondary" title="Login com Google" style="display: none;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor">
+                        <path
+                            d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.013-1.133 8.013-3.227 2.04-2.053 2.627-5.067 2.627-7.427 0-.747-.054-1.467-.16-2.147H12.48z" />
+                    </svg>
+                    <span>Google Login</span>
+                </button>
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <img id="userAvatar" src="" alt="User" class="user-avatar" title="Clique para opções">
+                    <div id="userDropdown" class="user-dropdown">
+                        <div class="dropdown-header">
+                            <span id="userName" class="user-name">Usuário</span>
+                            <span id="userEmail" class="user-email">email@exemplo.com</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button id="btnExportMenu" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Exportar Backup
+                        </button>
+                        <button id="btnImportMenu" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Importar Backup
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button id="btnLogout" class="dropdown-item danger">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Sair
+                        </button>
+                    </div>
                 </div>
+                <input type="file" id="fileInput" accept=".json" hidden>
             </div>
         </header>
 
@@ -369,13 +420,23 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modalTitle">Adicionar Livro</h3>
-                <button class="modal-close" id="closeBookModal">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
+                <div class="modal-header-actions">
+                    <button type="button" class="modal-action-btn" id="btnOpenHistoryFromModal"
+                        title="Histórico de Leitura" style="display: none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </button>
+                    <button class="modal-close" id="closeBookModal">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <form id="bookForm" autocomplete="off">
                 <div class="modal-body">
@@ -704,6 +765,39 @@
             <div class="modal-body">
                 <div id="statsContent" class="stats-container">
                 </div>
+            </div>
+        </div>
+    </div>
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div id="authLoading" class="auth-loading">
+                <div class="spinner"></div>
+                <p>Carregando página...</p>
+            </div>
+            <div id="authContent" class="auth-content" style="display: none;">
+                <div class="login-icon">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                </div>
+                <h2>Bem-vindo à Minha Biblioteca</h2>
+                <p>Para sincronizar seus livros e leituras em todos os dispositivos com segurança, é necessário fazer
+                    login com sua conta Google.</p>
+                <p class="login-note">Faça login com sua conta Google para acessar seus dados.</p>
+                <button id="btnLoginOverlay" class="btn btn-primary btn-lg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor">
+                        <path
+                            d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .533 5.347.533 12S5.867 24 12.48 24c3.44 0 6.013-1.133 8.013-3.227 2.04-2.053 2.627-5.067 2.627-7.427 0-.747-.054-1.467-.16-2.147H12.48z" />
+                    </svg>
+                    Fazer Login com Google
+                </button>
+                <a href="../index.html" class="btn btn-text-only"
+                    style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">
+                    Voltar para o Portfolio
+                </a>
             </div>
         </div>
     </div>
