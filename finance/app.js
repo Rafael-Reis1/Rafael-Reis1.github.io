@@ -550,7 +550,7 @@ class FinanceManager {
             }, 0);
     }
 
-    getFutureExpenses() {
+    getFutureExpenses(filters = {}) {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -558,11 +558,29 @@ class FinanceManager {
         const dateStr = `${year}-${month}-${day}`;
 
         return this.transactions
-            .filter(t => t.date > dateStr && t.type === 'expense' && t.isPaid !== true)
+            .filter(t => {
+                if (t.date <= dateStr) return false;
+                if (t.type !== 'expense') return false;
+                if (t.isPaid === true) return false;
+
+                if (filters.startDate && t.date < filters.startDate) return false;
+                if (filters.endDate && t.date > filters.endDate) return false;
+                if (filters.category) {
+                    if (filters.category === 'outros') {
+                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+                    } else if (t.category !== filters.category) {
+                        return false;
+                    }
+                }
+                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+
+                return true;
+            })
             .reduce((acc, t) => acc + t.amount, 0);
     }
 
-    getOverdueExpenses() {
+    getOverdueExpenses(filters = {}) {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -570,7 +588,25 @@ class FinanceManager {
         const dateStr = `${year}-${month}-${day}`;
 
         return this.transactions
-            .filter(t => t.date < dateStr && t.type === 'expense' && t.isPaid !== true)
+            .filter(t => {
+                if (t.date >= dateStr) return false;
+                if (t.type !== 'expense') return false;
+                if (t.isPaid === true) return false;
+
+                if (filters.startDate && t.date < filters.startDate) return false;
+                if (filters.endDate && t.date > filters.endDate) return false;
+                if (filters.category) {
+                    if (filters.category === 'outros') {
+                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+                    } else if (t.category !== filters.category) {
+                        return false;
+                    }
+                }
+                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+
+                return true;
+            })
             .reduce((acc, t) => acc + t.amount, 0);
     }
 
@@ -1560,17 +1596,19 @@ class UIController {
     }
 
     renderDashboard() {
-        const totals = this.fm.getFilteredTotals({
+        const filters = {
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
             type: this.currentFilters.type || null,
             category: this.currentFilters.category || null,
             search: this.currentFilters.search || null
-        });
+        };
+
+        const totals = this.fm.getFilteredTotals(filters);
 
         const balance = this.fm.getBalance();
-        const futureExpenses = this.fm.getFutureExpenses();
-        const overdueExpenses = this.fm.getOverdueExpenses();
+        const futureExpenses = this.fm.getFutureExpenses(filters);
+        const overdueExpenses = this.fm.getOverdueExpenses(filters);
 
         const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.search;
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
