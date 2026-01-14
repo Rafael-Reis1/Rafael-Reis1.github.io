@@ -1621,7 +1621,9 @@ class UIController {
                                     this.fm.excludedCategories.add(category);
                                 }
 
-                                this.updateDashboardFiltered();
+                                setTimeout(() => {
+                                    this.updateDashboardFiltered();
+                                }, 0);
                             },
                             labels: {
                                 color: 'rgba(255, 255, 255, 0.7)',
@@ -1639,6 +1641,7 @@ class UIController {
 
                                             return {
                                                 text: label,
+                                                fontColor: 'rgba(255, 255, 255, 0.7)',
                                                 fillStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.backgroundColor,
                                                 strokeStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.borderColor,
                                                 lineWidth: style.borderWidth,
@@ -1738,7 +1741,9 @@ class UIController {
                                     this.fm.excludedIncomeCategories.add(category);
                                 }
 
-                                this.updateDashboardFiltered();
+                                setTimeout(() => {
+                                    this.updateDashboardFiltered();
+                                }, 0);
                             },
                             labels: {
                                 color: 'rgba(255, 255, 255, 0.7)',
@@ -1756,6 +1761,7 @@ class UIController {
 
                                             return {
                                                 text: label,
+                                                fontColor: 'rgba(255, 255, 255, 0.7)',
                                                 fillStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.backgroundColor,
                                                 strokeStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.borderColor,
                                                 lineWidth: style.borderWidth,
