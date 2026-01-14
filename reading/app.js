@@ -444,6 +444,9 @@ const App = {
                 this.dom.btnOpenHistoryFromModal.style.display = 'none';
             }
 
+            if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
+            if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
+
             this.openModal();
         });
 
