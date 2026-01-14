@@ -75,12 +75,16 @@ const App = {
         yearFilter: 'all',
         books: [],
         searchResults: [],
-        sortBy: 'recent'
+        sortBy: 'recent',
+        currentPage: 1,
+        itemsPerPage: 12,
+        searchQuery: ''
     },
 
     init() {
         this.cacheDOM();
         this.bindEvents();
+        this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
         this.refresh();
@@ -119,7 +123,7 @@ const App = {
     cacheDOM() {
         this.dom = {
             grid: document.getElementById('booksGrid'),
-            sidebarLinks: document.querySelectorAll('.nav-item'),
+            sidebarLinks: document.querySelectorAll('.nav-item[data-filter]'),
             counts: {
                 all: document.getElementById('count-all'),
                 read: document.getElementById('count-read'),
@@ -139,6 +143,7 @@ const App = {
             },
             totalPagesRead: document.getElementById('total-pages-read'),
             resultsCount: document.getElementById('resultsCount'),
+            currentSectionLabel: document.getElementById('currentSectionLabel'),
             yearContainer: document.querySelector('.year-filters'),
 
             addBtn: document.getElementById('btnAddBook'),
@@ -157,12 +162,11 @@ const App = {
 
             apiSearch: document.getElementById('apiSearch'),
             apiResults: document.getElementById('apiResults'),
-            apiSearch: document.getElementById('apiSearch'),
-            apiResults: document.getElementById('apiResults'),
+            searchRow: document.querySelector('.search-row'),
+            formDivider: document.querySelector('.form-divider'),
             searchLoader: document.getElementById('searchLoader'),
 
             btnSort: document.getElementById('btnSort'),
-            sortDropdown: document.getElementById('sortDropdown'),
             sortDropdown: document.getElementById('sortDropdown'),
             sortOptions: document.querySelectorAll('.dropdown-item[data-sort]'),
 
@@ -183,7 +187,18 @@ const App = {
             messageOkBtn: document.getElementById('messageOkBtn'),
             messageTitle: document.getElementById('messageTitle'),
             messageText: document.getElementById('messageText'),
-            messageIcon: document.getElementById('messageIcon')
+            messageIcon: document.getElementById('messageIcon'),
+
+            paginationControls: document.getElementById('paginationControls'),
+            btnPrevPage: document.getElementById('btnPrevPage'),
+            btnNextPage: document.getElementById('btnNextPage'),
+            pageInfo: document.getElementById('pageInfo'),
+
+            bookSearch: document.getElementById('bookSearch'),
+
+            btnMenu: document.getElementById('btnMenu'),
+            sidebar: document.getElementById('sidebar'),
+            sidebarOverlay: document.getElementById('sidebarOverlay')
         };
     },
 
@@ -200,6 +215,11 @@ const App = {
 
                 this.dom.sidebarLinks.forEach(l => l.classList.remove('active'));
                 e.currentTarget.classList.add('active');
+
+                if (window.innerWidth <= 768) {
+                    this.dom.sidebar.classList.remove('active');
+                    this.dom.sidebarOverlay.classList.remove('active');
+                }
             });
         });
 
@@ -489,6 +509,7 @@ const App = {
         });
 
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
+            if (document.getElementById('bookId').value) return;
             this.handleAPISearch(e.target.value);
         }, 500));
 
@@ -504,6 +525,60 @@ const App = {
                 e.target.classList.remove('active');
             }
         });
+
+        this.dom.btnPrevPage.addEventListener('click', () => {
+            if (this.state.currentPage > 1) {
+                this.state.currentPage--;
+                this.render();
+            }
+        });
+
+        this.dom.btnNextPage.addEventListener('click', () => {
+            this.state.currentPage++;
+            this.render();
+        });
+
+        this.dom.bookSearch.addEventListener('input', debounce((e) => {
+            this.state.searchQuery = e.target.value.trim();
+            this.state.currentPage = 1;
+            this.render();
+        }, 300));
+    },
+
+    bindMobileEvents() {
+        if (this.dom.btnMenu) {
+            this.dom.btnMenu.addEventListener('click', () => {
+                this.dom.sidebar.classList.toggle('active');
+                this.dom.sidebarOverlay.classList.toggle('active');
+            });
+        }
+
+        if (this.dom.sidebarOverlay) {
+            this.dom.sidebarOverlay.addEventListener('click', () => {
+                this.dom.sidebar.classList.remove('active');
+                this.dom.sidebarOverlay.classList.remove('active');
+            });
+        }
+
+        const closeSidebar = () => {
+            if (this.dom.sidebar.classList.contains('active')) {
+                this.dom.sidebar.classList.remove('active');
+                this.dom.sidebarOverlay.classList.remove('active');
+            }
+        };
+
+        const navItems = this.dom.sidebar.querySelectorAll('.nav-item');
+        navItems.forEach(item => item.addEventListener('click', closeSidebar));
+
+        const paginometer = document.getElementById('paginometerCard');
+        if (paginometer) {
+            paginometer.addEventListener('click', closeSidebar);
+        }
+
+        const btnCloseSidebar = document.getElementById('btnCloseSidebar');
+        if (btnCloseSidebar) {
+            btnCloseSidebar.addEventListener('click', closeSidebar);
+        }
     },
 
     setupModalCloseAttributes(modal, closeCallback) {
@@ -578,11 +653,102 @@ const App = {
 
     setFilter(filter) {
         this.state.filter = filter;
+        this.state.currentPage = 1;
+
+        const labels = {
+            'all': '📚 Minha Biblioteca',
+            'read': '✅ Lidos',
+            'reading': '📖 Lendo',
+            'want-to-read': '🔖 Quero Ler',
+            're-reading': '🔄 Relendo',
+            'abandoned': '🚫 Abandonados',
+            'favorite': '❤️ Favoritos',
+            'desired': '✨ Desejados',
+            'borrowed': '📘 Emprestados',
+            'physical': '📚 Físicos',
+            'owned': '📦 Tenho',
+            'lent': '🤝 Emprestei',
+            'target': '🎯 Meta',
+            'ebook': '📱 E-book',
+            'audiobook': '🎧 Audiobook'
+        };
+
+        const colors = {
+            'all': '',
+            'read': 'var(--color-read)',
+            'reading': 'var(--color-reading)',
+            'want-to-read': 'var(--color-want)',
+            're-reading': 'var(--color-reread)',
+            'abandoned': 'var(--color-abandoned)',
+            'favorite': '#db2777',
+            'desired': '#9333ea',
+            'borrowed': '#0891b2',
+            'physical': '#854d0e',
+            'owned': '#059669',
+            'lent': '#4f46e5',
+            'target': '#ea580c',
+            'ebook': '#0284c7',
+            'audiobook': '#7c3aed'
+        };
+
+        const header = document.querySelector('.header');
+        const h1 = header ? header.querySelector('h1') : null;
+
+        if (header && h1) {
+            if (header && h1) {
+                if (filter === 'all') {
+                    h1.innerHTML = '📚 Minha Biblioteca <span id="currentSectionLabel"></span>';
+                    this.dom.currentSectionLabel = h1.querySelector('#currentSectionLabel');
+
+                    header.style.background = '';
+                    header.style.borderBottom = '';
+                    h1.style.color = '';
+                } else {
+                    const color = colors[filter];
+                    if (color) {
+                        const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
+                        let iconHtml = '';
+                        let labelText = labels[filter] || filter;
+
+                        if (sidebarItem) {
+                            const iconEl = sidebarItem.querySelector('.nav-icon');
+                            if (iconEl) iconHtml = iconEl.innerHTML;
+
+                            const labelEl = sidebarItem.querySelector('.nav-label');
+                            if (labelEl) labelText = labelEl.textContent;
+                        }
+
+                        header.style.background = color;
+                        header.style.borderBottom = 'none';
+                        h1.style.color = '#ffffff';
+                        h1.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="display: flex; width: 20px; height: 20px;">${iconHtml}</div>
+                            <span>${labelText}</span>
+                        </div>
+                    `;
+                    }
+                }
+            }
+        }
+
         this.render();
     },
 
     getFilteredBooks() {
         let filtered = this.state.books;
+
+        if (this.state.searchQuery) {
+            const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const terms = normalize(this.state.searchQuery).split(/\s+/).filter(t => t);
+            filtered = filtered.filter(book => {
+                const titleNorm = normalize(book.title);
+                const authorNorm = normalize(book.author);
+                return terms.every(term =>
+                    titleNorm.includes(term) || authorNorm.includes(term)
+                );
+            });
+        }
 
         if (this.state.filter !== 'all') {
             filtered = filtered.filter(book => {
@@ -620,63 +786,83 @@ const App = {
 
         if (sorted.length === 0) {
             this.dom.grid.innerHTML = `
-                <div class="empty-state">
-                    <p>Nenhum livro encontrado nesta categoria.</p>
-                </div>
-            `;
+            <div class="empty-state">
+                <p>Nenhum livro encontrado nesta categoria.</p>
+            </div>
+        `;
+            this.dom.paginationControls.style.display = 'none';
             return;
         }
 
-        sorted.forEach(book => {
+        const totalItems = sorted.length;
+        const totalPages = Math.ceil(totalItems / this.state.itemsPerPage);
+
+        if (this.state.currentPage > totalPages) this.state.currentPage = totalPages || 1;
+        if (this.state.currentPage < 1) this.state.currentPage = 1;
+
+        const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
+        const end = start + this.state.itemsPerPage;
+        const pageBooks = sorted.slice(start, end);
+
+        if (totalPages <= 1) {
+            this.dom.paginationControls.style.display = 'none';
+        } else {
+            this.dom.paginationControls.style.display = 'flex';
+            this.dom.pageInfo.textContent = `Página ${this.state.currentPage} de ${totalPages}`;
+            this.dom.btnPrevPage.disabled = this.state.currentPage === 1;
+            this.dom.btnNextPage.disabled = this.state.currentPage === totalPages;
+        }
+
+        pageBooks.forEach(book => {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
             card.innerHTML = `
-                <div class="book-cover-container skeleton">
-                    <img src="${book.cover}" alt="${book.title}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')" onerror="this.parentElement.classList.remove('skeleton'); this.src='https://placehold.co/200x300?text=Sem+Capa'">
-                    <!-- Bookmark Icon SVG -->
-                    <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
-                        <path d="M0 0h24v32l-12-8-12 8z"/>
-                    </svg>
-                    <div class="title-overlay">${book.title}</div>
-                </div>
+            <div class="book-cover-container skeleton">
+                <img src="${book.cover}" alt="${book.title}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')" onerror="this.parentElement.classList.remove('skeleton'); this.src='https://placehold.co/200x300?text=Sem+Capa'">
+                <!-- Bookmark Icon SVG -->
+                <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
+                    <path d="M0 0h24v32l-12-8-12 8z"/>
+                </svg>
+                <div class="title-overlay">${book.title}</div>
+            </div>
 
-                <!-- NEW: Moved outside container so it's not clipped -->
-                <button class="btn-options" data-id="${book.id}" title="Opções">
-                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="19" cy="12" r="1"></circle>
-                        <circle cx="5" cy="12" r="1"></circle>
-                    </svg>
-                </button>
-                <div class="options-menu" id="menu-${book.id}">
-                    <ul>
-                        <li><button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button></li>
-                        <li><button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button></li>
-                    </ul>
+            <!-- NEW: Moved outside container so it's not clipped -->
+            <button class="btn-options" data-id="${book.id}" title="Opções">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                    <circle cx="5" cy="12" r="1"></circle>
+                </svg>
+            </button>
+            <div class="options-menu" id="menu-${book.id}">
+                <ul>
+                    <li><button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button></li>
+                    <li><button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button></li>
+                </ul>
+            </div>
+            
+            <div class="book-footer">
+                <div class="reading-progress">
+                    ${this.calculateProgress(book)}%
                 </div>
-                
-                <div class="book-footer">
-                    <div class="reading-progress">
-                        ${this.calculateProgress(book)}%
-                    </div>
-                    <div class="book-rating">
-                        <span>★</span> ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
-                    </div>
+                <div class="book-rating">
+                    <span>★</span> ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
                 </div>
-            `;
+            </div>
+        `;
 
             if (['reading', 'rereading', 're-reading'].includes(book.status)) {
                 const menuList = card.querySelector('.options-menu ul');
                 const updateItem = document.createElement('li');
                 updateItem.innerHTML = `
-                    <button class="menu-item" onclick="App.openHistoryModal('${book.id}')">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        Atualizar Progresso
-                    </button>
-                `;
+                <button class="menu-item" onclick="App.openHistoryModal('${book.id}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Atualizar Progresso
+                </button>
+            `;
                 if (menuList) {
                     menuList.insertBefore(updateItem, menuList.firstChild);
                 }
@@ -785,6 +971,9 @@ const App = {
         document.getElementById('modalTitle').textContent = 'Adicionar Livro';
         document.getElementById('bookId').value = '';
 
+        if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
+        if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
+
         setTimeout(() => {
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
@@ -874,6 +1063,13 @@ const App = {
     editBook(id) {
         const book = this.state.books.find(b => b.id === id);
         if (!book) return;
+
+        if (!book) return;
+
+        document.getElementById('modalTitle').textContent = 'Editar Livro';
+
+        if (this.dom.searchRow) this.dom.searchRow.style.display = 'none';
+        if (this.dom.formDivider) this.dom.formDivider.style.display = 'none';
 
         document.getElementById('bookId').value = book.id;
         document.getElementById('bookTitle').value = book.title;
@@ -987,6 +1183,18 @@ const App = {
                 StorageService.updateBook(updatedBook);
             }
         } else {
+            const titleLower = formData.title.toLowerCase().trim();
+            const authorLower = formData.author.toLowerCase().trim();
+            const duplicate = this.state.books.find(b =>
+                b.title.toLowerCase().trim() === titleLower &&
+                b.author.toLowerCase().trim() === authorLower
+            );
+
+            if (duplicate) {
+                this.showMessage('Livro já existe', `"${formData.title}" de ${formData.author} já está na sua lista.`, '⚠️');
+                return;
+            }
+
             const newBookData = {
                 ...formData,
                 rating: parseFloat(formData.rating) || 0
