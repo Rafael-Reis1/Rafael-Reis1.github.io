@@ -1630,9 +1630,9 @@ class UIController {
                                     family: 'Inter',
                                     size: 12
                                 },
-                                generateLabels: (chart) => {
+                                generateLabels: function (chart) {
                                     const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(chart, chart);
+                                    const labels = original.call(this, chart);
                                     labels.forEach(label => {
                                         if (label.hidden) {
                                             label.fillStyle = 'rgba(255, 255, 255, 0.1)';
@@ -1739,9 +1739,9 @@ class UIController {
                                     family: 'Inter',
                                     size: 12
                                 },
-                                generateLabels: (chart) => {
+                                generateLabels: function (chart) {
                                     const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(chart, chart);
+                                    const labels = original.call(this, chart);
                                     labels.forEach(label => {
                                         if (label.hidden) {
                                             label.fillStyle = 'rgba(255, 255, 255, 0.1)';
