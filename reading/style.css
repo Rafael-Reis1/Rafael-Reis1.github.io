@@ -918,19 +918,30 @@ body {
 }
 
 .btn-primary {
-    background: var(--accent-color);
+    background: var(--accent-gradient);
     color: white;
-    box-shadow: 0 0 15px rgba(242, 81, 27, 0.4);
+    box-shadow: var(--accent-glow);
 }
 
 .btn-primary:hover {
-    box-shadow: 0 0 20px rgba(242, 81, 27, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
 }
 
 .btn-secondary {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
+}
+
+.btn-lg {
+    height: 52px;
+    padding: 0 2rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 0;
+    width: 100%;
 }
 
 .btn-secondary:hover {
@@ -2965,6 +2976,7 @@ input[type=number] {
     justify-content: center;
     margin-top: 0;
     gap: 10px;
+    height: 52px;
 }
 
 #btnLoginOverlay:hover {
@@ -2976,7 +2988,7 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1rem;
     color: var(--text-secondary);
 }
 
@@ -3005,15 +3017,15 @@ input[type=number] {
 
 .auth-loading p {
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    letter-spacing: 0.5px;
+    margin: 0;
+    line-height: 1.2;
 }
 
 .login-card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
-    padding: 3rem;
+    padding: 2.5rem;
     max-width: 500px;
     width: 100%;
     text-align: center;
@@ -3044,10 +3056,11 @@ input[type=number] {
     line-height: 1.2;
 }
 
-.login-card p {
+.auth-content p {
     color: var(--text-secondary);
     font-size: 1rem;
     line-height: 1.6;
+    margin-bottom: 1.5rem;
 }
 
 .login-note {
