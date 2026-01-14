@@ -42,6 +42,166 @@ const BookModel = {
     }
 };
 
+const firebaseConfig = {
+    apiKey: "AIzaSyCvI-ATmTj-zAzbGnKLx1Fq7i29KoULwro",
+    authDomain: "finance-app-e50b8.firebaseapp.com",
+    projectId: "finance-app-e50b8",
+    storageBucket: "finance-app-e50b8.firebasestorage.app",
+    messagingSenderId: "339147531228",
+    appId: "1:339147531228:web:6eb3aca1de8798e6d52519",
+    measurementId: "G-ZHX9XRD3TK"
+};
+
+try {
+    firebase.initializeApp(firebaseConfig);
+} catch (e) {
+    console.error('Firebase Init Error', e);
+}
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true })
+    .catch((err) => {
+        if (err.code == 'unimplemented') {
+            console.warn('Persistência offline indisponível neste navegador/modo.');
+        }
+    });
+
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+class ReadingManager {
+    constructor() {
+        this.books = [];
+        this.unsubscribeListener = null;
+    }
+
+    async initListener(user, onUpdateCallback) {
+        if (!user) return;
+
+        this.stopListener();
+
+        const booksRef = db.collection('library_data').doc(user.uid).collection('books');
+
+        this.unsubscribeListener = booksRef.onSnapshot((snapshot) => {
+            this.books = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            if (onUpdateCallback) onUpdateCallback();
+        }, (error) => {
+            console.error('Erro no Listener de Livros:', error);
+        });
+    }
+
+    stopListener() {
+        if (this.unsubscribeListener) {
+            this.unsubscribeListener();
+            this.unsubscribeListener = null;
+        }
+    }
+
+    clear() {
+        this.books = [];
+    }
+
+    getAll() {
+        return [...this.books].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    get(id) {
+        return this.books.find(b => b.id === id);
+    }
+
+    generateId() {
+        return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    }
+
+    add(book) {
+        const newBook = {
+            ...book,
+            id: this.generateId(),
+            createdAt: new Date().toISOString()
+        };
+
+        this.books.push(newBook);
+
+        if (auth.currentUser) {
+            const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                .collection('books').doc(newBook.id);
+            ref.set(newBook).catch(e => console.error('Sync error:', e));
+        }
+
+        return newBook;
+    }
+
+    update(id, data) {
+        const index = this.books.findIndex(b => b.id === id);
+        if (index !== -1) {
+            this.books[index] = { ...this.books[index], ...data };
+
+            if (auth.currentUser) {
+                const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                    .collection('books').doc(id);
+                ref.update(data).catch(e => console.error('Sync error:', e));
+            }
+
+            return this.books[index];
+        }
+        return null;
+    }
+
+    delete(id) {
+        this.books = this.books.filter(b => b.id !== id);
+
+        if (auth.currentUser) {
+            const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                .collection('books').doc(id);
+            ref.delete().catch(e => console.error('Sync error:', e));
+        }
+
+        return true;
+    }
+
+    export() {
+        return {
+            books: this.books,
+            exportedAt: new Date().toISOString(),
+            version: '1.0'
+        };
+    }
+
+    async import(data, replace = false) {
+        if (!data.books || !Array.isArray(data.books)) {
+            throw new Error('Formato inválido');
+        }
+
+        if (!auth.currentUser) {
+            throw new Error('Usuário não autenticado');
+        }
+
+        const userRef = db.collection('library_data').doc(auth.currentUser.uid).collection('books');
+
+        if (replace) {
+            const existing = await userRef.get();
+            const batch = db.batch();
+            existing.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+
+        const importBatch = db.batch();
+        data.books.forEach(book => {
+            const id = book.id || this.generateId();
+            const ref = userRef.doc(id);
+            importBatch.set(ref, { ...book, id });
+        });
+        await importBatch.commit();
+
+        return data.books.length;
+    }
+}
+
+const rm = new ReadingManager();
+
 const StorageService = {
     KEY: 'reading_app_data',
 
@@ -66,8 +226,13 @@ const StorageService = {
         let books = this.getBooks();
         books = books.filter(b => b.id !== id);
         localStorage.setItem(this.KEY, JSON.stringify(books));
+    },
+
+    clearAll() {
+        localStorage.removeItem(this.KEY);
     }
 };
+
 
 const App = {
     state: {
@@ -83,7 +248,9 @@ const App = {
 
     init() {
         this.cacheDOM();
+
         this.bindEvents();
+
         this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
@@ -176,6 +343,7 @@ const App = {
             historyList: document.getElementById('historyList'),
             historyProgressBar: document.getElementById('historyProgressBar'),
             historyProgressText: document.getElementById('historyProgressText'),
+            btnOpenHistoryFromModal: document.getElementById('btnOpenHistoryFromModal'),
 
             deleteModal: document.getElementById('deleteModal'),
             closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
@@ -198,7 +366,23 @@ const App = {
 
             btnMenu: document.getElementById('btnMenu'),
             sidebar: document.getElementById('sidebar'),
-            sidebarOverlay: document.getElementById('sidebarOverlay')
+            sidebarOverlay: document.getElementById('sidebarOverlay'),
+
+            btnLogin: document.getElementById('btnLogin'),
+            userInfo: document.getElementById('userInfo'),
+            userAvatar: document.getElementById('userAvatar'),
+            userDropdown: document.getElementById('userDropdown'),
+            userName: document.getElementById('userName'),
+            userEmail: document.getElementById('userEmail'),
+            btnExportMenu: document.getElementById('btnExportMenu'),
+            btnImportMenu: document.getElementById('btnImportMenu'),
+            btnLogout: document.getElementById('btnLogout'),
+            fileInput: document.getElementById('fileInput'),
+
+            loginOverlay: document.getElementById('loginOverlay'),
+            authLoading: document.getElementById('authLoading'),
+            authContent: document.getElementById('authContent'),
+            btnLoginOverlay: document.getElementById('btnLoginOverlay')
         };
     },
 
@@ -222,6 +406,8 @@ const App = {
                 }
             });
         });
+
+
 
         this.dom.yearContainer.addEventListener('click', (e) => {
             const chip = e.target.closest('.chip');
@@ -253,6 +439,11 @@ const App = {
             if (this.updateStarRatingWidget) this.updateStarRatingWidget(0);
 
             document.getElementById('modalTitle').textContent = 'Adicionar Livro';
+
+            if (this.dom.btnOpenHistoryFromModal) {
+                this.dom.btnOpenHistoryFromModal.style.display = 'none';
+            }
+
             this.openModal();
         });
 
@@ -486,6 +677,15 @@ const App = {
             this.dom.historyModal.classList.remove('active');
         });
 
+        if (this.dom.btnOpenHistoryFromModal) {
+            this.dom.btnOpenHistoryFromModal.addEventListener('click', () => {
+                const bookId = document.getElementById('bookId').value;
+                if (bookId) {
+                    this.openHistoryModal(bookId);
+                }
+            });
+        }
+
         this.dom.closeDeleteModalBtn.addEventListener('click', () => this.closeDeleteModal());
         this.dom.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteModal());
 
@@ -543,6 +743,139 @@ const App = {
             this.state.currentPage = 1;
             this.render();
         }, 300));
+
+        this.dom.btnLogin.addEventListener('click', () => this.handleAuthClick());
+        if (this.dom.btnLoginOverlay) {
+            this.dom.btnLoginOverlay.addEventListener('click', () => this.handleAuthClick());
+        }
+
+        this.dom.userAvatar.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.dom.userDropdown.classList.toggle('active');
+        });
+
+        this.dom.btnLogout.addEventListener('click', () => {
+            if (this.dom.authLoading) this.dom.authLoading.style.display = 'flex';
+            if (this.dom.authContent) this.dom.authContent.style.display = 'none';
+            if (this.dom.loginOverlay) this.dom.loginOverlay.classList.remove('hidden');
+
+            rm.clear();
+            auth.signOut();
+            this.dom.userDropdown.classList.remove('active');
+            this.refresh();
+        });
+
+        this.dom.btnExportMenu.addEventListener('click', () => {
+            const data = rm.export();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `minha-biblioteca-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            this.dom.userDropdown.classList.remove('active');
+        });
+
+        this.dom.btnImportMenu.addEventListener('click', () => {
+            this.dom.fileInput.click();
+            this.dom.userDropdown.classList.remove('active');
+        });
+
+        this.dom.fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                const count = await rm.import(data, true);
+                this.showMessage('Sucesso!', `${count} livros importados com sucesso.`, '✅');
+            } catch (err) {
+                this.showMessage('Erro', 'Falha ao importar: ' + err.message, '❌');
+            }
+            e.target.value = '';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!this.dom.userDropdown.contains(e.target) && !this.dom.userAvatar.contains(e.target)) {
+                this.dom.userDropdown.classList.remove('active');
+            }
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+
+            try {
+                this.updateAuthUI(user);
+            } catch (e) {
+                console.error('Error updating UI:', e);
+            }
+
+            if (user) {
+                await rm.initListener(user, () => {
+                    this.refresh();
+                });
+            } else {
+                rm.stopListener();
+                rm.clear();
+                this.refresh();
+            }
+        });
+    },
+
+    handleAuthClick() {
+        const loading = document.getElementById('authLoading');
+        const content = document.getElementById('authContent');
+
+        if (loading) loading.style.display = 'flex';
+        if (content) content.style.display = 'none';
+
+        auth.signInWithPopup(googleProvider).catch((error) => {
+            console.error('Erro no login:', error);
+            if (loading) loading.style.display = 'none';
+            if (content) content.style.display = 'flex';
+            alert('Erro ao fazer login: ' + error.message);
+        });
+    },
+
+    updateAuthUI(user) {
+        const overlay = document.getElementById('loginOverlay');
+        const loading = document.getElementById('authLoading');
+        const content = document.getElementById('authContent');
+        const userInfo = document.getElementById('userInfo');
+        const btnLogin = document.getElementById('btnLogin');
+
+        if (!overlay || !loading || !content) {
+            console.error('CRITICAL: Auth elements not found in DOM');
+            alert('Erro Crítico: Elementos de login não encontrados na página.');
+            return;
+        }
+
+        if (user) {
+            overlay.style.display = 'none';
+            overlay.classList.add('hidden');
+
+            if (btnLogin) btnLogin.style.display = 'none';
+            if (userInfo) {
+                userInfo.style.display = 'flex';
+                const avatar = document.getElementById('userAvatar');
+                const name = document.getElementById('userName');
+                const email = document.getElementById('userEmail');
+
+                if (avatar) avatar.src = user.photoURL || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email));
+                if (name) name.textContent = user.displayName || 'Leitor';
+                if (email) email.textContent = user.email;
+            }
+        } else {
+            overlay.style.display = 'flex';
+            overlay.classList.remove('hidden');
+
+            loading.style.display = 'none';
+            content.style.display = 'flex';
+
+            if (btnLogin) btnLogin.style.display = 'flex';
+            if (userInfo) userInfo.style.display = 'none';
+        }
     },
 
     bindMobileEvents() {
@@ -603,7 +936,7 @@ const App = {
     },
 
     refresh() {
-        this.state.books = StorageService.getBooks();
+        this.state.books = rm.books;
         this.updateCounts();
 
         const activeStatuses = ['read', 'reading', 're-reading', 'rereading', 'abandoned'];
@@ -675,59 +1008,58 @@ const App = {
 
         const colors = {
             'all': '',
-            'read': 'var(--color-read)',
-            'reading': 'var(--color-reading)',
-            'want-to-read': 'var(--color-want)',
-            're-reading': 'var(--color-reread)',
-            'abandoned': 'var(--color-abandoned)',
-            'favorite': '#db2777',
-            'desired': '#9333ea',
-            'borrowed': '#0891b2',
-            'physical': '#854d0e',
-            'owned': '#059669',
-            'lent': '#4f46e5',
-            'target': '#ea580c',
-            'ebook': '#0284c7',
-            'audiobook': '#7c3aed'
+            'read': '#0d6847',
+            'reading': '#b45309',
+            'want-to-read': '#1e40af',
+            're-reading': '#b91c1c',
+            'abandoned': '#374151',
+            'favorite': '#9d174d',
+            'desired': '#6b21a8',
+            'borrowed': '#0e7490',
+            'physical': '#713f12',
+            'owned': '#047857',
+            'lent': '#3730a3',
+            'target': '#c2410c',
+            'ebook': '#0369a1',
+            'audiobook': '#5b21b6'
         };
 
         const header = document.querySelector('.header');
         const h1 = header ? header.querySelector('h1') : null;
 
         if (header && h1) {
-            if (header && h1) {
-                if (filter === 'all') {
-                    h1.innerHTML = '📚 Minha Biblioteca <span id="currentSectionLabel"></span>';
-                    this.dom.currentSectionLabel = h1.querySelector('#currentSectionLabel');
+            if (filter === 'all') {
+                h1.innerHTML = '📚 Minha Biblioteca <span id="currentSectionLabel"></span>';
+                this.dom.currentSectionLabel = h1.querySelector('#currentSectionLabel');
 
-                    header.style.background = '';
-                    header.style.borderBottom = '';
-                    h1.style.color = '';
-                } else {
-                    const color = colors[filter];
-                    if (color) {
-                        const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
-                        let iconHtml = '';
-                        let labelText = labels[filter] || filter;
+                header.style.background = '';
+                header.style.borderBottom = '';
+                header.classList.remove('header-active-filter');
+            } else {
+                const color = colors[filter];
+                if (color) {
+                    const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
+                    let iconHtml = '';
+                    let labelText = labels[filter] || filter;
 
-                        if (sidebarItem) {
-                            const iconEl = sidebarItem.querySelector('.nav-icon');
-                            if (iconEl) iconHtml = iconEl.innerHTML;
+                    if (sidebarItem) {
+                        const iconEl = sidebarItem.querySelector('.nav-icon');
+                        if (iconEl) iconHtml = iconEl.innerHTML;
 
-                            const labelEl = sidebarItem.querySelector('.nav-label');
-                            if (labelEl) labelText = labelEl.textContent;
-                        }
+                        const labelEl = sidebarItem.querySelector('.nav-label');
+                        if (labelEl) labelText = labelEl.textContent;
+                    }
 
-                        header.style.background = color;
-                        header.style.borderBottom = 'none';
-                        h1.style.color = '#ffffff';
-                        h1.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="display: flex; width: 20px; height: 20px;">${iconHtml}</div>
+                    header.style.background = color;
+                    header.style.borderBottom = 'none';
+                    header.classList.add('header-active-filter');
+
+                    h1.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; align-items: center; justify-content: center;">${iconHtml}</div>
                             <span>${labelText}</span>
                         </div>
                     `;
-                    }
                 }
             }
         }
@@ -920,7 +1252,7 @@ const App = {
         if (btnDelete) {
             e.stopPropagation();
             this.openDeleteModal('Tem certeza que deseja excluir este livro?', () => {
-                StorageService.deleteBook(btnDelete.dataset.id);
+                rm.delete(btnDelete.dataset.id);
                 this.refresh();
             });
             return;
@@ -1111,6 +1443,11 @@ const App = {
         });
 
         document.getElementById('modalTitle').textContent = 'Editar Livro';
+
+        if (this.dom.btnOpenHistoryFromModal) {
+            this.dom.btnOpenHistoryFromModal.style.display = 'flex';
+        }
+
         this.openModal();
     },
 
@@ -1180,7 +1517,7 @@ const App = {
                     history: history,
                     rating: parseFloat(formData.rating) || 0
                 };
-                StorageService.updateBook(updatedBook);
+                rm.update(updatedBook.id, updatedBook);
             }
         } else {
             const titleLower = formData.title.toLowerCase().trim();
@@ -1200,7 +1537,7 @@ const App = {
                 rating: parseFloat(formData.rating) || 0
             };
             const newBook = BookModel.create(newBookData);
-            StorageService.saveBook(newBook);
+            rm.add(newBook);
         }
 
         this.refresh();
@@ -1225,6 +1562,19 @@ const App = {
         const percent = Math.round(((book.readPages || 0) / book.pages) * 100);
         this.dom.historyProgressText.textContent = `${percent}%`;
         this.dom.historyProgressBar.style.width = `${percent}%`;
+
+        const isActiveReading = book.status === 'reading' || book.status === 're-reading';
+        const pageInput = document.getElementById('newCurrentPage');
+        const percentCheckbox = document.getElementById('isPercentage');
+        const submitBtn = this.dom.historyForm.querySelector('button[type="submit"]');
+
+        pageInput.disabled = !isActiveReading;
+        percentCheckbox.disabled = !isActiveReading;
+        if (submitBtn) {
+            submitBtn.disabled = !isActiveReading;
+            submitBtn.style.opacity = isActiveReading ? '1' : '0.5';
+            submitBtn.style.cursor = isActiveReading ? 'pointer' : 'not-allowed';
+        }
 
         this.renderHistoryList(book);
 
@@ -1302,7 +1652,7 @@ const App = {
                 book.readPages = 0;
             }
 
-            StorageService.updateBook(book);
+            rm.update(book.id, book);
             this.refresh();
 
             const percent = Math.round((book.readPages / book.pages) * 100);
@@ -1342,7 +1692,7 @@ const App = {
             type: entryType
         });
 
-        StorageService.updateBook(book);
+        rm.update(book.id, book);
         this.refresh();
         this.dom.historyModal.classList.remove('active');
 
@@ -1444,6 +1794,15 @@ const App = {
         this.dom.messageIcon.textContent = icon;
         this.dom.messageModal.classList.add('active');
     },
+
+    handleAuthClick() {
+        auth.signInWithPopup(googleProvider).catch((error) => {
+            console.error('Auth error:', error);
+            this.showMessage('Erro', 'Falha no login: ' + error.message, '❌');
+        });
+    },
+
+
 
     openStatsModal() {
         const modal = document.getElementById('statsModal');

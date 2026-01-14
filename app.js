@@ -202,18 +202,26 @@ function setupModal() {
 function fetchAndDisplayRepos() {
     const extraRepos = [
         {
-            name: 'Gemini Nano Web App',
-            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
-            html_url: '/chromeAILocal/chromeAILocal.html',
-            language: 'HTML',
-            featured: true,
-            image: 'imgs/JavaScript.svg'
-        },
-        {
             name: 'Financeiro Pessoal',
             description: "Gerencie suas finanças com dashboard interativo, gráficos por categoria, filtros avançados e backup em JSON.",
             html_url: '/finance/finance.html',
             language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Minha Biblioteca',
+            description: "Organize seus livros e leituras. Sincronização em tempo real com Firebase e interface moderna.",
+            html_url: '/reading/reading.html',
+            language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Gemini Nano Web App',
+            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            html_url: '/chromeAILocal/chromeAILocal.html',
+            language: 'HTML',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },
