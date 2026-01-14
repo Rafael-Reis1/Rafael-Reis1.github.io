@@ -1630,16 +1630,24 @@ class UIController {
                                     family: 'Inter',
                                     size: 12
                                 },
-                                generateLabels: function (chart) {
-                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(this, chart);
-                                    labels.forEach(label => {
-                                        if (label.hidden) {
-                                            label.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                                            label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                                        }
-                                    });
-                                    return labels;
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+
+                                            return {
+                                                text: label,
+                                                fillStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.backgroundColor,
+                                                strokeStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
                                 }
                             }
                         },
@@ -1739,16 +1747,24 @@ class UIController {
                                     family: 'Inter',
                                     size: 12
                                 },
-                                generateLabels: function (chart) {
-                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(this, chart);
-                                    labels.forEach(label => {
-                                        if (label.hidden) {
-                                            label.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                                            label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                                        }
-                                    });
-                                    return labels;
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+
+                                            return {
+                                                text: label,
+                                                fillStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.backgroundColor,
+                                                strokeStyle: !chart.getDataVisibility(i) ? 'rgba(255, 255, 255, 0.1)' : style.borderColor,
+                                                lineWidth: style.borderWidth,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
                                 }
                             }
                         },
