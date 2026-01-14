@@ -1781,8 +1781,6 @@ const App = {
                         month = d.getMonth();
                     }
                 }
-            } else if (book.year) {
-                year = book.year < 1950 ? 'Desconhecido' : book.year;
             }
 
             if (!statsData.years[year]) statsData.years[year] = createStatObj();
