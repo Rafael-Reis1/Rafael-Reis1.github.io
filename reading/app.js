@@ -382,7 +382,13 @@ const App = {
             loginOverlay: document.getElementById('loginOverlay'),
             authLoading: document.getElementById('authLoading'),
             authContent: document.getElementById('authContent'),
-            btnLoginOverlay: document.getElementById('btnLoginOverlay')
+            btnLoginOverlay: document.getElementById('btnLoginOverlay'),
+
+            messageModal: document.getElementById('messageModal'),
+            messageTitle: document.getElementById('messageTitle'),
+            messageText: document.getElementById('messageText'),
+            messageIcon: document.getElementById('messageIcon'),
+            messageOkBtn: document.getElementById('messageOkBtn')
         };
     },
 
@@ -679,6 +685,12 @@ const App = {
         this.dom.closeHistoryModalBtn.addEventListener('click', () => {
             this.dom.historyModal.classList.remove('active');
         });
+
+        if (this.dom.messageOkBtn) {
+            this.dom.messageOkBtn.addEventListener('click', () => {
+                this.dom.messageModal.classList.remove('active');
+            });
+        }
 
         if (this.dom.btnOpenHistoryFromModal) {
             this.dom.btnOpenHistoryFromModal.addEventListener('click', () => {
@@ -1267,7 +1279,7 @@ const App = {
     calculateProgress(book) {
         if (book.status === 'read') return 100;
         if (book.pages === 0) return 0;
-        return Math.floor((book.readPages / book.pages) * 100);
+        return Math.round((book.readPages / book.pages) * 100);
     },
 
     updateCounts() {
@@ -1715,6 +1727,13 @@ const App = {
     closeDeleteModal() {
         this.dom.deleteModal.classList.remove('active');
         this.deleteCallback = null;
+    },
+
+    showMessage(title, text, icon = '🎉') {
+        this.dom.messageTitle.textContent = title;
+        this.dom.messageText.textContent = text;
+        this.dom.messageIcon.textContent = icon;
+        this.dom.messageModal.classList.add('active');
     },
 
     initStats() {
