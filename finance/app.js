@@ -1609,6 +1609,8 @@ class UIController {
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            onHover: (e) => e.native.target.style.cursor = 'pointer',
+                            onLeave: (e) => e.native.target.style.cursor = 'default',
                             onClick: (e, legendItem, legend) => {
                                 const index = legendItem.index;
                                 const chart = legend.chart;
@@ -1730,6 +1732,8 @@ class UIController {
                     plugins: {
                         legend: {
                             position: 'bottom',
+                            onHover: (e) => e.native.target.style.cursor = 'pointer',
+                            onLeave: (e) => e.native.target.style.cursor = 'default',
                             onClick: (e, legendItem, legend) => {
                                 const index = legendItem.index;
                                 const chart = legend.chart;
