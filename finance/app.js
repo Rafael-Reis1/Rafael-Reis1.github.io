@@ -1632,10 +1632,9 @@ class UIController {
                                 },
                                 generateLabels: (chart) => {
                                     const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(this, chart);
+                                    const labels = original.call(chart, chart);
                                     labels.forEach(label => {
                                         if (label.hidden) {
-                                            label.textDecoration = 'line-through';
                                             label.fillStyle = 'rgba(255, 255, 255, 0.1)';
                                             label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                                         }
@@ -1742,10 +1741,9 @@ class UIController {
                                 },
                                 generateLabels: (chart) => {
                                     const original = Chart.defaults.plugins.legend.labels.generateLabels;
-                                    const labels = original.call(this, chart);
+                                    const labels = original.call(chart, chart);
                                     labels.forEach(label => {
                                         if (label.hidden) {
-                                            label.textDecoration = 'line-through';
                                             label.fillStyle = 'rgba(255, 255, 255, 0.1)';
                                             label.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                                         }
