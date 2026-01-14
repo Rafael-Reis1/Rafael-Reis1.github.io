@@ -3007,18 +3007,13 @@ input[type=number] {
     border-radius: 50%;
     border-top-color: var(--accent-color);
     animation: spin 1s ease-in-out infinite;
+    display: block;
 }
 
 @keyframes spin {
     to {
         transform: rotate(360deg);
     }
-}
-
-.auth-loading p {
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.2;
 }
 
 .login-card {
@@ -3034,6 +3029,8 @@ input[type=number] {
     flex-direction: column;
     align-items: center;
     gap: 1.5rem;
+    position: relative;
+    overflow: visible;
 }
 
 .login-icon {
@@ -3056,7 +3053,7 @@ input[type=number] {
     line-height: 1.2;
 }
 
-.auth-content p {
+.login-card p {
     color: var(--text-secondary);
     font-size: 1rem;
     line-height: 1.6;
