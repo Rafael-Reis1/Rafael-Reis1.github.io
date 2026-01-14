@@ -1611,8 +1611,9 @@ class UIController {
                             position: 'bottom',
                             onClick: (e, legendItem, legend) => {
                                 const index = legendItem.index;
-
-                                Chart.defaults.plugins.legend.onClick(e, legendItem, legend);
+                                const chart = legend.chart;
+                                chart.toggleDataVisibility(index);
+                                chart.update();
 
                                 const category = this.expenseChartCategories[index];
                                 if (this.fm.excludedCategories.has(category)) {
@@ -1731,8 +1732,9 @@ class UIController {
                             position: 'bottom',
                             onClick: (e, legendItem, legend) => {
                                 const index = legendItem.index;
-
-                                Chart.defaults.plugins.legend.onClick(e, legendItem, legend);
+                                const chart = legend.chart;
+                                chart.toggleDataVisibility(index);
+                                chart.update();
 
                                 const category = this.incomeChartCategories[index];
                                 if (this.fm.excludedIncomeCategories.has(category)) {
