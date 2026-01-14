@@ -37,7 +37,7 @@ const BookModel = {
             readDate: null,
             history: [],
             createdAt: new Date().toISOString(),
-            year: new Date().getFullYear()
+            year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear()
         };
     }
 };
@@ -1515,7 +1515,8 @@ const App = {
                     readPages: newReadPages,
                     timesRead: newTimesRead,
                     history: history,
-                    rating: parseFloat(formData.rating) || 0
+                    rating: parseFloat(formData.rating) || 0,
+                    year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year
                 };
                 rm.update(updatedBook.id, updatedBook);
             }
@@ -1534,7 +1535,8 @@ const App = {
 
             const newBookData = {
                 ...formData,
-                rating: parseFloat(formData.rating) || 0
+                rating: parseFloat(formData.rating) || 0,
+                year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear()
             };
             const newBook = BookModel.create(newBookData);
             rm.add(newBook);
@@ -1712,272 +1714,6 @@ const App = {
         this.deleteCallback = null;
     },
 
-    initStats() {
-        const paginometer = document.getElementById('paginometerCard');
-        if (paginometer) {
-            paginometer.addEventListener('click', () => this.openStatsModal());
-        }
-    },
-
-    openStatsModal() {
-        const modal = document.getElementById('statsModal');
-        const container = document.getElementById('statsContent');
-        if (!modal || !container) return;
-
-        const statsByYear = {};
-
-        this.state.books.forEach(book => {
-            const hasPages = parseInt(book.pages) > 0;
-            const isRead = book.status === 'read';
-
-            if (isRead || (book.timesRead && book.timesRead > 0)) {
-                let year = 'Sem data';
-                if (book.readDate) {
-                    year = new Date(book.readDate).getFullYear();
-                }
-
-                if (!statsByYear[year]) statsByYear[year] = { books: 0, pages: 0 };
-
-                if (isRead) {
-                    statsByYear[year].books += 1;
-                    statsByYear[year].pages += (parseInt(book.pages) || 0);
-                }
-            }
-        });
-
-        let sortedYears = Object.keys(statsByYear).sort((a, b) => b - a);
-
-        if (sortedYears.includes('Sem data')) {
-            sortedYears = sortedYears.filter(y => y !== 'Sem data');
-            sortedYears.push('Sem data');
-        }
-
-        let html = '';
-        if (sortedYears.length === 0) {
-            html = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nenhuma leitura concluída encontrada.</p>';
-        } else {
-            sortedYears.forEach(year => {
-                const data = statsByYear[year];
-                if (data.books === 0) return;
-
-                html += `
-                <div class="stat-year-card" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; margin-bottom: 0.75rem; border: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="background: var(--accent-gradient); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 1.1rem;">
-                            ${year}
-                        </div>
-                        <div>
-                            <div style="color: var(--text-secondary); font-size: 0.9rem;">Livros Lidos</div>
-                            <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">${data.books}</div>
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: var(--text-secondary); font-size: 0.9rem;">Páginas</div>
-                        <div style="color: var(--accent-color); font-weight: 600; font-size: 1.1rem;">${data.pages.toLocaleString()}</div>
-                    </div>
-                </div>`;
-            });
-        }
-
-        container.innerHTML = html;
-        modal.classList.add('active');
-    },
-
-    closeStatsModal() {
-        const modal = document.getElementById('statsModal');
-        if (modal) modal.classList.remove('active');
-    },
-
-    showMessage(title, text, icon = '🎉') {
-        this.dom.messageTitle.textContent = title;
-        this.dom.messageText.textContent = text;
-        this.dom.messageIcon.textContent = icon;
-        this.dom.messageModal.classList.add('active');
-    },
-
-    handleAuthClick() {
-        auth.signInWithPopup(googleProvider).catch((error) => {
-            console.error('Auth error:', error);
-            this.showMessage('Erro', 'Falha no login: ' + error.message, '❌');
-        });
-    },
-
-
-
-    openStatsModal() {
-        const modal = document.getElementById('statsModal');
-        const container = document.getElementById('statsContent');
-        if (!modal || !container) return;
-
-        const statsData = {
-            years: {},
-            all: { books: [], pages: 0, ratingSum: 0, ratedCount: 0, monthlyDist: new Array(12).fill(0) }
-        };
-
-        this.state.books.forEach(book => {
-            if (book.status !== 'read' && (!book.timesRead || book.timesRead === 0)) return;
-
-            let date = book.readDate ? new Date(book.readDate) : new Date(book.createdAt);
-
-            let year = 'Desconhecido';
-            let month = -1;
-
-            if (book.readDate) {
-                const d = new Date(book.readDate);
-                year = d.getFullYear();
-                month = d.getMonth();
-            } else if (book.year) {
-                year = book.year;
-            }
-
-            if (!statsData.years[year]) {
-                statsData.years[year] = {
-                    books: [],
-                    pages: 0,
-                    ratingSum: 0,
-                    ratedCount: 0,
-                    monthlyDist: new Array(12).fill(0)
-                };
-            }
-
-            const yData = statsData.years[year];
-            yData.books.push(book);
-            yData.pages += (parseInt(book.pages) || 0);
-            if (book.rating > 0) {
-                yData.ratingSum += book.rating;
-                yData.ratedCount++;
-            }
-            if (month >= 0) {
-                yData.monthlyDist[month]++;
-            }
-
-            statsData.all.books.push(book);
-            statsData.all.pages += (parseInt(book.pages) || 0);
-            if (book.rating > 0) {
-                statsData.all.ratingSum += book.rating;
-                statsData.all.ratedCount++;
-            }
-            if (month >= 0) {
-                statsData.all.monthlyDist[month]++;
-            }
-        });
-
-        this.statsState = {
-            data: statsData,
-            selectedYear: 'all'
-        };
-
-        this.renderStatsDashboard();
-        modal.classList.add('active');
-    },
-
-    renderStatsDashboard() {
-        const container = document.getElementById('statsContent');
-        if (!container) return;
-
-        const { data, selectedYear } = this.statsState;
-
-        const years = Object.keys(data.years).sort((a, b) => b - a);
-
-        let filtersHtml = `
-            <div class="stats-filters">
-                <button class="chip ${selectedYear === 'all' ? 'active' : ''}" onclick="App.setStatsYear('all')">Todos</button>
-        `;
-
-        years.forEach(year => {
-            filtersHtml += `<button class="chip ${selectedYear == year ? 'active' : ''}" onclick="App.setStatsYear('${year}')">${year}</button>`;
-        });
-        filtersHtml += `</div>`;
-
-        let currentData = selectedYear === 'all' ? data.all : data.years[selectedYear];
-
-        if (!currentData) currentData = { books: [], pages: 0, ratingSum: 0, ratedCount: 0, monthlyDist: [] };
-
-        const totalBooks = currentData.books.length;
-        const totalPages = currentData.pages;
-        const avgRating = currentData.ratedCount > 0
-            ? (currentData.ratingSum / currentData.ratedCount).toFixed(1)
-            : '-';
-
-        const summaryHtml = `
-            <div class="stats-summary">
-                <div class="summary-card">
-                    <div class="summary-value">${totalBooks}</div>
-                    <div class="summary-label">Livros Lidos</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-value">${totalPages.toLocaleString()}</div>
-                    <div class="summary-label">Páginas Lidas</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-value">★ ${avgRating}</div>
-                    <div class="summary-label">Média de Avaliação</div>
-                </div>
-            </div>
-        `;
-
-        let chartHtml = '';
-        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-        if (selectedYear === 'all') {
-            const sortedYears = Object.keys(data.years).sort((a, b) => a - b);
-            let barsHtml = '';
-
-            let maxVal = 0;
-            sortedYears.forEach(y => maxVal = Math.max(maxVal, data.years[y].books.length));
-            if (maxVal === 0) maxVal = 1;
-
-            sortedYears.forEach(y => {
-                const count = data.years[y].books.length;
-                const height = Math.max((count / maxVal) * 100, 4);
-
-                barsHtml += `
-                    <div class="bar-group" title="${count} livros em ${y}">
-                        <div class="bar" style="height: ${height}%;"></div>
-                        <div class="bar-tooltip">${count} livros</div>
-                        <div class="bar-label">${y}</div>
-                    </div>
-                `;
-            });
-
-            chartHtml = `
-                <div class="chart-container">
-                    <div class="chart-title">Livros por Ano</div>
-                    <div class="chart-bars">
-                        ${barsHtml}
-                    </div>
-                </div>
-            `;
-
-        } else {
-            let barsHtml = '';
-            let maxVal = Math.max(...currentData.monthlyDist);
-            if (maxVal === 0) maxVal = 1;
-
-            currentData.monthlyDist.forEach((count, index) => {
-                const height = Math.max((count / maxVal) * 100, 4);
-
-                barsHtml += `
-                    <div class="bar-group">
-                        <div class="bar" style="height: ${height}%;"></div>
-                        <div class="bar-tooltip">${count} livros</div>
-                        <div class="bar-label">${monthNames[index]}</div>
-                    </div>
-                `;
-            });
-
-            chartHtml = `
-                <div class="chart-container">
-                    <div class="chart-title">Leituras por Mês (${selectedYear})</div>
-                    <div class="chart-bars">
-                        ${barsHtml}
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = filtersHtml + summaryHtml + chartHtml;
-    },
 
     setStatsYear(year) {
         if (!this.statsState) return;
@@ -2019,11 +1755,27 @@ const App = {
             let month = -1;
 
             if (book.readDate) {
-                const d = new Date(book.readDate);
-                year = d.getFullYear();
-                month = d.getMonth();
+                const parts = book.readDate.split('-');
+                if (parts.length === 3) {
+                    const parsedYear = parseInt(parts[0]);
+                    if (parsedYear < 1950) {
+                        year = 'Desconhecido';
+                    } else {
+                        year = parsedYear;
+                        month = parseInt(parts[1]) - 1;
+                    }
+                } else {
+                    const d = new Date(book.readDate);
+                    const parsedYear = d.getFullYear();
+                    if (parsedYear < 1950) {
+                        year = 'Desconhecido';
+                    } else {
+                        year = parsedYear;
+                        month = d.getMonth();
+                    }
+                }
             } else if (book.year) {
-                year = book.year;
+                year = book.year < 1950 ? 'Desconhecido' : book.year;
             }
 
             if (!statsData.years[year]) statsData.years[year] = createStatObj();
