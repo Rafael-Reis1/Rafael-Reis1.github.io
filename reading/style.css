@@ -3015,7 +3015,11 @@ input[type=number] {
     }
 }
 
-
+.auth-loading p {
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.2;
+}
 
 .login-card {
     background: var(--glass-bg);
