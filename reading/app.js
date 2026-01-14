@@ -1008,20 +1008,20 @@ const App = {
 
         const colors = {
             'all': '',
-            'read': '#0d6847',
-            'reading': '#b45309',
+            'read': '#065f46',
+            'reading': '#9a3412',
             'want-to-read': '#1e40af',
-            're-reading': '#b91c1c',
-            'abandoned': '#374151',
+            're-reading': '#991b1b',
+            'abandoned': '#334155',
             'favorite': '#9d174d',
             'desired': '#6b21a8',
-            'borrowed': '#0e7490',
+            'borrowed': '#155e75',
             'physical': '#713f12',
-            'owned': '#047857',
+            'owned': '#134e4a',
             'lent': '#3730a3',
-            'target': '#c2410c',
-            'ebook': '#0369a1',
-            'audiobook': '#5b21b6'
+            'target': '#3f6212',
+            'ebook': '#075985',
+            'audiobook': '#86198f'
         };
 
         const header = document.querySelector('.header');
