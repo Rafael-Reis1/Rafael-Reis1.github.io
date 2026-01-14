@@ -31,10 +31,10 @@ const BookModel = {
             status: data.status || 'want-to-read',
             cover: data.cover || 'https://placehold.co/200x300?text=Sem+Capa',
             tags: data.tags || [],
-            rating: 0,
+            rating: parseFloat(data.rating) || 0,
             readPages: data.status === 'read' ? (parseInt(data.pages) || 0) : 0,
             timesRead: 0,
-            readDate: null,
+            readDate: data.readDate || null,
             history: [],
             createdAt: new Date().toISOString(),
             year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear()
