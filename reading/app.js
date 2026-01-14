@@ -1714,6 +1714,13 @@ const App = {
         this.deleteCallback = null;
     },
 
+    initStats() {
+        const paginometer = document.getElementById('paginometerCard');
+        if (paginometer) {
+            paginometer.addEventListener('click', () => this.openStatsModal());
+        }
+    },
+
 
     setStatsYear(year) {
         if (!this.statsState) return;
