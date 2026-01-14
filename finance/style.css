@@ -2577,3 +2577,57 @@ input[type=number] {
 #subsListView .modal-body::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+.card.overdue {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(239, 68, 68, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.card.overdue .card-icon {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.card.overdue .card-label {
+    color: #fca5a5;
+}
+
+.card.overdue .card-value {
+    color: #ef4444;
+}
+
+.transaction-item.overdue {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+
+.transaction-item.due-today {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+}
+
+.action-btn.paid-btn {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.action-btn.paid-btn:hover {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.action-btn.paid-btn.checked {
+    color: #22c55e;
+}
+
+.action-btn.paid-btn.checked:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.action-btn.paid-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.action-btn.paid-btn:active svg {
+    transform: scale(0.9);
+}

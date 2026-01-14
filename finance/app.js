@@ -423,6 +423,7 @@ class FinanceManager {
                     groupId: groupId,
                     installmentCurrent: i + 1,
                     installmentTotal: installments,
+                    isPaid: false,
                     createdAt: new Date().toISOString()
                 });
             }
@@ -430,6 +431,7 @@ class FinanceManager {
             transactionsToAdd.push({
                 id: this.generateId(),
                 ...transaction,
+                isPaid: false,
                 createdAt: new Date().toISOString()
             });
         }
@@ -556,8 +558,42 @@ class FinanceManager {
         const dateStr = `${year}-${month}-${day}`;
 
         return this.transactions
-            .filter(t => t.date > dateStr && t.type === 'expense')
+            .filter(t => t.date > dateStr && t.type === 'expense' && t.isPaid !== true)
             .reduce((acc, t) => acc + t.amount, 0);
+    }
+
+    getOverdueExpenses() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return this.transactions
+            .filter(t => t.date < dateStr && t.type === 'expense' && t.isPaid !== true)
+            .reduce((acc, t) => acc + t.amount, 0);
+    }
+
+    togglePaid(id, onSyncError = null, onOffline = null) {
+        const index = this.transactions.findIndex(t => t.id === id);
+        if (index !== -1) {
+            const currentPaid = this.transactions[index].isPaid || false;
+            this.transactions[index].isPaid = !currentPaid;
+
+            if (auth.currentUser) {
+                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
+                    .collection('transactions').doc(id);
+
+                ref.update({ isPaid: !currentPaid }).catch((e) => {
+                    console.error(e);
+                    if (onSyncError) onSyncError();
+                });
+
+                if (!navigator.onLine && onOffline) onOffline();
+            }
+            return this.transactions[index];
+        }
+        return null;
     }
 
     getMonthlyIncome(year, month) {
@@ -1534,6 +1570,7 @@ class UIController {
 
         const balance = this.fm.getBalance();
         const futureExpenses = this.fm.getFutureExpenses();
+        const overdueExpenses = this.fm.getOverdueExpenses();
 
         const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.search;
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
@@ -1542,6 +1579,7 @@ class UIController {
         this.balanceValue.textContent = this.formatCurrency(balance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
         this.expenseValue.textContent = this.formatCurrency(totals.expense);
+
         const futureElement = document.getElementById('futureValue');
         const futureCard = document.querySelector('.card.future');
         if (futureElement && futureCard) {
@@ -1550,6 +1588,17 @@ class UIController {
                 futureCard.style.display = 'none';
             } else {
                 futureCard.style.display = 'flex';
+            }
+        }
+
+        const overdueElement = document.getElementById('overdueValue');
+        const overdueCard = document.querySelector('.card.overdue');
+        if (overdueElement && overdueCard) {
+            overdueElement.textContent = this.formatCurrency(overdueExpenses);
+            if (overdueExpenses === 0) {
+                overdueCard.style.display = 'none';
+            } else {
+                overdueCard.style.display = 'flex';
             }
         }
     }
@@ -1864,7 +1913,18 @@ class UIController {
 
         pageItems.forEach(t => {
             const el = document.createElement('div');
-            el.className = `transaction-item ${t.type}`;
+
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            let statusClass = '';
+            if (t.type === 'expense' && t.isPaid !== true) {
+                if (t.date < todayStr) {
+                    statusClass = 'overdue';
+                } else if (t.date === todayStr) {
+                    statusClass = 'due-today';
+                }
+            }
+            el.className = `transaction-item ${t.type} ${statusClass}`.trim();
 
             let icon = CATEGORIES[t.type]?.[t.category];
             if (!icon) {
@@ -1875,6 +1935,8 @@ class UIController {
             const sign = t.type === 'income' ? '+' : '-';
             const date = new Date(t.date + 'T12:00:00');
             const hasSeries = t.groupId;
+            const isPaid = t.isPaid === true;
+            const paidClass = isPaid ? 'checked' : '';
 
             el.innerHTML = `
                 <div class="transaction-info">
@@ -1902,6 +1964,13 @@ class UIController {
                             </svg>
                         </button>
                         ` : ''}
+                        ${t.type === 'expense' ? `
+                        <button class="action-btn paid-btn ${paidClass}" onclick="app.togglePaid('${t.id}')" title="${isPaid ? 'Marcar como não pago' : 'Marcar como pago'}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                        ` : ''}
                         <button class="action-btn edit" onclick="app.openEditModal('${t.id}')" title="Editar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1923,6 +1992,11 @@ class UIController {
 
             this.transactionsList.appendChild(el);
         });
+    }
+
+    togglePaid(id) {
+        this.fm.togglePaid(id);
+        this.render();
     }
 
     openFilterModal() {
