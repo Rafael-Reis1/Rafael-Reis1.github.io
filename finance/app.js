@@ -613,7 +613,7 @@ class FinanceManager {
 
         return this.transactions
             .filter(t => {
-                if (t.date <= dateStr) return false;
+                if (t.date < dateStr) return false;
                 if (t.type !== 'expense') return false;
                 if (t.isPaid === true) return false;
 
@@ -852,7 +852,7 @@ class FinanceManager {
         const expense = transactions.filter(t => {
             if (t.type !== 'expense') return false;
 
-            if (filters.status === 'overdue') return true;
+            if (filters.status === 'overdue' || filters.status === 'pending') return false;
 
             if (!t.isPaid && t.date < todayStr) return false;
             return true;
@@ -1939,6 +1939,7 @@ class UIController {
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
             category: this.currentFilters.category || null,
+            status: this.currentFilters.status || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(incomes);
