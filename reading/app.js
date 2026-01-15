@@ -1204,8 +1204,8 @@ const App = {
             const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
 
             card.innerHTML = `
-            <div class="book-cover-container skeleton">
-                <img src="${book.cover}" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.remove('skeleton')">
+            <div class="book-cover-container skeleton ${isPlaceholder ? 'is-placeholder' : ''}">
+                <img src="${book.cover}" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
                 
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${book.title}</div>
