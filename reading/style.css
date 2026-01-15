@@ -1150,7 +1150,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.15rem !important;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     flex: 1;
 }
 
