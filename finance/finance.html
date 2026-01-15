@@ -100,6 +100,15 @@
                             </svg>
                             Importar Backup
                         </button>
+                        <button id="btnEmailToggle" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                </path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            <span id="txtEmailToggle">Notificações Email</span>
+                        </button>
                         <button id="btnSubscriptions" class="dropdown-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -601,6 +610,23 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="cancelDeleteSub">Cancelar</button>
                 <button class="btn btn-danger" id="confirmDeleteSub">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="unsubscribeModal" class="modal">
+        <div class="modal-content modal-tiny">
+            <div class="modal-header">
+                <h3>Notificações Desativadas</h3>
+                <button class="modal-close" id="closeUnsubscribeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>As notificações por e-mail foram desativadas com sucesso.</p>
+                <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 8px;">Se quiser voltar a receber,
+                    você pode reativar a qualquer momento no menu do seu perfil.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="confirmUnsubscribe" style="width: 100%;">Entendi</button>
             </div>
         </div>
     </div>

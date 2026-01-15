@@ -269,6 +269,53 @@ class FinanceManager {
         this.onSubsUpdateCallback = null;
         this.excludedCategories = new Set();
         this.excludedIncomeCategories = new Set();
+        this.settings = { emailNotifications: true };
+    }
+
+    async fetchSettings(uid) {
+        try {
+            const doc = await db.collection('finance_data').doc(uid).get();
+            if (doc.exists && doc.data().settings) {
+                this.settings = { ...this.settings, ...doc.data().settings };
+            }
+        } catch (e) {
+            console.error('Error fetching settings:', e);
+        }
+    }
+
+    getSettings() {
+        return this.settings;
+    }
+
+    async toggleEmailNotifications() {
+        if (!auth.currentUser) return;
+
+        const newValue = !this.settings.emailNotifications;
+        this.settings.emailNotifications = newValue;
+
+        try {
+            await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                settings: { emailNotifications: newValue }
+            }, { merge: true });
+            return newValue;
+        } catch (e) {
+            console.error('Error saving settings:', e);
+            this.settings.emailNotifications = !newValue;
+            throw e;
+        }
+    }
+
+    async setEmailNotifications(enabled) {
+        if (!auth.currentUser) return;
+        this.settings.emailNotifications = enabled;
+        try {
+            await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                settings: { emailNotifications: enabled }
+            }, { merge: true });
+        } catch (e) {
+            console.error('Error saving settings:', e);
+            throw e;
+        }
     }
 
     async initListener(user, onUpdateCallback) {
@@ -277,6 +324,8 @@ class FinanceManager {
         await this.migrateLegacyData(user);
 
         this.stopListener();
+
+        this.fetchSettings(user.uid);
 
         const transactionsRef = db.collection('finance_data').doc(user.uid).collection('transactions');
 
@@ -1036,6 +1085,8 @@ class UIController {
         this.userEmail = document.getElementById('userEmail');
         this.btnImportMenu = document.getElementById('btnImportMenu');
         this.btnExportMenu = document.getElementById('btnExportMenu');
+        this.btnEmailToggle = document.getElementById('btnEmailToggle');
+        this.txtEmailToggle = document.getElementById('txtEmailToggle');
 
         this.initElements();
         this.initEventListeners();
@@ -1112,6 +1163,10 @@ class UIController {
         this.deleteSubModal = document.getElementById('deleteSubModal');
         this.deleteSubInfo = document.getElementById('deleteSubInfo');
         this.deletingSubId = null;
+
+        this.unsubscribeModal = document.getElementById('unsubscribeModal');
+        this.closeUnsubscribeModal = document.getElementById('closeUnsubscribeModal');
+        this.confirmUnsubscribe = document.getElementById('confirmUnsubscribe');
 
         this.isEditing = false;
         this.editingId = null;
@@ -1449,10 +1504,20 @@ class UIController {
                     this.deletingSubId = null;
                 } catch (error) {
                     console.error('Erro ao excluir assinatura:', error);
-                    this.showToast('Erro ao excluir assinatura', 'error');
                 }
             }
         });
+
+        if (this.btnEmailToggle) {
+            this.btnEmailToggle.addEventListener('click', () => this.handleEmailToggle());
+        }
+
+        if (this.closeUnsubscribeModal) {
+            this.closeUnsubscribeModal.addEventListener('click', () => this.closeModal(this.unsubscribeModal));
+        }
+        if (this.confirmUnsubscribe) {
+            this.confirmUnsubscribe.addEventListener('click', () => this.closeModal(this.unsubscribeModal));
+        }
     }
 
     setDefaultDate() {
@@ -2596,6 +2661,27 @@ class UIController {
         }
     }
 
+    async handleEmailToggle() {
+        if (this.btnEmailToggle) this.btnEmailToggle.disabled = true;
+
+        try {
+            const newState = await this.fm.toggleEmailNotifications();
+            if (this.txtEmailToggle) {
+                this.txtEmailToggle.innerHTML = newState ? 'Notificações Email' : 'Email Desativado';
+            }
+            if (this.btnEmailToggle) {
+                this.btnEmailToggle.style.opacity = newState ? '1' : '0.5';
+                const svg = this.btnEmailToggle.querySelector('svg');
+                if (svg) svg.style.color = newState ? 'inherit' : 'gray';
+            }
+            this.showToast(`Notificações por email ${newState ? 'ativadas' : 'desativadas'}.`, 'success');
+        } catch (e) {
+            this.showToast('Erro ao atualizar configurações.', 'error');
+        } finally {
+            if (this.btnEmailToggle) this.btnEmailToggle.disabled = false;
+        }
+    }
+
     updateAuthUI(user) {
         const authLoading = document.getElementById('authLoading');
         const authContent = document.getElementById('authContent');
@@ -2610,6 +2696,28 @@ class UIController {
 
             if (this.btnImport) this.btnImport.style.display = 'none';
             if (this.btnExport) this.btnExport.style.display = 'none';
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('email') === 'off') {
+                this.fm.setEmailNotifications(false).then(() => {
+                    this.openModal(this.unsubscribeModal);
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                }).catch(e => console.error(e));
+            }
+
+            setTimeout(() => {
+                const settings = this.fm.getSettings();
+                if (this.txtEmailToggle) {
+                    this.txtEmailToggle.innerHTML = settings.emailNotifications ? 'Notificações Email' : 'Email Desativado';
+                }
+                if (this.btnEmailToggle) {
+                    this.btnEmailToggle.style.opacity = settings.emailNotifications ? '1' : '0.5';
+                    const svg = this.btnEmailToggle.querySelector('svg');
+                    if (svg) svg.style.color = settings.emailNotifications ? 'inherit' : 'gray';
+                }
+            }, 1000);
+
         } else {
             this.loginOverlay.style.display = 'flex';
 
