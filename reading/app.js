@@ -64,8 +64,8 @@ const BookModel = {
     create(data) {
         return {
             id: Date.now().toString(),
-            title: data.title,
-            author: data.author,
+            title: data.title.trim(),
+            author: data.author.trim(),
             pages: parseInt(data.pages) || 0,
             status: data.status || 'want-to-read',
             cover: data.cover || 'https://placehold.co/200x300?text=Sem+Capa',
@@ -1442,7 +1442,15 @@ const App = {
 
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
-                    <img src="${cover}" class="api-result-cover" alt="${title}">
+                    <div class="api-result-cover-container ${!info.imageLinks ? 'is-placeholder' : ''}">
+                         <img src="${cover}" class="api-result-cover" alt="${title}" 
+                              style="${!info.imageLinks ? 'display:none' : ''}" 
+                              onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                         <div class="book-cover-placeholder ${!info.imageLinks ? 'visible' : ''}">
+                            <div class="placeholder-title">${title}</div>
+                            <div class="placeholder-author">${author}</div>
+                         </div>
+                    </div>
                     <div class="api-result-info">
                         <div class="api-result-title">${title}</div>
                         <div class="api-result-author">${author}</div>
@@ -1560,8 +1568,8 @@ const App = {
         const readDateVal = document.getElementById('bookReadDate').value;
 
         const formData = {
-            title: document.getElementById('bookTitle').value,
-            author: document.getElementById('bookAuthor').value,
+            title: document.getElementById('bookTitle').value.trim(),
+            author: document.getElementById('bookAuthor').value.trim(),
             pages: document.getElementById('bookPages').value,
             status: document.getElementById('bookStatus').value,
             cover: document.getElementById('bookCover').value,
@@ -2017,7 +2025,7 @@ const App = {
             ySorted.forEach(y => {
                 const c = data.years[y].booksCount;
                 const h = Math.max((c / maxY) * 100, 4);
-                html += `<div class="bar-group" title="${c}"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
             });
             html += `</div>`;
         } else {
@@ -2028,13 +2036,116 @@ const App = {
 
             current.monthlyDist.forEach((c, i) => {
                 const h = Math.max((c / maxM) * 100, 4);
-                html += `<div class="bar-group" title="${c}"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('month', '${i}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
             });
             html += `</div>`;
         }
         html += `</div>`;
 
         container.innerHTML = html;
+    },
+    openPeriodDetails(type, value) {
+        const modal = document.getElementById('periodDetailsModal');
+        const content = document.getElementById('periodDetailsContent');
+        const title = document.getElementById('periodDetailsTitle');
+        if (!modal || !content) return;
+
+        let books = [];
+        let periodLabel = '';
+
+        if (type === 'year') {
+            const yearStr = value.toString();
+            periodLabel = yearStr;
+            books = this.state.books.filter(b => {
+                const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
+                if (!isRead && (b.timesRead || 0) === 0) return false;
+
+                if (b.year.toString() === yearStr) return true;
+
+                if (b.history && b.history.length > 0) {
+                    return b.history.some(h =>
+                        h.type === 'finish' &&
+                        new Date(h.date).getFullYear().toString() === yearStr
+                    );
+                }
+                return false;
+            });
+        } else if (type === 'month') {
+            const yearStr = this.statsState.selectedYear;
+            const monthIdx = parseInt(value);
+            const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            periodLabel = `${mNames[monthIdx]} de ${yearStr}`;
+
+            books = this.state.books.filter(b => {
+                const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
+                if (!isRead && (b.timesRead || 0) === 0) return false;
+
+                let matches = false;
+
+                if (b.readDate) {
+                    const d = new Date(b.readDate);
+                    const parts = b.readDate.split('-');
+                    let bYear = d.getFullYear();
+                    let bMonth = d.getMonth();
+
+                    if (parts.length === 3) {
+                        bYear = parseInt(parts[0]);
+                        bMonth = parseInt(parts[1]) - 1;
+                    }
+
+                    if (bYear.toString() === yearStr && bMonth === monthIdx) matches = true;
+                }
+
+                if (!matches && b.history && b.history.length > 0) {
+                    matches = b.history.some(h => {
+                        if (h.type !== 'finish') return false;
+                        const d = new Date(h.date);
+                        return d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx;
+                    });
+                }
+
+                return matches;
+            });
+        }
+
+        books.sort((a, b) => new Date(b.readDate || 0) - new Date(a.readDate || 0));
+
+        title.textContent = `Leituras: ${periodLabel} (${books.length})`;
+
+        if (books.length === 0) {
+            content.innerHTML = '<div class="empty-state"><p>Nenhum livro encontrado para este período.</p></div>';
+        } else {
+            let html = '<div class="books-list-compact">';
+            books.forEach(book => {
+                const cover = book.cover || 'https://placehold.co/45x65?text=Capa';
+                const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
+
+                html += `
+                <div class="api-result-item" onclick="App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');">
+                    <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
+                         <img src="${cover}" class="api-result-cover" alt="${book.title}"
+                              style="${isPlaceholder ? 'display:none' : ''}"
+                              onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                         <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
+                            <div class="placeholder-title">${book.title}</div>
+                            <div class="placeholder-author">${book.author}</div>
+                         </div>
+                    </div>
+                    <div class="api-result-info">
+                        <div class="api-result-title">${book.title}</div>
+                        <div class="api-result-author">${book.author}</div>
+                        <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
+                           ${book.rating > 0 ? '★ ' + book.rating : ''} 
+                           ${book.pages ? ' • ' + book.pages + ' pág' : ''}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        modal.classList.add('active');
     }
 };
 
@@ -2042,4 +2153,15 @@ window.App = App;
 
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
+
+    const closePeriod = () => document.getElementById('periodDetailsModal').classList.remove('active');
+    const closeBtn = document.getElementById('closePeriodDetailsModal');
+    const closeBtnFooter = document.getElementById('btnClosePeriodDetails');
+    const modal = document.getElementById('periodDetailsModal');
+
+    if (closeBtn) closeBtn.addEventListener('click', closePeriod);
+    if (closeBtnFooter) closeBtnFooter.addEventListener('click', closePeriod);
+    if (modal) {
+        App.setupModalCloseAttributes(modal, closePeriod);
+    }
 });
