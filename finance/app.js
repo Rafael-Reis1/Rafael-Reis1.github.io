@@ -1181,6 +1181,7 @@ class UIController {
 
     initElements() {
         this.balanceValue = document.getElementById('balanceValue');
+        this.balanceLabel = document.querySelector('.card.balance .card-label');
         this.incomeValue = document.getElementById('incomeValue');
         this.expenseValue = document.getElementById('expenseValue');
         this.incomeLabel = document.getElementById('incomeLabel');
