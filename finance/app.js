@@ -605,6 +605,8 @@ class FinanceManager {
     }
 
     getFutureExpenses(filters = {}) {
+        if (filters.type && filters.type !== 'expense') return 0;
+
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -636,6 +638,8 @@ class FinanceManager {
     }
 
     getOverdueExpenses(filters = {}) {
+        if (filters.type && filters.type !== 'expense') return 0;
+
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
