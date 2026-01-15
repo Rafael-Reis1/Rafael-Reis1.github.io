@@ -612,6 +612,7 @@ class FinanceManager {
                 if (t.type !== 'expense') return false;
                 if (t.isPaid === true) return false;
 
+                if (filters.status && filters.status !== 'pending') return false;
                 if (filters.startDate && t.date < filters.startDate) return false;
                 if (filters.endDate && t.date > filters.endDate) return false;
                 if (filters.category) {
@@ -642,6 +643,7 @@ class FinanceManager {
                 if (t.type !== 'expense') return false;
                 if (t.isPaid === true) return false;
 
+                if (filters.status && filters.status !== 'overdue') return false;
                 if (filters.startDate && t.date < filters.startDate) return false;
                 if (filters.endDate && t.date > filters.endDate) return false;
                 if (filters.category) {
@@ -681,20 +683,56 @@ class FinanceManager {
         return null;
     }
 
-    getMonthlyIncome(year, month) {
+    getMonthlyIncome(year, month, filters = {}) {
         return this.transactions
             .filter(t => {
                 const d = new Date(t.date);
-                return t.type === 'income' && d.getFullYear() === year && d.getMonth() === month;
+                if (t.type !== 'income' || d.getFullYear() !== year || d.getMonth() !== month) return false;
+
+                if (filters.status && filters.status === 'overdue' && t.type === 'income') return false;
+                if (filters.status === 'paid' && t.isPaid !== true) return false;
+                if (filters.status === 'pending' && t.isPaid === true) return false;
+
+                if (filters.category && t.category !== filters.category) return false;
+                if (filters.search) {
+                    const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    if (!normalize(t.description).includes(normalize(filters.search))) return false;
+                }
+                return true;
             })
             .reduce((acc, t) => acc + t.amount, 0);
     }
 
-    getMonthlyExpense(year, month) {
+    getMonthlyExpense(year, month, filters = {}) {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
         return this.transactions
             .filter(t => {
                 const d = new Date(t.date);
-                return t.type === 'expense' && d.getFullYear() === year && d.getMonth() === month;
+                if (t.type !== 'expense' || d.getFullYear() !== year || d.getMonth() !== month) return false;
+
+                if (filters.status) {
+                    if (filters.status === 'paid' && !t.isPaid) return false;
+                    if (filters.status === 'overdue' && (t.isPaid || t.date >= todayStr)) return false;
+                    if (filters.status === 'pending') {
+                        if (t.isPaid) return false;
+                        if (t.date < todayStr) return false;
+                    }
+                }
+
+                if (filters.category) {
+                    if (filters.category === 'outros') {
+                        if (t.category !== 'outros') return false;
+                    } else if (t.category !== filters.category) {
+                        return false;
+                    }
+                }
+                if (filters.search) {
+                    const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    if (!normalize(t.description).includes(normalize(filters.search))) return false;
+                }
+                return true;
             })
             .reduce((acc, t) => acc + t.amount, 0);
     }
@@ -749,11 +787,26 @@ class FinanceManager {
             }
         }
 
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
             if (effectiveEndDate && tDate > effectiveEndDate) return false;
             if (filters.type && t.type !== filters.type) return false;
+
+            if (filters.status) {
+                if (filters.status === 'paid' && !t.isPaid) return false;
+                if (filters.status === 'overdue') {
+                    if (t.type !== 'expense') return false;
+                    if (t.isPaid || t.date >= todayStr) return false;
+                }
+                if (filters.status === 'pending') {
+                    if (t.isPaid) return false;
+                    if (t.type === 'expense' && t.date < todayStr) return false;
+                }
+            }
 
             if (filters.category) {
                 if (filters.category === 'outros') {
@@ -1066,6 +1119,7 @@ class UIController {
             endDate: '',
             type: '',
             category: '',
+            status: '',
             search: ''
         };
         this.pendingDeleteId = null;
@@ -1122,6 +1176,7 @@ class UIController {
         this.filterEndDate = document.getElementById('filterEndDate');
         this.filterType = document.getElementById('filterType');
         this.filterCategory = document.getElementById('filterCategory');
+        this.filterStatus = document.getElementById('filterStatus');
         this.btnClearFilters = document.getElementById('btnClearFilters');
         this.btnApplyFilters = document.getElementById('btnApplyFilters');
         this.closeFilterModal = document.getElementById('closeFilterModal');
@@ -1271,6 +1326,7 @@ class UIController {
                 endDate: '',
                 type: '',
                 category: '',
+                status: '',
                 search: this.currentFilters.search
             };
 
@@ -1282,6 +1338,7 @@ class UIController {
 
             this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
             this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
+            this.filterStatus.dispatchEvent(new Event('change', { bubbles: true }));
 
             this.updateFilterOptions();
             this.renderActiveFilters();
@@ -1294,6 +1351,7 @@ class UIController {
             this.currentFilters.endDate = this.filterEndDate.value;
             this.currentFilters.type = this.filterType.value;
             this.currentFilters.category = this.filterCategory.value;
+            this.currentFilters.status = this.filterStatus.value;
 
             this.currentPage = 1;
             this.closeModal(this.filterModal, true);
@@ -1612,6 +1670,13 @@ class UIController {
             const name = CATEGORY_NAMES[this.currentFilters.category] || this.currentFilters.category;
             filters.push({ key: 'category', label: name });
         }
+        if (this.currentFilters.status) {
+            let label = this.currentFilters.status;
+            if (label === 'overdue') label = '🚨 Vencidas';
+            else if (label === 'pending') label = '📅 A Vencer';
+            else if (label === 'paid') label = '✅ Pagas';
+            filters.push({ key: 'status', label: label });
+        }
 
         filters.forEach(filter => {
             const chip = document.createElement('div');
@@ -1648,8 +1713,12 @@ class UIController {
         if (key === 'type') {
             this.filterType.value = '';
             this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
-            this.updateFilterOptions();
         }
+        if (key === 'status') {
+            this.filterStatus.value = '';
+            this.filterStatus.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        this.updateFilterOptions();
         if (key === 'category') {
             this.filterCategory.value = '';
             this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1666,6 +1735,7 @@ class UIController {
             endDate: this.currentFilters.endDate || null,
             type: this.currentFilters.type || null,
             category: this.currentFilters.category || null,
+            status: this.currentFilters.status || null,
             search: this.currentFilters.search || null
         };
 
@@ -1673,9 +1743,16 @@ class UIController {
 
         const balance = this.fm.getBalance();
         const futureExpenses = this.fm.getFutureExpenses(filters);
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+
+        const income = this.fm.getMonthlyIncome(year, month, this.currentFilters);
+        const expense = this.fm.getMonthlyExpense(year, month, this.currentFilters);
         const overdueExpenses = this.fm.getOverdueExpenses(filters);
 
-        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.search;
+        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
         this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Total)';
 
@@ -2112,6 +2189,9 @@ class UIController {
 
         this.filterCategory.value = this.currentFilters.category;
         this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
+
+        this.filterStatus.value = this.currentFilters.status;
+        this.filterStatus.dispatchEvent(new Event('change', { bubbles: true }));
 
         this.openModal(this.filterModal);
     }
