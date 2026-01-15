@@ -2116,14 +2116,14 @@ const App = {
                 html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
             });
             html += `</div>`;
-            html += `</div > `;
+            html += `</div>`;
         } else if (selectedYear === 'Desconhecido') {
-            html += `< div class="chart-title" > Livros sem Data Definida</div >
+            html += `<div class="chart-title">Livros sem Data Definida</div>
     <div style="display: flex; justify-content: center; align-items: center; padding: 2rem;">
         <button class="btn btn-primary" onclick="App.openPeriodDetails('year', 'Desconhecido')">Ver Lista Completa (${current.booksCount} livros)</button>
     </div>`;
         } else {
-            html += `< div class="chart-title" > Leituras Mensais(${selectedYear})</div > <div class="chart-bars">`;
+            html += `<div class="chart-title">Leituras Mensais(${selectedYear})</div><div class="chart-bars">`;
             const mNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
             let maxM = Math.max(...current.monthlyDist, 0);
             if (maxM === 0) maxM = 1;
@@ -2134,7 +2134,7 @@ const App = {
             });
             html += `</div>`;
         }
-        html += `</div > `;
+        html += `</div>`;
 
         container.innerHTML = html;
     },
