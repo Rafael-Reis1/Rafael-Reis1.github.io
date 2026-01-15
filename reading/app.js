@@ -1140,6 +1140,7 @@ const App = {
             }
         }
 
+        this.renderYearFilters();
         this.render();
     },
 
@@ -2078,7 +2079,7 @@ const App = {
                 const progressPercent = Math.round((goalRead / goalTotal) * 100);
 
                 html = `
-    < div class="goal-progress-container" >
+                    <div class="goal-progress-container">
                         <div class="goal-header">
                             <div class="goal-title">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -2093,8 +2094,8 @@ const App = {
                         <div class="goal-bar-bg">
                             <div class="goal-bar-fill" style="width: ${progressPercent}%"></div>
                         </div>
-                    </div >
-    ` + html;
+                    </div>
+                ` + html;
             }
         }
 
