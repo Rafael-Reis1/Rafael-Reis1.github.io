@@ -497,16 +497,15 @@ const App = {
                 this.dom.statusHiddenInput.value = value;
 
                 if (this.dom.groupReadDate) {
-                    this.dom.groupReadDate.style.display = (value === 'read') ? 'block' : 'none';
+                    this.dom.groupReadDate.style.display = (value === 'read') ? '' : 'none';
                     if (value === 'read' && this.datePicker && !this.datePicker.input.value) {
                         this.datePicker.setDate(new Date());
                     }
                 }
 
-                // Show/Hide Rating
                 const groupRating = document.getElementById('groupRating');
                 if (groupRating) {
-                    groupRating.style.display = (value === 'read') ? 'block' : 'none';
+                    groupRating.style.display = (value === 'read') ? '' : 'none';
                 }
 
                 this.dom.triggerText.textContent = label;
@@ -1431,12 +1430,12 @@ const App = {
         this.dom.statusHiddenInput.value = book.status;
 
         if (this.dom.groupReadDate) {
-            this.dom.groupReadDate.style.display = (book.status === 'read') ? 'block' : 'none';
+            this.dom.groupReadDate.style.display = (book.status === 'read') ? '' : 'none';
         }
 
         const groupRating = document.getElementById('groupRating');
         if (groupRating) {
-            groupRating.style.display = (book.status === 'read') ? 'block' : 'none';
+            groupRating.style.display = (book.status === 'read') ? '' : 'none';
             const ratingInput = document.getElementById('bookRating');
             if (ratingInput) ratingInput.value = book.rating || 0;
             if (this.updateStarRatingWidget) {
