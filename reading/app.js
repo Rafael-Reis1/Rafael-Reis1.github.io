@@ -1940,6 +1940,10 @@ const App = {
         };
 
         this.state.books.forEach(book => {
+            if (book.goalYear) {
+                if (!statsData.years[book.goalYear]) statsData.years[book.goalYear] = createStatObj();
+            }
+
             const isRead = book.status === 'read';
             const timesRead = book.timesRead || 0;
             const hasProgress = (book.readPages && book.readPages > 0) || timesRead > 0;
