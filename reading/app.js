@@ -1942,7 +1942,9 @@ const App = {
         this.state.books.forEach(book => {
             const isRead = book.status === 'read';
             const timesRead = book.timesRead || 0;
-            if (!isRead && timesRead === 0) return;
+            const hasProgress = (book.readPages && book.readPages > 0) || timesRead > 0;
+
+            if (book.status === 'want-to-read' && !hasProgress) return;
 
             let year = 'Desconhecido';
             let month = -1;
@@ -1963,9 +1965,24 @@ const App = {
 
             const updateStats = (target, b) => {
                 target.books.push(b);
-                target.booksCount++;
+
+                if (b.status === 'read') {
+                    target.booksCount++;
+                }
+
                 const p = parseInt(b.pages) || 0;
-                target.pages += p;
+
+                let effortPages = 0;
+                if (b.status === 'read') {
+                    effortPages = p * (b.timesRead || 1);
+                } else {
+                    effortPages = (b.readPages || 0);
+                    if (b.timesRead > 0) {
+                        effortPages += (p * b.timesRead);
+                    }
+                }
+
+                target.pages += effortPages;
 
                 if (b.rating > 0) {
                     target.ratingSum += parseFloat(b.rating);
