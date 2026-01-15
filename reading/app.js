@@ -281,7 +281,7 @@ const App = {
         searchResults: [],
         sortBy: 'recent',
         currentPage: 1,
-        itemsPerPage: 12,
+        itemsPerPage: 30,
         searchQuery: ''
     },
 
