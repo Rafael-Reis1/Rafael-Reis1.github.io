@@ -692,9 +692,16 @@ body {
     width: 220px;
 }
 
-.books-grid {
+.scrollable-content {
     flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.books-grid {
+    flex: 0 0 auto;
+    overflow-y: visible;
     padding: 2rem;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -973,8 +980,8 @@ body {
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    padding-top: 1.5rem;
-    margin-top: 1rem;
+    margin-top: 0;
+    padding-bottom: 4rem;
 }
 
 .page-info {
