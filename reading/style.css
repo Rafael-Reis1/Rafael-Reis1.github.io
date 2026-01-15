@@ -1023,6 +1023,10 @@ body {
     z-index: 10100;
 }
 
+.flatpickr-calendar {
+    z-index: 10200 !important;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(20px);
