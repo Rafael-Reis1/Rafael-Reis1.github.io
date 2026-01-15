@@ -1183,7 +1183,7 @@ const App = {
 
         if (this.state.filter === 'target') {
             const years = [...new Set(this.state.books
-                .filter(book => book.goalYear)
+                .filter(book => book.goalYear && book.tags && book.tags.includes('target'))
                 .map(book => book.goalYear)
             )].sort((a, b) => b - a);
 
@@ -1688,7 +1688,9 @@ const App = {
                     rating: parseFloat(formData.rating) || 0,
                     rating: parseFloat(formData.rating) || 0,
                     year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
-                    goalYear: formData.goalYear ? parseInt(formData.goalYear) : (formData.tags.includes('target') ? new Date().getFullYear() : null)
+                    rating: parseFloat(formData.rating) || 0,
+                    year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
+                    goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
                 };
                 rm.update(updatedBook.id, updatedBook);
             }
@@ -1711,7 +1713,9 @@ const App = {
                 ...formData,
                 rating: parseFloat(formData.rating) || 0,
                 year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear(),
-                goalYear: formData.goalYear ? parseInt(formData.goalYear) : (formData.tags.includes('target') ? new Date().getFullYear() : null)
+                rating: parseFloat(formData.rating) || 0,
+                year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear(),
+                goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
             };
             const newBook = BookModel.create(newBookData);
             rm.add(newBook);
@@ -2099,9 +2103,9 @@ const App = {
             }
         }
 
-        html += `< div class="chart-container" > `;
+        html += `<div class="chart-container">`;
         if (selectedYear === 'all') {
-            html += `< div class="chart-title" > Livros por Ano</div > <div class="chart-bars">`;
+            html += `<div class="chart-title">Livros por Ano</div><div class="chart-bars">`;
             const ySorted = Object.keys(data.years).sort((a, b) => a - b).filter(y => y !== 'Desconhecido');
             let maxY = 0; ySorted.forEach(y => maxY = Math.max(maxY, data.years[y].booksCount));
             if (maxY === 0) maxY = 1;
