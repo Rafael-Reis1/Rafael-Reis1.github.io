@@ -1961,6 +1961,10 @@ const App = {
                 }
             }
 
+            if (book.goalYear) {
+                if (!statsData.years[book.goalYear]) statsData.years[book.goalYear] = createStatObj();
+            }
+
             if (!statsData.years[year]) statsData.years[year] = createStatObj();
 
             const updateStats = (target, b) => {
