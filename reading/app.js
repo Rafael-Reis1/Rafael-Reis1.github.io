@@ -1883,22 +1883,12 @@ const App = {
             if (book.readDate) {
                 const parts = book.readDate.split('-');
                 if (parts.length === 3) {
-                    const parsedYear = parseInt(parts[0]);
-                    if (parsedYear < 1950) {
-                        year = 'Desconhecido';
-                    } else {
-                        year = parsedYear;
-                        month = parseInt(parts[1]) - 1;
-                    }
+                    year = parseInt(parts[0]);
+                    month = parseInt(parts[1]) - 1;
                 } else {
                     const d = new Date(book.readDate);
-                    const parsedYear = d.getFullYear();
-                    if (parsedYear < 1950) {
-                        year = 'Desconhecido';
-                    } else {
-                        year = parsedYear;
-                        month = d.getMonth();
-                    }
+                    year = d.getFullYear();
+                    month = d.getMonth();
                 }
             }
 
@@ -2060,13 +2050,19 @@ const App = {
                 const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
                 if (!isRead && (b.timesRead || 0) === 0) return false;
 
-                if (b.year.toString() === yearStr) return true;
+                if (yearStr === 'Desconhecido') {
+                    if (!b.readDate) return true;
+                } else {
+                    if (b.readDate && b.readDate.startsWith(yearStr)) return true;
+                }
 
                 if (b.history && b.history.length > 0) {
-                    return b.history.some(h =>
-                        h.type === 'finish' &&
-                        new Date(h.date).getFullYear().toString() === yearStr
-                    );
+                    return b.history.some(h => {
+                        if (h.type !== 'finish') return false;
+                        const hYear = new Date(h.date).getFullYear().toString();
+                        if (yearStr === 'Desconhecido') return false;
+                        return hYear === yearStr;
+                    });
                 }
                 return false;
             });

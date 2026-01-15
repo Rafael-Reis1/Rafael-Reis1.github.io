@@ -11,11 +11,11 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1501260043">
+    <link rel="stylesheet" href="style.css?v=1501260052">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1501260043">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1501260052">
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -26,7 +26,7 @@
             return false;
         };
     </script>
-    <script src="app.js?v=1501260043" defer></script>
+    <script src="app.js?v=1501260052" defer></script>
 </head>
 
 <body>
@@ -456,203 +456,203 @@
                     </div>
 
                     <div class="form-divider"><span>Ou preencha manualmente</span></div>
-                    <button type="button" class="btn btn-secondary" id="btnClosePeriodDetails">Fechar</button>
+
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="bookTitle">Título</label>
+                            <input type="text" id="bookTitle" required placeholder="Nome do livro">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="bookAuthor">Autor</label>
+                            <input type="text" id="bookAuthor" required placeholder="Nome do autor">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="bookPages">Páginas</label>
+                            <input type="number" id="bookPages" placeholder="Total">
+                        </div>
+                        <div class="form-group" id="groupReadDate" style="display: none;">
+                            <label for="bookReadDate">Data de Leitura</label>
+                            <input type="text" id="bookReadDate" class="flatpickr-input" placeholder="DD/MM/AAAA">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="bookStatus">Status</label>
+                            <div class="custom-select-container">
+                                <input type="hidden" id="bookStatus" value="read">
+                                <button type="button" class="select-trigger" id="statusTrigger">
+                                    <div style="display: flex; align-items: center;">
+                                        <span class="status-indicator status-read" id="triggerIndicator"></span>
+                                        <span id="triggerText">Lido</span>
+                                    </div>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </button>
+                                <div class="custom-options" id="statusOptions">
+                                    <div class="custom-option selected" data-value="read" data-label="Lido"
+                                        data-class="status-read">
+                                        <span class="status-indicator status-read"></span> Lido
+                                    </div>
+                                    <div class="custom-option" data-value="reading" data-label="Lendo"
+                                        data-class="status-reading">
+                                        <span class="status-indicator status-reading"></span> Lendo
+                                    </div>
+                                    <div class="custom-option" data-value="want-to-read" data-label="Quero Ler"
+                                        data-class="status-want">
+                                        <span class="status-indicator status-want"></span> Quero Ler
+                                    </div>
+                                    <div class="custom-option" data-value="re-reading" data-label="Relendo"
+                                        data-class="status-reread">
+                                        <span class="status-indicator status-reread"></span> Relendo
+                                    </div>
+                                    <div class="custom-option" data-value="abandoned" data-label="Abandonei"
+                                        data-class="status-abandoned">
+                                        <span class="status-indicator status-abandoned"></span> Abandonei
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="groupRating" style="display: none; flex: 1;">
+                            <label>Avaliação</label>
+                            <div class="star-rating-input" id="starRatingWidget">
+                                <div class="stars-container">
+                                    <svg class="star-icon" data-index="1" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                    <svg class="star-icon" data-index="2" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                    <svg class="star-icon" data-index="3" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                    <svg class="star-icon" data-index="4" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                    <svg class="star-icon" data-index="5" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
+                                    </svg>
+                                </div>
+                                <span class="rating-value" id="ratingValueDisplay">0.0</span>
+                                <input type="hidden" id="bookRating" name="rating" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: none;">
+                        <div class="form-group full-width">
+                            <label for="bookCover">Capa (URL)</label>
+                            <input type="url" id="bookCover" placeholder="https://exemplo.com/capa.jpg">
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Tags</label>
+                        <div class="tags-container">
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="favorite">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                </svg>
+                                <span>Favorito</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="desired">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.62 0-2.98 1.28-3 2.88l-.01-.01C11.98 3.28 10.62 2 9 2c-1.66 0-3 1.34-3 3 0 .35.07.69.18 1H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6zm-8-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.12c.07-.31.12-.64.12-1 0-.55.45-1 1-1zm-6 1c0-.55.45-1 1-1s1 .45 1 1c0 .36.05.69.12 1H8c-.55 0-1-.45-1-1zm13 13H4v-2h15v2zm0-5H4V8h5.08L7 10.83l1.54 1.28 2.45-3.11H13l2.45 3.11 1.54-1.28L14.92 8H20v6z" />
+                                </svg>
+                                <span>Desejado</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="borrowed">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                                </svg>
+                                <span>Emprestado</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="physical">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h5v2zm4-8H9V5h10v2z" />
+                                </svg>
+                                <span>Físico</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="owned">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M20 8h-3V4H7v4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6h6v2H9V6zm11 14H4v-8h16v8z" />
+                                </svg>
+                                <span>Tenho</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="lent">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
+                                </svg>
+                                <span>Emprestei</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="target">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-8c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5 1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5z" />
+                                </svg>
+                                <span>Meta</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="ebook">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm9 16H6V8h12v12z" />
+                                </svg>
+                                <span>Ebook</span>
+                            </label>
+                            <label class="tag-checkbox">
+                                <input type="checkbox" name="tags" value="audiobook">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                                </svg>
+                                <span>AudioBook</span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-        </div>
-    </div>
 
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="bookTitle">Título</label>
-            <input type="text" id="bookTitle" required placeholder="Nome do livro">
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="bookAuthor">Autor</label>
-            <input type="text" id="bookAuthor" required placeholder="Nome do autor">
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group">
-            <label for="bookPages">Páginas</label>
-            <input type="number" id="bookPages" placeholder="Total">
-        </div>
-        <div class="form-group" id="groupReadDate" style="display: none;">
-            <label for="bookReadDate">Data de Leitura</label>
-            <input type="text" id="bookReadDate" class="flatpickr-input" placeholder="DD/MM/AAAA">
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-group" style="flex: 1;">
-            <label for="bookStatus">Status</label>
-            <div class="custom-select-container">
-                <input type="hidden" id="bookStatus" value="read">
-                <button type="button" class="select-trigger" id="statusTrigger">
-                    <div style="display: flex; align-items: center;">
-                        <span class="status-indicator status-read" id="triggerIndicator"></span>
-                        <span id="triggerText">Lido</span>
-                    </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
-                </button>
-                <div class="custom-options" id="statusOptions">
-                    <div class="custom-option selected" data-value="read" data-label="Lido" data-class="status-read">
-                        <span class="status-indicator status-read"></span> Lido
-                    </div>
-                    <div class="custom-option" data-value="reading" data-label="Lendo" data-class="status-reading">
-                        <span class="status-indicator status-reading"></span> Lendo
-                    </div>
-                    <div class="custom-option" data-value="want-to-read" data-label="Quero Ler"
-                        data-class="status-want">
-                        <span class="status-indicator status-want"></span> Quero Ler
-                    </div>
-                    <div class="custom-option" data-value="re-reading" data-label="Relendo" data-class="status-reread">
-                        <span class="status-indicator status-reread"></span> Relendo
-                    </div>
-                    <div class="custom-option" data-value="abandoned" data-label="Abandonei"
-                        data-class="status-abandoned">
-                        <span class="status-indicator status-abandoned"></span> Abandonei
-                    </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBook">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Livro</button>
                 </div>
-            </div>
+            </form>
+
         </div>
-
-        <div class="form-group" id="groupRating" style="display: none; flex: 1;">
-            <label>Avaliação</label>
-            <div class="star-rating-input" id="starRatingWidget">
-                <div class="stars-container">
-                    <svg class="star-icon" data-index="1" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polygon
-                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                    </svg>
-                    <svg class="star-icon" data-index="2" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polygon
-                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                    </svg>
-                    <svg class="star-icon" data-index="3" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polygon
-                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                    </svg>
-                    <svg class="star-icon" data-index="4" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polygon
-                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                    </svg>
-                    <svg class="star-icon" data-index="5" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <polygon
-                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                        </polygon>
-                    </svg>
-                </div>
-                <span class="rating-value" id="ratingValueDisplay">0.0</span>
-                <input type="hidden" id="bookRating" name="rating" value="0">
-            </div>
-        </div>
-    </div>
-
-    <div class="form-row" style="display: none;">
-        <div class="form-group full-width">
-            <label for="bookCover">Capa (URL)</label>
-            <input type="url" id="bookCover" placeholder="https://exemplo.com/capa.jpg">
-        </div>
-    </div>
-
-    <div class="form-group full-width">
-        <label>Tags</label>
-        <div class="tags-container">
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="favorite">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
-                <span>Favorito</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="desired">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.62 0-2.98 1.28-3 2.88l-.01-.01C11.98 3.28 10.62 2 9 2c-1.66 0-3 1.34-3 3 0 .35.07.69.18 1H2v13c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6zm-8-2c.55 0 1 .45 1 1s-.45 1-1 1h-2.12c.07-.31.12-.64.12-1 0-.55.45-1 1-1zm-6 1c0-.55.45-1 1-1s1 .45 1 1c0 .36.05.69.12 1H8c-.55 0-1-.45-1-1zm13 13H4v-2h15v2zm0-5H4V8h5.08L7 10.83l1.54 1.28 2.45-3.11H13l2.45 3.11 1.54-1.28L14.92 8H20v6z" />
-                </svg>
-                <span>Desejado</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="borrowed">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-                </svg>
-                <span>Emprestado</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="physical">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h5v2zm4-8H9V5h10v2z" />
-                </svg>
-                <span>Físico</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="owned">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M20 8h-3V4H7v4H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6h6v2H9V6zm11 14H4v-8h16v8z" />
-                </svg>
-                <span>Tenho</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="lent">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" />
-                </svg>
-                <span>Emprestei</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="target">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-8c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5 1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5z" />
-                </svg>
-                <span>Meta</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="ebook">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h6v2H9V4zm9 16H6V8h12v12z" />
-                </svg>
-                <span>Ebook</span>
-            </label>
-            <label class="tag-checkbox">
-                <input type="checkbox" name="tags" value="audiobook">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
-                </svg>
-                <span>AudioBook</span>
-            </label>
-        </div>
-    </div>
-    </div>
-
-    <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" id="cancelBook">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar Livro</button>
-    </div>
-    </form>
-
-    </div>
     </div>
 
     <div id="historyModal" class="modal">
