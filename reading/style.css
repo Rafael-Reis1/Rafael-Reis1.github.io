@@ -1149,7 +1149,8 @@ body {
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.15rem !important;
+    margin-bottom: 1.5rem;
     flex: 1;
 }
 
