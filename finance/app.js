@@ -785,7 +785,7 @@ class FinanceManager {
         const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         let effectiveEndDate = filters.endDate;
-        if (!effectiveEndDate) {
+        if (!effectiveEndDate && !filters.status && !filters.search) {
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -809,9 +809,7 @@ class FinanceManager {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
 
-            if (filters.endDate && tDate > filters.endDate) return false;
-
-            if (!filters.endDate && effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending' && !filters.search) return false;
+            if (effectiveEndDate && tDate > effectiveEndDate) return false;
 
             if (filters.type && t.type !== filters.type) return false;
 
@@ -853,19 +851,14 @@ class FinanceManager {
 
     getFilteredTotals(filters = {}) {
         const transactions = this.getFilteredTransactions(filters);
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-        const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+        const income = transactions
+            .filter(t => t.type === 'income')
+            .reduce((acc, t) => acc + t.amount, 0);
 
-        const expense = transactions.filter(t => {
-            if (t.type !== 'expense') return false;
-
-            if (filters.status === 'overdue' || filters.status === 'pending') return false;
-
-            if (!t.isPaid && t.date < todayStr) return false;
-            return true;
-        }).reduce((acc, t) => acc + t.amount, 0);
+        const expense = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
 
         return { income, expense, balance: income - expense };
     }
@@ -1780,7 +1773,17 @@ class UIController {
 
         const totals = this.fm.getFilteredTotals(filters);
 
-        const balance = this.fm.getBalance();
+        let displayBalance;
+        const isFiltered = filters.startDate || filters.endDate || filters.category || filters.search || filters.status;
+
+        if (isFiltered) {
+            displayBalance = totals.balance;
+            this.balanceLabel.textContent = 'Resultado do Filtro';
+        } else {
+            displayBalance = this.fm.getBalance();
+            this.balanceLabel.textContent = 'Saldo Atual';
+        }
+
         const futureExpenses = this.fm.getFutureExpenses(filters);
 
         const today = new Date();
@@ -1795,7 +1798,7 @@ class UIController {
         this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
         this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Total)';
 
-        this.balanceValue.textContent = this.formatCurrency(balance);
+        this.balanceValue.textContent = this.formatCurrency(displayBalance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
         this.expenseValue.textContent = this.formatCurrency(totals.expense);
 
