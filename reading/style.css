@@ -1238,12 +1238,38 @@ body {
     padding-left: 14px;
 }
 
-.api-result-cover {
+.api-result-cover-container {
     width: 45px;
     height: 65px;
     border-radius: 4px;
-    object-fit: cover;
     background: #000;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.api-result-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.api-result-cover-container .book-cover-placeholder {
+    padding: 2px !important;
+    justify-content: center;
+}
+
+.api-result-cover-container .placeholder-title {
+    font-size: 0.35rem !important;
+    line-height: 1.1;
+    margin-bottom: 2px;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.api-result-cover-container .placeholder-author {
+    font-size: 0.25rem !important;
+    display: none;
 }
 
 .api-result-info {
@@ -2300,6 +2326,28 @@ input[type=number] {
 .bar-group:hover .bar-tooltip {
     opacity: 1;
     transform: translateY(0);
+}
+
+.bar-group {
+    cursor: pointer;
+}
+
+.books-list-compact {
+    display: flex;
+    flex-direction: column;
+}
+
+.books-list-compact .api-result-item {
+    background: transparent;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.books-list-compact .api-result-item:last-child {
+    border-bottom: none;
+}
+
+.books-list-compact .api-result-item:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .flatpickr-calendar {
