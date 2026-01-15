@@ -1054,9 +1054,15 @@ const App = {
         this.render();
     },
 
+    setSort(sortType) {
+        this.state.sortBy = sortType;
+        this.render();
+    },
+
     setFilter(filter) {
         this.state.filter = filter;
         this.state.currentPage = 1;
+        this.state.yearFilter = 'all';
 
         const labels = {
             'all': '📚 Minha Biblioteca',
@@ -1172,21 +1178,35 @@ const App = {
     renderYearFilters() {
         if (!this.dom.yearContainer) return;
 
-        let years;
+        let html = '';
+
         if (this.state.filter === 'target') {
-            years = [...new Set(this.state.books
+            const years = [...new Set(this.state.books
                 .filter(book => book.goalYear)
                 .map(book => book.goalYear)
             )].sort((a, b) => b - a);
+
+            if (years.length > 0) {
+                if (this.state.yearFilter === 'all' || !years.includes(parseInt(this.state.yearFilter))) {
+                    this.state.yearFilter = years[0].toString();
+                }
+
+                years.forEach(year => {
+                    html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
+                });
+            } else {
+                html += `<button class="chip active" disabled>Sem metas</button>`;
+                this.state.yearFilter = 'none';
+            }
+
         } else {
-            years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+            const years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+
+            html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
+            years.forEach(year => {
+                html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
+            });
         }
-
-        let html = `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
-
-        years.forEach(year => {
-            html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
-        });
 
         this.dom.yearContainer.innerHTML = html;
     },
