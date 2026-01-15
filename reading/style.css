@@ -3275,24 +3275,58 @@ input[type=number] {
     align-items: flex-end;
 }
 
+
 .btn-install {
     color: var(--accent-color);
     background: rgba(242, 81, 27, 0.1);
     border: 1px solid rgba(242, 81, 27, 0.2);
     display: none;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    width: 36px;
+    height: 36px;
+    justify-content: flex-start;
+    padding: 0;
+    position: relative;
+    border-radius: 10px;
 }
 
-.btn-install:hover {
-    background: rgba(242, 81, 27, 0.2);
-    border-color: var(--accent-color);
+.btn-install svg {
+    width: 20px;
+    height: 20px;
+    margin: 0 7px;
+    flex-shrink: 0;
+}
+
+.btn-install span {
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    padding-right: 1rem;
+}
+
+@media (hover: hover) {
+    .btn-install:hover {
+        width: 140px;
+        background: rgba(242, 81, 27, 0.2);
+        border-color: var(--accent-color);
+    }
+
+    .btn-install:hover span {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        display: inline-block;
+    }
 }
 
 @media all and (display-mode: standalone) {
-    .btn-back {
-        display: none !important;
-    }
 
-    .btn-install {
+    .btn-back,
+    #installAppBtn {
         display: none !important;
     }
 }
