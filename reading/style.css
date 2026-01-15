@@ -3140,6 +3140,11 @@ input[type=number] {
         height: 60px;
     }
 
+    .login-icon svg {
+        width: 36px;
+        height: 36px;
+    }
+
     .login-card h2 {
         font-size: 1.5rem;
     }
