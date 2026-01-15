@@ -2760,7 +2760,10 @@ input[type=number] {
 
 
     .sidebar-overlay {
-        display: none;
+        display: block;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.6);
@@ -2768,7 +2771,8 @@ input[type=number] {
     }
 
     .sidebar-overlay.active {
-        display: block;
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .main-content {

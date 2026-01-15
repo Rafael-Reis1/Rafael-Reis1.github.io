@@ -1201,12 +1201,25 @@ const App = {
             }
 
         } else {
-            const years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+            let relevantBooks = this.state.books;
+            if (this.state.filter !== 'all') {
+                relevantBooks = relevantBooks.filter(book => {
+                    return book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter));
+                });
+            }
 
-            html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
-            years.forEach(year => {
-                html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
-            });
+            const years = [...new Set(relevantBooks.map(book => book.year))].sort((a, b) => b - a);
+
+            if (years.length > 0) {
+                html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
+                years.forEach(year => {
+                    html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
+                });
+            } else if (relevantBooks.length === 0) {
+                html += `<button class="chip active" disabled>Sem livros</button>`;
+            } else {
+                html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
+            }
         }
 
         this.dom.yearContainer.innerHTML = html;
@@ -2018,7 +2031,7 @@ const App = {
 
                 if (month >= 0) target.monthlyDist[month]++;
 
-                if (p > 0) {
+                if (p > 0 && b.status === 'read') {
                     if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = b;
                     if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = b;
                 }
