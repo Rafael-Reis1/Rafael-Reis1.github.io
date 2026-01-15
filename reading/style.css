@@ -2926,7 +2926,6 @@ input[type=number] {
 
     .title-overlay {
         transform: translateY(0) !important;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.6) 80%, transparent) !important;
     }
 
     .book-card:hover {
