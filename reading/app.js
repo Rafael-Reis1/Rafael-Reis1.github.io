@@ -2221,25 +2221,25 @@ const App = {
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
 
                 html += `
-    < div class="api-result-item" onclick = "App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');" >
-                    <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
-                         <img src="${cover}" class="api-result-cover" alt="${book.title}"
-                              style="${isPlaceholder ? 'display:none' : ''}"
-                              onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
-                         <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
-                            <div class="placeholder-title">${book.title}</div>
-                            <div class="placeholder-author">${book.author}</div>
-                         </div>
-                    </div>
-                    <div class="api-result-info">
-                        <div class="api-result-title">${book.title}</div>
-                        <div class="api-result-author">${book.author}</div>
-                        <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
-                           ${book.rating > 0 ? '★ ' + book.rating : ''} 
-                           ${book.pages ? ' • ' + book.pages + ' pág' : ''}
+                    <div class="api-result-item" onclick="App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');">
+                        <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
+                             <img src="${cover}" class="api-result-cover" alt="${book.title}"
+                                  style="${isPlaceholder ? 'display:none' : ''}"
+                                  onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                             <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
+                                <div class="placeholder-title">${book.title}</div>
+                                <div class="placeholder-author">${book.author}</div>
+                             </div>
                         </div>
-                    </div>
-                </div > `;
+                        <div class="api-result-info">
+                            <div class="api-result-title">${book.title}</div>
+                            <div class="api-result-author">${book.author}</div>
+                            <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
+                               ${book.rating > 0 ? '★ ' + book.rating : ''} 
+                               ${book.pages ? ' • ' + book.pages + ' pág' : ''}
+                            </div>
+                        </div>
+                    </div>`;
             });
             html += '</div>';
             content.innerHTML = html;
