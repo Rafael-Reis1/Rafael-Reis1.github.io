@@ -1424,7 +1424,7 @@ const App = {
     },
 
     async handleAPISearch(query) {
-        if (!query || query.length < 3) {
+        if (!query || query.length < 2) {
             this.dom.apiResults.classList.remove('active');
             return;
         }
