@@ -616,6 +616,7 @@ class FinanceManager {
         return this.transactions
             .filter(t => {
                 if (t.date < dateStr) return false;
+                if (t.type === 'income') return false;
                 if (t.type !== 'expense') return false;
                 if (t.isPaid === true) return false;
 
@@ -807,7 +808,11 @@ class FinanceManager {
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
-            if (effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending' && !filters.search) return false;
+
+            if (filters.endDate && tDate > filters.endDate) return false;
+
+            if (!filters.endDate && effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending' && !filters.search) return false;
+
             if (filters.type && t.type !== filters.type) return false;
 
             if (filters.status) {
