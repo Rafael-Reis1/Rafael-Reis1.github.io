@@ -2827,8 +2827,9 @@ input[type=number] {
 
     .library-toolbar {
         flex-direction: column;
-        gap: 0.5rem;
-        padding: 0.75rem;
+        gap: 1rem;
+        padding: 1rem;
+        align-items: stretch;
     }
 
     .toolbar-left {
@@ -2837,14 +2838,23 @@ input[type=number] {
 
     .toolbar-center {
         width: 100%;
+        max-width: 100%;
         overflow-x: auto;
-        padding-bottom: 2px;
+        padding-bottom: 5px;
+        justify-content: flex-start;
+        order: 2;
+    }
+
+    .year-filters {
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .toolbar-right {
         width: 100%;
         justify-content: space-between;
         gap: 0.5rem;
+        order: 1;
     }
 
     .search-wrapper {

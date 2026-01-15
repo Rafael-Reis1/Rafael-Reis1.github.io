@@ -1973,12 +1973,31 @@ const App = {
                 const p = parseInt(b.pages) || 0;
 
                 let effortPages = 0;
-                if (b.status === 'read') {
-                    effortPages = p * (b.timesRead || 1);
+                const history = b.history || [];
+
+                if (history.length > 0) {
+                    let currentCycleProgress = 0;
+                    const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                    sortedHistory.forEach(entry => {
+                        if (entry.type === 'finish') {
+                            effortPages += p;
+                            currentCycleProgress = 0;
+                        } else if (entry.type === 'start') {
+                            currentCycleProgress = 0;
+                        } else {
+                            currentCycleProgress = entry.page || 0;
+                        }
+                    });
+                    effortPages += currentCycleProgress;
                 } else {
-                    effortPages = (b.readPages || 0);
-                    if (b.timesRead > 0) {
-                        effortPages += (p * b.timesRead);
+                    if (b.status === 'read') {
+                        effortPages = p * (b.timesRead || 1);
+                    } else {
+                        effortPages = (b.readPages || 0);
+                        if (b.timesRead > 0) {
+                            effortPages += (p * b.timesRead);
+                        }
                     }
                 }
 
