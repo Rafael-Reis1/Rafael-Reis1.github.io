@@ -1055,7 +1055,7 @@ body {
 .modal-actions,
 .modal-footer {
     padding: 1rem 1.25rem;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.4);
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: flex-end;
