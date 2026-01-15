@@ -1201,9 +1201,17 @@ const App = {
         pageBooks.forEach(book => {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
+            const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+
             card.innerHTML = `
             <div class="book-cover-container skeleton">
-                <img src="${book.cover}" alt="${book.title}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')" onerror="this.parentElement.classList.remove('skeleton'); this.src='https://placehold.co/200x300?text=Sem+Capa'">
+                <img src="${book.cover}" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.remove('skeleton')">
+                
+                <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
+                    <div class="placeholder-title">${book.title}</div>
+                    <div class="placeholder-author">${book.author}</div>
+                </div>
+
                 <!-- Bookmark Icon SVG -->
                 <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
                     <path d="M0 0h24v32l-12-8-12 8z"/>
