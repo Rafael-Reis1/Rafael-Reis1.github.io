@@ -306,6 +306,7 @@ const App = {
                 disableMobile: true,
                 theme: 'dark',
                 allowInput: true,
+                appendTo: document.getElementById('bookModal'),
                 onReady: function (selectedDates, dateStr, instance) {
                     const input = instance.altInput;
                     input.setAttribute('inputmode', 'numeric');
