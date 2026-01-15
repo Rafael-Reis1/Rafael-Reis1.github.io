@@ -3349,7 +3349,9 @@ input[type=number] {
 @media all and (display-mode: standalone) {
 
     .btn-back,
-    #installAppBtn {
+    #installAppBtn,
+    .sidebar-footer-mobile .back-link,
+    #loginOverlay a[href*="index.html"] {
         display: none !important;
     }
 }
