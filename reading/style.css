@@ -3125,3 +3125,22 @@ input[type=number] {
         transform: translateY(-50%) rotate(360deg);
     }
 }
+
+@media (max-width: 600px) {
+    .login-overlay {
+        padding: 1rem;
+    }
+
+    .login-card {
+        padding: 1.5rem;
+    }
+
+    .login-icon {
+        width: 60px;
+        height: 60px;
+    }
+
+    .login-card h2 {
+        font-size: 1.5rem;
+    }
+}
