@@ -793,7 +793,7 @@ class FinanceManager {
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
-            if (effectiveEndDate && tDate > effectiveEndDate) return false;
+            if (effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending') return false;
             if (filters.type && t.type !== filters.type) return false;
 
             if (filters.status) {
@@ -803,8 +803,9 @@ class FinanceManager {
                     if (t.isPaid || t.date >= todayStr) return false;
                 }
                 if (filters.status === 'pending') {
+                    if (t.type !== 'expense') return false;
                     if (t.isPaid) return false;
-                    if (t.type === 'expense' && t.date < todayStr) return false;
+                    if (t.date < todayStr) return false;
                 }
             }
 
@@ -833,8 +834,20 @@ class FinanceManager {
 
     getFilteredTotals(filters = {}) {
         const transactions = this.getFilteredTransactions(filters);
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
         const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+        const expense = transactions.filter(t => {
+            if (t.type !== 'expense') return false;
+
+            if (filters.status === 'overdue') return true;
+
+            if (!t.isPaid && t.date < todayStr) return false;
+            return true;
+        }).reduce((acc, t) => acc + t.amount, 0);
+
         return { income, expense, balance: income - expense };
     }
 
@@ -1351,7 +1364,14 @@ class UIController {
             this.currentFilters.endDate = this.filterEndDate.value;
             this.currentFilters.type = this.filterType.value;
             this.currentFilters.category = this.filterCategory.value;
-            this.currentFilters.status = this.filterStatus.value;
+
+            if (this.filterType.value === 'income') {
+                this.filterStatus.value = '';
+                this.filterStatus.dispatchEvent(new Event('change', { bubbles: true }));
+                this.currentFilters.status = '';
+            } else {
+                this.currentFilters.status = this.filterStatus.value;
+            }
 
             this.currentPage = 1;
             this.closeModal(this.filterModal, true);
@@ -2030,6 +2050,15 @@ class UIController {
         const selectedType = this.filterType.value;
         const previousCategory = this.filterCategory.value;
 
+        const filterStatusContainer = this.filterStatus.closest('.form-group');
+        if (filterStatusContainer) {
+            if (selectedType === 'income') {
+                filterStatusContainer.style.display = 'none';
+            } else {
+                filterStatusContainer.style.display = 'block';
+            }
+        }
+
         const categories = this.fm.getAvailableCategories();
         this.filterCategory.innerHTML = '<option value="">🔍 Todas as categorias</option>';
 
@@ -2205,6 +2234,7 @@ class UIController {
         document.getElementById('editDescription').value = '';
         document.getElementById('editAmount').value = '';
         document.getElementById('editType').value = 'expense';
+        document.getElementById('editType').dispatchEvent(new Event('change', { bubbles: true }));
 
         const isRecurringInput = document.getElementById('isRecurring');
         const recurringGroup = isRecurringInput.closest('.checkbox-group');
@@ -2236,6 +2266,7 @@ class UIController {
         document.getElementById('editAmount').value = t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
         this.setDatePickerValue(document.getElementById('editDate'), t.date);
         document.getElementById('editType').value = t.type;
+        document.getElementById('editType').dispatchEvent(new Event('change', { bubbles: true }));
 
         const isRecurringInput = document.getElementById('isRecurring');
         const recurringGroup = isRecurringInput.closest('.checkbox-group');
@@ -2247,6 +2278,7 @@ class UIController {
         document.getElementById('recurringOptions').style.display = 'none';
 
         this.updateEditCategoryOptions(t.category);
+        document.getElementById('editCategory').dispatchEvent(new Event('change', { bubbles: true }));
 
         this.openModal(this.editModal);
     }
