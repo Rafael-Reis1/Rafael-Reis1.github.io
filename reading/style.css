@@ -2894,8 +2894,9 @@ input[type=number] {
     }
 
     .btn-options {
-        width: 24px;
-        height: 24px;
+        width: 40px;
+        height: 40px;
+        opacity: 1;
     }
 
     .options-menu {
@@ -2921,6 +2922,16 @@ input[type=number] {
 
     .chart-bar-label {
         font-size: 0.65rem;
+    }
+
+    .title-overlay {
+        transform: translateY(0) !important;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.6) 80%, transparent) !important;
+    }
+
+    .book-card:hover {
+        transform: none !important;
+        z-index: 1 !important;
     }
 }
 
