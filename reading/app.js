@@ -21,6 +21,45 @@ const GoogleBooksAPI = {
     }
 };
 
+const OpenLibraryAPI = {
+    async search(query) {
+        if (!query || query.length < 3) return [];
+        try {
+            const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5&fields=key,title,author_name,cover_i,number_of_pages_median,first_publish_year`);
+            const data = await response.json();
+
+            return (data.docs || []).map(doc => ({
+                id: 'ol:' + doc.key.replace('/works/', ''),
+                volumeInfo: {
+                    title: doc.title,
+                    authors: doc.author_name || ['Autor Desconhecido'],
+                    pageCount: doc.number_of_pages_median || 0,
+                    publishedDate: doc.first_publish_year ? doc.first_publish_year.toString() : '',
+                    imageLinks: {
+                        thumbnail: doc.cover_i
+                            ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+                            : null
+                    }
+                },
+                source: 'OpenLibrary'
+            }));
+        } catch (error) {
+            console.error('OpenLibrary API Error:', error);
+            return [];
+        }
+    },
+
+    async getWorkDetails(workId) {
+        try {
+            const response = await fetch(`https://openlibrary.org/works/${workId}.json`);
+            return await response.json();
+        } catch (error) {
+            console.error('OL Details Error:', error);
+            return null;
+        }
+    }
+};
+
 const BookModel = {
     create(data) {
         return {
@@ -1333,11 +1372,50 @@ const App = {
         }
 
         this.dom.searchLoader.style.display = 'block';
-        const results = await GoogleBooksAPI.search(query);
-        this.dom.searchLoader.style.display = 'none';
 
-        this.state.searchResults = results;
-        this.displayAPIResults(results);
+        try {
+            const [googleResults, olResults] = await Promise.allSettled([
+                GoogleBooksAPI.search(query),
+                OpenLibraryAPI.search(query)
+            ]);
+
+            const gBooks = googleResults.status === 'fulfilled' ? googleResults.value : [];
+            const olBooks = olResults.status === 'fulfilled' ? olResults.value : [];
+
+            const combined = [...gBooks];
+
+            const getYear = (dateStr) => dateStr ? dateStr.substring(0, 4) : '0000';
+
+            const existingSignatures = new Set(
+                gBooks.map(b => {
+                    const t = b.volumeInfo.title.toLowerCase().trim();
+                    const a = (b.volumeInfo.authors[0] || '').toLowerCase().trim();
+                    const y = getYear(b.volumeInfo.publishedDate);
+                    return `${t}|${a}|${y}`;
+                })
+            );
+
+            olBooks.forEach(book => {
+                const t = book.volumeInfo.title.toLowerCase().trim();
+                const a = (book.volumeInfo.authors[0] || '').toLowerCase().trim();
+                const y = getYear(book.volumeInfo.publishedDate);
+                const sig = `${t}|${a}|${y}`;
+
+                if (!existingSignatures.has(sig)) {
+                    combined.push(book);
+                }
+            });
+
+            this.state.searchResults = combined;
+            this.displayAPIResults(combined);
+
+        } catch (error) {
+            console.error('Search Error:', error);
+            this.state.searchResults = [];
+            this.displayAPIResults([]);
+        } finally {
+            this.dom.searchLoader.style.display = 'none';
+        }
     },
 
     displayAPIResults(books) {
@@ -1381,6 +1459,10 @@ const App = {
         }
 
         try {
+            if (bookId.startsWith('ol:')) {
+                return;
+            }
+
             const response = await fetch(`https://www.googleapis.com/books/v1/volumes/${bookId}`);
             const data = await response.json();
             this.populateFormWithBook(data.volumeInfo);
