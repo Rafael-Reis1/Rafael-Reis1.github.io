@@ -3275,11 +3275,28 @@ input[type=number] {
     align-items: flex-end;
 }
 
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    border-color: var(--accent-color);
+}
 
 .btn-install {
-    color: var(--accent-color);
-    background: rgba(242, 81, 27, 0.1);
-    border: 1px solid rgba(242, 81, 27, 0.2);
     display: none;
     transition: all 0.3s ease;
     overflow: hidden;
@@ -3289,6 +3306,25 @@ input[type=number] {
     padding: 0;
     position: relative;
     border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+@media (hover: hover) {
+    .btn-install:hover {
+        width: 140px;
+        background: var(--glass-bg-hover);
+        border-color: var(--accent-color);
+        color: var(--text-primary);
+    }
+
+    .btn-install:hover span {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        display: inline-block;
+    }
 }
 
 .btn-install svg {
@@ -3308,20 +3344,7 @@ input[type=number] {
     padding-right: 1rem;
 }
 
-@media (hover: hover) {
-    .btn-install:hover {
-        width: 140px;
-        background: rgba(242, 81, 27, 0.2);
-        border-color: var(--accent-color);
-    }
 
-    .btn-install:hover span {
-        opacity: 1;
-        visibility: visible;
-        transform: translateX(0);
-        display: inline-block;
-    }
-}
 
 @media all and (display-mode: standalone) {
 
