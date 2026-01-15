@@ -1055,7 +1055,7 @@ body {
 .modal-actions,
 .modal-footer {
     padding: 1rem 1.25rem;
-    background: linear-gradient(135deg, #1a1b2e, #252640);
+    background: rgba(0, 0, 0, 0.2);
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: flex-end;
