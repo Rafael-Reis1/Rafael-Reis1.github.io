@@ -1019,6 +1019,10 @@ body {
     max-width: 1000px;
 }
 
+#bookModal {
+    z-index: 10100;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(20px);
