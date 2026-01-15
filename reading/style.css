@@ -3200,8 +3200,5 @@ input[type=number] {
 .book-cover-container.is-placeholder .title-overlay {
     color: transparent;
     text-shadow: none;
-    background: transparent;
-    height: 4px;
-    padding: 0;
-    pointer-events: none;
+    user-select: none;
 }
