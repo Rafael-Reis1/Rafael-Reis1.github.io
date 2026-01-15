@@ -76,7 +76,8 @@ const BookModel = {
             readDate: data.readDate || null,
             history: [],
             createdAt: new Date().toISOString(),
-            year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear()
+            year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear(),
+            goalYear: data.goalYear ? parseInt(data.goalYear) : null
         };
     }
 };
@@ -453,6 +454,18 @@ const App = {
             });
         });
 
+        const toggleGoalInput = () => {
+            const targetCheckbox = document.querySelector('input[name="tags"][value="target"]');
+            const groupGoalYear = document.getElementById('groupGoalYear');
+            if (targetCheckbox && groupGoalYear) {
+                groupGoalYear.style.display = targetCheckbox.checked ? 'flex' : 'none';
+            }
+        };
+
+        document.querySelectorAll('input[name="tags"]').forEach(cb => {
+            cb.addEventListener('change', toggleGoalInput);
+        });
+
 
 
         this.dom.yearContainer.addEventListener('click', (e) => {
@@ -467,6 +480,9 @@ const App = {
 
         this.dom.addBtn.addEventListener('click', () => {
             this.dom.bookForm.reset();
+            const groupGoalYear = document.getElementById('groupGoalYear');
+            if (groupGoalYear) groupGoalYear.style.display = 'none';
+
             document.getElementById('bookId').value = '';
 
             this.dom.statusHiddenInput.value = 'want-to-read';
@@ -1143,7 +1159,11 @@ const App = {
         }
 
         if (this.state.yearFilter !== 'all') {
-            filtered = filtered.filter(book => book.year.toString() === this.state.yearFilter);
+            if (this.state.filter === 'target') {
+                filtered = filtered.filter(book => book.goalYear && book.goalYear.toString() === this.state.yearFilter);
+            } else {
+                filtered = filtered.filter(book => book.year.toString() === this.state.yearFilter);
+            }
         }
 
         return filtered;
@@ -1152,7 +1172,15 @@ const App = {
     renderYearFilters() {
         if (!this.dom.yearContainer) return;
 
-        const years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+        let years;
+        if (this.state.filter === 'target') {
+            years = [...new Set(this.state.books
+                .filter(book => book.goalYear)
+                .map(book => book.goalYear)
+            )].sort((a, b) => b - a);
+        } else {
+            years = [...new Set(this.state.books.map(book => book.year))].sort((a, b) => b - a);
+        }
 
         let html = `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
 
@@ -1557,6 +1585,13 @@ const App = {
 
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
+        document.getElementById('bookGoalYear').value = book.goalYear || '';
+        const targetCheckbox = document.querySelector('input[name="tags"][value="target"]');
+        const groupGoalYear = document.getElementById('groupGoalYear');
+        if (targetCheckbox && groupGoalYear) {
+            groupGoalYear.style.display = targetCheckbox.checked ? 'flex' : 'none';
+        }
+
         if (this.dom.btnOpenHistoryFromModal) {
             this.dom.btnOpenHistoryFromModal.style.display = 'flex';
         }
@@ -1576,6 +1611,7 @@ const App = {
             cover: document.getElementById('bookCover').value,
             readDate: readDateVal || null,
             rating: document.getElementById('bookRating').value || 0,
+            goalYear: document.getElementById('bookGoalYear').value || null,
             tags: []
         };
 
@@ -1629,7 +1665,9 @@ const App = {
                     timesRead: newTimesRead,
                     history: history,
                     rating: parseFloat(formData.rating) || 0,
-                    year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year
+                    rating: parseFloat(formData.rating) || 0,
+                    year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
+                    goalYear: formData.goalYear ? parseInt(formData.goalYear) : (formData.tags.includes('target') ? new Date().getFullYear() : null)
                 };
                 rm.update(updatedBook.id, updatedBook);
             }
@@ -1649,7 +1687,10 @@ const App = {
             const newBookData = {
                 ...formData,
                 rating: parseFloat(formData.rating) || 0,
-                year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear()
+                ...formData,
+                rating: parseFloat(formData.rating) || 0,
+                year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear(),
+                goalYear: formData.goalYear ? parseInt(formData.goalYear) : (formData.tags.includes('target') ? new Date().getFullYear() : null)
             };
             const newBook = BookModel.create(newBookData);
             rm.add(newBook);
@@ -2006,9 +2047,40 @@ const App = {
             </div>
         `;
 
-        html += `<div class="chart-container">`;
+
+
+        if (selectedYear !== 'all' && selectedYear !== 'Desconhecido') {
+            const booksInGoal = this.state.books.filter(b => b.goalYear == selectedYear);
+            const goalTotal = booksInGoal.length;
+
+            if (goalTotal > 0) {
+                const goalRead = booksInGoal.filter(b => b.status === 'read').length;
+                const progressPercent = Math.round((goalRead / goalTotal) * 100);
+
+                html = `
+    < div class="goal-progress-container" >
+                        <div class="goal-header">
+                            <div class="goal-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-8c0 1.93-1.57 3.5-3.5 3.5s-3.5-1.57-3.5-3.5 1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5z"/>
+                                </svg>
+                                Meta de Leitura ${selectedYear}
+                            </div>
+                            <div class="goal-stats">
+                                ${goalRead}/${goalTotal} <small>lidos</small>
+                            </div>
+                        </div>
+                        <div class="goal-bar-bg">
+                            <div class="goal-bar-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                    </div >
+    ` + html;
+            }
+        }
+
+        html += `< div class="chart-container" > `;
         if (selectedYear === 'all') {
-            html += `<div class="chart-title">Livros por Ano</div><div class="chart-bars">`;
+            html += `< div class="chart-title" > Livros por Ano</div > <div class="chart-bars">`;
             const ySorted = Object.keys(data.years).sort((a, b) => a - b).filter(y => y !== 'Desconhecido');
             let maxY = 0; ySorted.forEach(y => maxY = Math.max(maxY, data.years[y].booksCount));
             if (maxY === 0) maxY = 1;
@@ -2019,14 +2091,14 @@ const App = {
                 html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
             });
             html += `</div>`;
-            html += `</div>`;
+            html += `</div > `;
         } else if (selectedYear === 'Desconhecido') {
-            html += `<div class="chart-title">Livros sem Data Definida</div>
-             <div style="display: flex; justify-content: center; align-items: center; padding: 2rem;">
-                <button class="btn btn-primary" onclick="App.openPeriodDetails('year', 'Desconhecido')">Ver Lista Completa (${current.booksCount} livros)</button>
-             </div>`;
+            html += `< div class="chart-title" > Livros sem Data Definida</div >
+    <div style="display: flex; justify-content: center; align-items: center; padding: 2rem;">
+        <button class="btn btn-primary" onclick="App.openPeriodDetails('year', 'Desconhecido')">Ver Lista Completa (${current.booksCount} livros)</button>
+    </div>`;
         } else {
-            html += `<div class="chart-title">Leituras Mensais (${selectedYear})</div><div class="chart-bars">`;
+            html += `< div class="chart-title" > Leituras Mensais(${selectedYear})</div > <div class="chart-bars">`;
             const mNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
             let maxM = Math.max(...current.monthlyDist, 0);
             if (maxM === 0) maxM = 1;
@@ -2037,7 +2109,7 @@ const App = {
             });
             html += `</div>`;
         }
-        html += `</div>`;
+        html += `</div > `;
 
         container.innerHTML = html;
     },
@@ -2077,7 +2149,7 @@ const App = {
             const yearStr = this.statsState.selectedYear;
             const monthIdx = parseInt(value);
             const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            periodLabel = `${mNames[monthIdx]} de ${yearStr}`;
+            periodLabel = `${mNames[monthIdx]} de ${yearStr} `;
 
             books = this.state.books.filter(b => {
                 const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
@@ -2124,7 +2196,7 @@ const App = {
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
 
                 html += `
-                <div class="api-result-item" onclick="App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');">
+    < div class="api-result-item" onclick = "App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');" >
                     <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
                          <img src="${cover}" class="api-result-cover" alt="${book.title}"
                               style="${isPlaceholder ? 'display:none' : ''}"
@@ -2142,7 +2214,7 @@ const App = {
                            ${book.pages ? ' • ' + book.pages + ' pág' : ''}
                         </div>
                     </div>
-                </div>`;
+                </div > `;
             });
             html += '</div>';
             content.innerHTML = html;
@@ -2180,7 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             installButton.style.display = 'none';
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
+            console.log(`User response to the install prompt: ${outcome} `);
             deferredPrompt = null;
         });
     }
