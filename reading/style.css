@@ -1034,6 +1034,10 @@ body {
     z-index: 10200 !important;
 }
 
+#historyModal {
+    z-index: 10300;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(20px);
