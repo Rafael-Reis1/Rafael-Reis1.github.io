@@ -595,7 +595,12 @@ class FinanceManager {
         return this.transactions
             .filter(t => t.date <= dateStr)
             .reduce((acc, t) => {
-                return t.type === 'income' ? acc + t.amount : acc - t.amount;
+                if (t.type === 'income') {
+                    return acc + t.amount;
+                } else {
+                    if (!t.isPaid && t.date < dateStr) return acc;
+                    return acc - t.amount;
+                }
             }, 0);
     }
 
@@ -777,13 +782,18 @@ class FinanceManager {
         let effectiveEndDate = filters.endDate;
         if (!effectiveEndDate) {
             const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const todayStr = `${year}-${month}-${day}`;
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
-            if (!filters.startDate || filters.startDate <= todayStr) {
-                effectiveEndDate = todayStr;
+            const year = tomorrow.getFullYear();
+            const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const day = String(tomorrow.getDate()).padStart(2, '0');
+            const tomorrowStr = `${year}-${month}-${day}`;
+
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            if (!filters.startDate || filters.startDate <= tomorrowStr) {
+                effectiveEndDate = tomorrowStr;
             }
         }
 
@@ -793,7 +803,7 @@ class FinanceManager {
         return this.transactions.filter(t => {
             const tDate = t.date.substring(0, 10);
             if (filters.startDate && tDate < filters.startDate) return false;
-            if (effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending') return false;
+            if (effectiveEndDate && tDate > effectiveEndDate && filters.status !== 'pending' && !filters.search) return false;
             if (filters.type && t.type !== filters.type) return false;
 
             if (filters.status) {
@@ -1813,6 +1823,7 @@ class UIController {
             startDate: this.currentFilters.startDate || null,
             endDate: this.currentFilters.endDate || null,
             category: this.currentFilters.category || null,
+            status: this.currentFilters.status || null,
             search: this.currentFilters.search || null
         });
         const categories = Object.keys(expenses);
@@ -2125,11 +2136,16 @@ class UIController {
 
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
             let statusClass = '';
             if (t.type === 'expense' && t.isPaid !== true) {
                 if (t.date < todayStr) {
                     statusClass = 'overdue';
-                } else if (t.date === todayStr) {
+                } else if (t.date === todayStr || t.date === tomorrowStr) {
                     statusClass = 'due-today';
                 }
             }
