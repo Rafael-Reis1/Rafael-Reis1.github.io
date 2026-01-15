@@ -1,0 +1,24 @@
+{
+    "name": "Reading Manager",
+    "short_name": "Leitura",
+    "description": "Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso",
+    "start_url": "/reading/reading.html",
+    "display": "standalone",
+    "background_color": "#0f0c29",
+    "theme_color": "#0f0c29",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

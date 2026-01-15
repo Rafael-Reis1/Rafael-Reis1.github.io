@@ -3274,3 +3274,25 @@ input[type=number] {
     display: flex;
     align-items: flex-end;
 }
+
+.btn-install {
+    color: var(--accent-color);
+    background: rgba(242, 81, 27, 0.1);
+    border: 1px solid rgba(242, 81, 27, 0.2);
+    display: none;
+}
+
+.btn-install:hover {
+    background: rgba(242, 81, 27, 0.2);
+    border-color: var(--accent-color);
+}
+
+@media all and (display-mode: standalone) {
+    .btn-back {
+        display: none !important;
+    }
+
+    .btn-install {
+        display: none !important;
+    }
+}

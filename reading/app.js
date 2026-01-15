@@ -2167,4 +2167,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modal) {
         App.setupModalCloseAttributes(modal, closePeriod);
     }
+
+    let deferredPrompt;
+    const installButton = document.getElementById('installAppBtn');
+
+    if (installButton) {
+        installButton.style.display = 'none';
+
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+
+            installButton.style.display = 'none';
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            deferredPrompt = null;
+        });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        if (installButton) {
+            installButton.style.display = 'flex';
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA was installed');
+        if (installButton) {
+            installButton.style.display = 'none';
+        }
+        deferredPrompt = null;
+    });
 });
