@@ -788,11 +788,23 @@ const App = {
             this.handleAPISearch(e.target.value);
         }, 500));
 
-        document.removeEventListener('keydown', this.handleEscKey);
-        document.addEventListener('keydown', this.handleEscKey);
+        if (!window._escListenerAttached) {
+            document.addEventListener('keydown', (e) => {
+                if (window.App && window.App.handleEscKey) {
+                    window.App.handleEscKey(e);
+                }
+            });
+            window._escListenerAttached = true;
+        }
 
-        document.removeEventListener('mousedown', this.handleOutsideClick);
-        document.addEventListener('mousedown', this.handleOutsideClick);
+        if (!window._outsideClickListenerAttached) {
+            document.addEventListener('mousedown', (e) => {
+                if (window.App && window.App.handleOutsideClick) {
+                    window.App.handleOutsideClick(e);
+                }
+            });
+            window._outsideClickListenerAttached = true;
+        }
 
 
 
