@@ -729,21 +729,25 @@ const App = {
         this.setupModalCloseAttributes(this.dom.modal, () => this.closeModal());
         this.setupModalCloseAttributes(this.dom.historyModal, () => {
             this.dom.historyModal.classList.remove('active');
+            this.toggleBodyScroll(false);
         });
         this.setupModalCloseAttributes(this.dom.deleteModal, () => this.closeDeleteModal());
         this.setupModalCloseAttributes(this.dom.messageModal, () => {
             this.dom.messageModal.classList.remove('active');
+            this.toggleBodyScroll(false);
         });
 
         this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.closeHistoryModalBtn.addEventListener('click', () => {
             this.dom.historyModal.classList.remove('active');
+            this.toggleBodyScroll(false);
         });
 
         if (this.dom.messageOkBtn) {
             this.dom.messageOkBtn.addEventListener('click', () => {
                 this.dom.messageModal.classList.remove('active');
+                this.toggleBodyScroll(false);
             });
         }
 
@@ -776,6 +780,7 @@ const App = {
 
         this.dom.messageOkBtn.addEventListener('click', () => {
             this.dom.messageModal.classList.remove('active');
+            this.toggleBodyScroll(false);
         });
 
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
@@ -786,13 +791,17 @@ const App = {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 const activeModal = document.querySelector('.modal.active');
-                if (activeModal) activeModal.classList.remove('active');
+                if (activeModal) {
+                    activeModal.classList.remove('active');
+                    this.toggleBodyScroll(false);
+                }
             }
         });
 
         document.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('modal')) {
                 e.target.classList.remove('active');
+                this.toggleBodyScroll(false);
             }
         });
 
@@ -1414,12 +1423,22 @@ const App = {
         this.dom.counts.audiobook.textContent = count(b => b.tags && b.tags.includes('audiobook'));
     },
 
+    toggleBodyScroll(active) {
+        if (active) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    },
+
     openModal() {
         this.dom.modal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     closeModal() {
         this.dom.modal.classList.remove('active');
+        this.toggleBodyScroll(false);
         this.dom.bookForm.reset();
         this.dom.apiResults.classList.remove('active');
         this.dom.apiResults.innerHTML = '';
@@ -1774,6 +1793,7 @@ const App = {
 
         this.toggleMenu(bookId);
         this.dom.historyModal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     renderHistoryList(book) {
@@ -1889,6 +1909,7 @@ const App = {
         rm.update(book.id, book);
         this.refresh();
         this.dom.historyModal.classList.remove('active');
+        this.toggleBodyScroll(false);
 
         if (wasFinished) {
             this.showMessage('Parabéns!', 'Você concluiu este livro!');
@@ -1899,10 +1920,12 @@ const App = {
         this.dom.deleteModalMessage.textContent = message;
         this.deleteCallback = callback;
         this.dom.deleteModal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     closeDeleteModal() {
         this.dom.deleteModal.classList.remove('active');
+        this.toggleBodyScroll(false);
         this.deleteCallback = null;
     },
 
@@ -1911,6 +1934,7 @@ const App = {
         this.dom.messageText.textContent = text;
         this.dom.messageIcon.textContent = icon;
         this.dom.messageModal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     initStats() {
@@ -1927,9 +1951,20 @@ const App = {
         this.renderStatsDashboard();
     },
 
+    closePeriodDetails() {
+        const modal = document.getElementById('periodDetailsModal');
+        if (modal) {
+            modal.classList.remove('active');
+            this.toggleBodyScroll(false);
+        }
+    },
+
     closeStatsModal() {
         const modal = document.getElementById('statsModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+            modal.classList.remove('active');
+            this.toggleBodyScroll(false);
+        }
     },
 
     openStatsModal() {
@@ -2048,6 +2083,7 @@ const App = {
         this.statsState = { data: statsData, selectedYear: 'all' };
         this.renderStatsDashboard();
         modal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     renderStatsDashboard() {
