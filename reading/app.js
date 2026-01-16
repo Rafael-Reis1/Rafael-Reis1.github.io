@@ -790,6 +790,9 @@ const App = {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
                 const activeModals = Array.from(document.querySelectorAll('.modal.active'));
                 if (activeModals.length > 0) {
                     const topModal = activeModals.sort((a, b) => {
