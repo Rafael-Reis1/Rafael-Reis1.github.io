@@ -1485,6 +1485,10 @@ const App = {
     },
 
     openModal() {
+        if (this.closeModalTimer) {
+            clearTimeout(this.closeModalTimer);
+            this.closeModalTimer = null;
+        }
         this.dom.modal.classList.add('active');
         this.toggleBodyScroll(true);
     },
@@ -1493,7 +1497,9 @@ const App = {
         this.dom.modal.classList.remove('active');
         this.toggleBodyScroll(false);
 
-        setTimeout(() => {
+        if (this.closeModalTimer) clearTimeout(this.closeModalTimer);
+
+        this.closeModalTimer = setTimeout(() => {
             this.dom.bookForm.reset();
             this.dom.apiResults.classList.remove('active');
             this.dom.apiResults.innerHTML = '';
