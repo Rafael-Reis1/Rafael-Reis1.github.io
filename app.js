@@ -266,6 +266,14 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
+            name: 'Gerador de Links Markdown',
+            description: "Organize links instantaneamente. Converte URLs soltas em Markdown formatado, com reconhecimento automático de títulos para YouTube, GitHub, Redes Sociais e Documentações.",
+            html_url: '/linksMD/linksMD.html',
+            language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
             name: 'Portal do Colaborador - Univale',
             description: "Desenvolvido do zero com HTML, CSS e JS. Integração via API com a plataforma Fluig.",
             html_url: 'https://portalcolaborador.univale.br/',
