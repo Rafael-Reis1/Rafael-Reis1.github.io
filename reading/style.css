@@ -84,6 +84,7 @@ a:active,
 
 html {
     background-color: var(--body-bg);
+    scrollbar-gutter: stable;
 }
 
 body {

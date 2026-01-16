@@ -1427,7 +1427,10 @@ const App = {
         if (active) {
             document.body.style.overflow = 'hidden';
         } else {
-            document.body.style.overflow = '';
+            const activeModals = document.querySelectorAll('.modal.active');
+            if (activeModals.length === 0) {
+                document.body.style.overflow = '';
+            }
         }
     },
 
