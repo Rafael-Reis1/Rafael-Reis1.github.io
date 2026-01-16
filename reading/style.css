@@ -3454,16 +3454,38 @@ input[type=number] {
     z-index: 1030;
 }
 
-.search-row,
 .form-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 1.5rem 0;
+    width: 100%;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    max-height: 50px;
+    overflow: hidden;
+}
+
+.form-divider::before,
+.form-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--glass-border);
+}
+
+.search-row {
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 1;
     max-height: 100px;
     overflow: hidden;
-}
-
-.form-divider {
-    max-height: 50px;
 }
 
 .hidden-row {

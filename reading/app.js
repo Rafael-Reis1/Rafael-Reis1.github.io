@@ -512,11 +512,15 @@ const App = {
             }
 
             if (this.dom.searchRow) {
+                this.dom.searchRow.classList.add('hidden-row');
                 this.dom.searchRow.style.display = 'flex';
+
                 void this.dom.searchRow.offsetWidth;
+
                 this.dom.searchRow.classList.remove('hidden-row');
             }
             if (this.dom.formDivider) {
+                this.dom.formDivider.classList.add('hidden-row');
                 this.dom.formDivider.style.display = 'block';
                 void this.dom.formDivider.offsetWidth;
                 this.dom.formDivider.classList.remove('hidden-row');
@@ -1653,9 +1657,11 @@ const App = {
 
         if (this.dom.searchRow) {
             this.dom.searchRow.classList.add('hidden-row');
+            this.dom.searchRow.style.display = 'none';
         }
         if (this.dom.formDivider) {
             this.dom.formDivider.classList.add('hidden-row');
+            this.dom.formDivider.style.display = 'none';
         }
 
         document.getElementById('bookId').value = book.id;
