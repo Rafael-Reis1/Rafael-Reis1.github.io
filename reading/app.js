@@ -797,14 +797,7 @@ const App = {
             window._escListenerAttached = true;
         }
 
-        if (!window._outsideClickListenerAttached) {
-            document.addEventListener('mousedown', (e) => {
-                if (window.App && window.App.handleOutsideClick) {
-                    window.App.handleOutsideClick(e);
-                }
-            });
-            window._outsideClickListenerAttached = true;
-        }
+
 
 
 
@@ -1011,11 +1004,7 @@ const App = {
             mousedownTarget = null;
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeCallback();
-            }
-        });
+
     },
 
     refresh() {
@@ -1240,11 +1229,14 @@ const App = {
 
     handleEscKey(e) {
         if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
+            if (e.repeat) return;
 
             const activeModals = Array.from(document.querySelectorAll('.modal.active'));
+
             if (activeModals.length > 0) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
                 const topModal = activeModals.sort((a, b) => {
                     const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
                     const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
@@ -1252,19 +1244,25 @@ const App = {
                 })[0];
 
                 if (topModal) {
-                    topModal.classList.remove('active');
-                    App.toggleBodyScroll(false);
+                    const closeBtn = topModal.querySelector('.modal-close') ||
+                        topModal.querySelector('.btn-secondary[id^="cancel"]') ||
+                        topModal.querySelector('.modal-footer .btn-secondary');
+
+                    if (closeBtn) {
+                        closeBtn.click();
+                    } else {
+                        topModal.classList.remove('active');
+                        const remainingModals = document.querySelectorAll('.modal.active').length;
+                        if (remainingModals === 0) {
+                            App.toggleBodyScroll(false);
+                        }
+                    }
                 }
             }
         }
     },
 
-    handleOutsideClick(e) {
-        if (e.target.classList.contains('modal')) {
-            e.target.classList.remove('active');
-            App.toggleBodyScroll(false);
-        }
-    },
+
 
     render() {
         const filtered = this.getFilteredBooks();
