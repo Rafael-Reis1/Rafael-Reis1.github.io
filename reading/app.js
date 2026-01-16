@@ -514,19 +514,24 @@ const App = {
             if (this.dom.searchRow) {
                 this.dom.searchRow.classList.add('hidden-row');
                 this.dom.searchRow.style.display = 'flex';
-
-                void this.dom.searchRow.offsetWidth;
-
-                this.dom.searchRow.classList.remove('hidden-row');
             }
             if (this.dom.formDivider) {
                 this.dom.formDivider.classList.add('hidden-row');
-                this.dom.formDivider.style.display = 'block';
-                void this.dom.formDivider.offsetWidth;
-                this.dom.formDivider.classList.remove('hidden-row');
+                this.dom.formDivider.style.display = 'flex';
             }
 
             this.openModal();
+
+            requestAnimationFrame(() => {
+                if (this.dom.searchRow) {
+                    void this.dom.searchRow.offsetWidth;
+                    this.dom.searchRow.classList.remove('hidden-row');
+                }
+                if (this.dom.formDivider) {
+                    void this.dom.formDivider.offsetWidth;
+                    this.dom.formDivider.classList.remove('hidden-row');
+                }
+            });
         });
 
         document.addEventListener('click', (e) => {
