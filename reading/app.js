@@ -737,6 +737,17 @@ const App = {
             this.toggleBodyScroll(false);
         });
 
+        if (this.dom.statsModal) {
+            this.setupModalCloseAttributes(this.dom.statsModal, () => this.closeStatsModal());
+        }
+
+        if (this.dom.periodDetailsModal) {
+            this.setupModalCloseAttributes(this.dom.periodDetailsModal, () => {
+                this.dom.periodDetailsModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            });
+        }
+
         this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.closeHistoryModalBtn.addEventListener('click', () => {
