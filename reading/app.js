@@ -1651,8 +1651,12 @@ const App = {
 
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
-        if (this.dom.searchRow) this.dom.searchRow.classList.add('hidden-row');
-        if (this.dom.formDivider) this.dom.formDivider.classList.add('hidden-row');
+        if (this.dom.searchRow) {
+            this.dom.searchRow.classList.add('hidden-row');
+        }
+        if (this.dom.formDivider) {
+            this.dom.formDivider.classList.add('hidden-row');
+        }
 
         document.getElementById('bookId').value = book.id;
         document.getElementById('bookTitle').value = book.title;
