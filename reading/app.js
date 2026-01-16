@@ -1492,20 +1492,20 @@ const App = {
     closeModal() {
         this.dom.modal.classList.remove('active');
         this.toggleBodyScroll(false);
-        this.dom.bookForm.reset();
-        this.dom.apiResults.classList.remove('active');
-        this.dom.apiResults.innerHTML = '';
-        this.dom.apiSearch.value = '';
-        document.getElementById('modalTitle').textContent = 'Adicionar Livro';
-        document.getElementById('bookId').value = '';
-
-        if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
-        if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
 
         setTimeout(() => {
+            this.dom.bookForm.reset();
+            this.dom.apiResults.classList.remove('active');
+            this.dom.apiResults.innerHTML = '';
+            this.dom.apiSearch.value = '';
+            document.getElementById('modalTitle').textContent = 'Adicionar Livro';
+            document.getElementById('bookId').value = '';
+            if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
+            if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
+
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
-        }, 100);
+        }, 300);
     },
 
     async handleAPISearch(query) {
