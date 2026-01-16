@@ -398,6 +398,11 @@ const App = {
             messageText: document.getElementById('messageText'),
             messageIcon: document.getElementById('messageIcon'),
 
+            statsModal: document.getElementById('statsModal'),
+            periodDetailsModal: document.getElementById('periodDetailsModal'),
+            closePeriodDetailsModalBtn: document.getElementById('closePeriodDetailsModal'),
+            btnClosePeriodDetails: document.getElementById('btnClosePeriodDetails'),
+
             paginationControls: document.getElementById('paginationControls'),
             btnPrevPage: document.getElementById('btnPrevPage'),
             btnNextPage: document.getElementById('btnNextPage'),
