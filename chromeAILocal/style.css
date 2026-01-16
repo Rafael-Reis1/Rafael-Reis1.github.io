@@ -19,6 +19,7 @@
     margin: 0;
     box-sizing: border-box;
     font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
