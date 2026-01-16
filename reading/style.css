@@ -3453,3 +3453,26 @@ input[type=number] {
 #messageModal {
     z-index: 1030;
 }
+
+.search-row,
+.form-divider {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    max-height: 100px;
+    overflow: hidden;
+}
+
+.form-divider {
+    max-height: 50px;
+}
+
+.hidden-row {
+    opacity: 0 !important;
+    max-height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+    pointer-events: none;
+}
