@@ -386,6 +386,7 @@ body {
     font-family: var(--font-heading);
     font-size: 1.5rem;
     font-weight: 600;
+    transition: filter 0.3s ease;
 }
 
 .balance .card-value {
@@ -2046,6 +2047,7 @@ input[type=number] {
     color: var(--expense-color);
     white-space: nowrap;
     order: 2;
+    transition: filter 0.3s ease;
 }
 
 .subs-action-buttons {
