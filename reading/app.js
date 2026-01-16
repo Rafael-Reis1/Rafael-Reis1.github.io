@@ -1226,6 +1226,34 @@ const App = {
         this.dom.yearContainer.innerHTML = html;
     },
 
+    handleEscKey(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            const activeModals = Array.from(document.querySelectorAll('.modal.active'));
+            if (activeModals.length > 0) {
+                const topModal = activeModals.sort((a, b) => {
+                    const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
+                    const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
+                    return zB - zA;
+                })[0];
+
+                if (topModal) {
+                    topModal.classList.remove('active');
+                    App.toggleBodyScroll(false);
+                }
+            }
+        }
+    },
+
+    handleOutsideClick(e) {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('active');
+            App.toggleBodyScroll(false);
+        }
+    },
+
     render() {
         const filtered = this.getFilteredBooks();
         const sorted = this.sortBooks(filtered);
