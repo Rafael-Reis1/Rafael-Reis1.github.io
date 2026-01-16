@@ -208,16 +208,18 @@ body {
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    pointer-events: none;
 }
 
 .user-dropdown.active {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    pointer-events: auto;
 }
 
 .user-dropdown .dropdown-header {
@@ -994,18 +996,21 @@ body {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
 }
 
 .modal.active {
-    display: flex;
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .modal-content {
@@ -1018,8 +1023,15 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.3s ease-out;
     overflow: hidden;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.active .modal-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
 #statsModal .modal-content {
@@ -1036,18 +1048,6 @@ body {
 
 #historyModal {
     z-index: 10300;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
 }
 
 .modal-header {
@@ -2577,7 +2577,9 @@ input[type=number] {
         top: 0;
         height: 100vh;
         z-index: 1001;
-        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100vh;
+        z-index: 1001;
+        transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         background: rgba(15, 12, 41, 0.95);
         backdrop-filter: blur(20px);
         border-right: 1px solid var(--glass-border);
