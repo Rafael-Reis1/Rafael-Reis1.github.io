@@ -788,33 +788,14 @@ const App = {
             this.handleAPISearch(e.target.value);
         }, 500));
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                e.stopImmediatePropagation();
+        document.removeEventListener('keydown', this.handleEscKey);
+        document.addEventListener('keydown', this.handleEscKey);
 
-                const activeModals = Array.from(document.querySelectorAll('.modal.active'));
-                if (activeModals.length > 0) {
-                    const topModal = activeModals.sort((a, b) => {
-                        const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
-                        const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
-                        return zB - zA;
-                    })[0];
+        document.removeEventListener('mousedown', this.handleOutsideClick);
+        document.addEventListener('mousedown', this.handleOutsideClick);
 
-                    if (topModal) {
-                        topModal.classList.remove('active');
-                        this.toggleBodyScroll(false);
-                    }
-                }
-            }
-        });
 
-        document.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
-                this.toggleBodyScroll(false);
-            }
-        });
+
 
         this.dom.btnPrevPage.addEventListener('click', () => {
             if (this.state.currentPage > 1) {
