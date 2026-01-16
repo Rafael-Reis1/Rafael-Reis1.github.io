@@ -3467,10 +3467,6 @@ input[type=number] {
     text-transform: uppercase;
     margin: 0.625rem 0;
     width: 100%;
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 1;
-    max-height: 50px;
-    overflow: hidden;
 }
 
 .form-divider::before,
@@ -3479,22 +3475,4 @@ input[type=number] {
     flex: 1;
     height: 1px;
     background: var(--glass-border);
-}
-
-.search-row {
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 1;
-    max-height: 100px;
-    overflow: hidden;
-}
-
-.hidden-row {
-    opacity: 0 !important;
-    max-height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    border: none !important;
-    pointer-events: none;
 }
