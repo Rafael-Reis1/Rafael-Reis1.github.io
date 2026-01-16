@@ -790,10 +790,18 @@ const App = {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                const activeModal = document.querySelector('.modal.active');
-                if (activeModal) {
-                    activeModal.classList.remove('active');
-                    this.toggleBodyScroll(false);
+                const activeModals = Array.from(document.querySelectorAll('.modal.active'));
+                if (activeModals.length > 0) {
+                    const topModal = activeModals.sort((a, b) => {
+                        const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
+                        const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
+                        return zB - zA;
+                    })[0];
+
+                    if (topModal) {
+                        topModal.classList.remove('active');
+                        this.toggleBodyScroll(false);
+                    }
                 }
             }
         });
