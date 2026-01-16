@@ -3429,3 +3429,27 @@ input[type=number] {
     box-shadow: 0 0 10px rgba(242, 81, 27, 0.4);
     width: 0%;
 }
+
+#statsModal {
+    z-index: 1000;
+}
+
+#periodDetailsModal {
+    z-index: 1005;
+}
+
+#bookModal {
+    z-index: 1010;
+}
+
+#historyModal {
+    z-index: 1015;
+}
+
+#deleteModal {
+    z-index: 1020;
+}
+
+#messageModal {
+    z-index: 1030;
+}

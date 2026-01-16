@@ -2317,7 +2317,7 @@ const App = {
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
 
                 html += `
-                    <div class="api-result-item" onclick="App.editBook('${book.id}'); document.getElementById('periodDetailsModal').classList.remove('active');">
+                    <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
                              <img src="${cover}" class="api-result-cover" alt="${book.title}"
                                   style="${isPlaceholder ? 'display:none' : ''}"
