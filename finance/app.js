@@ -1236,6 +1236,7 @@ class UIController {
         this.subsList = document.getElementById('subsList');
         this.noSubs = document.getElementById('noSubs');
         this.btnSubscriptions = document.getElementById('btnSubscriptions');
+        this.subsTotalValue = document.getElementById('subsTotalValue');
 
         this.cancelSubModal = document.getElementById('cancelSubModal');
         this.cancelSubInfo = document.getElementById('cancelSubInfo');
@@ -2509,10 +2510,20 @@ class UIController {
 
             if (subscriptions.length === 0) {
                 this.noSubs.style.display = 'block';
+                if (this.subsTotalValue) this.subsTotalValue.textContent = this.formatCurrency(0);
                 return;
             }
 
             this.noSubs.style.display = 'none';
+
+            // Calculate Total
+            const total = subscriptions
+                .filter(sub => sub.active !== false)
+                .reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
+
+            if (this.subsTotalValue) {
+                this.subsTotalValue.textContent = this.formatCurrency(total);
+            }
 
             subscriptions.forEach(sub => {
                 const icon = CATEGORIES.expense[sub.category] || '📦';
