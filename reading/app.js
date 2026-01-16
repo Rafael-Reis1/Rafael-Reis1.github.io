@@ -511,8 +511,16 @@ const App = {
                 this.dom.btnOpenHistoryFromModal.style.display = 'none';
             }
 
-            if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
-            if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
+            if (this.dom.searchRow) {
+                this.dom.searchRow.style.display = 'flex';
+                void this.dom.searchRow.offsetWidth;
+                this.dom.searchRow.classList.remove('hidden-row');
+            }
+            if (this.dom.formDivider) {
+                this.dom.formDivider.style.display = 'block';
+                void this.dom.formDivider.offsetWidth;
+                this.dom.formDivider.classList.remove('hidden-row');
+            }
 
             this.openModal();
         });
@@ -1643,8 +1651,8 @@ const App = {
 
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
-        if (this.dom.searchRow) this.dom.searchRow.style.display = 'none';
-        if (this.dom.formDivider) this.dom.formDivider.style.display = 'none';
+        if (this.dom.searchRow) this.dom.searchRow.classList.add('hidden-row');
+        if (this.dom.formDivider) this.dom.formDivider.classList.add('hidden-row');
 
         document.getElementById('bookId').value = book.id;
         document.getElementById('bookTitle').value = book.title;
