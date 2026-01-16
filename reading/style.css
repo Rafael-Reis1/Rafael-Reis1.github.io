@@ -3465,7 +3465,7 @@ input[type=number] {
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin: 1.5rem 0;
+    margin: 0.625rem 0;
     width: 100%;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 1;

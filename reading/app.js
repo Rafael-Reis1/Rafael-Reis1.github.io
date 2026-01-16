@@ -522,7 +522,7 @@ const App = {
 
             this.openModal();
 
-            requestAnimationFrame(() => {
+            setTimeout(() => {
                 if (this.dom.searchRow) {
                     void this.dom.searchRow.offsetWidth;
                     this.dom.searchRow.classList.remove('hidden-row');
@@ -531,7 +531,7 @@ const App = {
                     void this.dom.formDivider.offsetWidth;
                     this.dom.formDivider.classList.remove('hidden-row');
                 }
-            });
+            }, 50);
         });
 
         document.addEventListener('click', (e) => {
