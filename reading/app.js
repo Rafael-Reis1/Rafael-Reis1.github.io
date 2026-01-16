@@ -512,26 +512,13 @@ const App = {
             }
 
             if (this.dom.searchRow) {
-                this.dom.searchRow.classList.add('hidden-row');
                 this.dom.searchRow.style.display = 'flex';
             }
             if (this.dom.formDivider) {
-                this.dom.formDivider.classList.add('hidden-row');
                 this.dom.formDivider.style.display = 'flex';
             }
 
             this.openModal();
-
-            setTimeout(() => {
-                if (this.dom.searchRow) {
-                    void this.dom.searchRow.offsetWidth;
-                    this.dom.searchRow.classList.remove('hidden-row');
-                }
-                if (this.dom.formDivider) {
-                    void this.dom.formDivider.offsetWidth;
-                    this.dom.formDivider.classList.remove('hidden-row');
-                }
-            }, 50);
         });
 
         document.addEventListener('click', (e) => {
@@ -1661,11 +1648,9 @@ const App = {
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
         if (this.dom.searchRow) {
-            this.dom.searchRow.classList.add('hidden-row');
             this.dom.searchRow.style.display = 'none';
         }
         if (this.dom.formDivider) {
-            this.dom.formDivider.classList.add('hidden-row');
             this.dom.formDivider.style.display = 'none';
         }
 
