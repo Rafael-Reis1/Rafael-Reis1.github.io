@@ -226,6 +226,14 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
+            name: 'PDF Booklet Maker',
+            description: "Transforme qualquer PDF em livreto (booklet) pronto para impressão. Faz a imposição de páginas automaticamente, reorganizando-as para encadernação com visualização em tempo real.",
+            html_url: '/pdfFormatter/pdfFormater.html',
+            language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
             name: 'Leitor de Logs Totvs Fluig',
             description: "Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.",
             html_url: '/Leitor-logs-totvs-fluig/leitor.html',
