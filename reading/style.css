@@ -1186,11 +1186,6 @@ body {
     color: var(--text-primary);
 }
 
-.search-input-wrapper {
-    position: relative;
-    width: 100%;
-}
-
 #apiSearch {
     width: 100%;
 }
@@ -3361,8 +3356,6 @@ input[type=number] {
     padding-right: 1rem;
 }
 
-
-
 @media all and (display-mode: standalone) {
     .btn-back,
     #installAppBtn,
@@ -3478,4 +3471,8 @@ input[type=number] {
     flex: 1;
     height: 1px;
     background: var(--glass-border);
+}
+
+#apiSearch {
+    padding-right: 40px;
 }
