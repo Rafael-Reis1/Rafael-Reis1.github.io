@@ -1,0 +1,23 @@
+{
+    "name": "PDF Booklet Maker",
+    "short_name": "PDF Booklet",
+    "description": "Formatação de PDF para impressão tipo livreto (Booklet)",
+    "start_url": "./pdfFormater.html",
+    "display": "standalone",
+    "background_color": "#06071A",
+    "theme_color": "#06071A",
+    "orientation": "landscape",
+    "icons": [
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preload" href="/imgs/arrow_back_white.webp" as="image">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="manifest" href="manifest.json?v=1601262230">
+    <meta name="theme-color" content="#06071A">
+    <title>PDF Booklet Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+    <script>
+        window.pdfjsLib = window.pdfjsLib || {};
+        window.pdfjsLib.GlobalWorkerOptions = window.pdfjsLib.GlobalWorkerOptions || {};
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <link href="../Leitor-logs-totvs-fluig/style.css?v=1601262230" rel="stylesheet">
+    <link href="../style.css?v=1601262230" rel="stylesheet">
+    <link href="style.css?v=1601262230" rel="stylesheet">
+</head>
+
+<body>
+    <button class="btnVoltar" id="btnVoltar" onclick="window.location.href='../'">
+        <img class="seta-animada arrow-back-icon">
+        Home
+    </button>
+
+    <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+            <path
+                d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.648 14.545 11 12.68 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
+            <path
+                d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z" />
+        </svg>
+        <span>Instalar App</span>
+    </button>
+
+    <div class="container">
+        <h1>PDF Booklet Maker</h1>
+
+        <div class="opcoes no-print">
+            <div id="file-upload" class="file-upload">
+                <label for="file-input" class="file-upload-label">
+                    <img id="imageUpload" src="../Leitor-logs-totvs-fluig/assets/upload.webp" alt="upload">
+                    Arraste e solte o PDF aqui ou clique para selecionar
+                </label>
+                <input type="file" id="file-input" class="custom-file-input" accept="application/pdf">
+            </div>
+
+            <div id="processing-indicator" style="display: none; width: 100%; text-align: center;">
+                <p>Processando PDF... <span id="progress-text">0%</span></p>
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="previewModal" class="modal-overlay" style="display: none;">
+        <div class="popupCard">
+            <div class="modal-header">
+                <h2>Visualização do Livreto</h2>
+                <div class="modal-actions">
+                    <button id="btnCloseModal" class="btn-close">Fechar</button>
+                    <button id="btnPrint" class="btn-print">Imprimir <span
+                            class="shortcut-text">(Ctrl+P)</span></button>
+                </div>
+            </div>
+            <div id="preview-container" class="preview-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="print-container" class="print-container"></div>
+
+    <script src="app.js?v=1601262230"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js?v=1601262230');
+            });
+        }
+    </script>
+</body>
+
+</html>
