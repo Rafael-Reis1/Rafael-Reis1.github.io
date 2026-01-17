@@ -400,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error('Erro ao gerar/compartilhar PDF:', error);
-            alert('Erro ao gerar o PDF para compartilhamento. Verifique o console para mais detalhes.');
         } finally {
             btnShare.innerText = originalText;
             btnShare.disabled = false;
