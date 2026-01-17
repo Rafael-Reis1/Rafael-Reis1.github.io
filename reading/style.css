@@ -2646,7 +2646,7 @@ input[type=number] {
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
+        border-radius: 12px;
     }
 
     .sidebar .nav-item.active,

@@ -1,11 +1,11 @@
 const CACHE_NAME = 'reading-app-v1';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css',
-    '/reading/app.js',
+    '/reading/style.css?v=1701260317',
+    '/reading/app.js?v=1701260317',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json'
+    '/reading/manifest.json?v=1701260317'
 ];
 
 self.addEventListener('install', event => {
