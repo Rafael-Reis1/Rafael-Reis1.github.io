@@ -459,7 +459,7 @@ h1 {
         display: none !important;
     }
 
-    body {
-        overscroll-behavior-y: contain; 
+    html, body {
+        overscroll-behavior-y: none; 
     }
 }
