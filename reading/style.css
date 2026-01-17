@@ -22,8 +22,8 @@
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif, system-ui, -apple-system, sans-serif;
 
-    --header-height: 70px;
-    --sidebar-width: 260px;
+    --header-height: 4.375rem;
+    --sidebar-width: 16.25rem;
 
     --color-all: #8b5cf6;
     --color-read: #10b981;
@@ -64,8 +64,8 @@ a:active,
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
 }
 
 ::-webkit-scrollbar-track {
@@ -142,8 +142,8 @@ body {
 }
 
 .header.header-active-filter h1 svg {
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     fill: #ffffff;
     color: #ffffff;
 }
@@ -152,8 +152,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 10px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -165,7 +165,7 @@ body {
 .btn-back:hover {
     background: var(--glass-bg-hover);
     border-color: var(--accent-color);
-    transform: translateX(-2px);
+    transform: translateX(-0.125rem);
 }
 
 .header-actions {
@@ -176,8 +176,8 @@ body {
 
 .user-info {
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 2.25rem;
+    height: 2.25rem;
 }
 
 .user-avatar {
@@ -198,17 +198,17 @@ body {
 
 .user-dropdown {
     position: absolute;
-    top: calc(100% + 8px);
+    top: calc(100% + 0.5rem);
     right: 0;
-    width: 220px;
+    width: 13.75rem;
     background: linear-gradient(135deg, rgba(26, 27, 46, 0.95), rgba(37, 38, 64, 0.95));
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    padding: 8px;
+    padding: 0.5rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
+    transform: translateY(-0.625rem);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
     backdrop-filter: blur(12px);
@@ -224,10 +224,10 @@ body {
 }
 
 .user-dropdown .dropdown-header {
-    padding: 12px;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.25rem;
     text-transform: none;
 }
 
@@ -244,17 +244,17 @@ body {
 }
 
 .user-dropdown .dropdown-divider {
-    height: 1px;
+    height: 0.0625rem;
     background: var(--glass-border);
-    margin: 4px 0;
+    margin: 0.25rem 0;
 }
 
 .user-dropdown .dropdown-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     width: 100%;
-    padding: 10px 12px;
+    padding: 0.625rem 0.75rem;
     background: none;
     border: none;
     border-radius: 8px;
@@ -425,8 +425,8 @@ body {
     right: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     margin: 0;
     display: flex;
     align-items: center;
@@ -562,8 +562,8 @@ body {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
     border-radius: 12px;
-    min-width: 24px;
-    height: 24px;
+    min-width: 1.5rem;
+    height: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -669,7 +669,7 @@ body {
 
 .search-icon {
     position: absolute;
-    left: 12px;
+    left: 0.75rem;
     color: var(--text-secondary);
     pointer-events: none;
 }
@@ -678,10 +678,10 @@ body {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
-    padding: 0.5rem 0.75rem 0.5rem 36px;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
     color: var(--text-primary);
     font-size: 0.9rem;
-    width: 180px;
+    width: 11.25rem;
     transition: all 0.2s ease;
 }
 
@@ -692,7 +692,7 @@ body {
 .search-input:focus {
     outline: none;
     border-color: var(--accent-color);
-    width: 220px;
+    width: 13.75rem;
 }
 
 .scrollable-content {
@@ -707,11 +707,11 @@ body {
     overflow-y: visible;
     padding: 2rem;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(11.25rem, 1fr));
     gap: 2rem;
     align-content: start;
     position: relative;
-    min-height: 400px;
+    min-height: 25rem;
 }
 
 .books-grid:has(.empty-state) {
@@ -745,7 +745,7 @@ body {
 }
 
 .book-card:hover {
-    transform: translateY(-5px) scale(1.02);
+    transform: translateY(-0.3125rem) scale(1.02);
     z-index: 10;
     transition: transform 0.3s ease, z-index 0s linear;
 }
@@ -773,12 +773,12 @@ body {
 
 .bookmark-icon {
     position: absolute;
-    top: -2px;
-    left: 10px;
+    top: -0.125rem;
+    left: 0.625rem;
     color: var(--accent-color);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-    width: 28px;
-    height: 38px;
+    width: 1.75rem;
+    height: 2.375rem;
     transition: color 0.3s ease;
     z-index: 5;
 }
@@ -816,14 +816,14 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     background: rgba(0, 0, 0, 0.3);
-    padding: 2px 8px;
+    padding: 0.125rem 0.5rem;
     border-radius: 4px;
 }
 
 .book-rating {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.25rem;
     color: #fbbf24;
     font-size: 0.9rem;
     font-weight: 600;
@@ -919,7 +919,7 @@ body {
     justify-content: center;
     gap: 0.5rem;
     padding: 0 1rem;
-    height: 36px;
+    height: 2.25rem;
     border-radius: 8px;
     border: none;
     font-size: 0.85rem;
@@ -936,7 +936,7 @@ body {
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
+    transform: translateY(-0.125rem);
     box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
 }
 
@@ -947,7 +947,7 @@ body {
 }
 
 .btn-lg {
-    height: 52px;
+    height: 3.25rem;
     padding: 0 2rem;
     font-size: 1.05rem;
     font-weight: 600;
@@ -963,11 +963,11 @@ body {
 
 .btn-icon {
     padding: 0;
-    width: 36px;
+    width: 2.25rem;
 }
 
 .btn-sm {
-    height: 32px;
+    height: 2rem;
     padding: 0 0.75rem;
     font-size: 0.8rem;
 }
@@ -1019,13 +1019,13 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     width: 95%;
-    max-width: 500px;
+    max-width: 31.25rem;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     overflow: hidden;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(1.25rem) scale(0.95);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1036,7 +1036,7 @@ body {
 }
 
 #statsModal .modal-content {
-    max-width: 1000px;
+    max-width: 62.5rem;
 }
 
 #bookModal {
@@ -1165,7 +1165,7 @@ body {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
-    height: 40px;
+    height: 2.5rem;
     padding: 0 1rem;
     color: var(--text-primary);
     font-family: var(--font-body);
@@ -1196,11 +1196,11 @@ body {
 
 .search-loader {
     position: absolute;
-    right: 12px;
+    right: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
+    width: 1.125rem;
+    height: 1.125rem;
     border: 2px solid rgba(255, 255, 255, 0.1);
     border-top-color: var(--accent-color);
     border-radius: 50%;
@@ -1216,10 +1216,10 @@ body {
 
 .api-results {
     position: absolute;
-    top: calc(100% + 5px);
+    top: calc(100% + 0.3125rem);
     left: 0;
     right: 0;
-    max-height: 280px;
+    max-height: 17.5rem;
     background: #1a1b2e;
     border: 1px solid var(--glass-border);
     border-radius: 12px;
@@ -1236,8 +1236,8 @@ body {
 
 .api-result-item {
     display: flex;
-    gap: 12px;
-    padding: 10px;
+    gap: 0.75rem;
+    padding: 0.625rem;
     cursor: pointer;
     border-bottom: 1px solid var(--glass-border);
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -1509,12 +1509,6 @@ input[type=number] {
 
     .nav-icon {
         margin: 0;
-    }
-
-    .nav-count {
-        position: absolute;
-        top: 5px;
-        right: 5px;
     }
 
     .nav-item {
@@ -2645,8 +2639,8 @@ input[type=number] {
         transform: translateY(-50%);
         right: 3.5rem !important;
         left: auto !important;
-        width: 24px;
-        height: 24px;
+        min-width: 24px;
+        height: 1.5rem;
         font-size: 0.75rem;
         background: rgba(255, 255, 255, 0.1);
         display: flex;
