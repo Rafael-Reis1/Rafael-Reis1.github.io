@@ -415,4 +415,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('share_target') === 'true') {
+        caches.open('share-cache').then(async CACHE => {
+            const response = await CACHE.match('shared-file');
+            if (response) {
+                const blob = await response.blob();
+                const file = new File([blob], "shared_document.pdf", { type: "application/pdf" });
+                handleFiles({ target: { files: [file] } });
+                CACHE.delete('shared-file');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+    }
 });

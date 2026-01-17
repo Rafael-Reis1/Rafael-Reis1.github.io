@@ -1,10 +1,10 @@
-const CACHE_NAME = 'pdf-booklet-v1768615024';
+const CACHE_NAME = 'pdf-booklet-v1768615600';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=1601262300',
-    './app.js?v=1601262300',
-    '../style.css?v=1601262300',
-    './manifest.json?v=1601262300',
+    './style.css?v=1601262305',
+    './app.js?v=1601262305',
+    '../style.css?v=1601262305',
+    './manifest.json?v=1601262305',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
@@ -35,6 +35,28 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+    if (event.request.method === 'POST' && event.request.url.includes('pdfFormater.html')) {
+        event.respondWith(
+            (async () => {
+                try {
+                    const formData = await event.request.formData();
+                    const file = formData.get('file');
+
+                    if (file) {
+                        const cache = await caches.open('share-cache');
+                        await cache.put('shared-file', new Response(file));
+                    }
+
+                    return Response.redirect('./pdfFormater.html?share_target=true', 303);
+                } catch (err) {
+                    console.error('Error handling share target:', err);
+                    return Response.redirect('./pdfFormater.html?error=share_failed', 303);
+                }
+            })()
+        );
+        return;
+    }
+
     if (event.request.method !== 'GET') return;
 
     event.respondWith(
