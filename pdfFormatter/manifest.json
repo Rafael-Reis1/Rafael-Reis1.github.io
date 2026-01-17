@@ -3,6 +3,8 @@
     "short_name": "PDF Booklet",
     "description": "Formatação de PDF para impressão tipo livreto (Booklet)",
     "start_url": "./pdfFormater.html",
+    "id": "/pdfFormatter/",
+    "scope": "./",
     "display": "standalone",
     "background_color": "#06071A",
     "theme_color": "#06071A",
@@ -37,5 +39,20 @@
                 }
             ]
         }
-    ]
+    ],
+    "share_target": {
+        "action": "./pdfFormater.html",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "files": [
+                {
+                    "name": "file",
+                    "accept": [
+                        "application/pdf"
+                    ]
+                }
+            ]
+        }
+    }
 }
