@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     let currentPdfBytes = null;
+    let currentPdfDoc = null;
     const fileInput = document.getElementById('file-input');
     const fileUpload = document.getElementById('file-upload');
     const processingIndicator = document.getElementById('processing-indicator');
@@ -38,9 +39,26 @@ document.addEventListener('DOMContentLoaded', () => {
         popupCard.classList.remove('show');
         setTimeout(() => {
             previewModal.style.display = 'none';
+            previewContainer.innerHTML = ''; 
+            printContainer.innerHTML = '';
+            currentPdfBytes = null; 
+
+            if (currentPdfDoc) {
+                currentPdfDoc.destroy();
+                currentPdfDoc = null;
+            }
+
+            document.body.style.display = 'none';
+            document.body.offsetHeight;
+            document.body.style.display = '';
+
         }, 300);
+        
         fileUpload.style.display = 'block';
         fileInput.value = '';
+        
+        progressBar.style.width = '0%';
+        progressText.innerText = '0%';
     }
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -108,13 +126,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const arrayBuffer = await file.arrayBuffer();
             currentPdfBytes = arrayBuffer.slice(0);
-            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-            await processPDF(pdf);
+            
+            if (currentPdfDoc) {
+                currentPdfDoc.destroy(); 
+            }
+
+            currentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            await processPDF(currentPdfDoc);
 
             await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
-            console.error('Erro ao processar PDF:', error);
-            alert('Ocorreu um erro ao ler o PDF.');
         } finally {
             endProcessing();
         }
@@ -157,15 +179,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 front: { left: end, right: start },
                 back: { left: start + 1, right: end - 1 }
             };
-
             sheets.push(sheet);
-
             start += 2;
             end -= 2;
         }
 
         let processedCount = 0;
         const totalOperations = numSheets * 4;
+
+        const startTime = Date.now();
+
+        const updateTimeAndProgress = () => {
+            processedCount++;
+            const percent = (processedCount / totalOperations) * 100;
+
+            const elapsedTime = Date.now() - startTime;
+            const timePerOp = elapsedTime / processedCount;
+            const remainingOps = totalOperations - processedCount;
+            const estimatedTimeLeft = Math.ceil((timePerOp * remainingOps) / 1000);
+
+            let timeText = '';
+
+            if (processedCount > 2 && remainingOps > 0) {
+                if (estimatedTimeLeft > 60) {
+                    const mins = Math.ceil(estimatedTimeLeft / 60);
+                    timeText = `• ~${mins} min`;
+                } else {
+                    timeText = `• ~${estimatedTimeLeft}s`;
+                }
+            } else if (remainingOps === 0) {
+                timeText = '';
+            }
+
+            progressBar.style.width = `${percent}%`;
+            
+            progressText.innerHTML = `
+                ${Math.round(percent)}%
+                <br>
+                <span style="font-size: 0.85em; font-weight: normal; opacity: 0.8;">
+                    (${processedCount}/${totalOperations}) ${timeText}
+                </span>
+            `;
+        };
 
         for (let i = 0; i < sheets.length; i++) {
             const sheet = sheets[i];
@@ -210,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const renderToTargets = async (pageIndex, targets) => {
                 const isContentPage = pageIndex <= totalOriginalPages;
-
                 let pageNumText = '';
                 if (pageIndex > 1 && pageIndex < totalPages) {
                     pageNumText = (pageIndex - 1).toString();
@@ -218,27 +272,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (const container of targets) {
                     container.innerHTML = '';
-
                     if (isContentPage) {
                         try {
                             const page = await pdf.getPage(pageIndex);
                             const viewport = page.getViewport({ scale: 2 });
-
                             const canvas = document.createElement('canvas');
                             const context = canvas.getContext('2d');
                             canvas.height = viewport.height;
                             canvas.width = viewport.width;
                             container.appendChild(canvas);
-
-                            await page.render({
-                                canvasContext: context,
-                                viewport: viewport
-                            }).promise;
+                            await page.render({ canvasContext: context, viewport: viewport }).promise;
                         } catch (err) {
                             console.error(`Error rendering page ${pageIndex}`, err);
                         }
                     }
-
                     if (pageNumText) {
                         const numDiv = document.createElement('div');
                         numDiv.className = 'page-number';
@@ -249,19 +296,20 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             await renderToTargets(sheet.front.left, [frontLeftContainer, printFrontLeft]);
-            processedCount++; updateProgress((processedCount / totalOperations) * 100);
+            updateTimeAndProgress();
 
             await renderToTargets(sheet.front.right, [frontRightContainer, printFrontRight]);
-            processedCount++; updateProgress((processedCount / totalOperations) * 100);
+            updateTimeAndProgress();
 
             await renderToTargets(sheet.back.left, [backLeftContainer, printBackLeft]);
-            processedCount++; updateProgress((processedCount / totalOperations) * 100);
+            updateTimeAndProgress();
 
             await renderToTargets(sheet.back.right, [backRightContainer, printBackRight]);
-            processedCount++; updateProgress((processedCount / totalOperations) * 100);
+            updateTimeAndProgress();
         }
 
-        updateProgress(100);
+        progressBar.style.width = `100%`;
+        progressText.innerText = `Concluído!`;
     }
 
     function createPageContainer() {
