@@ -340,6 +340,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const pageHeight = 595.28;
             const halfWidth = pageWidth / 2;
 
+            const font = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
+            const drawNum = (page, pageIndex, centerX) => {
+                if (pageIndex > 1 && pageIndex < totalPages) {
+                    const text = (pageIndex - 1).toString();
+                    const textSize = 12;
+                    const textWidth = font.widthOfTextAtSize(text, textSize);
+                    page.drawText(text, {
+                        x: centerX - (textWidth / 2),
+                        y: 20,
+                        size: textSize,
+                        font: font,
+                        color: PDFLib.rgb(0.2, 0.2, 0.2)
+                    });
+                }
+            };
+
             for (const sheet of sheets) {
                 const frontPage = newPdf.addPage([pageWidth, pageHeight]);
 
@@ -350,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         width: halfWidth,
                         height: pageHeight
                     });
+                    drawNum(frontPage, sheet.front.left, halfWidth / 2);
                 }
 
                 if (sheet.front.right <= totalOriginalPages) {
@@ -359,6 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         width: halfWidth,
                         height: pageHeight
                     });
+                    drawNum(frontPage, sheet.front.right, halfWidth + (halfWidth / 2));
                 }
 
                 const backPage = newPdf.addPage([pageWidth, pageHeight]);
@@ -370,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         width: halfWidth,
                         height: pageHeight
                     });
+                    drawNum(backPage, sheet.back.left, halfWidth / 2);
                 }
 
                 if (sheet.back.right <= totalOriginalPages) {
@@ -379,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         width: halfWidth,
                         height: pageHeight
                     });
+                    drawNum(backPage, sheet.back.right, halfWidth + (halfWidth / 2));
                 }
             }
 
