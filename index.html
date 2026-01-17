@@ -11,7 +11,7 @@
     <meta name="author" content="Rafael Reis da Silveira">
     <meta property="og:title" content="Rafael Reis - Desenvolvedor Web Full-Stack">
     <meta property="og:description" content="Confira meu portfólio e projetos de desenvolvimento web.">
-    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=1701260408">
+    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=1701260455">
     <meta property="og:url" content="https://rafael-reis1.github.io/">
     <meta property="og:type" content="website">
 
@@ -20,9 +20,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1701260408">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1701260408">
-    <script src="app.js?v=1701260408" defer></script>
+    <link rel="stylesheet" href="style.css?v=1701260455">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1701260455">
+    <script src="app.js?v=1701260455" defer></script>
     <title>Rafael Reis - Desenvolvedor Web</title>
 </head>
 
@@ -198,14 +198,23 @@
                     </div>
                 </div>
 
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Buscar repositório..." class="search-input">
+                    <div class="search-icon">
+                        <img src="imgs/Search.svg" alt="Buscar">
+                    </div>
+                </div>
+
                 <div id="projetosDestaque" class="projetosDestaque">
                     <h3 class="subtitleDest">Destaques</h3>
-                    <div class="destaquesContainer">
+                    <div class="destaquesContainer" id="destaquesContainer">
                     </div>
+                    <div class="pagination-container" id="paginationDestaques"></div>
                 </div>
 
                 <h3 class="subtitleReposi">Repositórios</h3>
                 <div id="repos"></div>
+                <div class="pagination-container" id="paginationRepos"></div>
             </div>
         </div>
     </div>
