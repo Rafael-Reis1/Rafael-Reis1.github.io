@@ -291,16 +291,130 @@ function fetchAndDisplayRepos() {
         }
     ];
 
-    const featuredContainer = document.querySelector('.destaquesContainer');
-    featuredContainer.innerHTML = '';
-
-    extraRepos.forEach(repo => {
-        const card = createFeaturedCard(repo);
-        featuredContainer.appendChild(card);
-    });
-
     const reposTitle = document.querySelector('.subtitleReposi');
-    const reposContainer = document.getElementById('repos');
+    const searchInput = document.getElementById('searchInput');
+
+    let allFetchedRepos = [];
+    let currentFilter = '';
+
+    class PaginatedList {
+        constructor(data, itemsPerPage, containerId, paginationId, renderItemCallback) {
+            this.data = data;
+            this.itemsPerPage = itemsPerPage;
+            this.container = document.getElementById(containerId);
+            this.paginationContainer = document.getElementById(paginationId);
+            this.renderItemCallback = renderItemCallback;
+            this.currentPage = 1;
+            this.filteredData = [...data];
+        }
+
+        updateData(newData) {
+            this.data = newData;
+            this.filter(currentFilter, currentFilter === '');
+        }
+
+        filter(searchTerm, animate = false) {
+            this.filteredData = this.data.filter(item => {
+                const term = searchTerm.toLowerCase();
+                return item.name.toLowerCase().includes(term) ||
+                    (item.description && item.description.toLowerCase().includes(term));
+            });
+            this.currentPage = 1;
+            this.render(animate);
+        }
+
+        render(animate = true) {
+            this.container.innerHTML = '';
+            this.paginationContainer.innerHTML = '';
+
+            if (this.filteredData.length === 0) {
+                this.container.innerHTML = '<p style="text-align: center; color: var(--text-color); width: 100%; padding: 20px;">Nenhum resultado encontrado.</p>';
+                return;
+            }
+
+            const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+            const endIndex = startIndex + this.itemsPerPage;
+            const pageItems = this.filteredData.slice(startIndex, endIndex);
+
+            pageItems.forEach(item => {
+                const card = this.renderItemCallback(item);
+                if (!animate) {
+                    card.classList.remove('fade-in');
+                }
+                this.container.appendChild(card);
+            });
+
+            this.renderPagination();
+            if (animate) {
+                setupAnimations();
+            }
+        }
+
+        renderPagination() {
+            const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+            if (totalPages <= 1) return;
+
+            const createBtn = (text, onClick, disabled = false, active = false) => {
+                const btn = document.createElement('button');
+                btn.innerText = text;
+                btn.className = `pagination-btn ${active ? 'active' : ''}`;
+                btn.disabled = disabled;
+                btn.addEventListener('click', onClick);
+                return btn;
+            };
+
+            this.paginationContainer.appendChild(createBtn('<', () => {
+                if (this.currentPage > 1) {
+                    this.currentPage--;
+                    this.render();
+                }
+            }, this.currentPage === 1));
+
+            let startPage = Math.max(1, this.currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                this.paginationContainer.appendChild(createBtn(i, () => {
+                    this.currentPage = i;
+                    this.render();
+                }, false, i === this.currentPage));
+            }
+
+            this.paginationContainer.appendChild(createBtn('>', () => {
+                if (this.currentPage < totalPages) {
+                    this.currentPage++;
+                    this.render();
+                }
+            }, this.currentPage === totalPages));
+        }
+    }
+
+    const featuredList = new PaginatedList(
+        extraRepos,
+        6,
+        'destaquesContainer',
+        'paginationDestaques',
+        createFeaturedCard
+    );
+    featuredList.render();
+
+    const reposList = new PaginatedList(
+        [],
+        6,
+        'repos',
+        'paginationRepos',
+        createRepoCard
+    );
+
+    searchInput.addEventListener('input', (e) => {
+        currentFilter = e.target.value;
+        featuredList.filter(currentFilter, false);
+        reposList.filter(currentFilter, false);
+    });
 
     const CACHE_KEY = 'github_repos_cache';
     const CACHE_DURATION = 5 * 60 * 1000;
@@ -315,7 +429,7 @@ function fetchAndDisplayRepos() {
             const { timestamp, data } = JSON.parse(cached);
             if (now - timestamp < CACHE_DURATION) {
                 console.log('Using cached GitHub data');
-                processRepos(data);
+                handleReposData(data);
                 shouldFetch = false;
             }
         } catch (e) {
@@ -334,33 +448,22 @@ function fetchAndDisplayRepos() {
                     timestamp: new Date().getTime(),
                     data: data
                 }));
-                processRepos(data);
+                handleReposData(data);
             })
             .catch(err => {
                 console.error('Error fetching repos:', err);
-                const reposTitle = document.querySelector('.subtitleReposi');
                 if (reposTitle) reposTitle.style.display = 'none';
             });
     }
 
-    function processRepos(data) {
+    function handleReposData(data) {
         const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
-        const filteredData = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
+        allFetchedRepos = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
 
-        reposContainer.innerHTML = '';
-
-        if (filteredData.length > 0) {
-            const reposTitle = document.querySelector('.subtitleReposi');
+        if (allFetchedRepos.length > 0) {
             if (reposTitle) reposTitle.style.display = 'block';
 
-            filteredData.forEach(repo => {
-                if (repo.description) {
-                    const card = createRepoCard(repo);
-                    reposContainer.appendChild(card);
-                }
-            });
-
-            setupAnimations();
+            reposList.updateData(allFetchedRepos);
         }
     }
 }
