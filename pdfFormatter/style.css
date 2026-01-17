@@ -388,6 +388,7 @@ h1 {
     }
 
     .print-page {
+        position: relative;
         width: 50vw;
         height: 100vh;
         display: flex;
