@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     let currentPdfBytes = null;
     let currentPdfDoc = null;
+    let shouldCancel = false;
     const fileInput = document.getElementById('file-input');
     const fileUpload = document.getElementById('file-upload');
     const processingIndicator = document.getElementById('processing-indicator');
@@ -13,11 +14,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseModal = document.getElementById('btnCloseModal');
     const btnPrint = document.getElementById('btnPrint');
     const btnShare = document.getElementById('btnShare');
+    const btnCancelProcessing = document.getElementById('btnCancelProcessing');
 
     btnCloseModal.addEventListener('click', closeModal);
     btnPrint.addEventListener('click', () => window.print());
+
     if (btnShare) {
         btnShare.addEventListener('click', shareBooklet);
+    }
+
+    if (btnCancelProcessing) {
+        btnCancelProcessing.addEventListener('click', () => {
+            shouldCancel = true;
+            btnCancelProcessing.innerText = "Cancelando...";
+            btnCancelProcessing.disabled = true;
+        });
     }
 
     previewModal.addEventListener('click', (e) => {
@@ -135,10 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             await processPDF(currentPdfDoc);
 
-            await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
-        } finally {
-            endProcessing();
+            console.error('Erro ao processar:', error);
+            alert('Ocorreu um erro ao processar o PDF.');
+            
+            processingIndicator.style.display = 'none';
+            fileUpload.style.display = 'block';
+            fileInput.value = '';
         }
     }
 
@@ -147,6 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
         processingIndicator.style.display = 'block';
         previewContainer.innerHTML = '';
         printContainer.innerHTML = '';
+        
+        shouldCancel = false; 
+        if (btnCancelProcessing) {
+            btnCancelProcessing.innerText = "Cancelar";
+            btnCancelProcessing.disabled = false;
+        }
+        
         updateProgress(0);
     }
 
@@ -186,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let processedCount = 0;
         const totalOperations = numSheets * 4;
-
         const startTime = Date.now();
 
         const updateTimeAndProgress = () => {
@@ -199,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const estimatedTimeLeft = Math.ceil((timePerOp * remainingOps) / 1000);
 
             let timeText = '';
-
             if (processedCount > 2 && remainingOps > 0) {
                 if (estimatedTimeLeft > 60) {
                     const mins = Math.ceil(estimatedTimeLeft / 60);
@@ -212,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             progressBar.style.width = `${percent}%`;
-            
             progressText.innerHTML = `
                 ${Math.round(percent)}%
                 <br>
@@ -223,52 +241,52 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         for (let i = 0; i < sheets.length; i++) {
+            if (shouldCancel) {
+                console.log("Processamento cancelado pelo usuário.");
+                
+                processingIndicator.style.display = 'none';
+                fileUpload.style.display = 'block';
+                fileInput.value = '';
+                
+                if (currentPdfDoc) {
+                    currentPdfDoc.destroy();
+                    currentPdfDoc = null;
+                }
+                currentPdfBytes = null;
+                
+                return;
+            }
+
             const sheet = sheets[i];
+            
             const sheetDiv = document.createElement('div');
             sheetDiv.className = 'sheet-preview';
 
-            const frontDiv = document.createElement('div');
-            frontDiv.className = 'paper-sheet';
-            const frontLeftContainer = createPageContainer();
-            const frontRightContainer = createPageContainer();
-            frontDiv.appendChild(frontLeftContainer);
-            frontDiv.appendChild(frontRightContainer);
+            const frontDiv = document.createElement('div'); frontDiv.className = 'paper-sheet';
+            const frontLeftContainer = createPageContainer(); const frontRightContainer = createPageContainer();
+            frontDiv.appendChild(frontLeftContainer); frontDiv.appendChild(frontRightContainer);
 
-            const backDiv = document.createElement('div');
-            backDiv.className = 'paper-sheet';
-            backDiv.style.marginTop = '10px';
-            const backLeftContainer = createPageContainer();
-            const backRightContainer = createPageContainer();
-            backDiv.appendChild(backLeftContainer);
-            backDiv.appendChild(backRightContainer);
+            const backDiv = document.createElement('div'); backDiv.className = 'paper-sheet'; backDiv.style.marginTop = '10px';
+            const backLeftContainer = createPageContainer(); const backRightContainer = createPageContainer();
+            backDiv.appendChild(backLeftContainer); backDiv.appendChild(backRightContainer);
 
-            sheetDiv.appendChild(frontDiv);
-            sheetDiv.appendChild(backDiv);
+            sheetDiv.appendChild(frontDiv); sheetDiv.appendChild(backDiv);
             previewContainer.appendChild(sheetDiv);
 
-            const printSheetFront = document.createElement('div');
-            printSheetFront.className = 'print-sheet';
-            const printFrontLeft = createPrintPage();
-            const printFrontRight = createPrintPage();
-            printSheetFront.appendChild(printFrontLeft);
-            printSheetFront.appendChild(printFrontRight);
+            const printSheetFront = document.createElement('div'); printSheetFront.className = 'print-sheet';
+            const printFrontLeft = createPrintPage(); const printFrontRight = createPrintPage();
+            printSheetFront.appendChild(printFrontLeft); printSheetFront.appendChild(printFrontRight);
 
-            const printSheetBack = document.createElement('div');
-            printSheetBack.className = 'print-sheet';
-            const printBackLeft = createPrintPage();
-            const printBackRight = createPrintPage();
-            printSheetBack.appendChild(printBackLeft);
-            printSheetBack.appendChild(printBackRight);
+            const printSheetBack = document.createElement('div'); printSheetBack.className = 'print-sheet';
+            const printBackLeft = createPrintPage(); const printBackRight = createPrintPage();
+            printSheetBack.appendChild(printBackLeft); printSheetBack.appendChild(printBackRight);
 
-            printContainer.appendChild(printSheetFront);
-            printContainer.appendChild(printSheetBack);
+            printContainer.appendChild(printSheetFront); printContainer.appendChild(printSheetBack);
 
             const renderToTargets = async (pageIndex, targets) => {
                 const isContentPage = pageIndex <= totalOriginalPages;
                 let pageNumText = '';
-                if (pageIndex > 1 && pageIndex < totalPages) {
-                    pageNumText = (pageIndex - 1).toString();
-                }
+                if (pageIndex > 1 && pageIndex < totalPages) pageNumText = (pageIndex - 1).toString();
 
                 for (const container of targets) {
                     container.innerHTML = '';
@@ -282,34 +300,44 @@ document.addEventListener('DOMContentLoaded', () => {
                             canvas.width = viewport.width;
                             container.appendChild(canvas);
                             await page.render({ canvasContext: context, viewport: viewport }).promise;
-                        } catch (err) {
-                            console.error(`Error rendering page ${pageIndex}`, err);
-                        }
+                        } catch (err) { console.error(`Error rendering page ${pageIndex}`, err); }
                     }
                     if (pageNumText) {
-                        const numDiv = document.createElement('div');
-                        numDiv.className = 'page-number';
-                        numDiv.innerText = pageNumText;
-                        container.appendChild(numDiv);
+                        const numDiv = document.createElement('div'); numDiv.className = 'page-number';
+                        numDiv.innerText = pageNumText; container.appendChild(numDiv);
                     }
                 }
             };
 
+            if (shouldCancel) break;
             await renderToTargets(sheet.front.left, [frontLeftContainer, printFrontLeft]);
             updateTimeAndProgress();
 
+            if (shouldCancel) break;
             await renderToTargets(sheet.front.right, [frontRightContainer, printFrontRight]);
             updateTimeAndProgress();
 
+            if (shouldCancel) break;
             await renderToTargets(sheet.back.left, [backLeftContainer, printBackLeft]);
             updateTimeAndProgress();
 
+            if (shouldCancel) break;
             await renderToTargets(sheet.back.right, [backRightContainer, printBackRight]);
             updateTimeAndProgress();
         }
+        
+        if (shouldCancel) {
+             processingIndicator.style.display = 'none';
+             fileUpload.style.display = 'block';
+             fileInput.value = '';
+             return;
+        }
 
-        progressBar.style.width = `100%`;
-        progressText.innerText = `Concluído!`;
+        updateProgress(100);
+
+        setTimeout(() => {
+             endProcessing();
+        }, 300);
     }
 
     function createPageContainer() {
