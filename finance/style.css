@@ -1040,7 +1040,6 @@ input[type=number] {
 }
 
 @media (max-width: 768px) {
-
     * {
         -webkit-tap-highlight-color: transparent;
     }
@@ -2180,11 +2179,14 @@ input[type=number] {
 }
 
 @media (display-mode: standalone) {
-
     .btn-back,
     a[href*="index.html"],
     #installAppBtn {
         display: none !important;
+    }
+
+    body {
+        overscroll-behavior-y: contain; 
     }
 }
 

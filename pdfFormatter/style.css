@@ -458,4 +458,8 @@ h1 {
     .btnVoltar {
         display: none !important;
     }
+
+    body {
+        overscroll-behavior-y: contain; 
+    }
 }
