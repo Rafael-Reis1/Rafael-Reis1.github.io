@@ -19,5 +19,23 @@
             "type": "image/png",
             "purpose": "maskable"
         }
+    ],
+    "file_handlers": [
+        {
+            "action": "./pdfFormater.html",
+            "accept": {
+                "application/pdf": [
+                    ".pdf"
+                ]
+            },
+            "icons": [
+                {
+                    "src": "assets/icon-maskable.png",
+                    "sizes": "512x512",
+                    "type": "image/png",
+                    "purpose": "maskable"
+                }
+            ]
+        }
     ]
 }

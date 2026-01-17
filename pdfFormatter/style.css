@@ -243,7 +243,8 @@ h1 {
 }
 
 .btn-close,
-.btn-print {
+.btn-print,
+.btn-share {
     padding: 0.4rem 0.8rem;
     border-radius: 6px;
     border: none;
@@ -263,13 +264,19 @@ h1 {
     background-color: var(--base-color-hover);
 }
 
-.btn-print {
+.btn-print,
+.btn-share {
     background-color: var(--accent-color);
     color: white;
 }
 
-.btn-print:hover {
+.btn-print:hover,
+.btn-share:hover {
     background-color: var(--accent-color-hover);
+}
+
+.btn-share {
+    display: none;
 }
 
 .preview-container {
@@ -419,11 +426,20 @@ h1 {
     }
 
     .btn-close,
-    .btn-print {
+    .btn-print,
+    .btn-share {
         flex: 1;
         justify-content: center;
         font-size: 0.9rem;
         padding: 8px;
+    }
+
+    .btn-print {
+        display: none;
+    }
+
+    .btn-share {
+        display: block;
     }
 
     .shortcut-text {

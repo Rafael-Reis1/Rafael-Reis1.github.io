@@ -13,7 +13,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
         rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="manifest" href="manifest.json?v=1601262236">
+    <link rel="manifest" href="manifest.json?v=1601262250">
     <meta name="theme-color" content="#06071A">
     <title>PDF Booklet Maker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
@@ -22,9 +22,10 @@
         window.pdfjsLib.GlobalWorkerOptions = window.pdfjsLib.GlobalWorkerOptions || {};
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
-    <link href="../Leitor-logs-totvs-fluig/style.css?v=1601262236" rel="stylesheet">
-    <link href="../style.css?v=1601262236" rel="stylesheet">
-    <link href="style.css?v=1601262236" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <link href="../Leitor-logs-totvs-fluig/style.css?v=1601262250" rel="stylesheet">
+    <link href="../style.css?v=1601262250" rel="stylesheet">
+    <link href="style.css?v=1601262250" rel="stylesheet">
 </head>
 
 <body>
@@ -72,6 +73,7 @@
                     <button id="btnCloseModal" class="btn-close">Fechar</button>
                     <button id="btnPrint" class="btn-print">Imprimir <span
                             class="shortcut-text">(Ctrl+P)</span></button>
+                    <button id="btnShare" class="btn-share">Compartilhar PDF</button>
                 </div>
             </div>
             <div id="preview-container" class="preview-container">
@@ -81,11 +83,11 @@
 
     <div id="print-container" class="print-container"></div>
 
-    <script src="app.js?v=1601262236"></script>
+    <script src="app.js?v=1601262250"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=1601262236');
+                navigator.serviceWorker.register('sw.js?v=1601262250');
             });
         }
     </script>
