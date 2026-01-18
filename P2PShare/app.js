@@ -225,8 +225,7 @@ function initHost() {
 
     const rtcConfig = {
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' }
+            { urls: 'stun:stun.l.google.com:19302' }
         ]
     };
 
@@ -288,8 +287,7 @@ function initClient(id) {
 
         const rtcConfig = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:global.stun.twilio.com:3478' }
+                { urls: 'stun:stun.l.google.com:19302' }
             ]
         };
 
