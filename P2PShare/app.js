@@ -223,9 +223,17 @@ function initHost() {
         readyContent.classList.add('fade-in');
     }
 
+    const rtcConfig = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+        ]
+    };
+
     peer = new SimplePeer({
         initiator: true,
-        trickle: false
+        trickle: false,
+        config: rtcConfig
     });
 
     peer.on('signal', data => {
@@ -278,9 +286,17 @@ function initClient(id) {
 
         if (qrDiv) qrDiv.innerHTML = `<div class="qr-loading"><div class="spinner"></div><p>Conectando...</p></div>`;
 
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+        };
+
         peer = new SimplePeer({
             initiator: false,
-            trickle: false
+            trickle: false,
+            config: rtcConfig
         });
 
         peer.on('signal', data => {
