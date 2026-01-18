@@ -1,9 +1,9 @@
-const CACHE_NAME = 'p2pshare-?v=1801260321';
+const CACHE_NAME = 'p2pshare-?v=1801260340';
 const urlsToCache = [
     './P2PShare.html',
-    './style.css?v=1801260321',
-    './app.js?v=1801260321',
-    './manifest.json?v=1801260321',
+    './style.css?v=1801260340',
+    './app.js?v=1801260340',
+    './manifest.json?v=1801260340',
     './assets/icon-512.png',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
@@ -12,7 +12,7 @@ const urlsToCache = [
     '../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js',
     './lib/qrcode.min.js',
-    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap'
+    '../assets/libs_comuns/fonts.css'
 ];
 
 self.addEventListener('install', event => {
