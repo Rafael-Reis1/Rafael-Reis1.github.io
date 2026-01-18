@@ -63,8 +63,8 @@ iframe {
 }
 
 .main {
-    height: 100vh;
-    width: 100vw;
+    height: 100dvh;
+    width: 100dvw;
     height: fit-content;
     display: flex;
     justify-content: center;
@@ -353,8 +353,8 @@ iframe {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100dvw;
+    height: 100dvh;
     background-color: rgba(6, 7, 26, .5);
     backdrop-filter: blur(2px);
     z-index: 10;
