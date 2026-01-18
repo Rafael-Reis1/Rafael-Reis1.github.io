@@ -1,11 +1,18 @@
 const CACHE_NAME = 'finance-app-v1768617000';
 const urlsToCache = [
     '/finance/finance.html',
-    '/finance/style.css?v=1801260230',
-    '/finance/app.js?v=1801260230',
+    '/finance/style.css?v=1801260303',
+    '/finance/app.js?v=1801260303',
     '/finance/icon-512.png',
     '/finance/icon-maskable.png',
-    '/finance/manifest.json?v=1801260230'
+    '/finance/manifest.json?v=1801260303',
+    '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
+    '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
+    '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
+    './lib/chart.js',
+    '../assets/libs_comuns/flatpickr/flatpickr.min.css',
+    '../assets/libs_comuns/flatpickr/flatpickr.js',
+    '../assets/libs_comuns/flatpickr/pt.js'
 ];
 
 self.addEventListener('install', event => {
@@ -33,9 +40,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
-    if (event.request.url.includes('firebase') ||
-        event.request.url.includes('googleapis') ||
-        event.request.url.includes('gstatic')) {
+    // Ignore external API calls, but allow local assets
+    if (event.request.url.startsWith('https://firestore.googleapis.com') ||
+        event.request.url.startsWith('https://www.googleapis.com') ||
+        (event.request.url.includes('firebase') && !event.request.url.includes(self.registration.scope.origin))) { // Simple check: if it's remote firebase
         return;
     }
 
