@@ -17,32 +17,39 @@
     box-sizing: border-box;
 }
 
+html,
 body {
     background-color: var(--body-color);
     color: var(--text-color);
     font-family: var(--font-body);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow-x: hidden;
+    height: 100dvh;
+    width: 100dvw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    /* Prevent body scroll */
 }
 
 .container {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    padding: 2rem;
-    gap: 2rem;
-    flex: 1;
-    width: 100dvw;
-    height: 100dvh;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.container::-webkit-scrollbar {
+    display: none;
 }
 
 h1 {
     font-size: 2.5rem;
     color: var(--text-color);
-    margin-bottom: 0.5rem;
     font-weight: 700;
     letter-spacing: -1px;
 }
@@ -102,7 +109,8 @@ h1 {
     gap: 1.5rem;
     text-align: center;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    overflow: clip;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
 #panel-connected {
@@ -119,7 +127,6 @@ h1 {
 
 .link-box {
     display: flex;
-    gap: 5px;
     width: 100%;
     background: rgba(0, 0, 0, 0.2);
     padding: 8px;
@@ -409,14 +416,6 @@ h1 {
     font-size: 0.95rem;
 }
 
-#ready-content {
-    display: none;
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-}
-
 .qr-loading p {
     margin-top: 60px;
 }
@@ -428,6 +427,14 @@ h1 {
     border-left-color: var(--accent-color);
     border-radius: 50%;
     animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+#ready-content {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 @keyframes spin {
@@ -495,7 +502,7 @@ h1 {
     transform: translateY(20px) scale(0.95);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .modal.active .modal-content {
@@ -581,6 +588,7 @@ h1 {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
 }
+
 .btn-cancel-transfer {
     background: rgba(255, 68, 68, 0.1);
     border: 1px solid rgba(255, 68, 68, 0.2);
@@ -595,11 +603,13 @@ h1 {
     transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     margin-left: 8px;
 }
+
 .btn-cancel-transfer:hover {
     background: rgba(255, 68, 68, 0.2);
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(255, 68, 68, 0.2);
 }
+
 .btn-cancel-transfer:active {
     transform: scale(0.95);
 }
@@ -679,3 +689,40 @@ h1 {
     border-color: var(--accent-color);
 }
 
+
+.btn-install {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    border-radius: 20px;
+    border: 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 100 !important;
+    background-color: var(--accent-color);
+    color: white;
+    transition: background-color .3s cubic-bezier(.34, .88, .34, 1), transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-install:hover {
+    background-color: var(--accent-color-hover);
+    transform: translateY(-0.125rem);
+}
+
+.btn-install:active {
+    transform: translateY(0);
+}
+
+@media all and (display-mode: standalone) {
+    .btn-install {
+        display: none !important;
+    }
+}
