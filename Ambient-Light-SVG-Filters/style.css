@@ -35,7 +35,7 @@ body {
 }
 
 .snap-area {
-    height: 100vh;
+    height: 100dvh;
     width: 100%;
     scroll-snap-align: center;
     display: flex;

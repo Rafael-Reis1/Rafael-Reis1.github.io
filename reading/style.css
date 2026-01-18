@@ -91,13 +91,13 @@ body {
     background: var(--body-gradient);
     background-attachment: fixed;
     color: var(--text-primary);
-    min-height: 100vh;
+    min-height: 100dvh;
     font-family: var(--font-body);
     line-height: 1.6;
 }
 
 .app-container {
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }
@@ -282,7 +282,7 @@ body {
     flex: 1;
     display: flex;
     width: 100%;
-    height: calc(100vh - var(--header-height));
+    height: calc(100dvh - var(--header-height));
     overflow: hidden;
 }
 
@@ -2565,15 +2565,16 @@ input[type=number] {
         position: fixed;
         left: -100%;
         top: 0;
-        height: 100vh;
-        z-index: 1001;
-        height: 100vh;
+        height: 100dvh;
         z-index: 1001;
         transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         background: rgba(15, 12, 41, 0.95);
         backdrop-filter: blur(20px);
         border-right: 1px solid var(--glass-border);
         padding: 1.5rem;
+        padding-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
     }
 
     .sidebar.active {
@@ -3351,6 +3352,7 @@ input[type=number] {
 }
 
 @media all and (display-mode: standalone) {
+
     .btn-back,
     #installAppBtn,
     .sidebar-footer-mobile .back-link,
@@ -3358,8 +3360,9 @@ input[type=number] {
         display: none !important;
     }
 
-    html, body {
-        overscroll-behavior-y: none; 
+    html,
+    body {
+        overscroll-behavior-y: none;
     }
 }
 
