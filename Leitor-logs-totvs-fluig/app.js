@@ -111,12 +111,10 @@ function debounce(func, wait) {
 
 function getFileId(file) {
     const id = `log_settings_${file.name}_${file.size}_${file.lastModified}`;
-    console.log('[DEBUG] Generated File ID:', id);
     return id;
 }
 
 function saveSettings() {
-    console.log('[DEBUG] Saving settings...', currentFileId, 'Pins:', pinnedLogs.size);
     if (!currentFileId) {
         console.warn('[DEBUG] No currentFileId, skipping save');
         return;
@@ -160,7 +158,6 @@ const debouncedSaveSettings = debounce(saveSettings, 500);
 
 function loadSettings(fileId) {
     const saved = localStorage.getItem(fileId);
-    console.log('[DEBUG] Loading Settings for:', fileId, 'Found:', !!saved);
     if (!saved) return;
 
     try {

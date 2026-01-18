@@ -2433,7 +2433,6 @@ document.addEventListener('DOMContentLoaded', () => {
             installButton.style.display = 'none';
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome} `);
             deferredPrompt = null;
         });
     }
@@ -2448,7 +2447,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
         if (installButton) {
             installButton.style.display = 'none';
         }

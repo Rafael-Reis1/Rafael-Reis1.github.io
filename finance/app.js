@@ -393,7 +393,6 @@ class FinanceManager {
         try {
             const doc = await userRef.get();
             if (doc.exists && doc.data().transactions && Array.isArray(doc.data().transactions)) {
-                console.log('Iniciando migração de dados...');
                 const legacyTransactions = doc.data().transactions;
                 const total = legacyTransactions.length;
 
@@ -409,14 +408,12 @@ class FinanceManager {
                     });
 
                     await batch.commit();
-                    console.log(`Migrados ${Math.min(i + 500, total)} de ${total} registros.`);
                 }
 
                 await userRef.update({
                     transactions: firebase.firestore.FieldValue.delete(),
                     migratedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                console.log('Migração concluída com sucesso!');
             }
         } catch (e) {
             console.error('Erro na migração:', e);
@@ -1127,7 +1124,6 @@ class FinanceManager {
                 batch.update(subRef, { lastGenerated: currentMonth });
 
                 await batch.commit();
-                console.log(`Assinatura "${sub.name}" gerada para ${currentMonth}`);
             }
         } catch (error) {
             console.error('Erro ao verificar assinaturas:', error);
@@ -2918,8 +2914,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             installButton.style.display = 'none';
             deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to the install prompt: ${outcome}`);
+            await deferredPrompt.userChoice;
             deferredPrompt = null;
         });
     }
@@ -2934,7 +2929,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('appinstalled', () => {
-        console.log('PWA was installed');
         if (installButton) {
             installButton.style.display = 'none';
         }
