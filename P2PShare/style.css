@@ -27,31 +27,29 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    /* Prevent body scroll */
 }
 
 .container {
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 1rem;
-    gap: 1rem;
     width: 100%;
+    box-sizing: border-box;
     height: 100%;
-    overflow-y: auto;
-    scrollbar-width: none;
 }
 
 .container::-webkit-scrollbar {
     display: none;
-}
-
-h1 {
-    font-size: 2.5rem;
-    color: var(--text-color);
-    font-weight: 700;
-    letter-spacing: -1px;
 }
 
 .btnVoltar {
@@ -103,14 +101,16 @@ h1 {
     border: 1px solid var(--border-color);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     width: 450px;
+    max-height: 90%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 10px;
     text-align: center;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     overflow: hidden;
     flex-shrink: 0;
+    margin-top: 40px;
 }
 
 #panel-connected {
@@ -186,7 +186,7 @@ h1 {
 .file-upload {
     width: 100%;
     padding: 1.25rem;
-    min-height: 15.625rem;
+    min-height: 150px;
     border: 2px dashed var(--accent-color);
     color: var(--text-color);
     border-radius: 12px;
@@ -269,19 +269,7 @@ h1 {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-height: 250px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-color) transparent;
-}
-
-.transfers-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
     gap: 0.75rem;
-    max-height: 18.75rem;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) transparent;
@@ -616,7 +604,6 @@ h1 {
 
 .clipboard-section {
     width: 100%;
-    margin-bottom: 1rem;
 }
 
 .clipboard-input-container {

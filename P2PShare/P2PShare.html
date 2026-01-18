@@ -7,14 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1801260035">
+    <link rel="stylesheet" href="style.css?v=1801260141">
     <title>P2P File Share</title>
     <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <link rel="manifest" href="manifest.json?v=1801260035">
+    <link rel="manifest" href="manifest.json?v=1801260141">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260035">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260141">
 </head>
 
 <body>
@@ -34,66 +34,66 @@
     </button>
 
     <div class="container">
-        <h1>P2P Share</h1>
-
-        <div id="panel-waiting" class="card-panel">
-            <div class="qr-container">
-                <div id="qrcode">
-                    <div class="qr-loading">
-                        <div class="spinner"></div>
-                        <p>Conectando ao servidor...</p>
+        <div class="content-wrapper">
+            <div id="panel-waiting" class="card-panel">
+                <div class="qr-container">
+                    <div id="qrcode">
+                        <div class="qr-loading">
+                            <div class="spinner"></div>
+                            <p>Conectando ao servidor...</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="ready-content">
-                <p class="status-text">Aguardando conexão...</p>
+                <div id="ready-content">
+                    <p class="status-text">Aguardando conexão...</p>
 
-                <div class="link-box">
-                    <input type="text" id="share-link" readonly>
-                    <button id="btn-copy" class="btn-action">Copiar</button>
-                </div>
+                    <div class="link-box">
+                        <input type="text" id="share-link" readonly>
+                        <button id="btn-copy" class="btn-action">Copiar</button>
+                    </div>
 
-                <p class="instruction">
-                    Escaneie com a câmera do celular ou mande o link para conectar.
-                </p>
-            </div>
-        </div>
-
-        <div id="panel-connected" class="card-panel" style="display: none;">
-            <div class="connection-status">
-                <div class="status-dot"></div>
-                <span id="remote-peer-name">Conectado com Dispositivo</span>
-            </div>
-
-            <div class="clipboard-section">
-                <div class="clipboard-input-container">
-                    <input type="text" id="clipboard-input" placeholder="Cole seu texto aqui para enviar..."
-                        autocomplete="off">
-                    <button id="btn-send-text">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M22 2L11 13" />
-                            <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-                        </svg>
-                    </button>
+                    <p class="instruction">
+                        Escaneie com a câmera do celular ou mande o link para conectar.
+                    </p>
                 </div>
             </div>
 
-            <div id="drop-zone" class="file-upload">
-                <label for="file-input" class="file-upload-label">
-                    <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload">
-                    Arraste arquivos aqui ou clique para selecionar
-                </label>
-                <input type="file" id="file-input" class="custom-file-input">
-            </div>
+            <div id="panel-connected" class="card-panel" style="display: none;">
+                <div class="connection-status">
+                    <div class="status-dot"></div>
+                    <span id="remote-peer-name">Conectado com Dispositivo</span>
+                </div>
 
-            <div id="transfers-list" class="transfers-container">
-            </div>
+                <div class="clipboard-section">
+                    <div class="clipboard-input-container">
+                        <input type="text" id="clipboard-input" placeholder="Cole seu texto aqui para enviar..."
+                            autocomplete="off">
+                        <button id="btn-send-text">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M22 2L11 13" />
+                                <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-            <button id="btn-disconnect" class="btn-cancel">
-                Desconectar
-            </button>
+                <div id="drop-zone" class="file-upload">
+                    <label for="file-input" class="file-upload-label">
+                        <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload">
+                        Arraste arquivos aqui ou clique para selecionar
+                    </label>
+                    <input type="file" id="file-input" class="custom-file-input" multiple>
+                </div>
+
+                <div id="transfers-list" class="transfers-container">
+                </div>
+
+                <button id="btn-disconnect" class="btn-cancel">
+                    Desconectar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -129,7 +129,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=1801260035"></script>
+    <script src="app.js?v=1801260141"></script>
 </body>
 
 </html>

@@ -2512,7 +2512,6 @@ class UIController {
 
             this.noSubs.style.display = 'none';
 
-            // Calculate Total
             const total = subscriptions
                 .filter(sub => sub.active !== false)
                 .reduce((sum, sub) => sum + (parseFloat(sub.amount) || 0), 0);
