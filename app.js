@@ -218,18 +218,26 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Gemini Nano Web App',
-            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
-            html_url: '/chromeAILocal/chromeAILocal.html',
-            language: 'HTML',
-            featured: true,
-            image: 'imgs/JavaScript.svg'
-        },
-        {
             name: 'PDF Booklet Maker',
             description: "Transforme qualquer PDF em livreto (booklet) pronto para impressão. Faz a imposição de páginas automaticamente, reorganizando-as para encadernação com visualização em tempo real.",
             html_url: '/pdfFormatter/pdfFormater.html',
             language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'P2P Share',
+            description: "Transferência de arquivos P2P instantânea e sem limites via WebRTC. Arquitetura Serverless com Firebase, suporte a PWA (Mobile/Desktop) e compartilhamento de área de transferência.",
+            html_url: '/P2PShare/P2PShare.html',
+            language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Gemini Nano Web App',
+            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            html_url: '/chromeAILocal/chromeAILocal.html',
+            language: 'HTML',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },
@@ -428,7 +436,6 @@ function fetchAndDisplayRepos() {
         try {
             const { timestamp, data } = JSON.parse(cached);
             if (now - timestamp < CACHE_DURATION) {
-                console.log('Using cached GitHub data');
                 handleReposData(data);
                 shouldFetch = false;
             }

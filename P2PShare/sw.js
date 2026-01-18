@@ -1,16 +1,19 @@
-const CACHE_NAME = 'pdf-booklet-v1768617000';
+const CACHE_NAME = 'p2pshare-v1701262128';
 const urlsToCache = [
-    './pdfFormater.html',
+    './',
+    './P2PShare.html',
     './style.css?v=1701262337',
     './app.js?v=1701262337',
-    '../style.css?v=1701262337',
     './manifest.json?v=1701262337',
+    './assets/icon-512.png',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-    'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'
+    'https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js',
+    'https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap'
 ];
 
 self.addEventListener('install', event => {
@@ -36,7 +39,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-    if (event.request.method === 'POST' && event.request.url.includes('pdfFormater.html')) {
+    if (event.request.method === 'POST' && event.request.url.includes('P2PShare.html')) {
         event.respondWith(
             (async () => {
                 try {
@@ -46,36 +49,31 @@ self.addEventListener('fetch', event => {
                     if (file) {
                         const cache = await caches.open('share-cache');
                         await cache.put('shared-file', new Response(file));
+                        const metadata = JSON.stringify({
+                            name: file.name,
+                            type: file.type,
+                            lastModified: file.lastModified
+                        });
+                        await cache.put('shared-meta', new Response(metadata));
                     }
 
-                    return Response.redirect('./pdfFormater.html?share_target=true', 303);
+                    return Response.redirect('./P2PShare.html?share_target=true', 303);
                 } catch (err) {
                     console.error('Error handling share target:', err);
-                    return Response.redirect('./pdfFormater.html?error=share_failed', 303);
+                    return Response.redirect('./P2PShare.html?error=share_failed', 303);
                 }
             })()
         );
         return;
     }
 
-    if (event.request.method !== 'GET') return;
-
     event.respondWith(
-        fetch(event.request)
+        caches.match(event.request)
             .then(response => {
-                if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
+                if (response) {
                     return response;
                 }
-
-                const responseToCache = response.clone();
-                caches.open(CACHE_NAME)
-                    .then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
-                return response;
-            })
-            .catch(() => {
-                return caches.match(event.request);
+                return fetch(event.request);
             })
     );
 });

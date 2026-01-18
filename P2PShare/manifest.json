@@ -1,0 +1,41 @@
+{
+    "name": "P2P Share",
+    "short_name": "P2P Share",
+    "description": "Compartilhamento de arquivos P2P seguro e rápido.",
+    "start_url": "./P2PShare.html",
+    "id": "/P2PShare/",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#06071A",
+    "theme_color": "#06071A",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "share_target": {
+        "action": "./P2PShare.html",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "files": [
+                {
+                    "name": "file",
+                    "accept": [
+                        "*/*"
+                    ]
+                }
+            ]
+        }
+    }
+}

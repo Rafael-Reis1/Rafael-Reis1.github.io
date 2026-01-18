@@ -269,8 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < sheets.length; i++) {
             if (shouldCancel) {
-                console.log("Processamento cancelado pelo usuário.");
-
                 processingIndicator.style.display = 'none';
                 fileUpload.style.display = 'block';
                 fileInput.value = '';
@@ -392,7 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
         deferredPrompt = null;
         installBtn.style.display = 'none';
     });
@@ -400,7 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('appinstalled', () => {
         installBtn.style.display = 'none';
         deferredPrompt = null;
-        console.log('PWA was installed');
     });
 
     async function shareBooklet() {
