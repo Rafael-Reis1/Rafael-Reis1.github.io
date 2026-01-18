@@ -445,6 +445,10 @@ body {
     }
 }
 
+.mobile-text {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 1rem;
@@ -457,6 +461,14 @@ body {
 
     h1 {
         font-size: 2rem;
+    }
+
+    .desktop-text {
+        display: none;
+    }
+
+    .mobile-text {
+        display: inline;
     }
 }
 
@@ -718,7 +730,8 @@ body {
         display: none !important;
     }
 
-    html, body {
-        overscroll-behavior-y: none; 
+    html,
+    body {
+        overscroll-behavior-y: none;
     }
 }

@@ -428,6 +428,24 @@ h1 {
     }
 }
 
+.mobile-text {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .desktop-text {
+        display: none;
+    }
+
+    .mobile-text {
+        display: inline;
+    }
+}
+
 @media (max-width: 37.5rem) {
     .modal-header {
         flex-direction: column;
@@ -477,8 +495,9 @@ h1 {
         display: none !important;
     }
 
-    html, body {
-        overscroll-behavior-y: none; 
+    html,
+    body {
+        overscroll-behavior-y: none;
     }
 }
 
@@ -513,7 +532,7 @@ h1 {
     transform: translateY(20px) scale(0.95);
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .custom-alert-modal.active .custom-alert-content {
@@ -552,7 +571,7 @@ h1 {
     transition: all 0.2s ease;
 }
 
-.custom-alert-close:hover{
+.custom-alert-close:hover {
     background: var(--glass-bg);
     color: var(--text-primary);
 }
