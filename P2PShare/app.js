@@ -16,7 +16,7 @@ const db = firebase.database();
 
 const CHUNK_SIZE = 64 * 1024;
 
-let peer = null; 
+let peer = null;
 let roomId = null;
 
 const panelWaiting = document.getElementById('panel-waiting');
@@ -39,7 +39,7 @@ let incomingFile = {
     startTime: 0
 };
 
-btnVoltar.onclick = function() {
+btnVoltar.onclick = function () {
     window.location.href = '/';
 }
 
@@ -121,6 +121,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             .catch(err => console.error('Erro no Service Worker:', err));
     }
 
+    let deferredPrompt;
+    const installBtn = document.getElementById('installAppBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) installBtn.style.display = 'flex';
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            installBtn.style.display = 'none';
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            }
+        });
+    }
+
+    window.addEventListener('appinstalled', () => {
+        if (installBtn) installBtn.style.display = 'none';
+        deferredPrompt = null;
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('share_target') === 'true') {
         try {
@@ -200,7 +225,7 @@ function initHost() {
         void panel.offsetHeight;
 
         const isMobile = window.innerWidth <= 600;
-        
+
         panel.style.height = isMobile ? '450px' : '500px';
 
         readyContent.classList.add('fade-in');
@@ -363,7 +388,7 @@ async function sendFile(file) {
                 const cancelPacket = new Uint8Array(1);
                 cancelPacket[0] = 2;
                 peer.send(cancelPacket);
-            } catch (e) {}
+            } catch (e) { }
 
             return;
         }
