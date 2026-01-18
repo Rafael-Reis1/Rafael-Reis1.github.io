@@ -5,14 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
-    <link rel="stylesheet" href="style.css?v=1801260340">
+    <link rel="stylesheet" href="style.css?v=1801260930">
     <title>P2P File Share</title>
     <script src="lib/simplepeer.min.js"></script>
     <script src="../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js"></script>
     <script src="../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js"></script>
-    <link rel="manifest" href="manifest.json?v=1801260340">
+    <link rel="manifest" href="manifest.json?v=1801260930">
     <script src="lib/qrcode.min.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260340">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260930">
 </head>
 
 <body>
@@ -54,6 +54,24 @@
                     <p class="instruction">
                         Escaneie com a câmera do celular ou mande o link para conectar.
                     </p>
+
+                    <div class="streamer-section">
+                        <div class="streamer-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 10l5 5-5 5"/>
+                                <path d="M4 4v7a4 4 0 0 0 4 4h12"/>
+                            </svg>
+                            Link para Live / OBS
+                        </div>
+                        
+                        <div class="link-group">
+                            <label class="link-label">Fonte de Navegador (Copie e cole no OBS):</label>
+                            <div class="custom-link-box">
+                                <input type="text" id="link-obs" readonly value="...">
+                                <button id="btn-copy-obs" class="btn-copy-mini btn-obs">Copiar</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -92,6 +110,24 @@
                 <button id="btn-disconnect" class="btn-cancel">
                     Desconectar
                 </button>
+
+                <div class="stream-controls">
+                    <button id="btn-share-cam" class="btn-action btn-share">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Câmera
+                    </button>
+                    <button id="btn-share-screen" class="btn-action btn-share">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        Tela
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -128,7 +164,13 @@
         </div>
     </div>
 
-    <script src="app.js?v=1801260340"></script>
+    <div id="video-wrapper" class="video-overlay">
+        <p id="video-status" class="video-status-text">Visualizando:</p>
+        <video id="remote-video" autoplay playsinline></video>
+        <button id="btn-exit-obs" class="btn-floating-exit">✕ Sair do Modo Cheio</button>
+    </div>
+
+    <script src="app.js?v=1801260930"></script>
 </body>
 
 </html>

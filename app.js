@@ -226,8 +226,8 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'P2P Share',
-            description: "Transferência de arquivos P2P instantânea e sem limites via WebRTC. Arquitetura Serverless com Firebase, suporte a PWA (Mobile/Desktop) e compartilhamento de área de transferência.",
+            name: 'P2P Share & Stream',
+            description: "Plataforma P2P para transferência de arquivos e streaming de vídeo/tela em tempo real via WebRTC. Possui integração nativa com OBS Studio (Clean Feed), suporte a PWA (Mobile/Desktop), 'Share Target' e arquitetura Serverless com reconexão inteligente.",
             html_url: '/P2PShare/P2PShare.html',
             language: 'JavaScript',
             featured: true,

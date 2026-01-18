@@ -15,9 +15,9 @@ if (!firebase.apps.length) {
 const db = firebase.database();
 
 const CHUNK_SIZE = 64 * 1024;
-
 let peer = null;
 let roomId = null;
+let currentStream = null;
 
 const panelWaiting = document.getElementById('panel-waiting');
 const panelConnected = document.getElementById('panel-connected');
@@ -30,12 +30,21 @@ const btnCopy = document.getElementById('btn-copy');
 const btnVoltar = document.getElementById('btnVoltar');
 
 const activeDownloads = new Map();
+const MAX_CONCURRENT_UPLOADS = 1;
+let activeUploads = 0;
+const uploadQueue = [];
 
 btnVoltar.onclick = function () {
     window.location.href = '/';
 }
 
 function showModal(title, message) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'obs') {
+        console.warn("OBS Modal Suprimido:", title, message);
+        return;
+    }
+
     const modal = document.getElementById('alertModal');
     const titleEl = document.getElementById('alertTitle');
     const msgEl = document.getElementById('alertMessage');
@@ -64,25 +73,18 @@ function showClipboardModal(text, autoCopied = false) {
 
         if (autoCopied) {
             copyBtn.innerText = "Copiado! ✔";
-            copyBtn.classList.remove('btn-primary');
             copyBtn.style.background = '#4ade80';
         } else {
             copyBtn.innerText = "Copiar";
-            copyBtn.classList.add('btn-primary');
             copyBtn.style.background = '';
         }
 
         copyBtn.onclick = () => {
             textarea.select();
             document.execCommand('copy');
-            navigator.clipboard.writeText(text).then(() => {
-                copyBtn.innerText = "Copiado! ✔";
-                copyBtn.style.background = '#4ade80';
-                setTimeout(() => closeClipboardModal(), 1000);
-            }).catch(e => {
-                console.warn("Copy failed", e);
-                copyBtn.innerText = "Erro ao copiar";
-            });
+            copyBtn.innerText = "Copiado! ✔";
+            copyBtn.style.background = '#4ade80';
+            setTimeout(() => closeClipboardModal(), 1000);
         };
     }
 }
@@ -108,80 +110,37 @@ window.addEventListener('keydown', (event) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrado:', reg.scope))
-            .catch(err => console.error('Erro no Service Worker:', err));
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
     }
 
     let deferredPrompt;
     const installBtn = document.getElementById('installAppBtn');
-
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         if (installBtn) installBtn.style.display = 'flex';
     });
-
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             installBtn.style.display = 'none';
             if (deferredPrompt) {
                 deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
                 deferredPrompt = null;
             }
         });
     }
 
-    window.addEventListener('appinstalled', () => {
-        if (installBtn) installBtn.style.display = 'none';
-        deferredPrompt = null;
-    });
-
     const urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.get('mode') === 'obs') {
+        document.body.classList.add('obs-mode');
+    }
+
     if (urlParams.get('share_target') === 'true') {
-        try {
-            const cache = await caches.open('share-cache');
-            const response = await cache.match('shared-file');
-            const metaResponse = await cache.match('shared-meta');
-
-            if (response) {
-                const blob = await response.blob();
-                let fileName = "shared_file";
-                let fileType = blob.type;
-
-                if (metaResponse) {
-                    const meta = await metaResponse.json();
-                    if (meta.name) fileName = meta.name;
-                    if (meta.type) fileType = meta.type;
-                }
-
-                const file = new File([blob], fileName, { type: fileType });
-
-                console.log("Arquivo compartilhado recebido via PWA:", file.name);
-                showModal("Arquivo Recebido", `Arquivo "${file.name}" carregado. Conecte-se para enviar.`);
-
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                const fileInput = document.getElementById('file-input');
-                if (fileInput) {
-                    fileInput.files = dt.files;
-                    fileInput.dispatchEvent(new Event('change'));
-                }
-
-                await cache.delete('shared-file');
-                await cache.delete('shared-meta');
-
-                urlParams.delete('share_target');
-                window.history.replaceState({}, document.title, window.location.pathname + '?' + urlParams.toString());
-            }
-        } catch (e) {
-            console.error("Erro ao ler arquivo compartilhado:", e);
-        }
+        handleShareTarget(urlParams);
     }
 
     const remoteId = urlParams.get('remote');
-
     if (remoteId) {
         roomId = remoteId;
         initClient(roomId);
@@ -192,42 +151,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDragAndDrop();
 });
 
+async function handleShareTarget(urlParams) {
+    try {
+        const cache = await caches.open('share-cache');
+        const response = await cache.match('shared-file');
+        const metaResponse = await cache.match('shared-meta');
+
+        if (response) {
+            const blob = await response.blob();
+            let fileName = "shared_file";
+            let fileType = blob.type;
+
+            if (metaResponse) {
+                const meta = await metaResponse.json();
+                if (meta.name) fileName = meta.name;
+                if (meta.type) fileType = meta.type;
+            }
+
+            const file = new File([blob], fileName, { type: fileType });
+            showModal("Arquivo Recebido", `Arquivo "${file.name}" pronto para enviar.`);
+
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            if (fileInput) {
+                fileInput.files = dt.files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+
+            await cache.delete('shared-file');
+            await cache.delete('shared-meta');
+
+            urlParams.delete('share_target');
+            window.history.replaceState({}, document.title, window.location.pathname + '?' + urlParams.toString());
+        }
+    } catch (e) {
+        console.error("Erro Share Target:", e);
+    }
+}
+
 function generateRoomId() {
     return Math.random().toString(36).substring(2, 10);
 }
 
 function initHost() {
-    roomId = generateRoomId();
+    const urlParams = new URLSearchParams(window.location.search);
+    roomId = urlParams.get('host_id') || generateRoomId();
 
+    db.ref(`rooms/${roomId}`).off();
     db.ref(`rooms/${roomId}`).onDisconnect().remove();
 
     generateQRCode(roomId);
     updateUIState('waiting');
 
     const readyContent = document.getElementById('ready-content');
-
     if (readyContent) {
-        const panel = document.getElementById('panel-waiting');
-
-        const startHeight = panel.offsetHeight;
-        panel.style.height = startHeight + 'px';
-
         readyContent.style.display = 'flex';
-
-        void panel.offsetHeight;
-
-        const isMobile = window.innerWidth <= 600;
-
-        panel.style.height = isMobile ? '450px' : '500px';
-
         readyContent.classList.add('fade-in');
+        const panel = document.getElementById('panel-waiting');
+        panel.style.height = (window.innerWidth <= 600) ? '595px' : '630px';
     }
 
-    const rtcConfig = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
-        ]
-    };
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     peer = new SimplePeer({
         initiator: true,
@@ -241,382 +225,212 @@ function initHost() {
 
     peer.on('connect', () => {
         handleConnection();
-        db.ref(`rooms/${roomId}`).remove();
     });
 
     peer.on('data', data => handleDataReceived(data));
-    peer.on('close', () => handleDisconnect());
-    peer.on('error', err => handleError(err));
 
-    const answerRef = db.ref(`rooms/${roomId}/answer`);
-    answerRef.on('value', snapshot => {
-        const data = snapshot.val();
-        if (data) {
-            peer.signal(JSON.parse(data));
-            answerRef.off();
+    peer.on('stream', stream => {
+        console.log("HOST RECEBEU STREAM");
+        handleVideoStream(stream, urlParams.get('mode') === 'obs');
+    });
+
+    peer.on('close', () => {
+        if (urlParams.get('mode') === 'obs') {
+            console.log("OBS: Conexão fechada. Reiniciando...");
+            resetApp();
+        } else {
+            handleDisconnect();
         }
     });
 
-    setTimeout(() => {
-        if (!peer.connected && !linkInput.value) {
-            console.warn("Possível erro de configuração do Firebase ou Rede.");
+    peer.on('error', err => {
+        console.error("Erro Peer:", err);
+        if (urlParams.get('mode') === 'obs') {
+            console.log("OBS: Erro crítico. Reiniciando...");
+            if (peer) { peer.removeAllListeners(); peer.destroy(); }
+            peer = null;
+            initHost();
+        } else {
+            handleError(err);
         }
-    }, 5000);
+    });
+
+    let lastAnswer = null;
+    db.ref(`rooms/${roomId}/answer`).on('value', snapshot => {
+        const data = snapshot.val();
+        if (data && data !== lastAnswer) {
+            lastAnswer = data;
+            try {
+                if (peer && !peer.destroyed) peer.signal(JSON.parse(data));
+            } catch (e) { console.warn("Sinal ignorado:", e); }
+        }
+    });
 }
 
 function initClient(id) {
-
     const qrDiv = document.getElementById('qrcode');
+
     if (qrDiv) {
         qrDiv.innerHTML = `
             <div class="qr-loading">
                 <div class="spinner"></div>
-                <p>Buscando sala...</p>
+                <p id="loading-text" style="margin-top: 10px; margin-bottom: 0; color: var(--accent-color); font-family: var(--font-body);">
+                    Buscando sala...
+                </p>
             </div>
         `;
     }
 
-    db.ref(`rooms/${id}/offer`).once('value', snapshot => {
+    const manualHostTimeout = setTimeout(() => {
+        const loadingText = document.getElementById('loading-text');
+
+        if (qrDiv && (!peer || !peer.connected) && loadingText) {
+            loadingText.innerText = "Aguardando o Host...";
+            loadingText.style.opacity = "0.7";
+            loadingText.style.marginBottom = "0px";
+
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'fade-in';
+            optionDiv.style.display = 'flex';
+            optionDiv.style.flexDirection = 'column';
+            optionDiv.style.alignItems = 'center';
+
+            optionDiv.innerHTML = `
+                <span style="font-size: 0.75rem; opacity: 0.4; color: var(--text-color); font-family: var(--font-body);">
+                    Não conectou?
+                </span>
+                <button id="btn-force-host" style="
+                    background: var(--base-color); 
+                    border: 1px solid var(--accent-color); 
+                    color: var(--accent-color); 
+                    padding: 6px 14px; 
+                    border-radius: 20px; 
+                    font-size: 0.8rem; 
+                    cursor: pointer; 
+                    transition: all 0.3s ease;
+                    font-family: var(--font-body);
+                    font-weight: 500;
+                    backdrop-filter: blur(4px);
+                    margin-top: 2px;
+                " 
+                onmouseover="this.style.background='var(--accent-color)'; this.style.color='var(--text-color)';"
+                onmouseout="this.style.background='var(--base-color)'; this.style.color='var(--accent-color)';"
+                >
+                    Criar Minha Sala
+                </button>
+            `;
+
+            const container = qrDiv.querySelector('.qr-loading');
+            if (container) container.appendChild(optionDiv);
+
+            const btn = document.getElementById('btn-force-host');
+            if (btn) {
+                btn.onclick = () => {
+                    console.log("Usuário virou Host.");
+                    resetApp();
+                };
+            }
+        }
+    }, 5000);
+
+    let lastOffer = null;
+
+    db.ref(`rooms/${id}/offer`).on('value', snapshot => {
         const offer = snapshot.val();
-        if (!offer) {
-            resetApp();
-            return;
+
+        if (!offer) return;
+
+        if (qrDiv && !peer) {
+            qrDiv.innerHTML = `
+                <div class="qr-loading">
+                    <div class="spinner"></div>
+                    <p style="color: var(--accent-color); margin-top: 10px;">Conectando...</p>
+                </div>`;
         }
+        clearTimeout(manualHostTimeout);
 
-        if (qrDiv) qrDiv.innerHTML = `<div class="qr-loading"><div class="spinner"></div><p>Conectando...</p></div>`;
+        if (offer === lastOffer) return;
+        lastOffer = offer;
 
-        const rtcConfig = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }
-            ]
-        };
+        if (!peer) {
+            const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-        peer = new SimplePeer({
-            initiator: false,
-            trickle: false,
-            config: rtcConfig
-        });
-
-        peer.on('signal', data => {
-            db.ref(`rooms/${id}/answer`).set(JSON.stringify(data));
-        });
-
-        peer.on('connect', () => {
-            handleConnection();
-        });
-
-        peer.on('data', data => handleDataReceived(data));
-        peer.on('close', () => handleDisconnect());
-        peer.on('error', err => handleError(err));
-
-        peer.signal(JSON.parse(offer));
-    });
-}
-
-function handleConnection() {
-    updateUIState('connected');
-}
-
-function handleDisconnect() {
-    showModal("Desconectado", "Conexão encerrada.");
-    resetApp();
-}
-
-function handleError(err) {
-    let msg = "Erro desconhecido.";
-    if (err.code === 'ERR_WEBRTC_SUPPORT') msg = "Seu navegador não suporta WebRTC.";
-    if (err.message) msg = err.message;
-
-    showModal("Erro", msg);
-}
-
-async function sendFile(file, existingElement = null) {
-    if (!peer || !peer.connected) {
-        showModal("Erro", "Não há conexão ativa!");
-        return;
-    }
-
-    const transferId = Math.random().toString(36).substring(2, 10);
-    let isCancelled = false;
-
-    let item;
-    if (existingElement) {
-        item = existingElement;
-        const status = item.querySelector('.status-text');
-        if (status) status.innerText = 'Iniciando envio...';
-
-        const btn = item.querySelector('.btn-cancel-transfer');
-        if (btn) btn.onclick = () => { isCancelled = true; };
-    } else {
-        item = createTransferItem(file.name, file.size, 'Enviando...', 'upload', () => {
-            isCancelled = true;
-        });
-    }
-
-    const progressBar = item.querySelector('.progress-fill');
-    const statusText = item.querySelector('.status-text');
-    const percentageText = item.querySelector('.percentage');
-    const cancelBtn = item.querySelector('.btn-cancel-transfer');
-
-    const header = JSON.stringify({
-        type: 'header',
-        transferId: transferId,
-        name: file.name,
-        size: file.size,
-        mime: file.type
-    });
-
-    const headerBytes = new TextEncoder().encode(header);
-    const headerPacket = new Uint8Array(headerBytes.length + 1);
-    headerPacket[0] = 0;
-    headerPacket.set(headerBytes, 1);
-
-    try {
-        peer.send(headerPacket);
-    } catch (e) {
-        console.error("Erro ao enviar header:", e);
-        statusText.innerText = 'Erro ao iniciar';
-        return;
-    }
-
-    const MAX_BUFFERED_AMOUNT = 1 * 1024 * 1024;
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    let offset = 0;
-
-    let lastUiTime = 0;
-    let startTime = Date.now();
-    let currentSpeed = "Iniciando...";
-
-    const idBytes = new TextEncoder().encode(transferId);
-
-    for (let i = 0; i < totalChunks; i++) {
-        if (!peer || !peer.connected || peer.destroyed) {
-            statusText.innerText = 'Erro: Conexão caiu';
-            statusText.style.color = '#ff4444';
-            if (cancelBtn) cancelBtn.style.display = 'none';
-            return;
-        }
-
-        if (isCancelled) {
-            console.log("Envio cancelado pelo usuário:", transferId);
-            statusText.innerText = 'Cancelado';
-            statusText.style.color = '#ff4444';
-            if (cancelBtn) cancelBtn.style.display = 'none';
-
-            try {
-                const cancelPacket = new Uint8Array(9);
-                cancelPacket[0] = 2;
-                cancelPacket.set(idBytes, 1);
-                peer.send(cancelPacket);
-            } catch (e) { }
-            return;
-        }
-
-        if (peer._channel.bufferedAmount > MAX_BUFFERED_AMOUNT) {
-            await new Promise(resolve => {
-                const checkBuffer = () => {
-                    if (!peer || !peer.connected || peer.destroyed) return resolve();
-                    if (peer._channel.bufferedAmount < MAX_BUFFERED_AMOUNT) {
-                        resolve();
-                    } else {
-                        setTimeout(checkBuffer, 10);
-                    }
-                };
-                checkBuffer();
+            peer = new SimplePeer({
+                initiator: false,
+                trickle: false,
+                config: rtcConfig
             });
+
+            peer.on('stream', stream => {
+                handleVideoStream(stream, false);
+            });
+
+            peer.on('signal', data => {
+                db.ref(`rooms/${id}/answer`).set(JSON.stringify(data));
+            });
+
+            peer.on('connect', () => {
+                handleConnection();
+                clearTimeout(manualHostTimeout);
+            });
+
+            peer.on('data', data => handleDataReceived(data));
+            peer.on('close', handleDisconnect);
+            peer.on('error', handleError);
+
+            peer.signal(JSON.parse(offer));
+        } else {
+            peer.signal(JSON.parse(offer));
         }
-
-        const chunk = file.slice(offset, offset + CHUNK_SIZE);
-        const buffer = await chunk.arrayBuffer();
-        const chunkBytes = new Uint8Array(buffer);
-
-        const packet = new Uint8Array(1 + 8 + chunkBytes.length);
-        packet[0] = 1;
-        packet.set(idBytes, 1);
-        packet.set(chunkBytes, 9);
-
-        let sent = false;
-        while (!sent) {
-            if (!peer || !peer.connected || peer._channel.readyState !== 'open') {
-                statusText.innerText = 'Erro: Canal fechado';
-                return;
-            }
-
-            try {
-                peer.send(packet);
-                sent = true;
-            } catch (err) {
-                if (err.message && err.message.includes('queue is full')) {
-                    await new Promise(r => setTimeout(r, 20));
-                } else {
-                    console.error("Erro fatal envio:", err);
-                    statusText.innerText = 'Erro no envio';
-                    return;
-                }
-            }
-        }
-
-        offset += CHUNK_SIZE;
-
-        const now = Date.now();
-        if (now - lastUiTime >= 200 || i === totalChunks - 1) {
-            const percent = Math.floor(((i + 1) / totalChunks) * 100);
-
-            if (now - startTime >= 500) {
-                const diffSec = (now - startTime) / 1000;
-                const speed = offset / diffSec;
-                currentSpeed = formatSpeed(speed);
-            }
-
-            progressBar.style.width = percent + '%';
-            statusText.innerText = `Enviando... (${currentSpeed})`;
-            percentageText.innerText = percent + '%';
-            lastUiTime = now;
-        }
-    }
-
-    if (peer && peer._channel) {
-        while (peer._channel.bufferedAmount > 0) {
-            if (!peer.connected) break;
-            await new Promise(r => setTimeout(r, 100));
-        }
-    }
-
-    if (cancelBtn) cancelBtn.remove();
-
-    statusText.innerText = 'Enviado com sucesso!';
-    statusText.style.color = '#4ade80';
-    percentageText.innerText = '100%';
-    progressBar.style.width = '100%';
+    });
 }
 
-document.getElementById('file-input').addEventListener('click', function () {
-    this.value = null;
-});
+function handleVideoStream(stream, isObs) {
+    console.log("Processando vídeo...", stream);
+    const video = document.getElementById('remote-video');
+    const wrapper = document.getElementById('video-wrapper');
 
+    wrapper.style.display = 'flex';
+    wrapper.style.zIndex = '9999';
 
-function handleDataReceived(data) {
-    if (!data || data.byteLength === 0) return;
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
 
-    const type = data[0];
-
-    if (type === 1) {
-        if (data.byteLength < 9) return;
-
-        const idBytes = data.subarray(1, 9);
-        const transferId = new TextDecoder().decode(idBytes);
-
-        const fileState = activeDownloads.get(transferId);
-        if (!fileState) {
-            return;
-        }
-
-        const payload = data.subarray(9);
-        fileState.buffer.push(payload);
-        fileState.receivedSize += payload.byteLength;
-
-        const now = Date.now();
-        if (now - fileState.lastTime >= 500) {
-            const diffTime = (now - fileState.lastTime) / 1000;
-            const chunkDelta = fileState.receivedSize - fileState.lastBytesRef;
-            const speedBytes = chunkDelta / diffTime;
-            fileState.currentSpeed = formatSpeed(speedBytes);
-            fileState.lastTime = now;
-            fileState.lastBytesRef = fileState.receivedSize;
-        }
-
-        const percent = Math.min(100, Math.round((fileState.receivedSize / fileState.totalSize) * 100));
-        if (fileState.progressBar) {
-            fileState.progressBar.style.width = percent + '%';
-            fileState.statusText.innerText = `Recebendo... (${fileState.currentSpeed || '...'})`;
-            fileState.percentageText.innerText = percent + '%';
-        }
-
-        if (fileState.receivedSize >= fileState.totalSize) {
-            assembleAndDownload(transferId);
-        }
-        return;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(error => {
+            console.warn("Autoplay bloqueado. Tentando play forçado:", error);
+            video.muted = true;
+            video.play();
+        });
     }
 
-    if (type === 2) {
-        if (data.byteLength < 9) return;
-        const idBytes = data.subarray(1, 9);
-        const transferId = new TextDecoder().decode(idBytes);
-
-        const fileState = activeDownloads.get(transferId);
-        if (fileState) {
-            if (fileState.statusText) {
-                fileState.statusText.innerText = 'Cancelado pelo remetente';
-                fileState.statusText.style.color = '#ff4444';
-            }
-            activeDownloads.delete(transferId);
-        }
-        return;
-    }
-
-    if (type === 0) {
-        try {
-            const payload = data.subarray(1);
-            const jsonString = new TextDecoder().decode(payload);
-            const parsed = JSON.parse(jsonString);
-
-            if (parsed.type === 'header') {
-                const transferId = parsed.transferId;
-                if (!transferId) return;
-
-                const item = createTransferItem(parsed.name, parsed.size, 'Recebendo...', 'download');
-
-                const fileState = {
-                    buffer: [],
-                    receivedSize: 0,
-                    totalSize: parsed.size,
-                    name: parsed.name,
-                    mime: parsed.mime,
-                    progressBar: item.querySelector('.progress-fill'),
-                    statusText: item.querySelector('.status-text'),
-                    percentageText: item.querySelector('.percentage'),
-                    lastTime: Date.now(),
-                    lastBytesRef: 0,
-                    currentSpeed: "0 KB/s"
-                };
-
-                activeDownloads.set(transferId, fileState);
-
-            } else if (parsed.type === 'clipboard') {
-                const text = parsed.text;
-                if (text) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        showClipboardModal(text, true);
-                    }).catch(err => {
-                        console.warn("Auto-copy blocked:", err);
-                        showClipboardModal(text, false);
-                    });
-                }
-            } else if (parsed.type === 'error') {
-                showModal("Erro Remoto", parsed.msg);
-            }
-
-        } catch (e) {
-            console.warn("Erro ao processar pacote de controle:", e);
-        }
-    }
+    if (isObs) document.body.classList.add('obs-mode');
 }
 
-function assembleAndDownload(transferId) {
-    const fileState = activeDownloads.get(transferId);
-    if (!fileState) return;
+function generateQRCode(id) {
+    const origin = window.location.origin;
+    const path = window.location.pathname;
 
-    const blob = new Blob(fileState.buffer, { type: fileState.mime });
-    downloadFile(blob, fileState.name);
+    const connectUrl = `${origin}${path}?remote=${id}`;
 
-    if (fileState.statusText) {
-        fileState.statusText.innerText = 'Recebido com sucesso!';
-        fileState.statusText.style.color = '#4ade80';
-        fileState.progressBar.style.backgroundColor = '#4ade80';
-        fileState.percentageText.innerText = '100%';
-    }
+    if (linkInput) linkInput.value = connectUrl;
 
-    activeDownloads.delete(transferId);
+    const obsUrl = `${origin}${path}?remote=${id}&mode=obs`;
+
+    const obsInput = document.getElementById('link-obs');
+    if (obsInput) obsInput.value = obsUrl;
+
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+        text: connectUrl,
+        width: 180,
+        height: 180,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+    });
 }
 
 function updateUIState(state) {
@@ -630,6 +444,34 @@ function updateUIState(state) {
     }
 }
 
+function handleConnection() {
+    updateUIState('connected');
+}
+
+function handleDisconnect() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'obs') {
+        resetApp();
+        return;
+    }
+    showModal("Desconectado", "Conexão encerrada.");
+    resetApp();
+}
+
+function handleError(err) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'obs') {
+        console.error("OBS Erro Silencioso:", err);
+        if (peer) peer.destroy();
+        initHost();
+        return;
+    }
+
+    let msg = err.message || "Erro desconhecido.";
+    if (err.code === 'ERR_WEBRTC_SUPPORT') msg = "Seu navegador não suporta WebRTC.";
+    showModal("Erro", msg);
+}
+
 function resetApp() {
     if (peer) {
         peer.removeAllListeners();
@@ -637,285 +479,441 @@ function resetApp() {
         peer = null;
     }
     roomId = null;
-
     activeDownloads.clear();
-
     transfersList.innerHTML = '';
     window.history.replaceState({}, document.title, window.location.pathname);
     initHost();
 }
 
-function generateQRCode(id) {
-    const fullUrl = `${window.location.origin}${window.location.pathname}?remote=${id}`;
-    linkInput.value = fullUrl;
-    qrContainer.innerHTML = '';
-    new QRCode(qrContainer, {
-        text: fullUrl,
-        width: 180,
-        height: 180,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.L
-    });
-}
-
-const MAX_CONCURRENT_UPLOADS = 3;
-let activeUploads = 0;
-const uploadQueue = [];
-
-function queueFile(file) {
+async function sendFile(file, existingElement = null) {
     if (!peer || !peer.connected) {
-        showModal("Erro", "Você precisa estar conectado para adicionar arquivos à fila.");
+        showModal("Erro", "Não há conexão ativa!");
         return;
     }
 
+    const transferId = Math.random().toString(36).substring(2, 10);
     let isCancelled = false;
-    let transferItem = null;
+    let item = existingElement;
 
-    const onCancel = () => {
-        isCancelled = true;
-        if (transferItem) {
-            const status = transferItem.querySelector('.status-text');
-            if (status) {
-                status.innerText = 'Cancelado na fila';
-                status.style.color = '#ff4444';
+    if (!item) {
+        item = createTransferItem(file.name, file.size, 'Iniciando...', 'upload', () => { isCancelled = true; });
+    } else {
+        const btn = item.querySelector('.btn-cancel-transfer');
+        if (btn) btn.onclick = () => { isCancelled = true; };
+    }
+
+    const statusText = item.querySelector('.status-text');
+    const progressBar = item.querySelector('.progress-fill');
+    const percentageText = item.querySelector('.percentage');
+    const cancelBtn = item.querySelector('.btn-cancel-transfer');
+
+    const header = JSON.stringify({
+        type: 'header', transferId, name: file.name, size: file.size, mime: file.type
+    });
+    const headerBytes = new TextEncoder().encode(header);
+    const headerPacket = new Uint8Array(headerBytes.length + 1);
+    headerPacket[0] = 0;
+    headerPacket.set(headerBytes, 1);
+
+    try {
+        peer.send(headerPacket);
+    } catch (e) {
+        statusText.innerText = 'Erro ao iniciar';
+        return;
+    }
+
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    let offset = 0;
+    const idBytes = new TextEncoder().encode(transferId);
+
+    const startTime = Date.now();
+    let lastUiTime = 0;
+
+    for (let i = 0; i < totalChunks; i++) {
+        if (!peer || !peer.connected || isCancelled) {
+            statusText.innerText = isCancelled ? 'Cancelado' : 'Erro de Conexão';
+            statusText.style.color = '#ff4444';
+            if (cancelBtn) cancelBtn.style.display = 'none';
+            if (isCancelled) {
+                const cancelPacket = new Uint8Array(9);
+                cancelPacket[0] = 2;
+                cancelPacket.set(idBytes, 1);
+                try { peer.send(cancelPacket); } catch (e) { }
             }
-            const btn = transferItem.querySelector('.btn-cancel-transfer');
-            if (btn) btn.remove();
+            return;
         }
-    };
 
-    transferItem = createTransferItem(file.name, file.size, 'Aguardando fila...', 'upload', onCancel);
+        if (peer._channel.bufferedAmount > 1024 * 1024) {
+            await new Promise(r => setTimeout(r, 50));
+        }
 
-    uploadQueue.push({
-        file: file,
-        element: transferItem,
-        get isCancelled() { return isCancelled; }
+        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        const buffer = await chunk.arrayBuffer();
+        const chunkBytes = new Uint8Array(buffer);
+        const packet = new Uint8Array(1 + 8 + chunkBytes.length);
+
+        packet[0] = 1;
+        packet.set(idBytes, 1);
+        packet.set(chunkBytes, 9);
+
+        try {
+            peer.send(packet);
+        } catch (err) {
+            await new Promise(r => setTimeout(r, 50));
+            i--; continue;
+        }
+
+        offset += CHUNK_SIZE;
+
+        const now = Date.now();
+        if (now - lastUiTime >= 500 || i === totalChunks - 1) {
+            const percent = Math.floor(((i + 1) / totalChunks) * 100);
+
+            const timeElapsed = (now - startTime) / 1000;
+            let speedText = "";
+            if (timeElapsed > 0) {
+                const speedBytes = offset / timeElapsed;
+                speedText = `(${formatBytes(speedBytes)}/s)`;
+            }
+
+            progressBar.style.width = percent + '%';
+            percentageText.innerText = percent + '%';
+            statusText.innerText = `Enviando... ${speedText}`;
+
+            lastUiTime = now;
+        }
+    }
+
+    if (cancelBtn) cancelBtn.remove();
+    statusText.innerText = 'Enviado!';
+    statusText.style.color = '#4ade80';
+    progressBar.style.width = '100%';
+}
+
+function queueFile(file) {
+    if (!peer || !peer.connected) {
+        showModal("Erro", "Conecte-se primeiro.");
+        return;
+    }
+
+    const item = createTransferItem(file.name, file.size, 'Aguardando...', 'upload', () => {
+        const idx = uploadQueue.findIndex(x => x.element === item);
+        if (idx > -1) {
+            uploadQueue.splice(idx, 1);
+            item.querySelector('.status-text').innerText = 'Cancelado';
+        }
     });
 
+    uploadQueue.push({ file, element: item });
     processQueue();
 }
 
 async function processQueue() {
     if (activeUploads >= MAX_CONCURRENT_UPLOADS || uploadQueue.length === 0) return;
 
-    let nextItem = null;
-    while (uploadQueue.length > 0) {
-        const candidate = uploadQueue.shift();
-        if (!candidate.isCancelled) {
-            nextItem = candidate;
-            break;
-        }
-    }
-
-    if (!nextItem) {
-        if (uploadQueue.length > 0) processQueue();
-        return;
-    }
+    const next = uploadQueue.shift();
+    if (!next) return;
 
     activeUploads++;
+    const status = next.element.querySelector('.status-text');
+    status.innerText = 'Preparando...';
+
     try {
-        await sendFile(nextItem.file, nextItem.element);
-    } catch (err) {
-        console.error("Erro no envio:", err);
+        await sendFile(next.file, next.element);
+    } catch (e) {
+        console.error(e);
     } finally {
         activeUploads--;
-        processQueue();
+        setTimeout(processQueue, 50);
     }
 }
 
-function setupDragAndDrop() {
-    const dropZone = document.getElementById('drop-zone');
-    const uploadIcon = document.getElementById('upload-icon');
-    const defaultIcon = '../Leitor-logs-totvs-fluig/assets/upload.webp';
-    const activeIcon = '../Leitor-logs-totvs-fluig/assets/upload_blue.webp';
+function handleDataReceived(data) {
+    if (!data || data.byteLength === 0) return;
+    const type = data[0];
 
-    function setUploadIcon(active) {
-        if (uploadIcon) uploadIcon.src = active ? activeIcon : defaultIcon;
-    }
+    if (type === 1) {
+        const idBytes = data.subarray(1, 9);
+        const transferId = new TextDecoder().decode(idBytes);
+        const fileState = activeDownloads.get(transferId);
+        if (!fileState) return;
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
-    });
+        const payload = data.subarray(9);
+        fileState.buffer.push(payload);
+        fileState.receivedSize += payload.byteLength;
 
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.classList.add('highlight');
-            setUploadIcon(true);
-        });
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => {
-            dropZone.classList.remove('highlight');
-            setUploadIcon(false);
-        });
-    });
-
-    dropZone.addEventListener('drop', e => {
-        const dt = e.dataTransfer;
-        if (dt.files.length > 0) {
-            Array.from(dt.files).forEach(file => queueFile(file));
+        const now = Date.now();
+        if (now - fileState.lastTime >= 500 || fileState.receivedSize >= fileState.totalSize) {
+            const percent = Math.round((fileState.receivedSize / fileState.totalSize) * 100);
+            if (fileState.progressBar) fileState.progressBar.style.width = percent + '%';
+            if (fileState.percentageText) fileState.percentageText.innerText = percent + '%';
+            fileState.lastTime = now;
         }
-    });
 
-    dropZone.addEventListener('mouseenter', () => setUploadIcon(true));
-    dropZone.addEventListener('mouseleave', () => setUploadIcon(false));
-}
-
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        Array.from(e.target.files).forEach(file => queueFile(file));
+        if (fileState.receivedSize >= fileState.totalSize) {
+            assembleAndDownload(transferId);
+        }
     }
-});
+    else if (type === 0) {
+        try {
+            const json = JSON.parse(new TextDecoder().decode(data.subarray(1)));
 
-btnCopy.addEventListener('click', () => {
-    linkInput.select();
-    document.execCommand('copy');
-    const originalText = btnCopy.innerText;
-    btnCopy.innerText = "Copiado!";
-    setTimeout(() => btnCopy.innerText = originalText, 2000);
-});
-
-const clipboardInput = document.getElementById('clipboard-input');
-const btnSendText = document.getElementById('btn-send-text');
-
-function sendClipboardText() {
-    const text = clipboardInput.value.trim();
-    if (!text) return;
-
-    if (!peer || !peer.connected) {
-        showModal("Erro", "Você precisa estar conectado.");
-        return;
-    }
-
-    const payload = JSON.stringify({ type: 'clipboard', text: text });
-    const payloadBytes = new TextEncoder().encode(payload);
-    const packet = new Uint8Array(payloadBytes.length + 1);
-    packet[0] = 0;
-    packet.set(payloadBytes, 1);
-
-    try {
-        peer.send(packet);
-
-        clipboardInput.value = '';
-        const originalBtnHTML = btnSendText.innerHTML;
-        btnSendText.innerHTML = '✔';
-        btnSendText.style.background = '#4ade80';
-        setTimeout(() => {
-            btnSendText.innerHTML = originalBtnHTML;
-            btnSendText.style.background = '';
-        }, 1500);
-
-    } catch (e) {
-        console.error("Erro ao enviar texto:", e);
-        showModal("Erro", "Falha ao enviar texto.");
+            if (json.type === 'header') {
+                const item = createTransferItem(json.name, json.size, 'Recebendo...', 'download');
+                activeDownloads.set(json.transferId, {
+                    buffer: [], receivedSize: 0, totalSize: json.size,
+                    name: json.name, mime: json.mime,
+                    progressBar: item.querySelector('.progress-fill'),
+                    percentageText: item.querySelector('.percentage'),
+                    lastTime: Date.now()
+                });
+            }
+            else if (json.type === 'clipboard') {
+                showClipboardModal(json.text, true);
+                navigator.clipboard.writeText(json.text).catch(() => { });
+            }
+            else if (json.type === 'close-video') {
+                console.log("Comando de fechar recebido.");
+                closeVideoUI();
+            }
+        } catch (e) { }
     }
 }
 
-if (btnSendText) {
-    btnSendText.addEventListener('click', sendClipboardText);
-}
-if (clipboardInput) {
-    clipboardInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendClipboardText();
-    });
+function assembleAndDownload(id) {
+    const fs = activeDownloads.get(id);
+    if (!fs) return;
+    const blob = new Blob(fs.buffer, { type: fs.mime });
+    downloadFile(blob, fs.name);
+    activeDownloads.delete(id);
 }
 
-btnDisconnect.addEventListener('click', () => {
-    if (peer) peer.destroy();
-    resetApp();
-});
-
-function formatBytes(bytes, decimals = 2) {
+function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function formatSpeed(bytesPerSecond) {
-    return formatBytes(bytesPerSecond) + '/s';
-}
+function getFileIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
 
-function getFileIcon(fileName) {
-    const ext = fileName.split('.').pop().toLowerCase();
-    const icons = {
-        image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`,
-        video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>`,
-        audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-        pdf: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-        doc: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-        archive: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
-        code: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
-        default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`
-    };
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return icons.image;
-    if (['mp4', 'webm', 'mov', 'avi'].includes(ext)) return icons.video;
-    if (['mp3', 'wav', 'ogg'].includes(ext)) return icons.audio;
-    if (['pdf'].includes(ext)) return icons.pdf;
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return icons.archive;
-    if (['html', 'css', 'js', 'json', 'py', 'java', 'c', 'cpp'].includes(ext)) return icons.code;
-    return icons.default;
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico', 'bmp'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+    }
+    if (['mp4', 'webm', 'mov', 'mkv', 'avi', 'wmv', 'flv'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>';
+    }
+    if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
+    }
+    if (ext === 'pdf') {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h3a2 2 0 0 0 0-4H9v4z"></path></svg>';
+    }
+    if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>';
+    }
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 12.5v5"></path><path d="M14 12.5v5"></path><path d="M12 2v10"></path><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"></path></svg>';
+    }
+    if (['js', 'html', 'css', 'json', 'py', 'php', 'ts', 'sql', 'c', 'cpp', 'java'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
+    }
+    if (['doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) {
+        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
+    }
+    return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
 }
 
 function createTransferItem(name, size, status, type, onCancel) {
     const item = document.createElement('div');
     item.className = `transfer-item fade-in ${type}`;
-    const formattedSize = formatBytes(size);
-    const icon = getFileIcon(name);
-    const isUpload = type === 'upload';
-    const actionIcon = isUpload ?
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>' :
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
-
-    const cancelButton = onCancel ?
-        `<button class="btn-cancel-transfer" title="Cancelar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>` :
-        '';
-
     item.innerHTML = `
-        <div class="transfer-icon-wrapper">
-            ${icon}
-            <div class="transfer-badge ${type}">${actionIcon}</div>
-        </div>
+        <div class="transfer-icon-wrapper">${getFileIcon(name)}</div>
         <div class="transfer-content">
-            <div class="transfer-header">
-                <span class="file-name" title="${name}">${name}</span>
-                <span class="file-size">${formattedSize}</span>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar-bg">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
-            </div>
+            <div class="transfer-header"><span>${name}</span><span>${formatBytes(size)}</span></div>
+            <div class="progress-container"><div class="progress-bar-bg"><div class="progress-fill" style="width: 0%"></div></div></div>
             <div class="transfer-footer">
                 <span class="status-text">${status}</span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="percentage">0%</span>
-                    ${cancelButton}
-                </div>
+                <span class="percentage">0%</span>
+                ${onCancel ? '<button class="btn-cancel-transfer">X</button>' : ''}
             </div>
-        </div>
-    `;
+        </div>`;
 
-    if (onCancel) {
-        const btn = item.querySelector('.btn-cancel-transfer');
-        if (btn) btn.onclick = onCancel;
-    }
-
+    if (onCancel) item.querySelector('.btn-cancel-transfer').onclick = onCancel;
     transfersList.appendChild(item);
     return item;
 }
 
-function downloadFile(blob, fileName) {
+function downloadFile(blob, name) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+    Array.from(e.target.files).forEach(queueFile);
+    e.target.value = null;
+});
+
+document.getElementById('btn-share-cam').onclick = () => startStream('camera');
+document.getElementById('btn-share-screen').onclick = () => startStream('screen');
+document.getElementById('btn-exit-obs').onclick = () => {
+    closeVideoUI();
+
+    if (peer && peer.connected) {
+        const cmd = JSON.stringify({ type: 'close-video' });
+        const bytes = new TextEncoder().encode(cmd);
+        const packet = new Uint8Array(bytes.length + 1);
+        packet.set(bytes, 1);
+        try { peer.send(packet); } catch (e) { }
+    }
+};
+
+const btnsCopy = document.querySelectorAll('#btn-copy, #btn-copy-obs, #btn-copy-remote');
+btnsCopy.forEach(btn => {
+    btn.onclick = () => {
+        const input = btn.previousElementSibling;
+        input.select();
+        document.execCommand('copy');
+        const orig = btn.innerText;
+        btn.innerText = "Copiado!";
+        setTimeout(() => btn.innerText = orig, 2000);
+    };
+});
+
+document.getElementById('btn-disconnect').onclick = () => {
+    if (peer) peer.destroy();
+    resetApp();
+};
+
+document.getElementById('btn-send-text').onclick = () => {
+    const input = document.getElementById('clipboard-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    if (!peer || !peer.connected) {
+        showModal("Erro", "Conecte-se primeiro.");
+        return;
+    }
+
+    const payload = JSON.stringify({ type: 'clipboard', text: text });
+    const bytes = new TextEncoder().encode(payload);
+    const packet = new Uint8Array(bytes.length + 1);
+    packet[0] = 0;
+    packet.set(bytes, 1);
+
+    try {
+        peer.send(packet);
+        input.value = '';
+        const btn = document.getElementById('btn-send-text');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span style="font-size:1.2rem">✔</span>';
+        setTimeout(() => btn.innerHTML = originalHtml, 1500);
+    } catch (err) {
+        showModal("Erro", "Falha ao enviar texto.");
+    }
+};
+
+document.getElementById('clipboard-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('btn-send-text').click();
+    }
+});
+
+async function startStream(type) {
+    if (!peer || !peer.connected) return showModal("Erro", "Conecte-se primeiro!");
+
+    try {
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+
+        if (type === 'camera') {
+            currentStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30, max: 60 },
+                    facingMode: "environment"
+                },
+                audio: false
+            });
+        } else {
+            currentStream = await navigator.mediaDevices.getDisplayMedia({
+                video: { frameRate: { ideal: 30 } },
+                audio: false
+            });
+        }
+
+        peer.addStream(currentStream);
+
+        const video = document.getElementById('remote-video');
+        document.getElementById('video-wrapper').style.display = 'flex';
+        video.srcObject = currentStream;
+        video.muted = true;
+        video.play();
+
+        document.getElementById('btn-share-cam').disabled = true;
+        document.getElementById('btn-share-screen').disabled = true;
+
+        currentStream.getVideoTracks()[0].onended = () => {
+            closeVideoUI();
+            if (peer && peer.connected) {
+                const cmd = JSON.stringify({ type: 'close-video' });
+                const bytes = new TextEncoder().encode(cmd);
+                const packet = new Uint8Array(bytes.length + 1);
+                packet.set(bytes, 1);
+                try { peer.send(packet); } catch (e) { }
+            }
+        };
+
+    } catch (err) {
+        console.error(err);
+        showModal("Erro", "Falha ao iniciar stream: " + err.message);
+    }
+}
+
+function closeVideoUI() {
+    const wrapper = document.getElementById('video-wrapper');
+    const video = document.getElementById('remote-video');
+
+    wrapper.style.display = 'none';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') !== 'obs') {
+        document.body.classList.remove('obs-mode');
+    }
+
+    if (video.srcObject) {
+        const tracks = video.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+    }
+
+    if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        if (peer && !peer.destroyed) {
+            try { peer.removeStream(currentStream); } catch (e) { }
+        }
+        currentStream = null;
+    }
+
+    document.getElementById('btn-share-cam').disabled = false;
+    document.getElementById('btn-share-screen').disabled = false;
+}
+
+function setupDragAndDrop() {
+    const dropZone = document.getElementById('drop-zone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+        dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); });
+    });
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('highlight'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('highlight'));
+    dropZone.addEventListener('drop', e => {
+        dropZone.classList.remove('highlight');
+        Array.from(e.dataTransfer.files).forEach(queueFile);
+    });
 }
