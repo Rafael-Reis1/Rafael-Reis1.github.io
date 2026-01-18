@@ -7,14 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1801260209">
+    <link rel="stylesheet" href="style.css?v=1801260230">
     <title>P2P File Share</title>
     <script src="https://unpkg.com/simple-peer@9.11.1/simplepeer.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <link rel="manifest" href="manifest.json?v=1801260209">
+    <link rel="manifest" href="manifest.json?v=1801260230">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260209">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1801260230">
 </head>
 
 <body>
@@ -82,7 +82,8 @@
                 <div id="drop-zone" class="file-upload">
                     <label for="file-input" class="file-upload-label">
                         <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload">
-                        Arraste arquivos aqui ou clique para selecionar
+                        <span class="desktop-text">Arraste arquivos aqui ou clique para selecionar</span>
+                        <span class="mobile-text">Toque para selecionar arquivos</span>
                     </label>
                     <input type="file" id="file-input" class="custom-file-input" multiple>
                 </div>
@@ -129,7 +130,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=1801260209"></script>
+    <script src="app.js?v=1801260230"></script>
 </body>
 
 </html>

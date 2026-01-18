@@ -1,11 +1,11 @@
 const CACHE_NAME = 'finance-app-v1768617000';
 const urlsToCache = [
     '/finance/finance.html',
-    '/finance/style.css?v=1801260209',
-    '/finance/app.js?v=1801260209',
+    '/finance/style.css?v=1801260230',
+    '/finance/app.js?v=1801260230',
     '/finance/icon-512.png',
     '/finance/icon-maskable.png',
-    '/finance/manifest.json?v=1801260209'
+    '/finance/manifest.json?v=1801260230'
 ];
 
 self.addEventListener('install', event => {
