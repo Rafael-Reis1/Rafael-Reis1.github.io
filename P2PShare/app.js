@@ -29,15 +29,7 @@ const btnDisconnect = document.getElementById('btn-disconnect');
 const btnCopy = document.getElementById('btn-copy');
 const btnVoltar = document.getElementById('btnVoltar');
 
-let incomingFile = {
-    buffer: [],
-    receivedSize: 0,
-    totalSize: 0,
-    name: '',
-    mime: '',
-    progressBar: null,
-    startTime: 0
-};
+const activeDownloads = new Map();
 
 btnVoltar.onclick = function () {
     window.location.href = '/';
@@ -324,17 +316,28 @@ function handleError(err) {
     showModal("Erro", msg);
 }
 
-async function sendFile(file) {
+async function sendFile(file, existingElement = null) {
     if (!peer || !peer.connected) {
         showModal("Erro", "Não há conexão ativa!");
         return;
     }
 
+    const transferId = Math.random().toString(36).substring(2, 10);
     let isCancelled = false;
 
-    const item = createTransferItem(file.name, file.size, 'Enviando...', 'upload', () => {
-        isCancelled = true;
-    });
+    let item;
+    if (existingElement) {
+        item = existingElement;
+        const status = item.querySelector('.status-text');
+        if (status) status.innerText = 'Iniciando envio...';
+
+        const btn = item.querySelector('.btn-cancel-transfer');
+        if (btn) btn.onclick = () => { isCancelled = true; };
+    } else {
+        item = createTransferItem(file.name, file.size, 'Enviando...', 'upload', () => {
+            isCancelled = true;
+        });
+    }
 
     const progressBar = item.querySelector('.progress-fill');
     const statusText = item.querySelector('.status-text');
@@ -343,10 +346,12 @@ async function sendFile(file) {
 
     const header = JSON.stringify({
         type: 'header',
+        transferId: transferId,
         name: file.name,
         size: file.size,
         mime: file.type
     });
+
     const headerBytes = new TextEncoder().encode(header);
     const headerPacket = new Uint8Array(headerBytes.length + 1);
     headerPacket[0] = 0;
@@ -361,14 +366,14 @@ async function sendFile(file) {
     }
 
     const MAX_BUFFERED_AMOUNT = 1 * 1024 * 1024;
-
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     let offset = 0;
 
     let lastUiTime = 0;
-    let bytesSentSinceLastUi = 0;
     let startTime = Date.now();
     let currentSpeed = "Iniciando...";
+
+    const idBytes = new TextEncoder().encode(transferId);
 
     for (let i = 0; i < totalChunks; i++) {
         if (!peer || !peer.connected || peer.destroyed) {
@@ -379,17 +384,17 @@ async function sendFile(file) {
         }
 
         if (isCancelled) {
-            console.log("Envio cancelado pelo usuário.");
+            console.log("Envio cancelado pelo usuário:", transferId);
             statusText.innerText = 'Cancelado';
             statusText.style.color = '#ff4444';
             if (cancelBtn) cancelBtn.style.display = 'none';
 
             try {
-                const cancelPacket = new Uint8Array(1);
+                const cancelPacket = new Uint8Array(9);
                 cancelPacket[0] = 2;
+                cancelPacket.set(idBytes, 1);
                 peer.send(cancelPacket);
             } catch (e) { }
-
             return;
         }
 
@@ -397,11 +402,10 @@ async function sendFile(file) {
             await new Promise(resolve => {
                 const checkBuffer = () => {
                     if (!peer || !peer.connected || peer.destroyed) return resolve();
-
                     if (peer._channel.bufferedAmount < MAX_BUFFERED_AMOUNT) {
                         resolve();
                     } else {
-                        setTimeout(checkBuffer, 5);
+                        setTimeout(checkBuffer, 10);
                     }
                 };
                 checkBuffer();
@@ -412,14 +416,14 @@ async function sendFile(file) {
         const buffer = await chunk.arrayBuffer();
         const chunkBytes = new Uint8Array(buffer);
 
-        const packet = new Uint8Array(chunkBytes.length + 1);
+        const packet = new Uint8Array(1 + 8 + chunkBytes.length);
         packet[0] = 1;
-        packet.set(chunkBytes, 1);
+        packet.set(idBytes, 1);
+        packet.set(chunkBytes, 9);
 
         let sent = false;
         while (!sent) {
             if (!peer || !peer.connected || peer._channel.readyState !== 'open') {
-                console.warn("Canal fechou durante tentativa de envio.");
                 statusText.innerText = 'Erro: Canal fechado';
                 return;
             }
@@ -429,9 +433,9 @@ async function sendFile(file) {
                 sent = true;
             } catch (err) {
                 if (err.message && err.message.includes('queue is full')) {
-                    await new Promise(r => setTimeout(r, 10));
+                    await new Promise(r => setTimeout(r, 20));
                 } else {
-                    console.error("Erro fatal envio (catch):", err);
+                    console.error("Erro fatal envio:", err);
                     statusText.innerText = 'Erro no envio';
                     return;
                 }
@@ -439,10 +443,9 @@ async function sendFile(file) {
         }
 
         offset += CHUNK_SIZE;
-        bytesSentSinceLastUi += packet.length;
 
         const now = Date.now();
-        if (now - lastUiTime >= 100 || i === totalChunks - 1) {
+        if (now - lastUiTime >= 200 || i === totalChunks - 1) {
             const percent = Math.floor(((i + 1) / totalChunks) * 100);
 
             if (now - startTime >= 500) {
@@ -461,7 +464,6 @@ async function sendFile(file) {
     if (peer && peer._channel) {
         while (peer._channel.bufferedAmount > 0) {
             if (!peer.connected) break;
-            statusText.innerText = 'Finalizando upload...';
             await new Promise(r => setTimeout(r, 100));
         }
     }
@@ -474,76 +476,97 @@ async function sendFile(file) {
     progressBar.style.width = '100%';
 }
 
+document.getElementById('file-input').addEventListener('click', function () {
+    this.value = null;
+});
+
+
 function handleDataReceived(data) {
     if (!data || data.byteLength === 0) return;
 
     const type = data[0];
-    const payload = data.subarray(1);
 
     if (type === 1) {
-        incomingFile.buffer.push(payload);
-        incomingFile.receivedSize += payload.byteLength;
+        if (data.byteLength < 9) return;
+
+        const idBytes = data.subarray(1, 9);
+        const transferId = new TextDecoder().decode(idBytes);
+
+        const fileState = activeDownloads.get(transferId);
+        if (!fileState) {
+            return;
+        }
+
+        const payload = data.subarray(9);
+        fileState.buffer.push(payload);
+        fileState.receivedSize += payload.byteLength;
 
         const now = Date.now();
-        if (!incomingFile.lastTime) incomingFile.lastTime = now;
-
-        if (typeof incomingFile.lastBytesRef === 'undefined') incomingFile.lastBytesRef = 0;
-
-        if (now - incomingFile.lastTime >= 500) {
-            const diffTime = (now - incomingFile.lastTime) / 1000;
-            const chunkDelta = incomingFile.receivedSize - incomingFile.lastBytesRef;
-
+        if (now - fileState.lastTime >= 500) {
+            const diffTime = (now - fileState.lastTime) / 1000;
+            const chunkDelta = fileState.receivedSize - fileState.lastBytesRef;
             const speedBytes = chunkDelta / diffTime;
-            incomingFile.currentSpeed = formatSpeed(speedBytes);
-
-            incomingFile.lastTime = now;
-            incomingFile.lastBytesRef = incomingFile.receivedSize;
+            fileState.currentSpeed = formatSpeed(speedBytes);
+            fileState.lastTime = now;
+            fileState.lastBytesRef = fileState.receivedSize;
         }
 
-        const percent = Math.min(100, Math.round((incomingFile.receivedSize / incomingFile.totalSize) * 100));
-
-        if (incomingFile.progressBar) {
-            incomingFile.progressBar.style.width = percent + '%';
-            incomingFile.statusText.innerText = `Recebendo... (${incomingFile.currentSpeed || '...'})`;
-            incomingFile.percentageText.innerText = percent + '%';
+        const percent = Math.min(100, Math.round((fileState.receivedSize / fileState.totalSize) * 100));
+        if (fileState.progressBar) {
+            fileState.progressBar.style.width = percent + '%';
+            fileState.statusText.innerText = `Recebendo... (${fileState.currentSpeed || '...'})`;
+            fileState.percentageText.innerText = percent + '%';
         }
 
-        if (incomingFile.receivedSize >= incomingFile.totalSize) {
-            assembleAndDownload();
+        if (fileState.receivedSize >= fileState.totalSize) {
+            assembleAndDownload(transferId);
         }
         return;
     }
 
     if (type === 2) {
-        if (incomingFile.statusText) {
-            incomingFile.statusText.innerText = 'Cancelado pelo remetente';
-            incomingFile.statusText.style.color = '#ff4444';
+        if (data.byteLength < 9) return;
+        const idBytes = data.subarray(1, 9);
+        const transferId = new TextDecoder().decode(idBytes);
+
+        const fileState = activeDownloads.get(transferId);
+        if (fileState) {
+            if (fileState.statusText) {
+                fileState.statusText.innerText = 'Cancelado pelo remetente';
+                fileState.statusText.style.color = '#ff4444';
+            }
+            activeDownloads.delete(transferId);
         }
-        incomingFile.buffer = [];
-        incomingFile.receivedSize = 0;
-        console.log("Recebimento cancelado remotamente.");
         return;
     }
 
     if (type === 0) {
         try {
+            const payload = data.subarray(1);
             const jsonString = new TextDecoder().decode(payload);
             const parsed = JSON.parse(jsonString);
 
             if (parsed.type === 'header') {
-                incomingFile.buffer = [];
-                incomingFile.receivedSize = 0;
-                incomingFile.totalSize = parsed.size;
-                incomingFile.name = parsed.name;
-                incomingFile.mime = parsed.mime;
-                incomingFile.lastTime = Date.now();
-                incomingFile.lastBytesRef = 0;
-                incomingFile.currentSpeed = "0 KB/s";
+                const transferId = parsed.transferId;
+                if (!transferId) return;
 
                 const item = createTransferItem(parsed.name, parsed.size, 'Recebendo...', 'download');
-                incomingFile.progressBar = item.querySelector('.progress-fill');
-                incomingFile.statusText = item.querySelector('.status-text');
-                incomingFile.percentageText = item.querySelector('.percentage');
+
+                const fileState = {
+                    buffer: [],
+                    receivedSize: 0,
+                    totalSize: parsed.size,
+                    name: parsed.name,
+                    mime: parsed.mime,
+                    progressBar: item.querySelector('.progress-fill'),
+                    statusText: item.querySelector('.status-text'),
+                    percentageText: item.querySelector('.percentage'),
+                    lastTime: Date.now(),
+                    lastBytesRef: 0,
+                    currentSpeed: "0 KB/s"
+                };
+
+                activeDownloads.set(transferId, fileState);
 
             } else if (parsed.type === 'clipboard') {
                 const text = parsed.text;
@@ -555,7 +578,6 @@ function handleDataReceived(data) {
                         showClipboardModal(text, false);
                     });
                 }
-
             } else if (parsed.type === 'error') {
                 showModal("Erro Remoto", parsed.msg);
             }
@@ -566,19 +588,21 @@ function handleDataReceived(data) {
     }
 }
 
-function assembleAndDownload() {
-    const blob = new Blob(incomingFile.buffer, { type: incomingFile.mime });
-    downloadFile(blob, incomingFile.name);
+function assembleAndDownload(transferId) {
+    const fileState = activeDownloads.get(transferId);
+    if (!fileState) return;
 
-    if (incomingFile.statusText) {
-        incomingFile.statusText.innerText = 'Recebido com sucesso!';
-        incomingFile.statusText.style.color = '#4ade80';
-        incomingFile.progressBar.style.backgroundColor = '#4ade80';
-        incomingFile.percentageText.innerText = '100%';
+    const blob = new Blob(fileState.buffer, { type: fileState.mime });
+    downloadFile(blob, fileState.name);
+
+    if (fileState.statusText) {
+        fileState.statusText.innerText = 'Recebido com sucesso!';
+        fileState.statusText.style.color = '#4ade80';
+        fileState.progressBar.style.backgroundColor = '#4ade80';
+        fileState.percentageText.innerText = '100%';
     }
 
-    incomingFile.buffer = [];
-    incomingFile.receivedSize = 0;
+    activeDownloads.delete(transferId);
 }
 
 function updateUIState(state) {
@@ -600,20 +624,10 @@ function resetApp() {
     }
     roomId = null;
 
-    incomingFile = {
-        buffer: [],
-        receivedSize: 0,
-        totalSize: 0,
-        name: '',
-        mime: '',
-        progressBar: null,
-        startTime: 0
-    };
+    activeDownloads.clear();
 
     transfersList.innerHTML = '';
-
     window.history.replaceState({}, document.title, window.location.pathname);
-
     initHost();
 }
 
@@ -629,6 +643,71 @@ function generateQRCode(id) {
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.L
     });
+}
+
+const MAX_CONCURRENT_UPLOADS = 3;
+let activeUploads = 0;
+const uploadQueue = [];
+
+function queueFile(file) {
+    if (!peer || !peer.connected) {
+        showModal("Erro", "Você precisa estar conectado para adicionar arquivos à fila.");
+        return;
+    }
+
+    let isCancelled = false;
+    let transferItem = null;
+
+    const onCancel = () => {
+        isCancelled = true;
+        if (transferItem) {
+            const status = transferItem.querySelector('.status-text');
+            if (status) {
+                status.innerText = 'Cancelado na fila';
+                status.style.color = '#ff4444';
+            }
+            const btn = transferItem.querySelector('.btn-cancel-transfer');
+            if (btn) btn.remove();
+        }
+    };
+
+    transferItem = createTransferItem(file.name, file.size, 'Aguardando fila...', 'upload', onCancel);
+
+    uploadQueue.push({
+        file: file,
+        element: transferItem,
+        get isCancelled() { return isCancelled; }
+    });
+
+    processQueue();
+}
+
+async function processQueue() {
+    if (activeUploads >= MAX_CONCURRENT_UPLOADS || uploadQueue.length === 0) return;
+
+    let nextItem = null;
+    while (uploadQueue.length > 0) {
+        const candidate = uploadQueue.shift();
+        if (!candidate.isCancelled) {
+            nextItem = candidate;
+            break;
+        }
+    }
+
+    if (!nextItem) {
+        if (uploadQueue.length > 0) processQueue();
+        return;
+    }
+
+    activeUploads++;
+    try {
+        await sendFile(nextItem.file, nextItem.element);
+    } catch (err) {
+        console.error("Erro no envio:", err);
+    } finally {
+        activeUploads--;
+        processQueue();
+    }
 }
 
 function setupDragAndDrop() {
@@ -661,7 +740,9 @@ function setupDragAndDrop() {
 
     dropZone.addEventListener('drop', e => {
         const dt = e.dataTransfer;
-        if (dt.files.length > 0) sendFile(dt.files[0]);
+        if (dt.files.length > 0) {
+            Array.from(dt.files).forEach(file => queueFile(file));
+        }
     });
 
     dropZone.addEventListener('mouseenter', () => setUploadIcon(true));
@@ -669,7 +750,9 @@ function setupDragAndDrop() {
 }
 
 fileInput.addEventListener('change', (e) => {
-    if (e.target.files[0]) sendFile(e.target.files[0]);
+    if (e.target.files.length > 0) {
+        Array.from(e.target.files).forEach(file => queueFile(file));
+    }
 });
 
 btnCopy.addEventListener('click', () => {
@@ -808,7 +891,7 @@ function createTransferItem(name, size, status, type, onCancel) {
         if (btn) btn.onclick = onCancel;
     }
 
-    transfersList.prepend(item);
+    transfersList.appendChild(item);
     return item;
 }
 
