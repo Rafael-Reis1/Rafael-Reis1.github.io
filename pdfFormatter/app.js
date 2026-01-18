@@ -12,9 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewModal = document.getElementById('previewModal');
     const popupCard = previewModal.querySelector('.popupCard');
     const btnCloseModal = document.getElementById('btnCloseModal');
+    const customAlertModal = document.getElementById('customAlertModal');
+    const customAlertTitle = document.getElementById('customAlertTitle');
+    const customAlertMessage = document.getElementById('customAlertMessage');
     const btnPrint = document.getElementById('btnPrint');
     const btnShare = document.getElementById('btnShare');
     const btnCancelProcessing = document.getElementById('btnCancelProcessing');
+
+
 
     btnCloseModal.addEventListener('click', closeModal);
     btnPrint.addEventListener('click', () => window.print());
@@ -35,11 +40,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === previewModal) closeModal();
     });
 
+    if (customAlertModal) {
+        customAlertModal.addEventListener('click', (e) => {
+            if (e.target === customAlertModal) closeCustomAlertModal();
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && previewModal.style.display === 'flex') {
-            closeModal();
+        if (e.key === 'Escape') {
+            if (previewModal.style.display === 'flex') closeModal();
+            if (customAlertModal && customAlertModal.classList.contains('active')) closeCustomAlertModal();
         }
     });
+
+    function showAlertModal(title, message) {
+        if (customAlertModal && customAlertTitle && customAlertMessage) {
+            customAlertTitle.innerText = title;
+            customAlertMessage.innerText = message;
+            customAlertModal.classList.add('active');
+        }
+    }
+
+    function closeCustomAlertModal() {
+        if (customAlertModal) customAlertModal.classList.remove('active');
+    }
+    window.closeCustomAlertModal = closeCustomAlertModal;
+
+
 
     function showModal() {
         previewModal.style.display = 'flex';
@@ -50,9 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
         popupCard.classList.remove('show');
         setTimeout(() => {
             previewModal.style.display = 'none';
-            previewContainer.innerHTML = ''; 
+            previewContainer.innerHTML = '';
             printContainer.innerHTML = '';
-            currentPdfBytes = null; 
+            currentPdfBytes = null;
 
             if (currentPdfDoc) {
                 currentPdfDoc.destroy();
@@ -64,10 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.display = '';
 
         }, 300);
-        
+
         fileUpload.style.display = 'block';
         fileInput.value = '';
-        
+
         progressBar.style.width = '0%';
         progressText.innerText = '0%';
     }
@@ -128,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFiles(e) {
         const file = e.target.files[0];
         if (!file || file.type !== 'application/pdf') {
-            alert('Por favor, envie um arquivo PDF.');
+            showAlertModal('Erro', 'Por favor, envie um arquivo PDF.');
             return;
         }
 
@@ -137,19 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const arrayBuffer = await file.arrayBuffer();
             currentPdfBytes = arrayBuffer.slice(0);
-            
+
             if (currentPdfDoc) {
-                currentPdfDoc.destroy(); 
+                currentPdfDoc.destroy();
             }
 
             currentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
-            
+
             await processPDF(currentPdfDoc);
 
         } catch (error) {
             console.error('Erro ao processar:', error);
-            alert('Ocorreu um erro ao processar o PDF.');
-            
+            showAlertModal('Erro', 'Ocorreu um erro ao processar o PDF.');
+
             processingIndicator.style.display = 'none';
             fileUpload.style.display = 'block';
             fileInput.value = '';
@@ -161,13 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
         processingIndicator.style.display = 'block';
         previewContainer.innerHTML = '';
         printContainer.innerHTML = '';
-        
-        shouldCancel = false; 
+
+        shouldCancel = false;
         if (btnCancelProcessing) {
             btnCancelProcessing.innerText = "Cancelar";
             btnCancelProcessing.disabled = false;
         }
-        
+
         updateProgress(0);
     }
 
@@ -243,22 +270,22 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < sheets.length; i++) {
             if (shouldCancel) {
                 console.log("Processamento cancelado pelo usuário.");
-                
+
                 processingIndicator.style.display = 'none';
                 fileUpload.style.display = 'block';
                 fileInput.value = '';
-                
+
                 if (currentPdfDoc) {
                     currentPdfDoc.destroy();
                     currentPdfDoc = null;
                 }
                 currentPdfBytes = null;
-                
+
                 return;
             }
 
             const sheet = sheets[i];
-            
+
             const sheetDiv = document.createElement('div');
             sheetDiv.className = 'sheet-preview';
 
@@ -325,18 +352,18 @@ document.addEventListener('DOMContentLoaded', () => {
             await renderToTargets(sheet.back.right, [backRightContainer, printBackRight]);
             updateTimeAndProgress();
         }
-        
+
         if (shouldCancel) {
-             processingIndicator.style.display = 'none';
-             fileUpload.style.display = 'block';
-             fileInput.value = '';
-             return;
+            processingIndicator.style.display = 'none';
+            fileUpload.style.display = 'block';
+            fileInput.value = '';
+            return;
         }
 
         updateProgress(100);
 
         setTimeout(() => {
-             endProcessing();
+            endProcessing();
         }, 300);
     }
 
@@ -378,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function shareBooklet() {
         if (!currentPdfBytes) {
-            alert('Nenhum arquivo PDF carregado.');
+            showAlertModal('Aviso', 'Nenhum arquivo PDF carregado.');
             return;
         }
 
