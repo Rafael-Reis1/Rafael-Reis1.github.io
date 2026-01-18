@@ -1,17 +1,18 @@
-const CACHE_NAME = 'reading-app-?v=1801260321';
+const CACHE_NAME = 'reading-app-?v=1801260340';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css?v=1801260321',
-    '/reading/app.js?v=1801260321',
+    '/reading/style.css?v=1801260340',
+    '/reading/app.js?v=1801260340',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json?v=1801260321',
+    '/reading/manifest.json?v=1801260340',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
     '../assets/libs_comuns/flatpickr/flatpickr.min.css',
     '../assets/libs_comuns/flatpickr/flatpickr.js',
-    '../assets/libs_comuns/flatpickr/pt.js'
+    '../assets/libs_comuns/flatpickr/pt.js',
+    '../assets/libs_comuns/fonts.css'
 ];
 
 self.addEventListener('install', event => {

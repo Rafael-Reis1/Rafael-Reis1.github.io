@@ -1,16 +1,17 @@
-const CACHE_NAME = 'pdf-booklet-?v=1801260321';
+const CACHE_NAME = 'pdf-booklet-?v=1801260340';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=1801260321',
-    './app.js?v=1801260321',
-    '../style.css?v=1801260321',
-    './manifest.json?v=1801260321',
+    './style.css?v=1801260340',
+    './app.js?v=1801260340',
+    '../style.css?v=1801260340',
+    './manifest.json?v=1801260340',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
     './lib/pdf.min.js',
     './lib/pdf.worker.min.js',
-    './lib/pdf-lib.min.js'
+    './lib/pdf-lib.min.js',
+    '../assets/libs_comuns/fonts.css'
 ];
 
 self.addEventListener('install', event => {
