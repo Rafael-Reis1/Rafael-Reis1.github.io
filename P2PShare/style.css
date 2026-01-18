@@ -9,6 +9,7 @@
     --font-body: 'Inter', sans-serif;
     --card-bg: rgba(26, 27, 39, 0.7);
     --glass-bg: rgba(255, 255, 255, 0.05);
+    -webkit-tap-highlight-color: transparent;
 }
 
 * {
@@ -711,5 +712,13 @@ body {
 @media all and (display-mode: standalone) {
     .btn-install {
         display: none !important;
+    }
+
+    .btnVoltar {
+        display: none !important;
+    }
+
+    html, body {
+        overscroll-behavior-y: none; 
     }
 }
