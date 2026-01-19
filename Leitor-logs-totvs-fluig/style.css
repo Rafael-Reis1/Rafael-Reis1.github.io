@@ -219,6 +219,7 @@ button:focus {
     border-radius: 10px;
     padding: 0.625rem;
     scroll-padding-top: 60px;
+    scrollbar-color: var(--accent-color) var(--base-color);
 }
 
 #conteudoArquivoLog {
