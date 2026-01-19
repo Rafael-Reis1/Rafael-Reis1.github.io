@@ -18,6 +18,7 @@ const CHUNK_SIZE = 64 * 1024;
 let peer = null;
 let roomId = null;
 let currentStream = null;
+let pendingFileFromShare = null;
 
 const panelWaiting = document.getElementById('panel-waiting');
 const panelConnected = document.getElementById('panel-connected');
@@ -180,12 +181,16 @@ async function handleShareTarget(urlParams) {
             const file = new File([blob], fileName, { type: fileType });
             showModal("Arquivo Recebido", `Arquivo "${file.name}" pronto para enviar.`);
 
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            if (fileInput) {
-                fileInput.files = dt.files;
-                fileInput.dispatchEvent(new Event('change'));
+            pendingFileFromShare = file;
+            if (peer && peer.connected) {
+                processPendingFile();
             }
+
+            await cache.delete('shared-file');
+            await cache.delete('shared-meta');
+
+            urlParams.delete('share_target');
+            window.history.replaceState({}, document.title, window.location.pathname + '?' + urlParams.toString());
 
             await cache.delete('shared-file');
             await cache.delete('shared-meta');
@@ -501,6 +506,18 @@ function updateUIState(state) {
 
 function handleConnection() {
     updateUIState('connected');
+    closeModal();
+    processPendingFile();
+}
+
+function processPendingFile() {
+    if (!pendingFileFromShare || !fileInput) return;
+    console.log("Processando arquivo pendente do Share Target...");
+    const dt = new DataTransfer();
+    dt.items.add(pendingFileFromShare);
+    fileInput.files = dt.files;
+    fileInput.dispatchEvent(new Event('change'));
+    pendingFileFromShare = null;
 }
 
 function handleDisconnect() {
