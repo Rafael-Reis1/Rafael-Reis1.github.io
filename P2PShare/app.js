@@ -39,20 +39,78 @@ btnVoltar.onclick = function () {
     window.location.href = '/';
 }
 
-function showModal(title, message) {
+function showModal(title, message, options = {}) {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') === 'obs') {
         console.warn("OBS Modal Suprimido:", title, message);
+        if (options.retry) setTimeout(() => window.location.reload(), 2000);
         return;
     }
 
     const modal = document.getElementById('alertModal');
     const titleEl = document.getElementById('alertTitle');
     const msgEl = document.getElementById('alertMessage');
+    const actionsDiv = modal.querySelector('.modal-actions');
+    
+    const closeBtn = modal.querySelector('.modal-close');
 
     if (modal && titleEl && msgEl) {
         titleEl.innerText = title;
         msgEl.innerText = message;
+        
+        if (options.hideClose) {
+            modal.dataset.locked = "true";
+            if (closeBtn) closeBtn.style.display = 'none';
+        } else {
+            delete modal.dataset.locked;
+            if (closeBtn) closeBtn.style.display = '';
+        }
+
+        actionsDiv.innerHTML = '';
+
+        if (!options.retry && !options.host) {
+            const btnOk = document.createElement('button');
+            btnOk.className = 'btn btn-primary';
+            btnOk.innerText = 'OK';
+            btnOk.onclick = closeModal;
+            actionsDiv.appendChild(btnOk);
+        } else {
+            if (!options.hideClose) {
+                const btnClose = document.createElement('button');
+                btnClose.className = 'btn';
+                btnClose.innerText = 'Fechar';
+                btnClose.onclick = closeModal;
+                actionsDiv.appendChild(btnClose);
+            }
+        }
+
+        if (options.host) {
+            const btnHost = document.createElement('button');
+            btnHost.className = 'btn btn-host';
+            btnHost.innerText = 'Virar Host';
+            
+            btnHost.onclick = () => {
+                closeModal();
+                resetApp(true); 
+            };
+
+            actionsDiv.appendChild(btnHost);
+        }
+
+        if (options.retry) {
+            const btnRetry = document.createElement('button');
+            btnRetry.className = 'btn btn-retry';
+            btnRetry.innerText = 'Reconectar';
+            
+            btnRetry.onclick = () => {
+                closeModal();
+                window.location.reload();
+            };
+
+            actionsDiv.classList.add('actionRetry');
+            actionsDiv.appendChild(btnRetry);
+        }
+
         modal.classList.add('active');
     }
 }
@@ -98,12 +156,26 @@ function closeClipboardModal() {
 window.onclick = function (event) {
     const alertModal = document.getElementById('alertModal');
     const clipModal = document.getElementById('clipboardModal');
-    if (event.target === alertModal) closeModal();
+
+    if (event.target === alertModal) {
+        if (alertModal.dataset.locked === "true") return; 
+        closeModal();
+    }
+
     if (event.target === clipModal) closeClipboardModal();
 };
 
 window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+        const alertModal = document.getElementById('alertModal');
+        
+        const isAlertOpen = alertModal && alertModal.classList.contains('active');
+        const isLocked = alertModal && alertModal.dataset.locked === "true";
+
+        if (isAlertOpen && isLocked) {
+            return;
+        }
+
         closeModal();
         closeClipboardModal();
     }
@@ -149,7 +221,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (urlParams.get('share_target') === 'true') {
             const lastRemote = localStorage.getItem('p2p_last_remote');
             if (lastRemote) {
-                console.log("Restaurando sessão para Share Target:", lastRemote);
                 showModal("Reconectando", "Restaurando conexão anterior...");
                 initClient(lastRemote);
                 return;
@@ -159,6 +230,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     setupDragAndDrop();
+
+    const btnManual = document.getElementById('btn-manual-connect');
+    const inputManual = document.getElementById('manual-room-id'); 
+
+    if (btnManual && inputManual) {
+        
+        const performConnect = () => {
+            let val = inputManual.value.trim();
+            if (!val) return;
+
+            if (val.includes('remote=')) {
+                val = new URL(val).searchParams.get('remote');
+            } else if (val.includes('host_id=')) {
+                val = new URL(val).searchParams.get('host_id');
+            }
+
+            window.location.href = `?remote=${val}`;
+        };
+
+        
+        btnManual.onclick = performConnect;
+
+        
+        inputManual.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performConnect();
+            }
+        });
+    }
 });
 
 async function handleShareTarget(urlParams) {
@@ -191,12 +291,6 @@ async function handleShareTarget(urlParams) {
 
             urlParams.delete('share_target');
             window.history.replaceState({}, document.title, window.location.pathname + '?' + urlParams.toString());
-
-            await cache.delete('shared-file');
-            await cache.delete('shared-meta');
-
-            urlParams.delete('share_target');
-            window.history.replaceState({}, document.title, window.location.pathname + '?' + urlParams.toString());
         }
     } catch (e) {
         console.error("Erro Share Target:", e);
@@ -211,71 +305,35 @@ function initHost() {
     const urlParams = new URLSearchParams(window.location.search);
     roomId = urlParams.get('host_id') || generateRoomId();
 
-    db.ref(`rooms/${roomId}`).off();
-    db.ref(`rooms/${roomId}`).onDisconnect().remove();
-
-    generateQRCode(roomId);
-    updateUIState('waiting');
-
-    const readyContent = document.getElementById('ready-content');
-    if (readyContent) {
-        readyContent.style.display = 'flex';
-        readyContent.classList.add('fade-in');
-        const panel = document.getElementById('panel-waiting');
-        panel.style.height = (window.innerWidth <= 600) ? '595px' : '630px';
+    const obsIdDiv = document.getElementById('obs-identity');
+    if (obsIdDiv) {
+        obsIdDiv.style.display = ''; 
+        obsIdDiv.innerHTML = `
+            <span style="font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 2px;">ID da Sala</span>
+            <span style="font-size: 4rem; font-weight: bold; color: #fff; font-family: monospace;">${roomId}</span>
+            <span style="font-size: 0.9rem; color: var(--accent-color); margin-top: 5px;">Digite este ID no celular</span>
+        `;
     }
 
-    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    
+    const displayId = document.getElementById('room-id-display');
+    if (displayId) {
+        displayId.innerText = roomId;
+    }
 
-    peer = new SimplePeer({
-        initiator: true,
-        trickle: false,
-        config: rtcConfig
-    });
+    db.ref(`rooms/${roomId}/answer`).off();
+    db.ref(`rooms/${roomId}/offer`).off();
+    db.ref(`rooms/${roomId}`).off();
+    db.ref(`rooms/${roomId}/client_join_attempt`).off();
 
-    peer.on('signal', data => {
-        db.ref(`rooms/${roomId}/offer`).set(JSON.stringify(data));
-    });
+    if (urlParams.get('mode') === 'obs' || urlParams.has('host_id')) {
+        db.ref(`rooms/${roomId}/answer`).remove();
+    }
 
-    peer.on('connect', () => {
-        handleConnection();
-    });
-
-    peer.on('data', data => handleDataReceived(data));
-
-    peer.on('stream', stream => {
-        console.log("HOST RECEBEU STREAM");
-        handleVideoStream(stream, urlParams.get('mode') === 'obs');
-    });
-
-    peer.on('close', () => {
-        if (urlParams.get('mode') === 'obs') {
-            console.log("OBS: Conexão fechada. Reiniciando...");
-            resetApp();
-        } else {
-            console.log("Cliente desconectou. Aguardando reconexão...");
-            showModal("Desconectado", "O outro dispositivo desconectou.\nAguardando reconexão...");
-            updateUIState('waiting');
-
-            if (peer) {
-                peer.removeAllListeners();
-                peer.destroy();
-                peer = null;
-            }
-
+    db.ref(`rooms/${roomId}/client_join_attempt`).on('value', snapshot => {
+        if (snapshot.val()) {
+            snapshot.ref.remove();
             restartHostPeer(roomId);
-        }
-    });
-
-    peer.on('error', err => {
-        console.error("Erro Peer:", err);
-        if (urlParams.get('mode') === 'obs') {
-            console.log("OBS: Erro crítico. Reiniciando...");
-            if (peer) { peer.removeAllListeners(); peer.destroy(); }
-            peer = null;
-            initHost();
-        } else {
-            handleError(err);
         }
     });
 
@@ -284,11 +342,30 @@ function initHost() {
         const data = snapshot.val();
         if (data && data !== lastAnswer) {
             lastAnswer = data;
-            try {
-                if (peer && !peer.destroyed) peer.signal(JSON.parse(data));
-            } catch (e) { console.warn("Sinal ignorado:", e); }
+            if (peer && !peer.destroyed) {
+                const signal = JSON.parse(data);
+                if (peer._pc && peer._pc.signalingState === 'stable' && signal.type === 'answer') {
+                    return;
+                }
+                try {
+                    peer.signal(signal);
+                } catch (e) { console.warn("Sinal ignorado:", e); }
+            }
         }
     });
+
+    generateQRCode(roomId);
+    updateUIState('waiting');
+    
+    const readyContent = document.getElementById('ready-content');
+    if (readyContent) {
+        readyContent.style.display = 'flex';
+        readyContent.classList.add('fade-in');
+        const panel = document.getElementById('panel-waiting');
+        panel.style.height = (window.innerWidth <= 600) ? '515px' : '515px';
+    }
+
+    restartHostPeer(roomId);
 }
 
 function restartHostPeer(currentRoomId) {
@@ -298,7 +375,11 @@ function restartHostPeer(currentRoomId) {
         peer = null;
     }
 
+    db.ref(`rooms/${currentRoomId}/answer`).remove();
+
+    const urlParams = new URLSearchParams(window.location.search);
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
     peer = new SimplePeer({
         initiator: true,
         trickle: false,
@@ -309,19 +390,32 @@ function restartHostPeer(currentRoomId) {
         db.ref(`rooms/${currentRoomId}/offer`).set(JSON.stringify(data));
     });
 
-    peer.on('connect', handleConnection);
-    peer.on('data', handleDataReceived);
-    peer.on('stream', stream => handleVideoStream(stream, false));
+    peer.on('connect', () => {
+        handleConnection();
+    });
+
+    peer.on('data', data => handleDataReceived(data));
+
+    peer.on('stream', stream => {
+        handleVideoStream(stream, urlParams.get('mode') === 'obs');
+    });
 
     peer.on('close', () => {
-        console.log("Cliente desconectou novamente. Reiniciando peer...");
-        updateUIState('waiting');
-        restartHostPeer(currentRoomId);
+        if (urlParams.get('mode') === 'obs') {
+            restartHostPeer(currentRoomId); 
+        } else {
+            updateUIState('waiting');
+            restartHostPeer(currentRoomId);
+        }
     });
 
     peer.on('error', err => {
-        console.error("Erro no Peer (Restarted):", err);
-        restartHostPeer(currentRoomId);
+        console.error("Erro Peer:", err);
+        if (urlParams.get('mode') === 'obs') {
+            setTimeout(() => restartHostPeer(currentRoomId), 2000);
+        } else {
+            restartHostPeer(currentRoomId);
+        }
     });
 }
 
@@ -344,57 +438,17 @@ function initClient(id) {
         `;
     }
 
+    
     const manualHostTimeout = setTimeout(() => {
-        const loadingText = document.getElementById('loading-text');
-
-        if (qrDiv && (!peer || !peer.connected) && loadingText) {
-            loadingText.innerText = "Aguardando o Host...";
-            loadingText.style.opacity = "0.7";
-            loadingText.style.marginBottom = "0px";
-
-            const optionDiv = document.createElement('div');
-            optionDiv.className = 'fade-in';
-            optionDiv.style.display = 'flex';
-            optionDiv.style.flexDirection = 'column';
-            optionDiv.style.alignItems = 'center';
-
-            optionDiv.innerHTML = `
-                <span style="font-size: 0.75rem; opacity: 0.4; color: var(--text-color); font-family: var(--font-body);">
-                    Não conectou?
-                </span>
-                <button id="btn-force-host" style="
-                    background: var(--base-color); 
-                    border: 1px solid var(--accent-color); 
-                    color: var(--accent-color); 
-                    padding: 6px 14px; 
-                    border-radius: 20px; 
-                    font-size: 0.8rem; 
-                    cursor: pointer; 
-                    transition: all 0.3s ease;
-                    font-family: var(--font-body);
-                    font-weight: 500;
-                    backdrop-filter: blur(4px);
-                    margin-top: 2px;
-                " 
-                onmouseover="this.style.background='var(--accent-color)'; this.style.color='var(--text-color)';"
-                onmouseout="this.style.background='var(--base-color)'; this.style.color='var(--accent-color)';"
-                >
-                    Criar Minha Sala
-                </button>
-            `;
-
-            const container = qrDiv.querySelector('.qr-loading');
-            if (container) container.appendChild(optionDiv);
-
-            const btn = document.getElementById('btn-force-host');
-            if (btn) {
-                btn.onclick = () => {
-                    console.log("Usuário virou Host.");
-                    resetApp();
-                };
-            }
+        
+        if (!peer || !peer.connected) {
+            showModal(
+                "Não conectou?", 
+                "O Host não respondeu ou a sala não existe mais.", 
+                { retry: true, host: true } 
+            );
         }
-    }, 5000);
+    }, 15000); 
 
     let lastOffer = null;
 
@@ -403,15 +457,12 @@ function initClient(id) {
 
         if (!offer) return;
 
-        if (qrDiv && !peer) {
-            qrDiv.innerHTML = `
-                <div class="qr-loading">
-                    <div class="spinner"></div>
-                    <p style="color: var(--accent-color); margin-top: 10px;">Conectando...</p>
-                </div>`;
+        
+        const loadingText = document.getElementById('loading-text');
+        if (loadingText) {
+            loadingText.innerText = "Conectando...";
         }
-        clearTimeout(manualHostTimeout);
-
+        
         if (offer === lastOffer) return;
         lastOffer = offer;
 
@@ -434,7 +485,7 @@ function initClient(id) {
 
             peer.on('connect', () => {
                 handleConnection();
-                clearTimeout(manualHostTimeout);
+                clearTimeout(manualHostTimeout); 
             });
 
             peer.on('data', data => handleDataReceived(data));
@@ -449,10 +500,12 @@ function initClient(id) {
 }
 
 function handleVideoStream(stream, isObs) {
-    console.log("Processando vídeo...", stream);
     const video = document.getElementById('remote-video');
     const wrapper = document.getElementById('video-wrapper');
+    const obsIdDiv = document.getElementById('obs-identity');
 
+    if (obsIdDiv) obsIdDiv.style.display = 'none';
+    
     wrapper.style.display = 'flex';
     wrapper.style.zIndex = '9999';
 
@@ -463,7 +516,7 @@ function handleVideoStream(stream, isObs) {
     const playPromise = video.play();
     if (playPromise !== undefined) {
         playPromise.catch(error => {
-            console.warn("Autoplay bloqueado. Tentando play forçado:", error);
+            console.warn("Autoplay bloqueado:", error);
             video.muted = true;
             video.play();
         });
@@ -477,11 +530,9 @@ function generateQRCode(id) {
     const path = window.location.pathname;
 
     const connectUrl = `${origin}${path}?remote=${id}`;
-
     if (linkInput) linkInput.value = connectUrl;
 
-    const obsUrl = `${origin}${path}?remote=${id}&mode=obs`;
-
+    const obsUrl = `${origin}${path}?host_id=${id}&mode=obs`;
     const obsInput = document.getElementById('link-obs');
     if (obsInput) obsInput.value = obsUrl;
 
@@ -510,7 +561,6 @@ function updateUIState(state) {
 function handleConnection() {
     updateUIState('connected');
     closeModal();
-
     setTimeout(() => {
         const statusText = document.getElementById('status-text');
         if (statusText) statusText.innerText = 'Conectado! Preparando envio...';
@@ -520,7 +570,6 @@ function handleConnection() {
 
 function processPendingFile() {
     if (!pendingFileFromShare || !fileInput) return;
-    console.log("Processando arquivo pendente do Share Target...");
     const dt = new DataTransfer();
     dt.items.add(pendingFileFromShare);
     fileInput.files = dt.files;
@@ -534,34 +583,47 @@ function handleDisconnect() {
         resetApp();
         return;
     }
-    showModal("Desconectado", "Conexão encerrada.");
+    showModal("Desconectado", "Conexão encerrada.", { retry: true, host: true, hideClose: true });
     resetApp();
 }
 
 function handleError(err) {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('mode') === 'obs') {
-        console.error("OBS Erro Silencioso:", err);
-        if (peer) peer.destroy();
-        initHost();
-        return;
-    }
+    
+    if (urlParams.get('mode') === 'obs') { return; }
 
     let msg = err.message || "Erro desconhecido.";
     if (err.code === 'ERR_WEBRTC_SUPPORT') msg = "Seu navegador não suporta WebRTC.";
-    showModal("Erro", msg);
+    
+    
+    showModal("Erro", msg, { retry: true, host: true });
 }
 
-function resetApp() {
+function resetApp(forceDisconnect = false) {
     if (peer) {
         peer.removeAllListeners();
         peer.destroy();
         peer = null;
     }
-    roomId = null;
+    
     activeDownloads.clear();
     transfersList.innerHTML = '';
-    window.history.replaceState({}, document.title, window.location.pathname);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const isFixedRoom = urlParams.has('host_id');
+    const isObsMode = urlParams.get('mode') === 'obs';
+    const isClient = urlParams.has('remote');
+
+    
+    if (isClient && !forceDisconnect) {
+        return; 
+    }
+
+    if (!isFixedRoom && !isObsMode) {
+        roomId = null;
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     initHost();
 }
 
@@ -570,45 +632,30 @@ async function sendFile(file, existingElement = null) {
         showModal("Erro", "Não há conexão ativa!");
         return;
     }
-
     const transferId = Math.random().toString(36).substring(2, 10);
     let isCancelled = false;
     let item = existingElement;
-
     if (!item) {
         item = createTransferItem(file.name, file.size, 'Iniciando...', 'upload', () => { isCancelled = true; });
     } else {
         const btn = item.querySelector('.btn-cancel-transfer');
         if (btn) btn.onclick = () => { isCancelled = true; };
     }
-
     const statusText = item.querySelector('.status-text');
     const progressBar = item.querySelector('.progress-fill');
     const percentageText = item.querySelector('.percentage');
     const cancelBtn = item.querySelector('.btn-cancel-transfer');
-
-    const header = JSON.stringify({
-        type: 'header', transferId, name: file.name, size: file.size, mime: file.type
-    });
+    const header = JSON.stringify({ type: 'header', transferId, name: file.name, size: file.size, mime: file.type });
     const headerBytes = new TextEncoder().encode(header);
     const headerPacket = new Uint8Array(headerBytes.length + 1);
     headerPacket[0] = 0;
     headerPacket.set(headerBytes, 1);
-
-    try {
-        peer.send(headerPacket);
-    } catch (e) {
-        statusText.innerText = 'Erro ao iniciar';
-        return;
-    }
-
+    try { peer.send(headerPacket); } catch (e) { statusText.innerText = 'Erro ao iniciar'; return; }
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     let offset = 0;
     const idBytes = new TextEncoder().encode(transferId);
-
     const startTime = Date.now();
     let lastUiTime = 0;
-
     for (let i = 0; i < totalChunks; i++) {
         if (!peer || !peer.connected || isCancelled) {
             statusText.innerText = isCancelled ? 'Cancelado' : 'Erro de Conexão';
@@ -622,48 +669,31 @@ async function sendFile(file, existingElement = null) {
             }
             return;
         }
-
-        if (peer._channel.bufferedAmount > 1024 * 1024) {
-            await new Promise(r => setTimeout(r, 50));
-        }
-
+        if (peer._channel.bufferedAmount > 1024 * 1024) await new Promise(r => setTimeout(r, 50));
         const chunk = file.slice(offset, offset + CHUNK_SIZE);
         const buffer = await chunk.arrayBuffer();
         const chunkBytes = new Uint8Array(buffer);
         const packet = new Uint8Array(1 + 8 + chunkBytes.length);
-
         packet[0] = 1;
         packet.set(idBytes, 1);
         packet.set(chunkBytes, 9);
-
-        try {
-            peer.send(packet);
-        } catch (err) {
-            await new Promise(r => setTimeout(r, 50));
-            i--; continue;
-        }
-
+        try { peer.send(packet); } catch (err) { await new Promise(r => setTimeout(r, 50)); i--; continue; }
         offset += CHUNK_SIZE;
-
         const now = Date.now();
         if (now - lastUiTime >= 500 || i === totalChunks - 1) {
             const percent = Math.floor(((i + 1) / totalChunks) * 100);
-
             const timeElapsed = (now - startTime) / 1000;
             let speedText = "";
             if (timeElapsed > 0) {
                 const speedBytes = offset / timeElapsed;
                 speedText = `(${formatBytes(speedBytes)}/s)`;
             }
-
             progressBar.style.width = percent + '%';
             percentageText.innerText = percent + '%';
             statusText.innerText = `Enviando... ${speedText}`;
-
             lastUiTime = now;
         }
     }
-
     if (cancelBtn) cancelBtn.remove();
     statusText.innerText = 'Enviado!';
     statusText.style.color = '#4ade80';
@@ -671,11 +701,7 @@ async function sendFile(file, existingElement = null) {
 }
 
 function queueFile(file) {
-    if (!peer || !peer.connected) {
-        showModal("Erro", "Conecte-se primeiro.");
-        return;
-    }
-
+    if (!peer || !peer.connected) { showModal("Erro", "Conecte-se primeiro."); return; }
     const item = createTransferItem(file.name, file.size, 'Aguardando...', 'upload', () => {
         const idx = uploadQueue.findIndex(x => x.element === item);
         if (idx > -1) {
@@ -683,26 +709,18 @@ function queueFile(file) {
             item.querySelector('.status-text').innerText = 'Cancelado';
         }
     });
-
     uploadQueue.push({ file, element: item });
     processQueue();
 }
 
 async function processQueue() {
     if (activeUploads >= MAX_CONCURRENT_UPLOADS || uploadQueue.length === 0) return;
-
     const next = uploadQueue.shift();
     if (!next) return;
-
     activeUploads++;
     const status = next.element.querySelector('.status-text');
     status.innerText = 'Preparando...';
-
-    try {
-        await sendFile(next.file, next.element);
-    } catch (e) {
-        console.error(e);
-    } finally {
+    try { await sendFile(next.file, next.element); } catch (e) { console.error(e); } finally {
         activeUploads--;
         setTimeout(processQueue, 50);
     }
@@ -711,17 +729,14 @@ async function processQueue() {
 function handleDataReceived(data) {
     if (!data || data.byteLength === 0) return;
     const type = data[0];
-
     if (type === 1) {
         const idBytes = data.subarray(1, 9);
         const transferId = new TextDecoder().decode(idBytes);
         const fileState = activeDownloads.get(transferId);
         if (!fileState) return;
-
         const payload = data.subarray(9);
         fileState.buffer.push(payload);
         fileState.receivedSize += payload.byteLength;
-
         const now = Date.now();
         if (now - fileState.lastTime >= 500 || fileState.receivedSize >= fileState.totalSize) {
             const percent = Math.round((fileState.receivedSize / fileState.totalSize) * 100);
@@ -729,15 +744,10 @@ function handleDataReceived(data) {
             if (fileState.percentageText) fileState.percentageText.innerText = percent + '%';
             fileState.lastTime = now;
         }
-
-        if (fileState.receivedSize >= fileState.totalSize) {
-            assembleAndDownload(transferId);
-        }
-    }
-    else if (type === 0) {
+        if (fileState.receivedSize >= fileState.totalSize) assembleAndDownload(transferId);
+    } else if (type === 0) {
         try {
             const json = JSON.parse(new TextDecoder().decode(data.subarray(1)));
-
             if (json.type === 'header') {
                 const item = createTransferItem(json.name, json.size, 'Recebendo...', 'download');
                 activeDownloads.set(json.transferId, {
@@ -747,13 +757,10 @@ function handleDataReceived(data) {
                     percentageText: item.querySelector('.percentage'),
                     lastTime: Date.now()
                 });
-            }
-            else if (json.type === 'clipboard') {
+            } else if (json.type === 'clipboard') {
                 showClipboardModal(json.text, true);
                 navigator.clipboard.writeText(json.text).catch(() => { });
-            }
-            else if (json.type === 'close-video') {
-                console.log("Comando de fechar recebido.");
+            } else if (json.type === 'close-video') {
                 closeVideoUI();
             }
         } catch (e) { }
@@ -777,31 +784,14 @@ function formatBytes(bytes) {
 
 function getFileIcon(name) {
     const ext = name.split('.').pop().toLowerCase();
-
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico', 'bmp'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
-    }
-    if (['mp4', 'webm', 'mov', 'mkv', 'avi', 'wmv', 'flv'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>';
-    }
-    if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
-    }
-    if (ext === 'pdf') {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h3a2 2 0 0 0 0-4H9v4z"></path></svg>';
-    }
-    if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>';
-    }
-    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 12.5v5"></path><path d="M14 12.5v5"></path><path d="M12 2v10"></path><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"></path></svg>';
-    }
-    if (['js', 'html', 'css', 'json', 'py', 'php', 'ts', 'sql', 'c', 'cpp', 'java'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
-    }
-    if (['doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) {
-        return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
-    }
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico', 'bmp'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+    if (['mp4', 'webm', 'mov', 'mkv', 'avi', 'wmv', 'flv'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>';
+    if (['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
+    if (ext === 'pdf') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15h3a2 2 0 0 0 0-4H9v4z"></path></svg>';
+    if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>';
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 12.5v5"></path><path d="M14 12.5v5"></path><path d="M12 2v10"></path><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6"></path></svg>';
+    if (['js', 'html', 'css', 'json', 'py', 'php', 'ts', 'sql', 'c', 'cpp', 'java'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>';
+    if (['doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>';
     return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
 }
 
@@ -819,7 +809,6 @@ function createTransferItem(name, size, status, type, onCancel) {
                 ${onCancel ? '<button class="btn-cancel-transfer">X</button>' : ''}
             </div>
         </div>`;
-
     if (onCancel) item.querySelector('.btn-cancel-transfer').onclick = onCancel;
     transfersList.appendChild(item);
     return item;
@@ -842,7 +831,6 @@ document.getElementById('btn-share-cam').onclick = () => startStream('camera');
 document.getElementById('btn-share-screen').onclick = () => startStream('screen');
 document.getElementById('btn-exit-obs').onclick = () => {
     closeVideoUI();
-
     if (peer && peer.connected) {
         const cmd = JSON.stringify({ type: 'close-video' });
         const bytes = new TextEncoder().encode(cmd);
@@ -864,27 +852,21 @@ btnsCopy.forEach(btn => {
     };
 });
 
+
 document.getElementById('btn-disconnect').onclick = () => {
-    if (peer) peer.destroy();
-    resetApp();
+    resetApp(true); 
 };
 
 document.getElementById('btn-send-text').onclick = () => {
     const input = document.getElementById('clipboard-input');
     const text = input.value.trim();
     if (!text) return;
-
-    if (!peer || !peer.connected) {
-        showModal("Erro", "Conecte-se primeiro.");
-        return;
-    }
-
+    if (!peer || !peer.connected) { showModal("Erro", "Conecte-se primeiro."); return; }
     const payload = JSON.stringify({ type: 'clipboard', text: text });
     const bytes = new TextEncoder().encode(payload);
     const packet = new Uint8Array(bytes.length + 1);
     packet[0] = 0;
     packet.set(bytes, 1);
-
     try {
         peer.send(packet);
         input.value = '';
@@ -892,33 +874,20 @@ document.getElementById('btn-send-text').onclick = () => {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<span style="font-size:1.2rem">✔</span>';
         setTimeout(() => btn.innerHTML = originalHtml, 1500);
-    } catch (err) {
-        showModal("Erro", "Falha ao enviar texto.");
-    }
+    } catch (err) { showModal("Erro", "Falha ao enviar texto."); }
 };
 
 document.getElementById('clipboard-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('btn-send-text').click();
-    }
+    if (e.key === 'Enter') document.getElementById('btn-send-text').click();
 });
 
 async function startStream(type) {
     if (!peer || !peer.connected) return showModal("Erro", "Conecte-se primeiro!");
-
     try {
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-        }
-
+        if (currentStream) currentStream.getTracks().forEach(track => track.stop());
         if (type === 'camera') {
             currentStream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    frameRate: { ideal: 30, max: 60 },
-                    facingMode: "environment"
-                },
+                video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 60 }, facingMode: "environment" },
                 audio: false
             });
         } else {
@@ -927,18 +896,14 @@ async function startStream(type) {
                 audio: false
             });
         }
-
         peer.addStream(currentStream);
-
         const video = document.getElementById('remote-video');
         document.getElementById('video-wrapper').style.display = 'flex';
         video.srcObject = currentStream;
         video.muted = true;
         video.play();
-
         document.getElementById('btn-share-cam').disabled = true;
         document.getElementById('btn-share-screen').disabled = true;
-
         currentStream.getVideoTracks()[0].onended = () => {
             closeVideoUI();
             if (peer && peer.connected) {
@@ -949,7 +914,6 @@ async function startStream(type) {
                 try { peer.send(packet); } catch (e) { }
             }
         };
-
     } catch (err) {
         console.error(err);
         showModal("Erro", "Falha ao iniciar stream: " + err.message);
@@ -959,8 +923,10 @@ async function startStream(type) {
 function closeVideoUI() {
     const wrapper = document.getElementById('video-wrapper');
     const video = document.getElementById('remote-video');
+    const obsIdDiv = document.getElementById('obs-identity');
 
     wrapper.style.display = 'none';
+    if (obsIdDiv) obsIdDiv.style.display = '';
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') !== 'obs') {
