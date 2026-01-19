@@ -1,0 +1,23 @@
+{
+    "name": "Leitor de Logs TOTVS/Fluig",
+    "short_name": "Leitor Logs",
+    "start_url": "./leitor.html",
+    "display": "standalone",
+    "background_color": "#06071A",
+    "theme_color": "#06071A",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

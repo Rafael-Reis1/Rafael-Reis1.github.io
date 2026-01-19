@@ -1068,3 +1068,49 @@ input[type="checkbox"]:not(.checkbox-group *):checked+label::after {
     pointer-events: none;
     z-index: 10;
 }
+
+.btn-install {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    border-radius: 20px;
+    border: 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 100 !important;
+    background-color: var(--accent-color);
+    color: white;
+    transition: background-color .3s cubic-bezier(.34, .88, .34, 1), transform 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-install:hover {
+    background-color: var(--accent-color-hover);
+    transform: translateY(-0.125rem);
+}
+
+.btn-install:active {
+    transform: translateY(0);
+}
+
+@media all and (display-mode: standalone) {
+    .btn-install {
+        display: none !important;
+    }
+
+    .btnVoltar {
+        display: none !important;
+    }
+
+    html,
+    body {
+        overscroll-behavior-y: none;
+    }
+}
