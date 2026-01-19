@@ -510,7 +510,7 @@ function handleConnection() {
 
     setTimeout(() => {
         processPendingFile();
-    }, 700);
+    }, 500);
 }
 
 function processPendingFile() {

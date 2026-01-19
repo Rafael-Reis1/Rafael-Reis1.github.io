@@ -1,9 +1,9 @@
-const CACHE_NAME = 'p2pshare-?v=1901260145';
+const CACHE_NAME = 'p2pshare-?v=1901260155';
 const urlsToCache = [
     './P2PShare.html',
-    './style.css?v=1901260145',
-    './app.js?v=1901260145',
-    './manifest.json?v=1901260145',
+    './style.css?v=1901260155',
+    './app.js?v=1901260155',
+    './manifest.json?v=1901260155',
     './assets/icon-512.png',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
@@ -47,35 +47,11 @@ self.addEventListener('fetch', event => {
 
                     if (file) {
                         const cache = await caches.open('share-cache');
-
-                        let finalName = file.name;
-                        let finalType = file.type;
-
-                        const mimeToExt = {
-                            'application/pdf': '.pdf',
-                            'image/jpeg': '.jpg',
-                            'image/png': '.png',
-                            'video/mp4': '.mp4',
-                            'application/vnd.android.package-archive': '.apk'
-                        };
-
-                        if (finalName.indexOf('.') === -1 || finalName.endsWith('.')) {
-                            if (mimeToExt[finalType]) {
-                                if (finalName.endsWith('.')) finalName += mimeToExt[finalType].replace('.', '');
-                                else finalName += mimeToExt[finalType];
-                            }
-                        }
-
-                        if (!finalType || finalType === 'application/octet-stream' || (finalType === 'text/plain' && !finalName.endsWith('.txt'))) {
-                            const inferredCalls = getMimeTypeFromExtension(finalName);
-                            if (inferredCalls) finalType = inferredCalls;
-                        }
-
                         await cache.put('shared-file', new Response(file));
 
                         const metadata = JSON.stringify({
-                            name: finalName,
-                            type: finalType,
+                            name: file.name,
+                            type: getMimeTypeFromExtension(file.name) || file.type || 'application/octet-stream',
                             lastModified: file.lastModified
                         });
                         await cache.put('shared-meta', new Response(metadata));
