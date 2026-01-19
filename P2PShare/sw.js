@@ -1,9 +1,9 @@
-const CACHE_NAME = 'p2pshare-?v=1901260122';
+const CACHE_NAME = 'p2pshare-?v=1901260132';
 const urlsToCache = [
     './P2PShare.html',
-    './style.css?v=1901260122',
-    './app.js?v=1901260122',
-    './manifest.json?v=1901260122',
+    './style.css?v=1901260132',
+    './app.js?v=1901260132',
+    './manifest.json?v=1901260132',
     './assets/icon-512.png',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
@@ -48,9 +48,15 @@ self.addEventListener('fetch', event => {
                     if (file) {
                         const cache = await caches.open('share-cache');
                         await cache.put('shared-file', new Response(file));
+
+                        let fileType = file.type;
+                        if (!fileType || fileType === 'application/octet-stream' || (fileType === 'text/plain' && !file.name.endsWith('.txt'))) {
+                            fileType = getMimeTypeFromExtension(file.name) || file.type || 'application/octet-stream';
+                        }
+
                         const metadata = JSON.stringify({
                             name: file.name,
-                            type: file.type,
+                            type: fileType,
                             lastModified: file.lastModified
                         });
                         await cache.put('shared-meta', new Response(metadata));
@@ -76,3 +82,42 @@ self.addEventListener('fetch', event => {
             })
     );
 });
+
+function getMimeTypeFromExtension(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    const mimeTypes = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mov': 'video/quicktime',
+        'avi': 'video/x-msvideo',
+        'mkv': 'video/x-matroska',
+        'wmv': 'video/x-ms-wmv',
+        'flv': 'video/x-flv',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'zip': 'application/zip',
+        'rar': 'application/x-rar-compressed',
+        '7z': 'application/x-7z-compressed',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'apk': 'application/vnd.android.package-archive',
+        'svg': 'image/svg+xml',
+        'json': 'application/json',
+        'xml': 'application/xml',
+        'exe': 'application/x-msdownload',
+        'msi': 'application/x-msdownload'
+    };
+    return mimeTypes[ext];
+}
