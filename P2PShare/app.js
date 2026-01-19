@@ -74,14 +74,6 @@ function showModal(title, message, options = {}) {
             btnOk.innerText = 'OK';
             btnOk.onclick = closeModal;
             actionsDiv.appendChild(btnOk);
-        } else {
-            if (!options.hideClose) {
-                const btnClose = document.createElement('button');
-                btnClose.className = 'btn';
-                btnClose.innerText = 'Fechar';
-                btnClose.onclick = closeModal;
-                actionsDiv.appendChild(btnClose);
-            }
         }
 
         if (options.host) {
