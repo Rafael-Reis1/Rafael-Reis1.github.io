@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="manifest" href="manifest.json?v=1901260916">
+    <link rel="manifest" href="manifest.json?v=1901261900">
     <meta name="theme-color" content="#06071A">
     <title>PDF Booklet Maker</title>
     <script src="lib/pdf.min.js" defer></script>
@@ -19,9 +19,9 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
     </script>
     <script src="lib/pdf-lib.min.js"></script>
-    <link href="../Leitor-logs-totvs-fluig/style.css?v=1901260916 rel="stylesheet">
-    <link href="../style.css?v=1901260916 rel="stylesheet">
-    <link href="style.css?v=1901260916 rel="stylesheet">
+    <link href="../Leitor-logs-totvs-fluig/style.css?v=1901261900 rel=stylesheet">
+    <link href="../style.css?v=1901261900 rel=stylesheet">
+    <link href="style.css?v=1901261900 rel=stylesheet">
 </head>
 
 <body>
@@ -44,6 +44,27 @@
         <h1>PDF Booklet Maker</h1>
 
         <div class="opcoes no-print">
+            <div id="binding-options-container" class="control-group" style="width: 100%; margin-bottom: 1rem;">
+                <label style="color: var(--text-color); margin-bottom: 0.5rem; display: block;">Modo de
+                    Encadernação:</label>
+                <select id="binding-type" style="display: none;">
+                    <option value="0" selected>Livreto Único (Padrão)</option>
+                    <option value="16">Cadernos de 4 folhas (16 págs)</option>
+                    <option value="32">Cadernos de 8 folhas (32 págs)</option>
+                </select>
+
+                <div class="custom-select-container">
+                    <div class="select-trigger">
+                        <span>Livreto Único (Padrão)</span>
+                        <div class="select-arrow">▼</div>
+                    </div>
+                    <div class="select-options">
+                        <div class="custom-option selected" data-value="0">Livreto Único (Padrão)</div>
+                        <div class="custom-option" data-value="16">Cadernos de 4 folhas (16 págs)</div>
+                        <div class="custom-option" data-value="32">Cadernos de 8 folhas (32 págs)</div>
+                    </div>
+                </div>
+            </div>
             <div id="file-upload" class="file-upload">
                 <label for="file-input" class="file-upload-label">
                     <img id="imageUpload" src="../Leitor-logs-totvs-fluig/assets/upload.webp" alt="upload">
@@ -98,11 +119,11 @@
         </div>
     </div>
 
-    <script src="app.js?v=1901260916"></script>
+    <script src="app.js?v=1901261900"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=1901260916');
+                navigator.serviceWorker.register('sw.js?v=1901261900');
             });
         }
     </script>

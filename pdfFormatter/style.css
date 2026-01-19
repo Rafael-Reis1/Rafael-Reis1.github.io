@@ -617,3 +617,93 @@ h1 {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
 }
+
+/* Custom Select Styles */
+.custom-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.select-trigger {
+    width: 100%;
+    padding: 0.75rem;
+    padding-right: 2.5rem;
+    background: var(--body-color);
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    color: var(--text-color);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.select-trigger:hover {
+    background: var(--base-color);
+}
+
+.select-trigger:focus,
+.custom-select-container.active .select-trigger {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(242, 81, 27, 0.1);
+}
+
+.select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--body-color);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.custom-select-container.active .select-options {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+}
+
+.custom-option {
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: var(--text-color);
+}
+
+.custom-option:hover {
+    background: var(--base-color);
+}
+
+.custom-option.selected {
+    background: var(--accent-color);
+    color: white;
+}
+
+.select-arrow {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: transform 0.2s;
+    color: var(--accent-color);
+    opacity: 1;
+}
+
+.custom-select-container.active .select-arrow {
+    transform: translateY(-50%) rotate(180deg);
+}

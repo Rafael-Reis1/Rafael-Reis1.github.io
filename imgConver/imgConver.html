@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <title>Ferramentas de Imagem</title>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.mjs"
+        }
+    }
+    </script>
+</head>
+
+<body>
+    <button class="btnVoltar" id="btnVoltar">
+        <img class="seta-animada arrow-back-icon" alt="Voltar">
+        <span>Voltar</span>
+    </button>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <div class="header-section">
+                <h1>Ferramentas de Imagem</h1>
+                <p class="subtitle">Edite suas imagens direto no navegador - 100% privado e gratuito</p>
+
+                <div class="search-container">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="toolSearch" placeholder="Pesquisar ferramenta... (ex: cortar, compressão)">
+                </div>
+            </div>
+
+            <div class="tools-grid">
+                <div class="tool-card" data-tool="compress">
+                    <div class="tool-icon compress-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                    </div>
+                    <h3>Comprimir Imagem</h3>
+                    <p>Reduza o tamanho do arquivo mantendo a qualidade</p>
+                </div>
+
+                <div class="tool-card" data-tool="resize">
+                    <div class="tool-icon resize-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                        </svg>
+                    </div>
+                    <h3>Redimensionar</h3>
+                    <p>Altere as dimensões da sua imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="crop">
+                    <div class="tool-icon crop-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15" />
+                            <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15" />
+                        </svg>
+                    </div>
+                    <h3>Recortar</h3>
+                    <p>Corte a área desejada da imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="aspect-ratio">
+                    <div class="tool-icon aspect-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <line x1="12" y1="4" x2="12" y2="20" stroke-dasharray="2 2" />
+                            <line x1="2" y1="12" x2="22" y2="12" stroke-dasharray="2 2" />
+                        </svg>
+                    </div>
+                    <h3>Proporção</h3>
+                    <p>Ajuste para 1:1, 16:9, 4:3, etc.</p>
+                </div>
+
+                <div class="tool-card" data-tool="convert">
+                    <div class="tool-icon convert-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 3 21 3 21 8" />
+                            <line x1="4" y1="20" x2="21" y2="3" />
+                            <polyline points="21 16 21 21 16 21" />
+                            <line x1="15" y1="15" x2="21" y2="21" />
+                            <line x1="4" y1="4" x2="9" y2="9" />
+                        </svg>
+                    </div>
+                    <h3>Converter Formato</h3>
+                    <p>JPG, PNG, WEBP - escolha seu formato</p>
+                </div>
+
+                <div class="tool-card" data-tool="rotate">
+                    <div class="tool-icon rotate-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                    </div>
+                    <h3>Rotacionar</h3>
+                    <p>Gire sua imagem 90°, 180° ou 270°</p>
+                </div>
+
+                <div class="tool-card" data-tool="watermark">
+                    <div class="tool-icon watermark-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h18v18H3z" />
+                            <path d="M12 8v8m-4-4h8" />
+                        </svg>
+                    </div>
+                    <h3>Marca d'Água</h3>
+                    <p>Adicione texto sobre sua imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="filters">
+                    <div class="tool-icon filters-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                        </svg>
+                    </div>
+                    <h3>Filtros</h3>
+                    <p>Brilho, contraste, saturação e mais</p>
+                </div>
+
+                <div class="tool-card" data-tool="remove-bg">
+                    <div class="tool-icon remove-bg-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                        </svg>
+                    </div>
+                    <h3>Remover Fundo</h3>
+                    <p>Remove o fundo da imagem usando IA</p>
+                </div>
+
+                <div class="tool-card" data-tool="replace-bg">
+                    <div class="tool-icon replace-bg-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <path d="M3 15l5-5 4 4 5-5 4 4" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                        </svg>
+                    </div>
+                    <h3>Trocar Fundo</h3>
+                    <p>IA troca o fundo por outra imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="flip">
+                    <div class="tool-icon flip-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="17 1 21 5 17 9" />
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                            <polyline points="7 23 3 19 7 15" />
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                        </svg>
+                    </div>
+                    <h3>Virar/Espelhar</h3>
+                    <p>Inverta horizontal ou verticalmente</p>
+                </div>
+
+                <div class="tool-card" data-tool="blur">
+                    <div class="tool-icon blur-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <circle cx="12" cy="12" r="7" opacity="0.5" />
+                            <circle cx="12" cy="12" r="10" opacity="0.3" />
+                        </svg>
+                    </div>
+                    <h3>Desfocar</h3>
+                    <p>Adicione blur à imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="blur-bg">
+                    <div class="tool-icon blur-bg-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="4" />
+                            <circle cx="12" cy="12" r="9" opacity="0.3" stroke-dasharray="2 2" />
+                            <path d="M12 2v2m0 16v2M2 12h2m16 0h2" opacity="0.5" />
+                        </svg>
+                    </div>
+                    <h3>Desfocar Fundo</h3>
+                    <p>IA destaca o objeto e desfoca o fundo</p>
+                </div>
+
+                <div class="tool-card" data-tool="temperature">
+                    <div class="tool-icon temp-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                        </svg>
+                    </div>
+                    <h3>Temperatura</h3>
+                    <p>Ajuste warm/cool da imagem</p>
+                </div>
+
+                <div class="tool-card" data-tool="border">
+                    <div class="tool-icon border-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <rect x="7" y="7" width="10" height="10" />
+                        </svg>
+                    </div>
+                    <h3>Adicionar Borda</h3>
+                    <p>Bordas coloridas personalizadas</p>
+                </div>
+
+                <div class="tool-card" data-tool="censor">
+                    <div class="tool-icon censor-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                    </div>
+                    <h3>Censurar</h3>
+                    <p>Esconda informações sensíveis</p>
+                </div>
+
+                <div class="tool-card" data-tool="circle-crop">
+                    <div class="tool-icon circle-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path
+                                d="M14.31 8l5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16L3.95 6.06M14.31 16H2.83M16.62 12l-5.74 9.94" />
+                        </svg>
+                    </div>
+                    <h3>Recorte Circular</h3>
+                    <p>Recortar em formato de círculo</p>
+                </div>
+
+                <div class="tool-card" data-tool="collage">
+                    <div class="tool-icon collage-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="12" y1="3" x2="12" y2="21" />
+                        </svg>
+                    </div>
+                    <h3>Colagem</h3>
+                    <p>Combine múltiplas imagens</p>
+                </div>
+
+                <div class="tool-card" data-tool="artistic">
+                    <div class="tool-icon art-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                            <path d="M2 2l7.586 7.586" />
+                            <circle cx="11" cy="11" r="2" />
+                        </svg>
+                    </div>
+                    <h3>Efeitos Artísticos</h3>
+                    <p>Sketch, posterize e mais</p>
+                </div>
+
+                <div class="tool-card" data-tool="ocr">
+                    <div class="tool-icon ocr-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                    </div>
+                    <h3>Extrair Texto</h3>
+                    <p>Copie texto de imagens (OCR)</p>
+                </div>
+
+                <div class="tool-card" data-tool="compare">
+                    <div class="tool-icon compare-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <line x1="12" y1="3" x2="12" y2="21" />
+                            <path d="M9 9l-3 3 3 3" />
+                            <path d="M15 9l3 3-3 3" />
+                        </svg>
+                    </div>
+                    <h3>Antes/Depois</h3>
+                    <p>Compare original com editado</p>
+                </div>
+
+                <div class="tool-card" data-tool="palette">
+                    <div class="tool-icon palette-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="13.5" cy="6.5" r="2" />
+                            <circle cx="17.5" cy="10.5" r="2" />
+                            <circle cx="8.5" cy="7.5" r="2" />
+                            <circle cx="6.5" cy="12.5" r="2" />
+                            <path
+                                d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" />
+                        </svg>
+                    </div>
+                    <h3>Paleta de Cores</h3>
+                    <p>Extraia cores dominantes</p>
+                </div>
+
+                <div class="tool-card" data-tool="draw">
+                    <div class="tool-icon draw-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                            <path d="M2 2l7.586 7.586" />
+                        </svg>
+                    </div>
+                    <h3>Desenhar</h3>
+                    <p>Pincel, setas e formas</p>
+                </div>
+
+                <div class="tool-card" data-tool="scanner">
+                    <div class="tool-icon scanner-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <line x1="12" y1="18" x2="12.01" y2="18" />
+                            <rect x="7" y="5" width="10" height="10" />
+                        </svg>
+                    </div>
+                    <h3>Scanner</h3>
+                    <p>Melhore fotos de documentos</p>
+                </div>
+
+                <div class="tool-card" data-tool="upscale">
+                    <div class="tool-icon upscale-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 3 21 3 21 9" />
+                            <polyline points="9 21 3 21 3 15" />
+                            <line x1="21" y1="3" x2="14" y2="10" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                        </svg>
+                    </div>
+                    <h3>Upscale</h3>
+                    <p>Aumente a resolução 2x/4x</p>
+                </div>
+
+                <div class="tool-card" data-tool="privacy">
+                    <div class="tool-icon privacy-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    <h3>Privacidade</h3>
+                    <p>Remover metadados (EXIF)</p>
+                </div>
+
+                <div class="tool-card" data-tool="technical">
+                    <div class="tool-icon tech-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6" />
+                            <polyline points="8 6 2 12 8 18" />
+                        </svg>
+                    </div>
+                    <h3>Dev Tools</h3>
+                    <p>Base64 & Color Picker</p>
+                </div>
+
+                <div class="tool-card" data-tool="memes">
+                    <div class="tool-icon meme-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <circle cx="9" cy="9" r="2" />
+                            <path d="M15 9h.01" />
+                            <path d="M7 15a5 5 0 0 0 10 0" />
+                        </svg>
+                    </div>
+                    <h3>Criar Meme</h3>
+                    <p>Texto Impact (Topo/Fundo)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ferramenta</h2>
+                <button class="modal-close" onclick="closeToolModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="uploadArea" class="upload-area">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p>Arraste sua imagem aqui ou clique para selecionar</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                        ou <span onclick="event.preventDefault(); event.stopPropagation(); openBase64Modal()"
+                            style="color: var(--accent-color); cursor: pointer; text-decoration: underline;">carregar
+                            via Base64</span>
+                    </p>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                </div>
+
+                <div id="editorArea" class="editor-area" style="display: none;">
+                    <div class="preview-section">
+                        <canvas id="canvas"></canvas>
+                    </div>
+
+                    <div id="controls" class="controls-section"></div>
+                </div>
+            </div>
+
+            <div id="modalFooter" class="modal-footer" style="display: none;">
+                <button class="btn-secondary" onclick="changeImage()">Trocar Imagem</button>
+                <button class="btn-secondary" onclick="resetTool()">Resetar</button>
+                <button class="btn-secondary" onclick="applyEdit()" id="btnApply"
+                    title="Salvar edição e continuar editando">
+                    ✅ Aplicar
+                </button>
+                <button class="btn-primary" onclick="downloadImage()">Baixar Imagem</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="base64Modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Carregar via Base64</h2>
+                <button class="close-modal" onclick="closeBase64Modal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; opacity: 0.8;">Cole sua string Base64 abaixo para carregar a imagem:
+                </p>
+                <textarea id="base64InputModal"
+                    style="width: 100%; height: 150px; background: #0f0f13; border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 0.5rem; font-family: monospace; font-size: 0.8rem; resize: vertical; margin-bottom: 1rem;"></textarea>
+                <button class="btn-primary" onclick="loadBase64FromModal()" style="width: 100%;">Carregar
+                    Imagem</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as ort from 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.mjs';
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/';
+
+        import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/dist/index.mjs';
+        window.removeBackground = removeBackground;
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCVReady()"></script>
+    <script>
+        let cvReady = false;
+        function onOpenCVReady() {
+            cvReady = true;
+            console.log('OpenCV.js carregado!');
+        }
+    </script>
+
+    <script src="bg-removal.js"></script>
+    <script src="phase1-tools.js"></script>
+    <script src="phase2-tools.js"></script>
+    <script src="phase3-tools.js"></script>
+    <script src="phase4-tools.js"></script>
+    <script src="phase5-tools.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
