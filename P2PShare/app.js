@@ -58,12 +58,13 @@ function showModal(title, message, options = {}) {
         titleEl.innerText = title;
         msgEl.innerText = message;
         
+        
         if (options.hideClose) {
-            modal.dataset.locked = "true";
-            if (closeBtn) closeBtn.style.display = 'none';
+            modal.dataset.locked = "true"; 
+            if (closeBtn) closeBtn.style.display = 'none'; 
         } else {
-            delete modal.dataset.locked;
-            if (closeBtn) closeBtn.style.display = '';
+            delete modal.dataset.locked; 
+            if (closeBtn) closeBtn.style.display = ''; 
         }
 
         actionsDiv.innerHTML = '';
@@ -109,7 +110,19 @@ function showModal(title, message, options = {}) {
 
 function closeModal() {
     const modal = document.getElementById('alertModal');
+    
+    
+    if (modal && modal.dataset.locked === "true") return; 
+    
     if (modal) modal.classList.remove('active');
+}
+
+function forceCloseModal() {
+    const modal = document.getElementById('alertModal');
+    if (modal) {
+        delete modal.dataset.locked;
+        modal.classList.remove('active');
+    }
 }
 window.closeModal = closeModal;
 
@@ -149,6 +162,7 @@ window.onclick = function (event) {
     const alertModal = document.getElementById('alertModal');
     const clipModal = document.getElementById('clipboardModal');
 
+    
     if (event.target === alertModal) {
         if (alertModal.dataset.locked === "true") return; 
         closeModal();
@@ -164,6 +178,7 @@ window.addEventListener('keydown', (event) => {
         const isAlertOpen = alertModal && alertModal.classList.contains('active');
         const isLocked = alertModal && alertModal.dataset.locked === "true";
 
+        
         if (isAlertOpen && isLocked) {
             return;
         }
@@ -213,6 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (urlParams.get('share_target') === 'true') {
             const lastRemote = localStorage.getItem('p2p_last_remote');
             if (lastRemote) {
+                
                 showModal("Reconectando", "Restaurando conexão anterior...");
                 initClient(lastRemote);
                 return;
@@ -227,7 +243,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inputManual = document.getElementById('manual-room-id'); 
 
     if (btnManual && inputManual) {
-        
         const performConnect = () => {
             let val = inputManual.value.trim();
             if (!val) return;
@@ -241,10 +256,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = `?remote=${val}`;
         };
 
-        
         btnManual.onclick = performConnect;
 
-        
         inputManual.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 performConnect();
@@ -307,7 +320,6 @@ function initHost() {
         `;
     }
 
-    
     const displayId = document.getElementById('room-id-display');
     if (displayId) {
         displayId.innerText = roomId;
@@ -430,14 +442,12 @@ function initClient(id) {
         `;
     }
 
-    
     const manualHostTimeout = setTimeout(() => {
-        
         if (!peer || !peer.connected) {
             showModal(
                 "Não conectou?", 
                 "O Host não respondeu ou a sala não existe mais.", 
-                { retry: true, host: true } 
+                { retry: true, host: true, hideClose: true } 
             );
         }
     }, 15000); 
@@ -449,7 +459,6 @@ function initClient(id) {
 
         if (!offer) return;
 
-        
         const loadingText = document.getElementById('loading-text');
         if (loadingText) {
             loadingText.innerText = "Conectando...";
@@ -478,6 +487,7 @@ function initClient(id) {
             peer.on('connect', () => {
                 handleConnection();
                 clearTimeout(manualHostTimeout); 
+                forceCloseModal(); 
             });
 
             peer.on('data', data => handleDataReceived(data));
@@ -552,7 +562,7 @@ function updateUIState(state) {
 
 function handleConnection() {
     updateUIState('connected');
-    closeModal();
+    forceCloseModal(); 
     setTimeout(() => {
         const statusText = document.getElementById('status-text');
         if (statusText) statusText.innerText = 'Conectado! Preparando envio...';
@@ -575,6 +585,7 @@ function handleDisconnect() {
         resetApp();
         return;
     }
+    
     showModal("Desconectado", "Conexão encerrada.", { retry: true, host: true, hideClose: true });
     resetApp();
 }
@@ -588,7 +599,7 @@ function handleError(err) {
     if (err.code === 'ERR_WEBRTC_SUPPORT') msg = "Seu navegador não suporta WebRTC.";
     
     
-    showModal("Erro", msg, { retry: true, host: true });
+    showModal("Erro", msg, { retry: true, host: true, hideClose: true });
 }
 
 function resetApp(forceDisconnect = false) {
@@ -606,7 +617,6 @@ function resetApp(forceDisconnect = false) {
     const isObsMode = urlParams.get('mode') === 'obs';
     const isClient = urlParams.has('remote');
 
-    
     if (isClient && !forceDisconnect) {
         return; 
     }
@@ -843,7 +853,6 @@ btnsCopy.forEach(btn => {
         setTimeout(() => btn.innerText = orig, 2000);
     };
 });
-
 
 document.getElementById('btn-disconnect').onclick = () => {
     resetApp(true); 
