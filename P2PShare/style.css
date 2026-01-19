@@ -167,13 +167,11 @@ body {
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 15px rgba(242, 81, 27, 0.3);
 }
 
 .btn-action:hover {
     background-color: var(--accent-color-hover);
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(242, 81, 27, 0.4);
 }
 
 .btn-cancel {
