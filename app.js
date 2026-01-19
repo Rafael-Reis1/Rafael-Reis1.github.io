@@ -234,10 +234,10 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Gemini Nano Web App',
-            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
-            html_url: '/chromeAILocal/chromeAILocal.html',
-            language: 'HTML',
+            name: 'Ferramentas de Imagem & IA',
+            description: "Suíte completa de edição 100% client-side (Privacidade garantida). Inclui IA para remoção de fundo e OCR, além de compressão, conversão, filtros e ferramentas de censura automática.",
+            html_url: '/imgConver/imgConver.html',
+            language: 'JavaScript',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },
@@ -246,6 +246,14 @@ function fetchAndDisplayRepos() {
             description: "Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.",
             html_url: '/Leitor-logs-totvs-fluig/leitor.html',
             language: 'JavaScript',
+            featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Gemini Nano Web App',
+            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            html_url: '/chromeAILocal/chromeAILocal.html',
+            language: 'HTML',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },

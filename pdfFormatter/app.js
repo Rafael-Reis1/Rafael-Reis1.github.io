@@ -18,8 +18,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPrint = document.getElementById('btnPrint');
     const btnShare = document.getElementById('btnShare');
     const btnCancelProcessing = document.getElementById('btnCancelProcessing');
+    const customSelect = document.querySelector('.custom-select-container');
+    const selectTrigger = customSelect.querySelector('.select-trigger');
+    const nativeSelect = document.getElementById('binding-type');
+    const options = customSelect.querySelectorAll('.custom-option');
 
+    selectTrigger.addEventListener('click', () => {
+        customSelect.classList.toggle('active');
+    });
 
+    options.forEach(option => {
+        option.addEventListener('click', () => {
+            options.forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+
+            selectTrigger.querySelector('span').textContent = option.textContent;
+
+            nativeSelect.value = option.getAttribute('data-value');
+
+            customSelect.classList.remove('active');
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!customSelect.contains(e.target)) {
+            customSelect.classList.remove('active');
+        }
+    });
 
     btnCloseModal.addEventListener('click', closeModal);
     btnPrint.addEventListener('click', () => window.print());
@@ -66,8 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.closeCustomAlertModal = closeCustomAlertModal;
 
-
-
     function showModal() {
         previewModal.style.display = 'flex';
         setTimeout(() => popupCard.classList.add('show'), 10);
@@ -93,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
 
         fileUpload.style.display = 'block';
+        document.getElementById('binding-options-container').style.display = 'block';
         fileInput.value = '';
 
         progressBar.style.width = '0%';
@@ -179,12 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             processingIndicator.style.display = 'none';
             fileUpload.style.display = 'block';
+            document.getElementById('binding-options-container').style.display = 'block';
             fileInput.value = '';
         }
     }
 
     function startProcessing() {
         fileUpload.style.display = 'none';
+        document.getElementById('binding-options-container').style.display = 'none';
         processingIndicator.style.display = 'block';
         previewContainer.innerHTML = '';
         printContainer.innerHTML = '';
@@ -208,29 +234,55 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.innerText = `${Math.round(percent)}%`;
     }
 
+    function calculateImposition(totalOriginalPages, signatureSize) {
+        const sheets = [];
+        let p = 1;
+
+        while (p <= totalOriginalPages) {
+            let limit = signatureSize === 0 ? totalOriginalPages : signatureSize;
+
+            let pagesLeft = totalOriginalPages - p + 1;
+
+            let currentSize;
+
+            if (signatureSize > 0 && pagesLeft < signatureSize) {
+                currentSize = Math.ceil(pagesLeft / 4) * 4;
+            } else if (signatureSize === 0) {
+                currentSize = Math.ceil(totalOriginalPages / 4) * 4;
+            } else {
+                currentSize = signatureSize;
+            }
+
+            let start = p;
+            let end = p + currentSize - 1;
+            let count = currentSize / 4;
+
+            let s = start;
+            let e = end;
+
+            for (let i = 0; i < count; i++) {
+                sheets.push({
+                    front: { left: e, right: s },
+                    back: { left: s + 1, right: e - 1 }
+                });
+                s += 2;
+                e -= 2;
+            }
+
+            p += currentSize;
+        }
+
+        return sheets;
+    }
+
     async function processPDF(pdf) {
         const totalOriginalPages = pdf.numPages;
-        let totalPages = totalOriginalPages;
 
-        if (totalPages % 4 !== 0) {
-            totalPages = Math.ceil(totalPages / 4) * 4;
-        }
+        const signatureSize = parseInt(document.getElementById('binding-type').value) || 0;
 
-        const sheets = [];
-        const numSheets = totalPages / 4;
+        const sheets = calculateImposition(totalOriginalPages, signatureSize);
 
-        let start = 1;
-        let end = totalPages;
-
-        for (let i = 0; i < numSheets; i++) {
-            const sheet = {
-                front: { left: end, right: start },
-                back: { left: start + 1, right: end - 1 }
-            };
-            sheets.push(sheet);
-            start += 2;
-            end -= 2;
-        }
+        const numSheets = sheets.length;
 
         let processedCount = 0;
         const totalOperations = numSheets * 4;
@@ -271,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (shouldCancel) {
                 processingIndicator.style.display = 'none';
                 fileUpload.style.display = 'block';
+                document.getElementById('binding-options-container').style.display = 'block';
                 fileInput.value = '';
 
                 if (currentPdfDoc) {
@@ -311,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const renderToTargets = async (pageIndex, targets) => {
                 const isContentPage = pageIndex <= totalOriginalPages;
                 let pageNumText = '';
-                if (pageIndex > 1 && pageIndex < totalPages) pageNumText = (pageIndex - 1).toString();
+                if (pageIndex > 1 && pageIndex < totalOriginalPages) pageNumText = (pageIndex - 1).toString();
 
                 for (const container of targets) {
                     container.innerHTML = '';
@@ -354,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shouldCancel) {
             processingIndicator.style.display = 'none';
             fileUpload.style.display = 'block';
+            document.getElementById('binding-options-container').style.display = 'block';
             fileInput.value = '';
             return;
         }
@@ -416,24 +470,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const embeddedPages = await newPdf.embedPages(originalPdf.getPages());
 
             const totalOriginalPages = embeddedPages.length;
-            let totalPages = totalOriginalPages;
-            if (totalPages % 4 !== 0) {
-                totalPages = Math.ceil(totalPages / 4) * 4;
-            }
 
-            const numSheets = totalPages / 4;
-            let start = 1;
-            let end = totalPages;
-
-            const sheets = [];
-            for (let i = 0; i < numSheets; i++) {
-                sheets.push({
-                    front: { left: end, right: start },
-                    back: { left: start + 1, right: end - 1 }
-                });
-                start += 2;
-                end -= 2;
-            }
+            const signatureSize = parseInt(document.getElementById('binding-type').value) || 0;
+            const sheets = calculateImposition(totalOriginalPages, signatureSize);
 
             const pageWidth = 841.89;
             const pageHeight = 595.28;
@@ -441,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const font = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
             const drawNum = (page, pageIndex, centerX) => {
-                if (pageIndex > 1 && pageIndex < totalPages) {
+                if (pageIndex > 1 && pageIndex < totalOriginalPages) {
                     const text = (pageIndex - 1).toString();
                     const textSize = 12;
                     const textWidth = font.widthOfTextAtSize(text, textSize);
