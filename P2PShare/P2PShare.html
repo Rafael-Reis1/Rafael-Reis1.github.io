@@ -5,17 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
-    <link rel="stylesheet" href="style.css?v=1901260240">
-    <title>P2P File Share</title>
+    <link rel="stylesheet" href="style.css?v=1901260733"> <title>P2P File Share</title>
     <script src="lib/simplepeer.min.js"></script>
     <script src="../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js"></script>
     <script src="../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js"></script>
-    <link rel="manifest" href="manifest.json?v=1901260240">
+    <link rel="manifest" href="manifest.json?v=1901260733">
     <script src="lib/qrcode.min.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1901260240">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1901260733">
 </head>
 
 <body>
+    <div id="obs-identity"></div>
+
     <button class="btnVoltar" id="btnVoltar">
         <img class="seta-animada arrow-back-icon">
         Voltar
@@ -23,53 +24,61 @@
 
     <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
         <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
-            <path
-                d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.648 14.545 11 12.68 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
-            <path
-                d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z" />
+            <path d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.648 14.545 11 12.68 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
+            <path d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z" />
         </svg>
         <span>Instalar App</span>
     </button>
 
     <div class="container">
         <div class="content-wrapper">
-            <div id="panel-waiting" class="card-panel">
+            <div id="panel-waiting" class="card-panel compact-panel">
                 <div class="qr-container">
                     <div id="qrcode">
                         <div class="qr-loading">
                             <div class="spinner"></div>
-                            <p>Conectando ao servidor...</p>
+                            <p id="loading-text">Aguarde...</p>
                         </div>
                     </div>
                 </div>
 
                 <div id="ready-content">
-                    <p class="status-text">Aguardando conexão...</p>
+                    <div class="id-badge-container">
+                        <span class="status-text-small">ID da Sala:</span>
+                        <div class="id-badge">
+                            <span id="room-id-display">...</span>
+                        </div>
+                    </div>
 
-                    <div class="link-box">
+                    <div class="link-box compact">
                         <input type="text" id="share-link" readonly>
                         <button id="btn-copy" class="btn-action">Copiar</button>
                     </div>
 
-                    <p class="instruction">
-                        Escaneie com a câmera do celular ou mande o link para conectar.
+                    <p class="instruction compact">
+                        Escaneie ou mande o link.
                     </p>
 
-                    <div class="streamer-section">
-                        <div class="streamer-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <div class="divider-section">
+                        <span>ou conecte-se manualmente</span>
+                    </div>
+
+                    <div class="link-box compact">
+                        <input type="text" id="manual-room-id" placeholder="Cole o ID aqui...">
+                        <button id="btn-manual-connect" class="btn-action" style="background-color: #2563eb;">Entrar</button>
+                    </div>
+
+                    <div class="streamer-section compact">
+                        <div class="streamer-title compact">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M15 10l5 5-5 5"/>
                                 <path d="M4 4v7a4 4 0 0 0 4 4h12"/>
                             </svg>
-                            Link para Live / OBS
+                            Link OBS
                         </div>
-                        
-                        <div class="link-group">
-                            <label class="link-label">Fonte de Navegador (Copie e cole no OBS):</label>
-                            <div class="custom-link-box">
-                                <input type="text" id="link-obs" readonly value="...">
-                                <button id="btn-copy-obs" class="btn-copy-mini btn-obs">Copiar</button>
-                            </div>
+                        <div class="custom-link-box compact">
+                            <input type="text" id="link-obs" readonly value="...">
+                            <button id="btn-copy-obs" class="btn-copy-mini btn-obs">Copiar</button>
                         </div>
                     </div>
                 </div>
@@ -78,55 +87,32 @@
             <div id="panel-connected" class="card-panel" style="display: none;">
                 <div class="connection-status">
                     <div class="status-dot"></div>
-                    <span id="remote-peer-name">Conectado com Dispositivo</span>
+                    <span id="remote-peer-name">Conectado</span>
                 </div>
 
                 <div class="clipboard-section">
                     <div class="clipboard-input-container">
-                        <input type="text" id="clipboard-input" placeholder="Cole seu texto aqui para enviar..."
-                            autocomplete="off">
-                        <button id="btn-send-text">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M22 2L11 13" />
-                                <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-                            </svg>
-                        </button>
+                        <input type="text" id="clipboard-input" placeholder="Enviar texto..." autocomplete="off">
+                        <button id="btn-send-text">➤</button>
                     </div>
                 </div>
 
                 <div id="drop-zone" class="file-upload">
                     <label for="file-input" class="file-upload-label">
-                        <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload">
-                        <span class="desktop-text">Arraste arquivos aqui ou clique para selecionar</span>
-                        <span class="mobile-text">Toque para selecionar arquivos</span>
+                        <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload" style="width: 48px;">
+                        <span class="desktop-text">Arraste arquivos</span>
+                        <span class="mobile-text">Toque para selecionar</span>
                     </label>
                     <input type="file" id="file-input" class="custom-file-input" multiple>
                 </div>
 
-                <div id="transfers-list" class="transfers-container">
-                </div>
+                <div id="transfers-list" class="transfers-container"></div>
 
-                <button id="btn-disconnect" class="btn-cancel">
-                    Desconectar
-                </button>
+                <button id="btn-disconnect" class="btn-cancel">Desconectar</button>
 
                 <div class="stream-controls">
-                    <button id="btn-share-cam" class="btn-action btn-share">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                            <circle cx="12" cy="13" r="4"/>
-                        </svg>
-                        Câmera
-                    </button>
-                    <button id="btn-share-screen" class="btn-action btn-share">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                            <line x1="8" y1="21" x2="16" y2="21"/>
-                            <line x1="12" y1="17" x2="12" y2="21"/>
-                        </svg>
-                        Tela
-                    </button>
+                    <button id="btn-share-cam" class="btn-action btn-share stream-btn">Câmera</button>
+                    <button id="btn-share-screen" class="btn-action btn-share stream-btn">Tela</button>
                 </div>
             </div>
         </div>
@@ -150,11 +136,10 @@
     <div id="clipboardModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Clipboard Compartilhado 📋</h3>
+                <h3>Clipboard 📋</h3>
                 <button class="modal-close" onclick="closeClipboardModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 10px; font-size: 0.9rem; color: #aaa;">Texto recebido:</p>
                 <textarea id="clipboard-review" readonly></textarea>
             </div>
             <div class="modal-actions">
@@ -166,11 +151,10 @@
 
     <div id="video-wrapper" class="video-overlay">
         <p id="video-status" class="video-status-text">Visualizando:</p>
-            <video id="remote-video" autoplay playsinline></video>
-        <button id="btn-exit-obs" class="btn-floating-exit">✕ Sair do Modo Cheio</button>
+        <video id="remote-video" autoplay playsinline></video>
+        <button id="btn-exit-obs" class="btn-floating-exit">✕ Sair</button>
     </div>
 
-    <script src="app.js?v=1901260240"></script>
+    <script src="app.js?v=1901260733"></script>
 </body>
-
 </html>
