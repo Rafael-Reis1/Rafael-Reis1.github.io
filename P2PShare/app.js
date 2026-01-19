@@ -507,7 +507,10 @@ function updateUIState(state) {
 function handleConnection() {
     updateUIState('connected');
     closeModal();
-    processPendingFile();
+
+    setTimeout(() => {
+        processPendingFile();
+    }, 700);
 }
 
 function processPendingFile() {
