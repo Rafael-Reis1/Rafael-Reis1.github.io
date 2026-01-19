@@ -314,9 +314,17 @@ function initHost() {
     if (obsIdDiv) {
         obsIdDiv.style.display = ''; 
         obsIdDiv.innerHTML = `
-            <span style="font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 2px;">ID da Sala</span>
-            <span style="font-size: 4rem; font-weight: bold; color: #fff; font-family: monospace;">${roomId}</span>
-            <span style="font-size: 0.9rem; color: var(--accent-color); margin-top: 5px;">Digite este ID no celular</span>
+            <span style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 5px;">
+                Código de Acesso
+            </span>
+            
+            <span style="font-size: 4.5rem; font-weight: 800; color: #fff; font-family: monospace; line-height: 1;">
+                ${roomId}
+            </span>
+            
+            <span style="font-size: 0.9rem; color: var(--accent-color); margin-top: 10px; font-weight: 500;">
+                Insira este código para conectar
+            </span>
         `;
     }
 
