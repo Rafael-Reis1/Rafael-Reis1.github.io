@@ -4,8 +4,8 @@
     "description": "Gerenciador de finanças pessoais",
     "start_url": "/finance/finance.html",
     "display": "standalone",
-    "background_color": "#0f172a",
-    "theme_color": "#0f172a",
+    "background_color": "#06071",
+    "theme_color": "#06071",
     "orientation": "portrait-primary",
     "icons": [
         {

@@ -4,8 +4,8 @@
     "description": "Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso",
     "start_url": "/reading/reading.html",
     "display": "standalone",
-    "background_color": "#0f0c29",
-    "theme_color": "#0f0c29",
+    "background_color": "#06071",
+    "theme_color": "#06071",
     "orientation": "portrait-primary",
     "icons": [
         {
