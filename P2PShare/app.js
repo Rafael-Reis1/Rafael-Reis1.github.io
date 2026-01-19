@@ -328,6 +328,9 @@ function restartHostPeer(currentRoomId) {
 function initClient(id) {
     roomId = id;
     localStorage.setItem('p2p_last_remote', roomId);
+
+    db.ref(`rooms/${roomId}/client_join_attempt`).set(Date.now());
+
     const qrDiv = document.getElementById('qrcode');
 
     if (qrDiv) {
@@ -509,8 +512,10 @@ function handleConnection() {
     closeModal();
 
     setTimeout(() => {
+        const statusText = document.getElementById('status-text');
+        if (statusText) statusText.innerText = 'Conectado! Preparando envio...';
         processPendingFile();
-    }, 500);
+    }, 1500);
 }
 
 function processPendingFile() {
