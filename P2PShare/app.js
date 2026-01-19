@@ -248,7 +248,17 @@ function initHost() {
             console.log("OBS: Conexão fechada. Reiniciando...");
             resetApp();
         } else {
-            handleDisconnect();
+            console.log("Cliente desconectou. Aguardando reconexão...");
+            showModal("Desconectado", "O outro dispositivo desconectou.\nAguardando reconexão...");
+            updateUIState('waiting');
+
+            if (peer) {
+                peer.removeAllListeners();
+                peer.destroy();
+                peer = null;
+            }
+
+            restartHostPeer(roomId);
         }
     });
 
@@ -273,6 +283,40 @@ function initHost() {
                 if (peer && !peer.destroyed) peer.signal(JSON.parse(data));
             } catch (e) { console.warn("Sinal ignorado:", e); }
         }
+    });
+}
+
+function restartHostPeer(currentRoomId) {
+    if (peer) {
+        peer.removeAllListeners();
+        peer.destroy();
+        peer = null;
+    }
+
+    const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    peer = new SimplePeer({
+        initiator: true,
+        trickle: false,
+        config: rtcConfig
+    });
+
+    peer.on('signal', data => {
+        db.ref(`rooms/${currentRoomId}/offer`).set(JSON.stringify(data));
+    });
+
+    peer.on('connect', handleConnection);
+    peer.on('data', handleDataReceived);
+    peer.on('stream', stream => handleVideoStream(stream, false));
+
+    peer.on('close', () => {
+        console.log("Cliente desconectou novamente. Reiniciando peer...");
+        updateUIState('waiting');
+        restartHostPeer(currentRoomId);
+    });
+
+    peer.on('error', err => {
+        console.error("Erro no Peer (Restarted):", err);
+        restartHostPeer(currentRoomId);
     });
 }
 
