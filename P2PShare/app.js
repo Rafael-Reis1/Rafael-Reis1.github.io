@@ -145,6 +145,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         roomId = remoteId;
         initClient(roomId);
     } else {
+        if (urlParams.get('share_target') === 'true') {
+            const lastRemote = localStorage.getItem('p2p_last_remote');
+            if (lastRemote) {
+                console.log("Restaurando sessão para Share Target:", lastRemote);
+                showModal("Reconectando", "Restaurando conexão anterior...");
+                initClient(lastRemote);
+                return;
+            }
+        }
         initHost();
     }
 
@@ -268,6 +277,8 @@ function initHost() {
 }
 
 function initClient(id) {
+    roomId = id;
+    localStorage.setItem('p2p_last_remote', roomId);
     const qrDiv = document.getElementById('qrcode');
 
     if (qrDiv) {
