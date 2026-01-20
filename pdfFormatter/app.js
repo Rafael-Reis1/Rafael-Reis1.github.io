@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnCancelProcessing) {
             btnCancelProcessing.innerText = "Cancelar";
             btnCancelProcessing.disabled = false;
-            btnCancelProcessing.style.display = ''; 
+            btnCancelProcessing.style.display = '';
         }
 
         updateProgress(0);
@@ -527,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { PDFDocument } = PDFLib;
             const newPdf = await PDFDocument.create();
-            const originalPdf = await PDFDocument.load(currentPdfBytes);
+            const originalPdf = await PDFDocument.load(currentPdfBytes, { ignoreEncryption: true });
 
             const embeddedPages = await newPdf.embedPages(originalPdf.getPages());
             const totalOriginalPages = embeddedPages.length;
@@ -558,8 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const totalSheets = sheets.length;
-            
-            const BATCH_SIZE = 50; 
+
+            const BATCH_SIZE = 50;
 
             for (let i = 0; i < totalSheets; i++) {
                 const sheet = sheets[i];
@@ -567,9 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (skipPreview && i % BATCH_SIZE === 0) {
                     const percent = 10 + ((i / totalSheets) * 80);
                     progressBar.style.width = `${percent}%`;
-                    
+
                     progressText.innerText = `Processando... ${Math.round((i / totalSheets) * 100)}%`;
-                    
+
                     await new Promise(r => setTimeout(r, 0));
                 }
 
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 successFileName.textContent = newFileName;
 
                 successModal.style.display = 'flex';
-                successModal.offsetHeight; 
+                successModal.offsetHeight;
                 successModal.classList.add('active');
 
             } else {
