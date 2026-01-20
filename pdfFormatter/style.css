@@ -8,7 +8,7 @@
     --border-color: rgba(217, 217, 217, .2);
     --font-body: 'Inter', sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue';
     --glass-bg: rgba(255, 255, 255, 0.05);
-    --popup-background-color: #1f2031;
+    --popup-background-color: #1a1b2e;
 }
 
 * {
@@ -447,13 +447,6 @@ h1 {
 }
 
 @media (max-width: 37.5rem) {
-    .modal-header {
-        flex-direction: column;
-        gap: 0.625rem;
-        padding-bottom: 0.625rem;
-        text-align: center;
-    }
-
     .modal-header h2 {
         font-size: 1.2rem;
         margin-bottom: 0.3125rem;
@@ -618,7 +611,6 @@ h1 {
     box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
 }
 
-/* Custom Select Styles */
 .custom-select-container {
     position: relative;
     width: 100%;
@@ -706,4 +698,266 @@ h1 {
 
 .custom-select-container.active .select-arrow {
     transform: translateY(-50%) rotate(180deg);
+}
+
+.tag-checkbox {
+    position: relative;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 16px 0 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 100px;
+
+    color: var(--text-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 1;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.tag-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.tag-checkbox:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.tag-checkbox:has(input:checked) {
+    background: rgba(242, 81, 27, 0.15);
+    border-color: var(--accent-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(242, 81, 27, 0.25);
+}
+
+.tag-checkbox span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 1px;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.modal-footer {
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+}
+
+.modal-footer button {
+    height: 45px;
+    font-size: 1rem;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+.modal.active {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1b2e, #252640);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    width: 95%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.modal.active .modal-content {
+    transform: translateY(0) scale(1);
+}
+
+.success-modal-content {
+    max-width: 400px;
+}
+
+.success-modal-content .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background: #151625;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.success-modal-content .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.success-modal-content .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.success-modal-content .modal-close:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.success-modal-body {
+    text-align: center;
+    padding: 2.5rem 2rem;
+    background-color: #1a1b2e;
+}
+
+.success-icon {
+    font-size: 4rem;
+    margin-bottom: 1.25rem;
+    animation: floatIcon 3s ease-in-out infinite;
+    display: block;
+}
+
+.success-message {
+    color: var(--text-color);
+    opacity: 0.85;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+.success-filename {
+    font-weight: 600;
+    color: var(--accent-color);
+    word-break: break-all;
+    font-size: 0.95rem;
+}
+
+.success-modal-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: #151625;
+    border-top: 1px solid var(--border-color);
+}
+
+.success-modal-footer button {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.success-modal-footer .btn-primary {
+    background: var(--accent-color);
+    border: none;
+    color: white;
+}
+
+.success-modal-footer .btn-primary:hover {
+    background: var(--accent-color-hover);
+    transform: translateY(-2px);
+}
+
+.success-modal-footer .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.success-modal-footer .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--text-color);
+}
+
+@keyframes floatIcon {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Desktop/Mobile visibility for success modal buttons */
+.success-modal-footer .desktop-only {
+    display: flex;
+}
+
+.success-modal-footer .mobile-only {
+    display: none;
+}
+
+.success-modal-footer .shortcut-text {
+    opacity: 0.7;
+    font-size: 0.85em;
+}
+
+@media (max-width: 768px) {
+    .success-modal-footer .desktop-only {
+        display: none !important;
+    }
+
+    .success-modal-footer .mobile-only {
+        display: flex !important;
+    }
 }
