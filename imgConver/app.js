@@ -289,6 +289,9 @@ function buildControls() {
     canvas.onmousedown = null;
     canvas.onmousemove = null;
     canvas.onmouseup = null;
+    canvas.ontouchstart = null;
+    canvas.ontouchmove = null;
+    canvas.ontouchend = null;
     canvas.style.cursor = 'default';
 
     canvas.style.width = '';
@@ -578,6 +581,82 @@ function buildCropControls(container) {
     };
 
     canvas.onmouseup = () => {
+        isDragging = false;
+        isResizing = false;
+        isMoving = false;
+        resizeHandle = null;
+    };
+
+    // Touch support
+    canvas.ontouchstart = (e) => {
+        if (e.touches.length > 1) return; // Ignore multi-touch
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        startX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+        startY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+        const handle = getHandleAtPoint(startX, startY);
+
+        if (handle && handle !== 'move') {
+            isResizing = true;
+            resizeHandle = handle;
+            cropRect = normalizeCropRect(cropRect);
+        } else if (handle === 'move') {
+            isMoving = true;
+            cropRect = normalizeCropRect(cropRect);
+            dragOffsetX = startX - cropRect.x;
+            dragOffsetY = startY - cropRect.y;
+        } else {
+            cropRect = { x: startX, y: startY, width: 0, height: 0 };
+            tempRect = { ...cropRect };
+            isDragging = true;
+        }
+    };
+
+    canvas.ontouchmove = (e) => {
+        if (e.touches.length > 1) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const currentX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+        const currentY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+        if (isDragging) {
+            cropRect.width = currentX - startX;
+            cropRect.height = currentY - startY;
+            displayImage(originalImage);
+            drawCropRect(cropRect);
+        } else if (isMoving && cropRect) {
+            cropRect.x = currentX - dragOffsetX;
+            cropRect.y = currentY - dragOffsetY;
+            displayImage(originalImage);
+            drawCropRect(cropRect);
+        } else if (isResizing && cropRect) {
+            const dx = currentX - startX;
+            const dy = currentY - startY;
+
+            switch (resizeHandle) {
+                case 'se': cropRect.width += dx; cropRect.height += dy; break;
+                case 'sw': cropRect.width -= dx; cropRect.x += dx; cropRect.height += dy; break;
+                case 'ne': cropRect.width += dx; cropRect.height -= dy; cropRect.y += dy; break;
+                case 'nw': cropRect.width -= dx; cropRect.x += dx; cropRect.height -= dy; cropRect.y += dy; break;
+                case 'e': cropRect.width += dx; break;
+                case 'w': cropRect.width -= dx; cropRect.x += dx; break;
+                case 's': cropRect.height += dy; break;
+                case 'n': cropRect.height -= dy; cropRect.y += dy; break;
+            }
+
+            startX = currentX;
+            startY = currentY;
+
+            displayImage(originalImage);
+            drawCropRect(cropRect);
+        }
+    };
+
+    canvas.ontouchend = (e) => {
+        e.preventDefault();
         isDragging = false;
         isResizing = false;
         isMoving = false;
