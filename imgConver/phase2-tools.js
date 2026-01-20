@@ -153,7 +153,6 @@ function applyCirclePreview(redraw = false) {
     const minDim = Math.min(originalImage.width, originalImage.height);
     const radius = minDim / 2;
 
-    // Ensure coords are set
     if (circleCropX === null) circleCropX = originalImage.width / 2;
     if (circleCropY === null) circleCropY = originalImage.height / 2;
 

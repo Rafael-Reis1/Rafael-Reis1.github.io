@@ -712,15 +712,14 @@ h1 {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     border-radius: 100px;
-
     color: var(--text-color);
     font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 0.5px;
     line-height: 1;
-
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
+    flex-shrink: 0;
 }
 
 .tag-checkbox input {
@@ -938,7 +937,6 @@ h1 {
     }
 }
 
-/* Desktop/Mobile visibility for success modal buttons */
 .success-modal-footer .desktop-only {
     display: flex;
 }
@@ -952,6 +950,8 @@ h1 {
     font-size: 0.85em;
 }
 
+.icon-only { display: none; }
+
 @media (max-width: 768px) {
     .success-modal-footer .desktop-only {
         display: none !important;
@@ -960,4 +960,26 @@ h1 {
     .success-modal-footer .mobile-only {
         display: flex !important;
     }
+    
+    .text-label { display: none; }
+    .icon-only { display: inline; font-size: 1.125rem; }
+}
+
+.page-number {
+    position: absolute;
+    bottom: 3%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+    z-index: 10;
+    
+    text-shadow: 
+        -1px -1px 0 #000,  
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000,
+         0px 1px 2px rgba(0,0,0,0.8);
 }
