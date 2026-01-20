@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPdfBytes = null;
     let currentPdfDoc = null;
     let shouldCancel = false;
+    let currentFileName = "documento.pdf";
+    let generatedPdfFile = null;
     const fileInput = document.getElementById('file-input');
     const fileUpload = document.getElementById('file-upload');
     const processingIndicator = document.getElementById('processing-indicator');
@@ -71,10 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const successModal = document.getElementById('successModal');
+    if (successModal) {
+        successModal.addEventListener('click', (e) => {
+            if (e.target === successModal) closeSuccessModal();
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (previewModal.style.display === 'flex') closeModal();
             if (customAlertModal && customAlertModal.classList.contains('active')) closeCustomAlertModal();
+            if (successModal && successModal.classList.contains('active')) closeSuccessModal();
         }
     });
 
@@ -90,6 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customAlertModal) customAlertModal.classList.remove('active');
     }
     window.closeCustomAlertModal = closeCustomAlertModal;
+
+    function closeSuccessModal() {
+        const modal = document.getElementById('successModal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.getElementById('processing-indicator').style.display = 'none';
+                document.getElementById('file-upload').style.display = 'block';
+                document.getElementById('binding-options-container').style.display = 'block';
+                document.getElementById('file-input').value = '';
+                document.getElementById('progress-bar').style.width = "0%";
+            }, 300);
+        }
+    }
 
     function showModal() {
         previewModal.style.display = 'flex';
@@ -183,27 +208,45 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        currentFileName = file.name;
+
         startProcessing();
 
         try {
             const arrayBuffer = await file.arrayBuffer();
             currentPdfBytes = arrayBuffer.slice(0);
 
-            if (currentPdfDoc) {
-                currentPdfDoc.destroy();
+            const skipPreview = document.getElementById('skip-preview').checked;
+
+            if (skipPreview) {
+                const progressText = document.getElementById('progress-text');
+                const progressBar = document.getElementById('progress-bar');
+
+                progressText.innerText = "Iniciando...";
+                progressBar.style.width = "0%";
+
+                requestAnimationFrame(async () => {
+                    try {
+                        await shareBooklet();
+                    } catch (err) {
+                        console.error(err);
+                        showAlertModal('Erro', 'Falha ao gerar o PDF.');
+                        endProcessing();
+                    }
+                });
+
+            } else {
+                if (currentPdfDoc) {
+                    currentPdfDoc.destroy();
+                }
+                currentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+                await processPDF(currentPdfDoc);
             }
-
-            currentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
-
-            await processPDF(currentPdfDoc);
 
         } catch (error) {
             console.error('Erro ao processar:', error);
             showAlertModal('Erro', 'Ocorreu um erro ao processar o PDF.');
-
-            processingIndicator.style.display = 'none';
-            fileUpload.style.display = 'block';
-            document.getElementById('binding-options-container').style.display = 'block';
+            endProcessing();
             fileInput.value = '';
         }
     }
@@ -219,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnCancelProcessing) {
             btnCancelProcessing.innerText = "Cancelar";
             btnCancelProcessing.disabled = false;
+            btnCancelProcessing.style.display = ''; 
         }
 
         updateProgress(0);
@@ -239,8 +283,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let p = 1;
 
         while (p <= totalOriginalPages) {
-            let limit = signatureSize === 0 ? totalOriginalPages : signatureSize;
-
             let pagesLeft = totalOriginalPages - p + 1;
 
             let currentSize;
@@ -443,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     installBtn.addEventListener('click', async () => {
         if (!deferredPrompt) return;
         deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        await deferredPrompt.userChoice;
         deferredPrompt = null;
         installBtn.style.display = 'none';
     });
@@ -460,109 +502,193 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const btnShare = document.getElementById('btnShare');
-        const originalText = btnShare.innerText;
-        btnShare.innerText = 'Gerando PDF...';
-        btnShare.disabled = true;
+        const originalText = btnShare ? btnShare.innerText : '';
+        const skipPreview = document.getElementById('skip-preview').checked;
+        const btnCancelProcessing = document.getElementById('btnCancelProcessing');
+
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        const successModal = document.getElementById('successModal');
+        const successFileName = document.getElementById('successFileName');
+
+        if (btnShare && !skipPreview) {
+            btnShare.innerText = 'Gerando PDF...';
+            btnShare.disabled = true;
+        }
+
         try {
+            if (skipPreview) {
+                progressText.innerText = "Lendo PDF Original...";
+                progressBar.style.width = "10%";
+                if (btnCancelProcessing) btnCancelProcessing.style.display = 'none';
+                progressBar.style.transition = 'width 0.2s linear';
+            }
+
             const { PDFDocument } = PDFLib;
             const newPdf = await PDFDocument.create();
             const originalPdf = await PDFDocument.load(currentPdfBytes);
+
             const embeddedPages = await newPdf.embedPages(originalPdf.getPages());
-
             const totalOriginalPages = embeddedPages.length;
-
             const signatureSize = parseInt(document.getElementById('binding-type').value) || 0;
             const sheets = calculateImposition(totalOriginalPages, signatureSize);
 
             const pageWidth = 841.89;
             const pageHeight = 595.28;
             const halfWidth = pageWidth / 2;
-
             const font = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            const pageNumColor = PDFLib.rgb(0.2, 0.2, 0.2);
+
             const drawNum = (page, pageIndex, centerX) => {
                 if (pageIndex > 1 && pageIndex < totalOriginalPages) {
                     const text = (pageIndex - 1).toString();
-                    const textSize = 12;
-                    const textWidth = font.widthOfTextAtSize(text, textSize);
+                    const size = 10;
+                    const width = font.widthOfTextAtSize(text, size);
                     page.drawText(text, {
-                        x: centerX - (textWidth / 2),
-                        y: 20,
-                        size: textSize,
-                        font: font,
-                        color: PDFLib.rgb(0.2, 0.2, 0.2)
+                        x: centerX - (width / 2),
+                        y: 15, size: size, font: font, color: pageNumColor
                     });
                 }
             };
 
-            for (const sheet of sheets) {
-                const frontPage = newPdf.addPage([pageWidth, pageHeight]);
+            if (skipPreview) {
+                progressText.innerText = "Processando páginas...";
+            }
 
-                if (sheet.front.left <= totalOriginalPages) {
-                    frontPage.drawPage(embeddedPages[sheet.front.left - 1], {
-                        x: 0,
-                        y: 0,
-                        width: halfWidth,
-                        height: pageHeight
-                    });
-                    drawNum(frontPage, sheet.front.left, halfWidth / 2);
+            const totalSheets = sheets.length;
+            
+            const BATCH_SIZE = 50; 
+
+            for (let i = 0; i < totalSheets; i++) {
+                const sheet = sheets[i];
+
+                if (skipPreview && i % BATCH_SIZE === 0) {
+                    const percent = 10 + ((i / totalSheets) * 80);
+                    progressBar.style.width = `${percent}%`;
+                    
+                    progressText.innerText = `Processando... ${Math.round((i / totalSheets) * 100)}%`;
+                    
+                    await new Promise(r => setTimeout(r, 0));
                 }
 
+                const frontPage = newPdf.addPage([pageWidth, pageHeight]);
+                if (sheet.front.left <= totalOriginalPages) {
+                    frontPage.drawPage(embeddedPages[sheet.front.left - 1], { x: 0, y: 0, width: halfWidth, height: pageHeight });
+                    drawNum(frontPage, sheet.front.left, halfWidth / 2);
+                }
                 if (sheet.front.right <= totalOriginalPages) {
-                    frontPage.drawPage(embeddedPages[sheet.front.right - 1], {
-                        x: halfWidth,
-                        y: 0,
-                        width: halfWidth,
-                        height: pageHeight
-                    });
+                    frontPage.drawPage(embeddedPages[sheet.front.right - 1], { x: halfWidth, y: 0, width: halfWidth, height: pageHeight });
                     drawNum(frontPage, sheet.front.right, halfWidth + (halfWidth / 2));
                 }
 
                 const backPage = newPdf.addPage([pageWidth, pageHeight]);
-
                 if (sheet.back.left <= totalOriginalPages) {
-                    backPage.drawPage(embeddedPages[sheet.back.left - 1], {
-                        x: 0,
-                        y: 0,
-                        width: halfWidth,
-                        height: pageHeight
-                    });
+                    backPage.drawPage(embeddedPages[sheet.back.left - 1], { x: 0, y: 0, width: halfWidth, height: pageHeight });
                     drawNum(backPage, sheet.back.left, halfWidth / 2);
                 }
-
                 if (sheet.back.right <= totalOriginalPages) {
-                    backPage.drawPage(embeddedPages[sheet.back.right - 1], {
-                        x: halfWidth,
-                        y: 0,
-                        width: halfWidth,
-                        height: pageHeight
-                    });
+                    backPage.drawPage(embeddedPages[sheet.back.right - 1], { x: halfWidth, y: 0, width: halfWidth, height: pageHeight });
                     drawNum(backPage, sheet.back.right, halfWidth + (halfWidth / 2));
                 }
             }
 
-            const pdfBytes = await newPdf.save();
-            const file = new File([pdfBytes], "livreto_formatado.pdf", { type: "application/pdf" });
+            if (skipPreview) {
+                progressBar.style.width = "95%";
+                progressText.innerText = "Salvando arquivo...";
+                await new Promise(r => setTimeout(r, 10));
+            }
 
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Livreto PDF Formatado',
-                    text: 'Aqui está seu livreto pronto para impressão.'
-                });
+            const pdfBytes = await newPdf.save();
+            const newFileName = `formatado_booklet_${currentFileName || 'documento.pdf'}`;
+
+            generatedPdfFile = new File([pdfBytes], newFileName, { type: "application/pdf" });
+
+            if (skipPreview) {
+                progressBar.style.width = "100%";
+                progressText.innerText = "Concluído!";
+
+                await new Promise(r => setTimeout(r, 200));
+
+                successFileName.textContent = newFileName;
+
+                successModal.style.display = 'flex';
+                successModal.offsetHeight; 
+                successModal.classList.add('active');
+
             } else {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(file);
-                link.download = 'livreto_formatado.pdf';
-                link.click();
+                triggerDownloadOrShare(generatedPdfFile);
             }
 
         } catch (error) {
-            console.error('Erro ao gerar/compartilhar PDF:', error);
+            console.error('Erro:', error);
+            showAlertModal('Erro', 'Falha crítica: ' + error.message);
+            if (skipPreview) {
+                document.getElementById('processing-indicator').style.display = 'none';
+                document.getElementById('file-upload').style.display = 'block';
+            }
         } finally {
-            btnShare.innerText = originalText;
-            btnShare.disabled = false;
+            if (progressBar) progressBar.style.transition = '';
+
+            if (btnCancelProcessing) {
+                if (skipPreview) {
+                    btnCancelProcessing.style.display = 'none';
+                } else {
+                    btnCancelProcessing.style.display = '';
+                }
+            }
+
+            if (btnShare && !skipPreview) {
+                btnShare.innerText = originalText;
+                btnShare.disabled = false;
+            }
         }
     }
+
+    async function triggerDownloadOrShare(file, forceDownload = false) {
+        if (!file) return;
+
+        if (forceDownload || !(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }))) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(file);
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+        }
+
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'Livreto PDF Formatado',
+                text: 'Aqui está seu livreto pronto para impressão.'
+            });
+        } catch (err) {
+            console.warn('Share falhou ou cancelado:', err);
+            if (err.name !== 'AbortError') {
+                triggerDownloadOrShare(file, true);
+            }
+        }
+    }
+
+    document.getElementById('btnModalShare').addEventListener('click', () => {
+        triggerDownloadOrShare(generatedPdfFile, false);
+    });
+
+    document.getElementById('btnModalPrint').addEventListener('click', () => {
+        if (generatedPdfFile) {
+            const url = URL.createObjectURL(generatedPdfFile);
+            window.open(url, '_blank');
+        }
+    });
+
+    document.getElementById('btnModalDownload').addEventListener('click', () => {
+        triggerDownloadOrShare(generatedPdfFile, true);
+    });
+
+    document.getElementById('btnCloseSuccess').addEventListener('click', closeSuccessModal);
 
     if ('launchQueue' in window) {
         window.launchQueue.setConsumer(async (launchParams) => {
