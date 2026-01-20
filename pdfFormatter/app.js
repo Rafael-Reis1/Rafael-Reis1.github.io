@@ -405,8 +405,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const renderToTargets = async (pageIndex, targets) => {
                 const isContentPage = pageIndex <= totalOriginalPages;
+                const addPagination = document.getElementById('add-pagination').checked;
                 let pageNumText = '';
-                if (pageIndex > 1 && pageIndex < totalOriginalPages) pageNumText = (pageIndex - 1).toString();
+                if (addPagination && pageIndex > 1 && isContentPage) pageNumText = (pageIndex - 1).toString();
 
                 for (const container of targets) {
                     container.innerHTML = '';
@@ -539,16 +540,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const halfWidth = pageWidth / 2;
             const font = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
 
-            const pageNumColor = PDFLib.rgb(0.2, 0.2, 0.2);
-
             const drawNum = (page, pageIndex, centerX) => {
-                if (pageIndex > 1 && pageIndex < totalOriginalPages) {
+                const addPagination = document.getElementById('add-pagination').checked;
+
+                if (addPagination && pageIndex > 1) {
                     const text = (pageIndex - 1).toString();
-                    const size = 10;
-                    const width = font.widthOfTextAtSize(text, size);
+                    const size = 11;
+                    const textWidth = font.widthOfTextAtSize(text, size);
+                    
+                    const yPos = 15; 
+
                     page.drawText(text, {
-                        x: centerX - (width / 2),
-                        y: 15, size: size, font: font, color: pageNumColor
+                        x: centerX - (textWidth / 2) + 0.5,
+                        y: yPos - 0.5,
+                        size: size, font: font, 
+                        color: PDFLib.rgb(0, 0, 0)
+                    });
+                    
+                    page.drawText(text, {
+                        x: centerX - (textWidth / 2) + 1,
+                        y: yPos - 1,
+                        size: size, font: font, 
+                        color: PDFLib.rgb(0, 0, 0)
+                    });
+
+                    page.drawText(text, {
+                        x: centerX - (textWidth / 2),
+                        y: yPos,
+                        size: size, font: font, 
+                        color: PDFLib.rgb(1, 1, 1)
                     });
                 }
             };

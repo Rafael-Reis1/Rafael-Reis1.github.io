@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="manifest" href="manifest.json?v=2001260625">
+    <link rel="manifest" href="manifest.json?v=2001261040">
     <meta name="theme-color" content="#06071A">
     <title>PDF Booklet Maker</title>
     <script src="lib/pdf.min.js" defer></script>
@@ -19,9 +19,9 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
     </script>
     <script src="lib/pdf-lib.min.js"></script>
-    <link href="../Leitor-logs-totvs-fluig/style.css?v=2001260625 rel=stylesheet">
-    <link href="../style.css?v=2001260625 rel=stylesheet">
-    <link href="style.css?v=2001260625 rel=stylesheet">
+    <link href="../Leitor-logs-totvs-fluig/style.css?v=2001261040 rel=stylesheet">
+    <link href="../style.css?v=2001261040 rel=stylesheet">
+    <link href="style.css?v=2001261040 rel=stylesheet">
 </head>
 
 <body>
@@ -46,12 +46,22 @@
         <div class="opcoes no-print">
             <div id="binding-options-container" class="control-group" style="width: 100%; margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label style="color: var(--text-color); margin: 0;">Modo de Encadernação:</label>
-
-                    <label class="tag-checkbox" title="Pular preview e baixar direto">
-                        <input type="checkbox" id="skip-preview">
-                        <span>⚡ Turbo</span>
+                    <label class="input-label">
+                        <span class="icon-only">📖 Layout</span>
+                        <span class="text-label">Modo de Encadernação</span>
                     </label>
+
+                    <div style="display: flex; gap: 10px;">
+                        <label class="tag-checkbox" title="Adicionar números de página">
+                            <input type="checkbox" id="add-pagination" checked>
+                            <span>📄 Paginação</span>
+                        </label>
+
+                        <label class="tag-checkbox" title="Pular preview e baixar direto">
+                            <input type="checkbox" id="skip-preview">
+                            <span>⚡ Turbo</span>
+                        </label>
+                    </div>
                 </div>
 
                 <select id="binding-type" style="display: none;">
@@ -159,11 +169,11 @@
         </div>
     </div>
 
-    <script src="app.js?v=2001260625"></script>
+    <script src="app.js?v=2001261040"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=2001260625');
+                navigator.serviceWorker.register('sw.js?v=2001261040');
             });
         }
     </script>
