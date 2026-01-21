@@ -279,6 +279,7 @@ body {
     flex-direction: column;
     gap: 0.75rem;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) transparent;
     padding-right: 0.3125rem;
@@ -294,6 +295,7 @@ body {
     font-size: 0.9rem;
     border: 1px solid transparent;
     transition: all 0.2s ease;
+    max-width: 100%;
 }
 
 .transfer-item:hover {
@@ -311,6 +313,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     color: #eee;
+    flex-shrink: 0;
 }
 
 .transfer-badge {
@@ -348,6 +351,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-width: 0;
 }
 
 .file-name {
@@ -356,12 +360,15 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70%;
+    flex: 1;
+    min-width: 0;
 }
 
 .file-size {
     font-size: 0.75rem;
     color: #888;
+    flex-shrink: 0;
+    margin-left: 10px;
 }
 
 .progress-container {
@@ -393,6 +400,7 @@ body {
     align-items: center;
     font-size: 0.75rem;
     color: #aaa;
+    min-width: 0;
 }
 
 .percentage {
@@ -1034,7 +1042,7 @@ body.obs-mode #obs-identity {
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
 }
 
@@ -1065,7 +1073,7 @@ body.obs-mode #obs-identity {
     justify-content: center;
     gap: 10px;
     margin-bottom: 10px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
     padding: 6px 15px;
     border-radius: 20px;
     border: 1px solid var(--border-color);
@@ -1084,7 +1092,8 @@ body.obs-mode #obs-identity {
     letter-spacing: 1px;
 }
 
-.link-box.compact, .custom-link-box.compact {
+.link-box.compact,
+.custom-link-box.compact {
     padding: 4px 8px;
     height: 38px;
 }
@@ -1128,7 +1137,7 @@ body.obs-mode {
     overflow: hidden;
 }
 
-#qrcode img, 
+#qrcode img,
 #qrcode canvas {
     width: 100% !important;
     height: auto !important;
