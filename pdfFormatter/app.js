@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentPdfDoc) {
                     currentPdfDoc.destroy();
                 }
-                currentPdfDoc = await pdfjsLib.getDocument(currentPdfBytes).promise;
+                currentPdfDoc = await pdfjsLib.getDocument(currentPdfBytes.slice(0)).promise;
                 await processPDF(currentPdfDoc);
             }
 
