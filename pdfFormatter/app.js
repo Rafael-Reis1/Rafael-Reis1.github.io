@@ -48,6 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const tagCheckboxes = document.querySelectorAll('.tag-checkbox input');
+    tagCheckboxes.forEach(checkbox => {
+        if (checkbox.checked) checkbox.parentElement.classList.add('checked');
+
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                checkbox.parentElement.classList.add('checked');
+            } else {
+                checkbox.parentElement.classList.remove('checked');
+            }
+        });
+    });
+
     btnCloseModal.addEventListener('click', closeModal);
     btnPrint.addEventListener('click', () => window.print());
 
@@ -112,6 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('binding-options-container').style.display = 'block';
                 document.getElementById('file-input').value = '';
                 document.getElementById('progress-bar').style.width = "0%";
+
+                currentPdfBytes = null;
+                generatedPdfFile = null;
+                if (currentPdfDoc) {
+                    currentPdfDoc.destroy();
+                    currentPdfDoc = null;
+                }
             }, 300);
         }
     }
@@ -128,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             previewContainer.innerHTML = '';
             printContainer.innerHTML = '';
             currentPdfBytes = null;
+            generatedPdfFile = null;
 
             if (currentPdfDoc) {
                 currentPdfDoc.destroy();
@@ -210,6 +231,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file || file.type !== 'application/pdf') {
             showAlertModal('Erro', 'Por favor, envie um arquivo PDF.');
             return;
+        }
+
+        currentPdfBytes = null;
+        generatedPdfFile = null;
+        if (currentPdfDoc) {
+            currentPdfDoc.destroy();
+            currentPdfDoc = null;
         }
 
         currentFileName = file.name;
@@ -454,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentPdfDoc = null;
                 }
                 currentPdfBytes = null;
+                generatedPdfFile = null;
 
                 return;
             }
@@ -533,8 +562,17 @@ document.addEventListener('DOMContentLoaded', () => {
             fileUpload.style.display = 'block';
             document.getElementById('binding-options-container').style.display = 'block';
             fileInput.value = '';
+
+            if (currentPdfDoc) {
+                currentPdfDoc.destroy();
+                currentPdfDoc = null;
+            }
+            currentPdfBytes = null;
+            generatedPdfFile = null;
+
             return;
         }
+
 
         updateProgress(100);
 
