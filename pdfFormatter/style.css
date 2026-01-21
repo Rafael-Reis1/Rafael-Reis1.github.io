@@ -237,7 +237,7 @@ h1 {
     z-index: 1000;
 }
 
-#alertModal,
+#customAlertModal,
 #confirmationModal {
     z-index: 99999 !important;
 }
