@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleFiles(e, autoProcess = true) {
-        let file = e.target.files ? e.target.files[0] : null;
+        let file = null;
 
         if (e.target && e.target.files) file = e.target.files[0];
         else if (e.files && e.files[0]) file = e.files[0];
