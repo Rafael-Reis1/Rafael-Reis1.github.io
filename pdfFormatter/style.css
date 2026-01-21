@@ -1044,9 +1044,36 @@ h1 {
     z-index: 9999 !important;
 }
 
-#sharedFileModal .modal-header,
+#sharedFileModal .modal-header {
+    background: #151625;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 #sharedFileModal .modal-footer {
     background: #151625;
+    border-radius: 0 0 16px 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+#sharedFileModal .modal-close {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#sharedFileModal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
 }
 
 #sharedFileModal .modal-footer button {
@@ -1061,4 +1088,10 @@ h1 {
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+#sharedFileName {
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 1.1rem;
 }

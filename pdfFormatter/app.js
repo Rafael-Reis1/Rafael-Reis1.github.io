@@ -807,7 +807,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await CACHE.match('shared-file');
             if (response) {
                 const blob = await response.blob();
-                const file = new File([blob], "shared_document.pdf", { type: "application/pdf" });
+
+                let fileName = "shared_document.pdf";
+                const originalName = response.headers.get('X-Original-Filename');
+                if (originalName) {
+                    try {
+                        fileName = decodeURIComponent(originalName);
+                    } catch (e) {
+                        fileName = originalName;
+                    }
+                }
+
+                const file = new File([blob], fileName, { type: "application/pdf" });
                 handleFiles({ files: [file] }, false);
                 CACHE.delete('shared-file');
                 window.history.replaceState({}, document.title, window.location.pathname);
