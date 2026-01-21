@@ -234,6 +234,12 @@ h1 {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color);
     width: 100%;
+    z-index: 1000;
+}
+
+#alertModal,
+#confirmationModal {
+    z-index: 99999 !important;
 }
 
 .modal-header h2 {
