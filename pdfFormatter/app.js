@@ -277,48 +277,50 @@ document.addEventListener('DOMContentLoaded', () => {
     function showFileReadyState(file) {
         fileUpload.style.display = 'none';
 
-        let readyContainer = document.getElementById('file-ready-container');
-        if (!readyContainer) {
-            readyContainer = document.createElement('div');
-            readyContainer.id = 'file-ready-container';
-            readyContainer.style.textAlign = 'center';
-            readyContainer.style.padding = '2rem';
-            readyContainer.style.background = 'var(--container-bg)';
-            readyContainer.style.borderRadius = '1rem';
-            readyContainer.style.marginTop = '1rem';
-            readyContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        const modal = document.getElementById('sharedFileModal');
+        const fileNameEl = document.getElementById('sharedFileName');
+        const btnProcess = document.getElementById('btnProcessShared');
+        const btnClose = document.getElementById('btnCloseShared');
+        const optionsLocation = document.getElementById('sharedOptionsLocation');
+        const optionsContainer = document.getElementById('binding-options-container');
+        const originalLocation = document.querySelector('.opcoes');
 
-            fileUpload.parentNode.insertBefore(readyContainer, fileUpload.nextSibling);
+        if (fileNameEl) fileNameEl.textContent = file.name;
+
+        if (optionsContainer && optionsLocation) {
+            optionsLocation.appendChild(optionsContainer);
         }
 
-        readyContainer.style.display = 'block';
-        readyContainer.innerHTML = `
-            <h3 style="margin-bottom: 0.5rem; color: var(--text-color);">Arquivo Recebido!</h3>
-            <p style="margin-bottom: 1.5rem; color: var(--text-color); opacity: 0.8; word-break: break-all;">${file.name}</p>
-            
-            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--accent-color);">
-                👇 Ajuste as opções abaixo e clique em Processar
-            </p>
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
 
-            <button id="btnStartShared" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                🚀 Processar Agora
-            </button>
-            <button id="btnCancelShared" style="margin-top: 1rem; background: transparent; border: none; color: var(--text-color); text-decoration: underline; cursor: pointer;">
-                Cancelar
-            </button>
-        `;
+        btnProcess.onclick = () => {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
 
-        document.getElementById('btnStartShared').onclick = () => {
-            readyContainer.style.display = 'none';
-            startProcessing();
-            processLoadedFile(file);
+                if (originalLocation && optionsContainer) {
+                    originalLocation.insertBefore(optionsContainer, fileUpload);
+                }
+
+                startProcessing();
+                processLoadedFile(file);
+            }, 300);
         };
 
-        document.getElementById('btnCancelShared').onclick = () => {
-            readyContainer.style.display = 'none';
-            fileUpload.style.display = 'block';
-            currentPdfBytes = null;
-            fileInput.value = '';
+        btnClose.onclick = () => {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+
+                if (originalLocation && optionsContainer) {
+                    originalLocation.insertBefore(optionsContainer, fileUpload);
+                }
+
+                fileUpload.style.display = 'block';
+                currentPdfBytes = null;
+                fileInput.value = '';
+            }, 300);
         };
     }
 
