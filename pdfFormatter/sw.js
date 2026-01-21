@@ -1,10 +1,10 @@
-const CACHE_NAME = 'pdf-booklet-?v=2001262214';
+const CACHE_NAME = 'pdf-booklet-?v=2001262236';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=2001262214',
-    './app.js?v=2001262214',
-    '../style.css?v=2001262214',
-    './manifest.json?v=2001262214',
+    './style.css?v=2001262236',
+    './app.js?v=2001262236',
+    '../style.css?v=2001262236',
+    './manifest.json?v=2001262236',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
@@ -46,7 +46,11 @@ self.addEventListener('fetch', event => {
 
                     if (file) {
                         const cache = await caches.open('share-cache');
-                        await cache.put('shared-file', new Response(file));
+                        const headers = new Headers();
+                        headers.append('Content-Type', file.type);
+                        headers.append('X-Original-Filename', encodeURIComponent(file.name));
+
+                        await cache.put('shared-file', new Response(file, { headers }));
                     }
 
                     return Response.redirect('./pdfFormater.html?share_target=true', 303);
