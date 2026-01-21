@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="manifest" href="manifest.json?v=2001262146">
+    <link rel="manifest" href="manifest.json?v=2001262153">
     <meta name="theme-color" content="#06071A">
     <title>PDF Booklet Maker</title>
     <script src="lib/pdf.min.js" defer></script>
@@ -19,9 +19,9 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
     </script>
     <script src="lib/pdf-lib.min.js"></script>
-    <link href="../Leitor-logs-totvs-fluig/style.css?v=2001262146 rel=stylesheet">
-    <link href="../style.css?v=2001262146 rel=stylesheet">
-    <link href="style.css?v=2001262146 rel=stylesheet">
+    <link href="../Leitor-logs-totvs-fluig/style.css?v=2001262153 rel=stylesheet">
+    <link href="../style.css?v=2001262153 rel=stylesheet">
+    <link href="style.css?v=2001262153 rel=stylesheet">
 </head>
 
 <body>
@@ -137,6 +137,33 @@
         </div>
     </div>
 
+    <div id="sharedFileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📂 Arquivo Recebido</h3>
+                <button class="modal-close" id="btnCloseShared">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 20px;">
+                <p style="margin-bottom: 15px; font-size: 1.1em;" id="sharedFileName">documento.pdf</p>
+                <p style="opacity: 0.8; font-size: 0.9em; margin-bottom: 20px;">Configure as opções abaixo antes de
+                    processar:</p>
+
+                <!-- O container de opções será movido para cá via JS -->
+                <div id="sharedOptionsLocation"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnProcessShared" class="btn-primary" style="width: 100%; justify-content: center;">
+                    🚀 Processar Agora
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="successModal" class="modal">
         <div class="modal-content success-modal-content">
             <div class="modal-header">
@@ -169,11 +196,11 @@
         </div>
     </div>
 
-    <script src="app.js?v=2001262146"></script>
+    <script src="app.js?v=2001262153"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=2001262146');
+                navigator.serviceWorker.register('sw.js?v=2001262153');
             });
         }
     </script>
