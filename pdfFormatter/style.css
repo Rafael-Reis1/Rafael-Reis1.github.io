@@ -741,8 +741,9 @@ h1 {
     transform: translateY(-1px);
 }
 
-.tag-checkbox:has(input:checked) {
-    background: rgba(242, 81, 27, 0.15);
+.tag-checkbox:has(input:checked),
+.tag-checkbox.checked {
+    background: rgba(242, 81, 27, 0.15) !important;
     border-color: var(--accent-color);
     color: white;
     box-shadow: 0 4px 12px rgba(242, 81, 27, 0.25);
@@ -847,7 +848,7 @@ h1 {
     color: var(--text-color);
     opacity: 0.7;
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.5rem;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -863,6 +864,7 @@ h1 {
 .success-modal-body {
     text-align: center;
     padding: 2.5rem 2rem;
+    gap: 10px;
     background-color: #1a1b2e;
 }
 
@@ -1081,11 +1083,12 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background .2s ease;
+    border-radius: 12px;
 }
 
 #sharedFileModal .modal-close:hover {
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
 }
 
 #sharedFileModal #binding-options-container {
