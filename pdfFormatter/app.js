@@ -787,6 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btnModalDownload').addEventListener('click', () => {
         triggerDownloadOrShare(generatedPdfFile, true);
+        showAlertModal('Sucesso', 'Download iniciado! Verifique sua pasta de Downloads.');
     });
 
     document.getElementById('btnCloseSuccess').addEventListener('click', closeSuccessModal);
