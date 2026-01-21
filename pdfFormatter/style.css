@@ -1021,6 +1021,19 @@ h1 {
     padding: 12px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
+    margin-bottom: 0px;
+}
+
+#sharedFileModal #binding-options-container>div:first-child>div {
+    flex-direction: column !important;
+    width: 100%;
+    gap: 0.8rem !important;
+}
+
+#sharedFileModal #binding-options-container .input-label {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0.5rem;
 }
 
 #sharedFileModal .modal-content {
@@ -1029,4 +1042,23 @@ h1 {
 
 #sharedFileModal .custom-select-container .select-options {
     z-index: 9999 !important;
+}
+
+#sharedFileModal .modal-header,
+#sharedFileModal .modal-footer {
+    background: #151625;
+}
+
+#sharedFileModal .modal-footer button {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
