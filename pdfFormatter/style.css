@@ -950,7 +950,9 @@ h1 {
     font-size: 0.85em;
 }
 
-.icon-only { display: none; }
+.icon-only {
+    display: none;
+}
 
 @media (max-width: 768px) {
     .success-modal-footer .desktop-only {
@@ -960,9 +962,15 @@ h1 {
     .success-modal-footer .mobile-only {
         display: flex !important;
     }
-    
-    .text-label { display: none; }
-    .icon-only { display: inline; font-size: 1.125rem; }
+
+    .text-label {
+        display: none;
+    }
+
+    .icon-only {
+        display: inline;
+        font-size: 1.125rem;
+    }
 }
 
 .page-number {
@@ -975,11 +983,50 @@ h1 {
     font-size: 12px;
     font-weight: 800;
     z-index: 10;
-    
-    text-shadow: 
-        -1px -1px 0 #000,  
-         1px -1px 0 #000,
-        -1px  1px 0 #000,
-         1px  1px 0 #000,
-         0px 1px 2px rgba(0,0,0,0.8);
+
+    text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#sharedFileModal #binding-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+#sharedFileModal #binding-options-container>div:first-child {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+#sharedFileModal #binding-options-container .text-label {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+#sharedFileModal #binding-options-container .icon-only {
+    display: none !important;
+}
+
+#sharedFileModal #binding-options-container .tag-checkbox {
+    justify-content: center;
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+#sharedFileModal .modal-content {
+    overflow: visible !important;
+}
+
+#sharedFileModal .custom-select-container .select-options {
+    z-index: 9999 !important;
 }
