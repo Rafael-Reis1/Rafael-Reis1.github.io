@@ -201,8 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFiles({ target: { files: files } });
     }
 
-    async function handleFiles(e) {
-        const file = e.target.files[0];
+    async function handleFiles(e, autoProcess = true) {
+        let file = e.target.files ? e.target.files[0] : null;
+
+        if (e.target && e.target.files) file = e.target.files[0];
+        else if (e.files && e.files[0]) file = e.files[0];
+
         if (!file || file.type !== 'application/pdf') {
             showAlertModal('Erro', 'Por favor, envie um arquivo PDF.');
             return;
@@ -210,11 +214,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentFileName = file.name;
 
-        startProcessing();
+        if (!autoProcess) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                currentPdfBytes = arrayBuffer.slice(0);
 
+                showFileReadyState(file);
+                return;
+            } catch (err) {
+                console.error("Erro ao ler arquivo compartilhado:", err);
+                showAlertModal('Erro', 'Falha ao ler o arquivo compartilhado.');
+                return;
+            }
+        }
+
+        startProcessing();
+        processLoadedFile(file);
+    }
+
+    async function processLoadedFile(file) {
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            currentPdfBytes = arrayBuffer.slice(0);
+            if (!currentPdfBytes) {
+                const arrayBuffer = await file.arrayBuffer();
+                currentPdfBytes = arrayBuffer.slice(0);
+            }
 
             const skipPreview = document.getElementById('skip-preview').checked;
 
@@ -239,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentPdfDoc) {
                     currentPdfDoc.destroy();
                 }
-                currentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+                currentPdfDoc = await pdfjsLib.getDocument(currentPdfBytes).promise;
                 await processPDF(currentPdfDoc);
             }
 
@@ -249,6 +272,54 @@ document.addEventListener('DOMContentLoaded', () => {
             endProcessing();
             fileInput.value = '';
         }
+    }
+
+    function showFileReadyState(file) {
+        fileUpload.style.display = 'none';
+
+        let readyContainer = document.getElementById('file-ready-container');
+        if (!readyContainer) {
+            readyContainer = document.createElement('div');
+            readyContainer.id = 'file-ready-container';
+            readyContainer.style.textAlign = 'center';
+            readyContainer.style.padding = '2rem';
+            readyContainer.style.background = 'var(--container-bg)';
+            readyContainer.style.borderRadius = '1rem';
+            readyContainer.style.marginTop = '1rem';
+            readyContainer.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+
+            fileUpload.parentNode.insertBefore(readyContainer, fileUpload.nextSibling);
+        }
+
+        readyContainer.style.display = 'block';
+        readyContainer.innerHTML = `
+            <h3 style="margin-bottom: 0.5rem; color: var(--text-color);">Arquivo Recebido!</h3>
+            <p style="margin-bottom: 1.5rem; color: var(--text-color); opacity: 0.8; word-break: break-all;">${file.name}</p>
+            
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--accent-color);">
+                👇 Ajuste as opções abaixo e clique em Processar
+            </p>
+
+            <button id="btnStartShared" class="btn-primary" style="width: 100%; max-width: 300px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                🚀 Processar Agora
+            </button>
+            <button id="btnCancelShared" style="margin-top: 1rem; background: transparent; border: none; color: var(--text-color); text-decoration: underline; cursor: pointer;">
+                Cancelar
+            </button>
+        `;
+
+        document.getElementById('btnStartShared').onclick = () => {
+            readyContainer.style.display = 'none';
+            startProcessing();
+            processLoadedFile(file);
+        };
+
+        document.getElementById('btnCancelShared').onclick = () => {
+            readyContainer.style.display = 'none';
+            fileUpload.style.display = 'block';
+            currentPdfBytes = null;
+            fileInput.value = '';
+        };
     }
 
     function startProcessing() {
@@ -547,27 +618,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     const text = (pageIndex - 1).toString();
                     const size = 11;
                     const textWidth = font.widthOfTextAtSize(text, size);
-                    
-                    const yPos = 15; 
+
+                    const yPos = 15;
 
                     page.drawText(text, {
                         x: centerX - (textWidth / 2) + 0.5,
                         y: yPos - 0.5,
-                        size: size, font: font, 
+                        size: size, font: font,
                         color: PDFLib.rgb(0, 0, 0)
                     });
-                    
+
                     page.drawText(text, {
                         x: centerX - (textWidth / 2) + 1,
                         y: yPos - 1,
-                        size: size, font: font, 
+                        size: size, font: font,
                         color: PDFLib.rgb(0, 0, 0)
                     });
 
                     page.drawText(text, {
                         x: centerX - (textWidth / 2),
                         y: yPos,
-                        size: size, font: font, 
+                        size: size, font: font,
                         color: PDFLib.rgb(1, 1, 1)
                     });
                 }
@@ -715,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (launchParams.files && launchParams.files.length > 0) {
                 const fileHandle = launchParams.files[0];
                 const file = await fileHandle.getFile();
-                handleFiles({ target: { files: [file] } });
+                handleFiles({ files: [file] }, false);
             }
         });
     }
@@ -727,7 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response) {
                 const blob = await response.blob();
                 const file = new File([blob], "shared_document.pdf", { type: "application/pdf" });
-                handleFiles({ target: { files: [file] } });
+                handleFiles({ files: [file] }, false);
                 CACHE.delete('shared-file');
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
