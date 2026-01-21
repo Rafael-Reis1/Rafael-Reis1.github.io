@@ -51,20 +51,20 @@ function showModal(title, message, options = {}) {
     const titleEl = document.getElementById('alertTitle');
     const msgEl = document.getElementById('alertMessage');
     const actionsDiv = modal.querySelector('.modal-actions');
-    
+
     const closeBtn = modal.querySelector('.modal-close');
 
     if (modal && titleEl && msgEl) {
         titleEl.innerText = title;
         msgEl.innerText = message;
-        
-        
+
+
         if (options.hideClose) {
-            modal.dataset.locked = "true"; 
-            if (closeBtn) closeBtn.style.display = 'none'; 
+            modal.dataset.locked = "true";
+            if (closeBtn) closeBtn.style.display = 'none';
         } else {
-            delete modal.dataset.locked; 
-            if (closeBtn) closeBtn.style.display = ''; 
+            delete modal.dataset.locked;
+            if (closeBtn) closeBtn.style.display = '';
         }
 
         actionsDiv.innerHTML = '';
@@ -81,10 +81,10 @@ function showModal(title, message, options = {}) {
             const btnHost = document.createElement('button');
             btnHost.className = 'btn btn-host';
             btnHost.innerText = 'Virar Host';
-            
+
             btnHost.onclick = () => {
-                closeModal();
-                resetApp(true); 
+                forceCloseModal();
+                resetApp(true);
             };
 
             actionsDiv.appendChild(btnHost);
@@ -94,9 +94,9 @@ function showModal(title, message, options = {}) {
             const btnRetry = document.createElement('button');
             btnRetry.className = 'btn btn-retry';
             btnRetry.innerText = 'Reconectar';
-            
+
             btnRetry.onclick = () => {
-                closeModal();
+                forceCloseModal();
                 window.location.reload();
             };
 
@@ -110,10 +110,10 @@ function showModal(title, message, options = {}) {
 
 function closeModal() {
     const modal = document.getElementById('alertModal');
-    
-    
-    if (modal && modal.dataset.locked === "true") return; 
-    
+
+
+    if (modal && modal.dataset.locked === "true") return;
+
     if (modal) modal.classList.remove('active');
 }
 
@@ -162,9 +162,9 @@ window.onclick = function (event) {
     const alertModal = document.getElementById('alertModal');
     const clipModal = document.getElementById('clipboardModal');
 
-    
+
     if (event.target === alertModal) {
-        if (alertModal.dataset.locked === "true") return; 
+        if (alertModal.dataset.locked === "true") return;
         closeModal();
     }
 
@@ -174,11 +174,11 @@ window.onclick = function (event) {
 window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         const alertModal = document.getElementById('alertModal');
-        
+
         const isAlertOpen = alertModal && alertModal.classList.contains('active');
         const isLocked = alertModal && alertModal.dataset.locked === "true";
 
-        
+
         if (isAlertOpen && isLocked) {
             return;
         }
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (urlParams.get('share_target') === 'true') {
             const lastRemote = localStorage.getItem('p2p_last_remote');
             if (lastRemote) {
-                
+
                 showModal("Reconectando", "Restaurando conexão anterior...");
                 initClient(lastRemote);
                 return;
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDragAndDrop();
 
     const btnManual = document.getElementById('btn-manual-connect');
-    const inputManual = document.getElementById('manual-room-id'); 
+    const inputManual = document.getElementById('manual-room-id');
 
     if (btnManual && inputManual) {
         const performConnect = () => {
@@ -312,7 +312,7 @@ function initHost() {
 
     const obsIdDiv = document.getElementById('obs-identity');
     if (obsIdDiv) {
-        obsIdDiv.style.display = ''; 
+        obsIdDiv.style.display = '';
         obsIdDiv.innerHTML = `
             <span style="font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 5px;">
                 Código de Acesso
@@ -368,7 +368,7 @@ function initHost() {
 
     generateQRCode(roomId);
     updateUIState('waiting');
-    
+
     const readyContent = document.getElementById('ready-content');
     if (readyContent) {
         readyContent.style.display = 'flex';
@@ -414,7 +414,7 @@ function restartHostPeer(currentRoomId) {
 
     peer.on('close', () => {
         if (urlParams.get('mode') === 'obs') {
-            restartHostPeer(currentRoomId); 
+            restartHostPeer(currentRoomId);
         } else {
             updateUIState('waiting');
             restartHostPeer(currentRoomId);
@@ -453,12 +453,12 @@ function initClient(id) {
     const manualHostTimeout = setTimeout(() => {
         if (!peer || !peer.connected) {
             showModal(
-                "Não conectou?", 
-                "O Host não respondeu ou a sala não existe mais.", 
-                { retry: true, host: true, hideClose: true } 
+                "Não conectou?",
+                "O Host não respondeu ou a sala não existe mais.",
+                { retry: true, host: true, hideClose: true }
             );
         }
-    }, 15000); 
+    }, 15000);
 
     let lastOffer = null;
 
@@ -471,7 +471,7 @@ function initClient(id) {
         if (loadingText) {
             loadingText.innerText = "Conectando...";
         }
-        
+
         if (offer === lastOffer) return;
         lastOffer = offer;
 
@@ -494,8 +494,8 @@ function initClient(id) {
 
             peer.on('connect', () => {
                 handleConnection();
-                clearTimeout(manualHostTimeout); 
-                forceCloseModal(); 
+                clearTimeout(manualHostTimeout);
+                forceCloseModal();
             });
 
             peer.on('data', data => handleDataReceived(data));
@@ -515,7 +515,7 @@ function handleVideoStream(stream, isObs) {
     const obsIdDiv = document.getElementById('obs-identity');
 
     if (obsIdDiv) obsIdDiv.style.display = 'none';
-    
+
     wrapper.style.display = 'flex';
     wrapper.style.zIndex = '9999';
 
@@ -570,7 +570,7 @@ function updateUIState(state) {
 
 function handleConnection() {
     updateUIState('connected');
-    forceCloseModal(); 
+    forceCloseModal();
     setTimeout(() => {
         const statusText = document.getElementById('status-text');
         if (statusText) statusText.innerText = 'Conectado! Preparando envio...';
@@ -593,20 +593,20 @@ function handleDisconnect() {
         resetApp();
         return;
     }
-    
+
     showModal("Desconectado", "Conexão encerrada.", { retry: true, host: true, hideClose: true });
     resetApp();
 }
 
 function handleError(err) {
     const urlParams = new URLSearchParams(window.location.search);
-    
+
     if (urlParams.get('mode') === 'obs') { return; }
 
     let msg = err.message || "Erro desconhecido.";
     if (err.code === 'ERR_WEBRTC_SUPPORT') msg = "Seu navegador não suporta WebRTC.";
-    
-    
+
+
     showModal("Erro", msg, { retry: true, host: true, hideClose: true });
 }
 
@@ -616,7 +616,7 @@ function resetApp(forceDisconnect = false) {
         peer.destroy();
         peer = null;
     }
-    
+
     activeDownloads.clear();
     transfersList.innerHTML = '';
 
@@ -626,7 +626,7 @@ function resetApp(forceDisconnect = false) {
     const isClient = urlParams.has('remote');
 
     if (isClient && !forceDisconnect) {
-        return; 
+        return;
     }
 
     if (!isFixedRoom && !isObsMode) {
@@ -811,7 +811,7 @@ function createTransferItem(name, size, status, type, onCancel) {
     item.innerHTML = `
         <div class="transfer-icon-wrapper">${getFileIcon(name)}</div>
         <div class="transfer-content">
-            <div class="transfer-header"><span>${name}</span><span>${formatBytes(size)}</span></div>
+            <div class="transfer-header"><span class="file-name">${name}</span><span class="file-size">${formatBytes(size)}</span></div>
             <div class="progress-container"><div class="progress-bar-bg"><div class="progress-fill" style="width: 0%"></div></div></div>
             <div class="transfer-footer">
                 <span class="status-text">${status}</span>
@@ -863,7 +863,7 @@ btnsCopy.forEach(btn => {
 });
 
 document.getElementById('btn-disconnect').onclick = () => {
-    resetApp(true); 
+    resetApp(true);
 };
 
 document.getElementById('btn-send-text').onclick = () => {
