@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 300);
         };
 
-        btnClose.onclick = () => {
+        const closeModalLogic = () => {
             modal.classList.remove('active');
             setTimeout(() => {
                 modal.style.display = 'none';
@@ -321,6 +321,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentPdfBytes = null;
                 fileInput.value = '';
             }, 300);
+        };
+
+        btnClose.onclick = closeModalLogic;
+
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeModalLogic();
+            }
         };
     }
 
