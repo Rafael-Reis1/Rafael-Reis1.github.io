@@ -268,7 +268,7 @@ function fetchAndDisplayRepos() {
         {
             name: 'Compara 2 listas de nomes',
             description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
-            html_url: '/Compara 2 listas de nomes/Compara 2 listas de nomes.html',
+            html_url: '/ComparaListasNomes/ComparaListasNomes.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/Html 5.svg'
