@@ -64,17 +64,25 @@ const CATEGORY_NAMES = {
     outros_receita: 'Outros'
 };
 
-const CATEGORY_COLORS = {
+const EXPENSE_COLORS = {
     alimentacao: '#ff7043',
     transporte: '#ffca28',
     moradia: '#d32f2f',
     saude: '#880e4f',
-    educacao: '#795548',
+    educacao: '#673ab7',
     lazer: '#f06292',
     vestuario: '#00bcd4',
     compras: '#2962ff',
-    servicos: '#5d4037',
+    servicos: '#26a69a',
     outros: '#9e9e9e'
+};
+
+const INCOME_COLORS = {
+    salario: '#16a34a',
+    freelance: '#4f46e5',
+    investimentos: '#9333ea',
+    presente: '#fbc02d',
+    outros_receita: '#9e9e9e'
 };
 
 class CustomSelect {
@@ -1619,12 +1627,12 @@ class UIController {
 
     getCategoryColor(type, category) {
         if (type === 'income') return 'var(--income-color)';
-        return CATEGORY_COLORS[category] || 'var(--text-primary)';
+        return EXPENSE_COLORS[category] || 'var(--text-primary)';
     }
 
     getCategoryColorBg(type, category) {
         if (type === 'income') return 'rgba(34, 197, 94, 0.1)';
-        const color = CATEGORY_COLORS[category];
+        const color = EXPENSE_COLORS[category];
         return color ? color + '20' : 'rgba(255, 255, 255, 0.05)';
     }
 
@@ -1854,7 +1862,7 @@ class UIController {
 
         const labels = categories.map(c => CATEGORY_NAMES[c] || c);
         const data = categories.map(c => expenses[c]);
-        const colors = categories.map(c => CATEGORY_COLORS[c] || '#6b7280');
+        const colors = categories.map(c => EXPENSE_COLORS[c] || '#6b7280');
 
         if (this.chart) {
             this.chart.data.labels = labels;
@@ -1954,14 +1962,6 @@ class UIController {
         });
         const categories = Object.keys(incomes);
         this.incomeChartCategories = categories;
-
-        const INCOME_COLORS = {
-            salario: '#16a34a',
-            freelance: '#4f46e5',
-            investimentos: '#9333ea',
-            presente: '#06b6d4',
-            outros_receita: '#475569'
-        };
 
         if (categories.length === 0) {
             if (this.incomeChart) {
@@ -2752,7 +2752,7 @@ class UIController {
 
     getCategoryColor(type, key) {
         if (type === 'income') return 'var(--income-color)';
-        return CATEGORY_COLORS[key] || 'var(--text-primary)';
+        return EXPENSE_COLORS[key] || 'var(--text-primary)';
     }
 
     getCategoryColorBg(type, key) {
