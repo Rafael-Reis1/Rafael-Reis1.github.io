@@ -72,7 +72,7 @@ const CATEGORY_COLORS = {
     educacao: '#795548',
     lazer: '#f06292',
     vestuario: '#00bcd4',
-    compras: '#ffeb3b',
+    compras: '#2962ff',
     servicos: '#5d4037',
     outros: '#9e9e9e'
 };
