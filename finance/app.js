@@ -64,6 +64,11 @@ const CATEGORY_NAMES = {
     outros_receita: 'Outros'
 };
 
+const normalize = (str) => {
+    if (!str) return '';
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+};
+
 const EXPENSE_COLORS = {
     alimentacao: '#ff7043',
     transporte: '#ffca28',
@@ -839,7 +844,12 @@ class FinanceManager {
                 }
             }
 
-            if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+            if (filters.search) {
+                const searchTerms = normalize(filters.search).split(/\s+/).filter(Boolean);
+                const description = normalize(t.description);
+                const matchesAll = searchTerms.every(term => description.includes(term));
+                if (!matchesAll) return false;
+            }
 
             if (!ignoreExclusions) {
                 if (t.type === 'expense' && this.excludedCategories.has(t.category)) return false;
