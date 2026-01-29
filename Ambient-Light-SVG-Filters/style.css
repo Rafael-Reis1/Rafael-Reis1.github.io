@@ -97,3 +97,39 @@ body {
 .btnVoltar:hover .seta-animada {
     transform: translateX(-5px);
 }
+
+.input-control {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.input-control input {
+    padding: 8px;
+    border-radius: 4px;
+    border: none;
+    width: 250px;
+    border: 1px solid transparent;
+    transition: all .1s ease;
+}
+
+.input-control button {
+    padding: 8px 15px;
+    cursor: pointer;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.input-control input:focus {
+    outline: none;
+    border: 1px solid var(--accent-color);
+}
