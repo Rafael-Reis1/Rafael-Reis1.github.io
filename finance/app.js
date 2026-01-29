@@ -1222,6 +1222,7 @@ class UIController {
         this.closeFilterModal = document.getElementById('closeFilterModal');
 
         this.transactionsList = document.getElementById('transactionsList');
+        this.transactionCount = document.getElementById('transactionCount');
         this.noTransactions = document.getElementById('noTransactions');
 
         this.editModal = document.getElementById('editModal');
@@ -2130,6 +2131,10 @@ class UIController {
 
     renderTransactionsList() {
         let transactions = this.fm.getFilteredTransactions(this.currentFilters);
+
+        if (this.transactionCount) {
+            this.transactionCount.textContent = `(${transactions.length})`;
+        }
 
         this.transactionsList.innerHTML = '';
 
