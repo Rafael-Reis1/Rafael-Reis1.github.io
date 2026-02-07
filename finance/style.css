@@ -60,6 +60,7 @@
 
 html {
     background-color: var(--body-bg);
+    scrollbar-gutter: stable;
 }
 
 body {
@@ -86,9 +87,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--body-bg);
+    background: rgba(15, 12, 41, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .header-left {
