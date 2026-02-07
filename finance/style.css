@@ -1570,7 +1570,8 @@ input[type=number] {
     font-size: 0.8rem;
 }
 
-.btn:disabled {
+.btn:disabled,
+.btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
