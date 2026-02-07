@@ -2158,8 +2158,19 @@ class UIController {
         const pageItems = transactions.slice(start, end);
 
         this.pageInfo.textContent = `Página ${this.currentPage} de ${totalPages}`;
-        this.btnPrevPage.disabled = this.currentPage === 1;
-        this.btnNextPage.disabled = this.currentPage === totalPages;
+        if (this.currentPage === 1) {
+            this.btnPrevPage.classList.add('disabled');
+        } else {
+            this.btnPrevPage.classList.remove('disabled');
+        }
+        this.btnPrevPage.removeAttribute('disabled');
+
+        if (this.currentPage >= totalPages) {
+            this.btnNextPage.classList.add('disabled');
+        } else {
+            this.btnNextPage.classList.remove('disabled');
+        }
+        this.btnNextPage.removeAttribute('disabled');
 
         pageItems.forEach(t => {
             const el = document.createElement('div');
