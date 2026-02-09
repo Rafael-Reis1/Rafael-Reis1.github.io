@@ -2713,7 +2713,9 @@ class UIController {
             document.getElementById('subsName').value = sub.name;
             document.getElementById('subsAmount').value = (sub.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             document.getElementById('subsDay').value = sub.day;
-            document.getElementById('subsCategory').value = sub.category;
+            const categorySelect = document.getElementById('subsCategory');
+            categorySelect.value = sub.category;
+            categorySelect.dispatchEvent(new Event('change'));
             document.getElementById('subsEditId').value = sub.id;
             document.getElementById('subsSubmitBtn').textContent = 'Salvar';
         } else {
