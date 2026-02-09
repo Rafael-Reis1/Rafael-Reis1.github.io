@@ -1867,7 +1867,7 @@ class UIController {
             this.noChartData.style.display = 'block';
 
             const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
-            this.noChartData.textContent = hasFilter ? 'Sem dados para o período selecionado' : 'Adicione despesas para ver o gráfico';
+            this.noChartData.textContent = hasFilter ? 'Sem dados para o filtro selecionado' : 'Adicione despesas para ver o gráfico';
             return;
         }
 
@@ -1988,7 +1988,7 @@ class UIController {
             this.noIncomeData.style.display = 'block';
 
             const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
-            this.noIncomeData.textContent = hasFilter ? 'Sem dados para o período selecionado' : 'Adicione receitas para ver o gráfico';
+            this.noIncomeData.textContent = hasFilter ? 'Sem dados para o filtro selecionado' : 'Adicione receitas para ver o gráfico';
             return;
         }
 
