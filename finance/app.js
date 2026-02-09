@@ -1865,6 +1865,9 @@ class UIController {
             }
             this.chartCanvas.style.display = 'none';
             this.noChartData.style.display = 'block';
+
+            const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
+            this.noChartData.textContent = hasFilter ? 'Sem dados para o período selecionado' : 'Adicione despesas para ver o gráfico';
             return;
         }
 
@@ -1983,6 +1986,9 @@ class UIController {
             }
             this.incomeChartCanvas.style.display = 'none';
             this.noIncomeData.style.display = 'block';
+
+            const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
+            this.noIncomeData.textContent = hasFilter ? 'Sem dados para o período selecionado' : 'Adicione receitas para ver o gráfico';
             return;
         }
 
@@ -2138,9 +2144,22 @@ class UIController {
 
         this.transactionsList.innerHTML = '';
 
+        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
+
         if (transactions.length === 0) {
             this.noTransactions.style.display = 'flex';
             this.paginationControls.style.display = 'none';
+
+            const title = this.noTransactions.querySelector('h3');
+            const msg = this.noTransactions.querySelector('p');
+
+            if (hasFilter) {
+                title.textContent = 'Nenhuma transação encontrada';
+                msg.textContent = 'Tente ajustar os filtros para ver mais resultados.';
+            } else {
+                title.textContent = 'Nenhuma transação ainda';
+                msg.textContent = 'Clique em "+ Adicionar" para começar a controlar seus gastos!';
+            }
             return;
         }
 
