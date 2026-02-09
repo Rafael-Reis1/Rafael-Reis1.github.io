@@ -709,6 +709,24 @@ input[type=number] {
     text-overflow: ellipsis;
 }
 
+.subscription-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.subscription-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
 .transaction-meta {
     font-size: 0.8rem;
     color: var(--text-muted);
