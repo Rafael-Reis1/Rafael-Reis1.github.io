@@ -2660,3 +2660,8 @@ input[type=number] {
 .action-btn.paid-btn:active svg {
     transform: scale(0.9);
 }
+
+body.privacy-mode #subsTotalValue {
+    filter: blur(6px);
+    transition: filter 0.3s ease;
+}
