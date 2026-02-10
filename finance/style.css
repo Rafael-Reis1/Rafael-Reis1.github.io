@@ -1860,11 +1860,23 @@ input[type=number] {
 .privacy-mode .transaction-amount,
 .privacy-mode .delete-amount,
 .privacy-mode .series-stat strong,
-.privacy-mode .series-item-amount {
+.privacy-mode .series-item-amount,
+.privacy-mode .subs-amount,
+.privacy-mode #subsTotalValue {
     filter: blur(8px);
     user-select: none;
     cursor: default;
     transition: filter 0.3s ease;
+}
+
+.privacy-mode .card-value:hover,
+.privacy-mode .transaction-amount:hover,
+.privacy-mode .delete-amount:hover,
+.privacy-mode .series-stat strong:hover,
+.privacy-mode .series-item-amount:hover,
+.privacy-mode .subs-amount:hover,
+.privacy-mode #subsTotalValue:hover {
+    filter: blur(0);
 }
 
 .custom-select-container {
@@ -1882,14 +1894,6 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-
-.privacy-mode .card-value:hover,
-.privacy-mode .transaction-amount:hover,
-.privacy-mode .delete-amount:hover,
-.privacy-mode .series-stat strong:hover,
-.privacy-mode .series-item-amount:hover {
-    filter: blur(0);
 }
 
 .subs-list {
@@ -2118,15 +2122,6 @@ input[type=number] {
     flex: 1;
     overflow-y: auto;
     padding: 0 1.25rem;
-}
-
-.privacy-mode .subs-amount {
-    filter: blur(8px);
-    user-select: none;
-}
-
-.privacy-mode .subs-amount:hover {
-    filter: blur(0);
 }
 
 .login-icon {
@@ -2659,9 +2654,4 @@ input[type=number] {
 
 .action-btn.paid-btn:active svg {
     transform: scale(0.9);
-}
-
-body.privacy-mode #subsTotalValue {
-    filter: blur(6px);
-    transition: filter 0.3s ease;
 }
