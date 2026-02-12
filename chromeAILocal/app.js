@@ -689,11 +689,33 @@ class UIManager {
 
         if (this.els.personasBtn) this.els.personasBtn.onclick = () => this.openPersonasModal();
         if (this.els.closeModalBtn) this.els.closeModalBtn.onclick = () => this.closePersonasModal();
-        this.els.personasModal.onclick = (e) => {
-            if (e.target === this.els.personasModal) this.closePersonasModal();
-        };
+
+        this.els.personasModal.addEventListener('mousedown', (e) => {
+            this.personasModalMousedownTarget = e.target;
+        });
+        this.els.personasModal.addEventListener('click', (e) => {
+            if (e.target === this.els.personasModal && this.personasModalMousedownTarget === this.els.personasModal) {
+                this.closePersonasModal();
+            }
+        });
 
         if (this.els.closeGenericModalBtn) this.els.closeGenericModalBtn.onclick = () => this.els.genericModal.classList.remove('active');
+
+        this.els.genericModal.addEventListener('mousedown', (e) => {
+            this.genericModalMousedownTarget = e.target;
+        });
+
+        this.els.genericModal.addEventListener('click', (e) => {
+            if (e.target === this.els.genericModal && this.genericModalMousedownTarget === this.els.genericModal) {
+                if (this.els.genericModalCancelBtn && this.els.genericModalCancelBtn.offsetParent !== null) {
+                    this.els.genericModalCancelBtn.click();
+                } else if (this.els.closeGenericModalBtn) {
+                    this.els.closeGenericModalBtn.click();
+                } else {
+                    this.els.genericModal.classList.remove('active');
+                }
+            }
+        });
         if (this.els.addPersonaBtn) this.els.addPersonaBtn.onclick = () => this.showPersonaEditor();
         if (this.els.cancelPersonaBtn) this.els.cancelPersonaBtn.onclick = () => this.hidePersonaEditor();
         if (this.els.savePersonaBtn) this.els.savePersonaBtn.onclick = () => this.savePersona();
@@ -2105,7 +2127,7 @@ ${code}
 
     showEditMessageModal(currentMessage, onConfirm) {
         const modalHtml = `
-            <div class="modal active" id="editMessageModal">
+            <div class="modal" id="editMessageModal">
                 <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
                         <h2>Editar Mensagem</h2>
@@ -2129,8 +2151,15 @@ ${code}
         const cancelBtn = document.getElementById('cancelEditBtn');
         const confirmBtn = document.getElementById('confirmEditBtn');
 
+        requestAnimationFrame(() => {
+            modal.classList.add('active');
+        });
+
         const closeModal = () => {
-            modal.remove();
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
         };
 
         textarea.focus();
@@ -2138,9 +2167,15 @@ ${code}
 
         closeBtn.onclick = closeModal;
         cancelBtn.onclick = closeModal;
-        modal.onclick = (e) => {
-            if (e.target === modal) closeModal();
-        };
+        let mousedownTarget = null;
+        modal.addEventListener('mousedown', (e) => {
+            mousedownTarget = e.target;
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal && mousedownTarget === modal) {
+                closeModal();
+            }
+        });
 
         confirmBtn.onclick = () => {
             const editedMessage = textarea.value;
