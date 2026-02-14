@@ -883,6 +883,22 @@ const App = {
             const file = e.target.files[0];
             if (!file) return;
 
+            const loading = document.getElementById('authLoading');
+            const content = document.getElementById('authContent');
+            const overlay = document.getElementById('loginOverlay');
+            const loadingText = loading.querySelector('p');
+            const originalText = loadingText.textContent;
+
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.remove('hidden');
+            }
+            if (loading) {
+                loading.style.display = 'flex';
+                loadingText.textContent = 'Importando livros...';
+            }
+            if (content) content.style.display = 'none';
+
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
@@ -890,8 +906,17 @@ const App = {
                 this.showMessage('Sucesso!', `${count} livros importados com sucesso.`, '✅');
             } catch (err) {
                 this.showMessage('Erro', 'Falha ao importar: ' + err.message, '❌');
+            } finally {
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    overlay.classList.add('hidden');
+                }
+                if (loadingText) loadingText.textContent = originalText;
+
+                if (content) content.style.display = 'flex';
+
+                e.target.value = '';
             }
-            e.target.value = '';
         });
 
         document.addEventListener('click', (e) => {

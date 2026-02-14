@@ -2762,6 +2762,23 @@ class UIController {
     async handleImportConfirm(replace) {
         if (!this.pendingImportData) return;
 
+        const btnMerge = document.getElementById('mergeImport');
+        const btnReplace = document.getElementById('replaceImport');
+        const btnCancel = document.getElementById('cancelImport');
+
+        const originalMergeText = btnMerge.textContent;
+        const originalReplaceText = btnReplace.textContent;
+
+        btnMerge.disabled = true;
+        btnReplace.disabled = true;
+        btnCancel.disabled = true;
+
+        if (replace) {
+            btnReplace.textContent = 'Importando...';
+        } else {
+            btnMerge.textContent = 'Importando...';
+        }
+
         try {
             const count = await this.fm.import(this.pendingImportData, replace);
             this.pendingImportData = null;
@@ -2770,6 +2787,12 @@ class UIController {
             this.showToast(`${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`, 'success');
         } catch (err) {
             this.showToast('Erro ao importar: ' + err.message, 'error');
+        } finally {
+            btnMerge.disabled = false;
+            btnReplace.disabled = false;
+            btnCancel.disabled = false;
+            btnMerge.textContent = originalMergeText;
+            btnReplace.textContent = originalReplaceText;
         }
     }
 
