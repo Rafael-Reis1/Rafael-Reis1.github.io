@@ -2998,7 +2998,9 @@ document.addEventListener('DOMContentLoaded', () => {
         new CustomSelect(select);
     });
 
-    if (typeof flatpickr !== 'undefined') {
+    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (typeof flatpickr !== 'undefined' && !isMobile) {
         const baseConfig = {
             locale: 'pt',
             dateFormat: 'Y-m-d',
