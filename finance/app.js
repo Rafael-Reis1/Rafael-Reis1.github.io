@@ -2281,6 +2281,14 @@ class UIController {
     togglePaid(id) {
         this.fm.togglePaid(id);
         this.render();
+
+        const seriesModal = document.getElementById('seriesModal');
+        if (seriesModal && seriesModal.classList.contains('active')) {
+            const t = this.fm.get(id);
+            if (t && t.groupId) {
+                this.openSeriesModal(t.groupId);
+            }
+        }
     }
 
     openFilterModal() {
@@ -2400,6 +2408,14 @@ class UIController {
         if (this.isEditing && this.editingId) {
             this.fm.update(this.editingId, data, syncErrorCallback, offlineCallback);
             this.showToast('Transação atualizada!', 'success');
+
+            const seriesModal = document.getElementById('seriesModal');
+            if (seriesModal && seriesModal.classList.contains('active')) {
+                const t = this.fm.get(this.editingId);
+                if (t && t.groupId) {
+                    this.openSeriesModal(t.groupId);
+                }
+            }
         } else {
             this.fm.add(data, syncErrorCallback, offlineCallback);
             this.showToast(data.installments ? 'Parcelas geradas com sucesso!' : 'Transação adicionada!', 'success');
@@ -2480,6 +2496,78 @@ class UIController {
     }
 
 
+    togglePaid(id) {
+        this.fm.togglePaid(id);
+        this.render();
+
+        const seriesModal = document.getElementById('seriesModal');
+        if (seriesModal && seriesModal.classList.contains('active')) {
+            const t = this.fm.get(id);
+            if (t && t.groupId) {
+                this.openSeriesModal(t.groupId);
+            }
+        }
+    }
+
+    handleFormSubmit(e) {
+        e.preventDefault();
+
+        const rawAmount = document.getElementById('editAmount').value;
+        const parseAmount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
+
+        if (parseAmount <= 0) {
+            this.showToast('O valor deve ser maior que zero', 'error');
+            return;
+        }
+
+        const data = {
+            description: document.getElementById('editDescription').value.trim(),
+            amount: parseAmount,
+            date: document.getElementById('editDate').value,
+            type: document.getElementById('editType').value,
+            category: document.getElementById('editCategory').value
+        };
+
+        const isRecurring = document.getElementById('isRecurring').checked;
+        if (isRecurring && !this.isEditing) {
+            const installments = parseInt(document.getElementById('recurringInstallments').value);
+            if (!installments || installments < 2) {
+                this.showToast('Informe o número de parcelas (mínimo 2)', 'error');
+                document.getElementById('recurringInstallments').focus();
+                return;
+            }
+            data.isRecurring = true;
+            data.installments = installments;
+        }
+
+        const syncErrorCallback = () => {
+            this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
+        };
+
+        const offlineCallback = () => {
+            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
+        };
+
+        if (this.isEditing && this.editingId) {
+            this.fm.update(this.editingId, data, syncErrorCallback, offlineCallback);
+            this.showToast('Transação atualizada!', 'success');
+
+            const seriesModal = document.getElementById('seriesModal');
+            if (seriesModal && seriesModal.classList.contains('active')) {
+                const t = this.fm.get(this.editingId);
+                if (t && t.groupId) {
+                    this.openSeriesModal(t.groupId);
+                }
+            }
+        } else {
+            this.fm.add(data, syncErrorCallback, offlineCallback);
+            this.showToast(data.installments ? 'Parcelas geradas com sucesso!' : 'Transação adicionada!', 'success');
+        }
+
+        this.closeModal(this.editModal, true);
+        this.render();
+    }
+
     openSeriesModal(groupId) {
         const transactions = this.fm.getGroupTransactions(groupId);
         if (!transactions || transactions.length === 0) return;
@@ -2492,42 +2580,85 @@ class UIController {
 
         const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
         const remainingAmount = transactions
-            .filter(t => new Date(t.date) >= new Date())
+            .filter(t => !t.isPaid)
             .reduce((sum, t) => sum + t.amount, 0);
 
         summaryContainer.innerHTML = `
             <div class="series-stat">
-                <span>Total das parcelas</span>
-                <strong>${this.formatCurrency(totalAmount)}</strong> <!-- Fix -->
+                <span>Total da Série</span>
+                <strong>${this.formatCurrency(totalAmount)}</strong>
             </div>
             <div class="series-stat">
-                <span>Restante</span>
+                <span>Restante a Pagar</span>
                 <strong>${this.formatCurrency(remainingAmount)}</strong>
             </div>
         `;
 
         const today = new Date();
-        today.setHours(23, 59, 59, 999);
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
         transactions.forEach(t => {
-            const tDate = new Date(t.date + 'T12:00:00');
-            const isFuture = tDate > today;
-            const isPaid = !isFuture;
+            const isPaid = t.isPaid === true;
+            let statusClass = 'future';
+
+            if (isPaid) {
+                statusClass = 'paid';
+            } else {
+                if (t.date < todayStr) {
+                    statusClass = 'overdue';
+                } else if (t.date === todayStr || t.date === tomorrowStr) {
+                    statusClass = 'due-today';
+                }
+            }
 
             const div = document.createElement('div');
-            div.className = `series-item ${isPaid ? 'paid' : 'future'}`;
+            div.className = `series-item ${statusClass}`;
 
             const icon = CATEGORIES.expense[t.category] || CATEGORIES.income[t.category] || '📦';
+
             div.innerHTML = `
-            <span class="transaction-icon">${icon}</span>
-            <div class="series-item-info">
-                <span class="series-desc">${this.escapeHtml(t.description)}</span>
-                <span class="series-date">${this.formatDate(t.date)} • ${CATEGORY_NAMES[t.category] || t.category}</span>
+            <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+                <span class="transaction-icon" style="margin-right: 1rem; background: ${this.getCategoryColorBg(t.type, t.category)}; color: ${this.getCategoryColor(t.type, t.category)}">${icon}</span>
+                <div class="series-item-info">
+                    <span class="series-desc" title="${this.escapeHtml(t.description)}">${this.escapeHtml(t.description)}</span>
+                    <span class="series-date">${this.formatDate(t.date)} • ${CATEGORY_NAMES[t.category] || t.category}</span>
+                </div>
             </div>
-            <div class="series-item-amount currency-${t.type}">
-                ${this.formatCurrency(t.amount)}
+            
+            <div class="series-item-actions">
+                <span class="series-item-amount currency-${t.type}">
+                    ${this.formatCurrency(t.amount)}
+                </span>
+                
+                <button class="series-action-btn btn-pay" title="${isPaid ? 'Marcar como não pago' : 'Marcar como pago'}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="series-action-btn btn-edit" title="Editar">
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
             </div>
         `;
+
+            div.querySelector('.btn-pay').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.togglePaid(t.id);
+            });
+
+            div.querySelector('.btn-edit').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openEditModal(t.id);
+            });
+
             listContainer.appendChild(div);
         });
 
