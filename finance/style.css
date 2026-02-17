@@ -674,6 +674,9 @@ input[type=number] {
 }
 
 .series-desc {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-weight: 500;
     color: var(--text-primary);
 }
