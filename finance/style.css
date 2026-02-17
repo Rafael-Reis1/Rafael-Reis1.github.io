@@ -665,14 +665,6 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.15);
 }
 
-.series-item-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    flex: 1;
-    min-width: 0;
-}
-
 .series-date {
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -1830,15 +1822,15 @@ input[type=number] {
 }
 
 .series-item-info {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     flex: 1;
-    max-width: 100%;
     min-width: 0;
+    max-width: 100%;
     margin-right: 1rem;
+    overflow: hidden;
+    white-space: normal;
 }
 
 .series-date {
@@ -1936,7 +1928,6 @@ input[type=number] {
 
     .series-item-info {
         overflow: hidden;
-        text-overflow: ellipsis;
         width: 100%;
         margin-right: 0;
     }
