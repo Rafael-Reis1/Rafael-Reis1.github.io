@@ -2605,14 +2605,24 @@ class UIController {
             .filter(t => !t.isPaid)
             .reduce((sum, t) => sum + t.amount, 0);
 
+        const totalCount = transactions.length;
+        const paidCount = transactions.filter(t => t.isPaid).length;
+        const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
+
         summaryContainer.innerHTML = `
             <div class="series-stat">
-                <span>Total da Série</span>
+                <span>Total das Parcelas</span>
                 <strong>${this.formatCurrency(totalAmount)}</strong>
             </div>
             <div class="series-stat">
                 <span>Restante a Pagar</span>
                 <strong>${this.formatCurrency(remainingAmount)}</strong>
+            </div>
+            <div class="series-progress">
+                <span class="series-progress-label">${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)</span>
+                <div class="series-progress-bar">
+                    <div class="series-progress-fill" style="width: ${progressPercent}%"></div>
+                </div>
             </div>
         `;
 

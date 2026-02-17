@@ -1,9 +1,9 @@
-const CACHE_NAME = 'leitor-logs-?v=1702260200';
+const CACHE_NAME = 'leitor-logs-?v=1702260208';
 const urlsToCache = [
     './leitor.html',
-    './style.css?v=1702260200',
-    './app.js?v=1702260200',
-    './manifest.json?v=1702260200',
+    './style.css?v=1702260208',
+    './app.js?v=1702260208',
+    './manifest.json?v=1702260208',
     './assets/upload.webp',
     './assets/upload_blue.webp',
     '../assets/libs_comuns/fonts.css',
