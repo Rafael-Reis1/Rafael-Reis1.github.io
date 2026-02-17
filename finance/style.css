@@ -1847,6 +1847,12 @@ input[type=number] {
     color: var(--text-secondary);
 }
 
+#seriesModal .modal-content {
+    width: fit-content;
+    min-width: min(400px, 90vw);
+    max-width: min(700px, 90vw);
+}
+
 .series-desc {
     font-weight: 500;
     font-size: 0.9rem;
