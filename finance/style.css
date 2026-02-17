@@ -1848,9 +1848,8 @@ input[type=number] {
 }
 
 #seriesModal .modal-content {
-    width: fit-content;
-    min-width: min(400px, 90vw);
-    max-width: min(700px, 90vw);
+    width: 90%;
+    max-width: 700px;
 }
 
 .series-desc {
@@ -2723,7 +2722,13 @@ input[type=number] {
     height: 100%;
     background: linear-gradient(90deg, #22c55e, #4ade80);
     border-radius: 10px;
-    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: progressFill 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes progressFill {
+    from {
+        width: 0%;
+    }
 }
 
 .series-list {
