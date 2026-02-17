@@ -1913,6 +1913,15 @@ input[type=number] {
     opacity: 1;
 }
 
+.series-action-btn.btn-pay.checked {
+    color: #22c55e;
+}
+
+.series-action-btn.btn-pay.checked:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
 @media (max-width: 768px) {
     .series-item {
         flex-direction: column;
