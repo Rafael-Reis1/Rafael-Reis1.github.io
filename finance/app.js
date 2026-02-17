@@ -1308,6 +1308,25 @@ class UIController {
             }
         });
 
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const activeModals = Array.from(document.querySelectorAll('.modal.active'));
+                if (activeModals.length > 0) {
+                    activeModals.sort((a, b) => {
+                        const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
+                        const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
+                        return zB - zA;
+                    });
+
+                    this.closeModal(activeModals[0]);
+
+                    if (activeModals[0].id === 'editModal') {
+                        activeModals[0].style.zIndex = '';
+                    }
+                }
+            }
+        });
+
         auth.onAuthStateChanged(async (user) => {
             this.updateAuthUI(user);
             if (user) {
@@ -2192,7 +2211,9 @@ class UIController {
             const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
             let statusClass = '';
-            if (t.type === 'expense' && t.isPaid !== true) {
+            if (t.isPaid) {
+                statusClass = 'paid';
+            } else if (t.type === 'expense') {
                 if (t.date < todayStr) {
                     statusClass = 'overdue';
                 } else if (t.date === todayStr || t.date === tomorrowStr) {
@@ -2363,6 +2384,7 @@ class UIController {
         this.updateEditCategoryOptions(t.category);
         document.getElementById('editCategory').dispatchEvent(new Event('change', { bubbles: true }));
 
+        this.editModal.style.zIndex = '1010';
         this.openModal(this.editModal);
     }
 
@@ -2630,10 +2652,6 @@ class UIController {
             </div>
             
             <div class="series-item-actions">
-                <span class="series-item-amount currency-${t.type}">
-                    ${this.formatCurrency(t.amount)}
-                </span>
-                
                 <button class="series-action-btn btn-pay" title="${isPaid ? 'Marcar como não pago' : 'Marcar como pago'}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"></polyline>
@@ -2646,6 +2664,10 @@ class UIController {
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                 </button>
+
+                <span class="series-item-amount currency-${t.type}">
+                    ${this.formatCurrency(t.amount)}
+                </span>
             </div>
         `;
 
