@@ -2609,22 +2609,37 @@ class UIController {
         const paidCount = transactions.filter(t => t.isPaid).length;
         const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
 
-        summaryContainer.innerHTML = `
-            <div class="series-stat">
-                <span>Total das Parcelas</span>
-                <strong>${this.formatCurrency(totalAmount)}</strong>
-            </div>
-            <div class="series-stat">
-                <span>Restante a Pagar</span>
-                <strong>${this.formatCurrency(remainingAmount)}</strong>
-            </div>
-            <div class="series-progress">
-                <span class="series-progress-label">${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)</span>
-                <div class="series-progress-bar">
-                    <div class="series-progress-fill" style="width: ${progressPercent}%"></div>
+        const isModalAlreadyOpen = this.seriesModal.classList.contains('active');
+        const existingFill = isModalAlreadyOpen ? summaryContainer.querySelector('.series-progress-fill') : null;
+
+        if (existingFill) {
+            summaryContainer.querySelectorAll('.series-stat strong')[1].textContent = this.formatCurrency(remainingAmount);
+            summaryContainer.querySelector('.series-progress-label').textContent = `${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)`;
+            existingFill.style.width = `${progressPercent}%`;
+        } else {
+            summaryContainer.innerHTML = `
+                <div class="series-stat">
+                    <span>Total das Parcelas</span>
+                    <strong>${this.formatCurrency(totalAmount)}</strong>
                 </div>
-            </div>
-        `;
+                <div class="series-stat">
+                    <span>Restante a Pagar</span>
+                    <strong>${this.formatCurrency(remainingAmount)}</strong>
+                </div>
+                <div class="series-progress">
+                    <span class="series-progress-label">${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)</span>
+                    <div class="series-progress-bar">
+                        <div class="series-progress-fill"></div>
+                    </div>
+                </div>
+            `;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const fill = summaryContainer.querySelector('.series-progress-fill');
+                    if (fill) fill.style.width = `${progressPercent}%`;
+                });
+            });
+        }
 
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
