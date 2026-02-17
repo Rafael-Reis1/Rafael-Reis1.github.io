@@ -1803,17 +1803,7 @@ class UIController {
 
         const futureExpenses = this.fm.getFutureExpenses(filters);
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth() + 1;
-
-        const income = this.fm.getMonthlyIncome(year, month, this.currentFilters);
-        const expense = this.fm.getMonthlyExpense(year, month, this.currentFilters);
         const overdueExpenses = this.fm.getOverdueExpenses(filters);
-
-        const hasFilter = this.currentFilters.startDate || this.currentFilters.endDate || this.currentFilters.type || this.currentFilters.category || this.currentFilters.status || this.currentFilters.search;
-        this.incomeLabel.textContent = hasFilter ? 'Receitas' : 'Receitas (Total)';
-        this.expenseLabel.textContent = hasFilter ? 'Despesas' : 'Despesas (Total)';
 
         this.balanceValue.textContent = this.formatCurrency(displayBalance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
