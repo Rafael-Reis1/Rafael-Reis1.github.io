@@ -3004,7 +3004,10 @@ class UIController {
         if (!modal) return;
 
         modal.classList.remove('active');
-        document.body.style.overflow = '';
+
+        if (document.querySelectorAll('.modal.active').length === 0) {
+            document.body.style.overflow = '';
+        }
 
         if (modal === this.editModal) {
             this.editForm.reset();
