@@ -1313,15 +1313,18 @@ class UIController {
                 const activeModals = Array.from(document.querySelectorAll('.modal.active'));
                 if (activeModals.length > 0) {
                     activeModals.sort((a, b) => {
-                        const zA = parseInt(window.getComputedStyle(a).zIndex) || 0;
-                        const zB = parseInt(window.getComputedStyle(b).zIndex) || 0;
+                        const zA = parseInt(window.getComputedStyle(a).zIndex) || 1000;
+                        const zB = parseInt(window.getComputedStyle(b).zIndex) || 1000;
                         return zB - zA;
                     });
 
-                    this.closeModal(activeModals[0]);
+                    const topModal = activeModals[0];
+                    this.closeModal(topModal);
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
 
-                    if (activeModals[0].id === 'editModal') {
-                        activeModals[0].style.zIndex = '';
+                    if (topModal.id === 'editModal') {
+                        topModal.style.zIndex = '';
                     }
                 }
             }

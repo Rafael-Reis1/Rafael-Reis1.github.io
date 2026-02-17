@@ -621,17 +621,6 @@ input[type=number] {
     border-color: var(--glass-border);
 }
 
-.transaction-item.paid {
-    background: rgba(34, 197, 94, 0.05);
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
-.transaction-item.paid .transaction-amount {
-    text-decoration: line-through;
-    opacity: 0.8;
-    color: var(--income-color);
-}
-
 .transaction-info {
     display: flex;
     align-items: center;
@@ -1228,8 +1217,13 @@ input[type=number] {
     }
 
     .transaction-item {
-        flex-wrap: nowrap;
+        flex-direction: column;
+        align-items: flex-start;
         gap: 0.5rem;
+    }
+
+    .transaction-info {
+        width: 100%;
     }
 
     .transaction-amount {
@@ -1238,8 +1232,11 @@ input[type=number] {
 
     .transaction-actions {
         opacity: 1;
-        width: auto;
-        justify-content: flex-end;
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .modal-content {
@@ -1732,21 +1729,24 @@ input[type=number] {
     }
 
     .transaction-actions {
-        flex-direction: column-reverse;
-        align-items: flex-end;
-        gap: 0.25rem;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        justify-content: flex-start;
+        padding-top: 0.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .action-buttons {
         opacity: 1;
-    }
-
-    .action-buttons {
-        opacity: 1;
+        order: 1;
+        width: auto;
     }
 
     .transaction-amount {
-        margin-left: 0;
+        margin-left: auto;
+        order: 2;
     }
 
     .form-row {
@@ -1870,18 +1870,14 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 8px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
-    padding: 0;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(10px);
 }
 
 .series-item:hover .series-action-btn {
@@ -1893,20 +1889,12 @@ input[type=number] {
 .series-action-btn:hover {
     background: var(--glass-bg-hover);
     color: var(--text-primary);
-    transform: scale(1.05) !important;
 }
 
 .series-action-btn.btn-pay:hover {
+    background: rgba(34, 197, 94, 0.1);
     color: var(--income-color);
     border-color: var(--income-color);
-    background: rgba(34, 197, 94, 0.1);
-}
-
-.series-item.paid .series-action-btn.btn-pay {
-    color: var(--income-color);
-    border-color: var(--income-color);
-    background: rgba(34, 197, 94, 0.1);
-    opacity: 1;/
 }
 
 .series-item.paid .series-action-btn.btn-pay {
@@ -1918,9 +1906,9 @@ input[type=number] {
 }
 
 .series-action-btn.btn-edit:hover {
+    background: rgba(242, 81, 27, 0.1);
     color: var(--accent-color);
     border-color: var(--accent-color);
-    background: rgba(242, 81, 27, 0.1);
 }
 
 @media (max-width: 768px) {
