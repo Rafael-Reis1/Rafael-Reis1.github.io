@@ -1935,7 +1935,6 @@ input[type=number] {
     }
 
     .series-item-info {
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         width: 100%;
