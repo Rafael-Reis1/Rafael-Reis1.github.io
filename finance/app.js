@@ -2230,9 +2230,6 @@ class UIController {
                 icon = CATEGORIES.expense[t.category] || CATEGORIES.income[t.category];
             }
             icon = icon || (t.type === 'expense' ? '💸' : '💰');
-            const categoryName = CATEGORY_NAMES[t.category] || t.category;
-            const sign = t.type === 'income' ? '+' : '-';
-            const date = new Date(t.date + 'T12:00:00');
             const hasSeries = t.groupId;
             const isPaid = t.isPaid === true;
             const paidClass = isPaid ? 'checked' : '';
@@ -2260,7 +2257,7 @@ class UIController {
                 </div>
                 <div class="transaction-actions">
                     <span class="transaction-amount ${t.type}">
-                        ${sign} ${this.formatCurrency(t.amount)}
+                        ${this.formatCurrency(t.amount)}
                     </span>
                     <div class="action-buttons">
                         ${hasSeries ? `
