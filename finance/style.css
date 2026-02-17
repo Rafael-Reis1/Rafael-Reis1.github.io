@@ -2669,11 +2669,12 @@ input[type=number] {
 
 .series-stat {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
+    gap: 0.25rem;
+    padding: 0.625rem;
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
@@ -2686,12 +2687,12 @@ input[type=number] {
 }
 
 .series-stat span {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
 }
 
 .series-stat strong {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     color: var(--text-primary);
     font-weight: 600;
 }
