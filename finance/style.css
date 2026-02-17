@@ -1881,6 +1881,8 @@ input[type=number] {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .series-item:hover .series-action-btn {
