@@ -1864,6 +1864,8 @@ input[type=number] {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
 }
 
 .series-item-actions {
