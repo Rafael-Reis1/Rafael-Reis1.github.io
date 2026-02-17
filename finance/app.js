@@ -2668,7 +2668,7 @@ class UIController {
             const icon = CATEGORIES.expense[t.category] || CATEGORIES.income[t.category] || '📦';
 
             div.innerHTML = `
-            <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; flex: 1; min-width: 0; width: 100%;">
                 <span class="transaction-icon" style="margin-right: 1rem; background: ${this.getCategoryColorBg(t.type, t.category)}; color: ${this.getCategoryColor(t.type, t.category)}">${icon}</span>
                 <div class="series-item-info">
                     <span class="series-desc" title="${this.escapeHtml(t.description)}">${this.escapeHtml(t.description)}</span>
