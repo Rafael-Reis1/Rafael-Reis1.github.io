@@ -1948,6 +1948,10 @@ input[type=number] {
         transform: none;
     }
 
+    .series-item.paid .series-action-btn.btn-pay {
+        opacity: 1;
+    }
+
     .series-item-amount {
         order: 2;
         margin-left: auto;
