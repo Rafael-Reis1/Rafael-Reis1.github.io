@@ -2732,11 +2732,13 @@ class UIController {
 
             if (subscriptions.length === 0) {
                 this.noSubs.style.display = 'block';
+                this.subsList.style.display = 'none';
                 if (this.subsTotalValue) this.subsTotalValue.textContent = this.formatCurrency(0);
                 return;
             }
 
             this.noSubs.style.display = 'none';
+            this.subsList.style.display = '';
 
             const total = subscriptions
                 .filter(sub => sub.active !== false)
