@@ -99,6 +99,15 @@ try {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    console.log("🛠️ MODO DEV: Conectando aos Emuladores Locais...");
+    
+    auth.useEmulator("http://localhost:9099");
+    
+    db.useEmulator("localhost", 8080);
+}
+
 db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
         if (err.code == 'unimplemented') {
@@ -430,6 +439,7 @@ const App = {
             authLoading: document.getElementById('authLoading'),
             authContent: document.getElementById('authContent'),
             btnLoginOverlay: document.getElementById('btnLoginOverlay'),
+            btnAnonymousLogin: document.getElementById('btnAnonymousLogin'),
 
             messageModal: document.getElementById('messageModal'),
             messageTitle: document.getElementById('messageTitle'),
@@ -846,6 +856,10 @@ const App = {
             this.dom.btnLoginOverlay.addEventListener('click', () => this.handleAuthClick());
         }
 
+        if (this.dom.btnAnonymousLogin) {
+            this.dom.btnAnonymousLogin.addEventListener('click', () => this.handleAnonymousLogin());
+        }
+
         this.dom.userAvatar.addEventListener('click', (e) => {
             e.stopPropagation();
             this.dom.userDropdown.classList.toggle('active');
@@ -945,6 +959,23 @@ const App = {
         });
     },
 
+    handleAnonymousLogin() {
+        const loading = document.getElementById('authLoading');
+        const content = document.getElementById('authContent');
+
+        if (loading) loading.style.display = 'flex';
+        if (content) content.style.display = 'none';
+
+        auth.signInAnonymously().then(() => {
+            this.showMessage('Bem-vindo!', 'Você está testando como visitante.', '👻');
+        }).catch((error) => {
+            console.error('Erro no login anônimo:', error);
+            if (loading) loading.style.display = 'none';
+            if (content) content.style.display = 'flex';
+            alert('Erro ao acessar como visitante: ' + error.message);
+        });
+    },
+
     handleAuthClick() {
         const loading = document.getElementById('authLoading');
         const content = document.getElementById('authContent');
@@ -984,9 +1015,9 @@ const App = {
                 const name = document.getElementById('userName');
                 const email = document.getElementById('userEmail');
 
-                if (avatar) avatar.src = user.photoURL || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(user.email));
-                if (name) name.textContent = user.displayName || 'Leitor';
-                if (email) email.textContent = user.email;
+                if (avatar) avatar.src = user.photoURL || 'https://ui-avatars.com/api/?name=Visi+tante&background=random';
+                if (name) name.textContent = user.displayName || 'Visitante';
+                if (email) email.textContent = user.email || 'Conta Temporária';
             }
         } else {
             overlay.style.display = 'flex';
