@@ -15,6 +15,15 @@ try {
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    console.log("🛠️ MODO DEV: Conectando aos Emuladores Locais...");
+    
+    auth.useEmulator("http://localhost:9099");
+    
+    db.useEmulator("localhost", 8080);
+}
+
 db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
         if (err.code == 'unimplemented') {
@@ -1264,13 +1273,29 @@ class UIController {
         this.unsubscribeModal = document.getElementById('unsubscribeModal');
         this.closeUnsubscribeModal = document.getElementById('closeUnsubscribeModal');
         this.confirmUnsubscribe = document.getElementById('confirmUnsubscribe');
+        this.btnAnonymousLogin = document.getElementById('btnAnonymousLogin');
 
         this.isEditing = false;
         this.editingId = null;
     }
 
+    handleAnonymousLogin() {
+        auth.signInAnonymously()
+            .then(() => {
+                this.showToast('Bem-vindo! Você está testando como visitante.', 'success');
+            })
+            .catch((error) => {
+                console.error("Erro no login anônimo:", error);
+                this.showToast('Erro ao acessar como visitante.', 'error');
+            });
+    }
+
     initEventListeners() {
         this.btnLogin.addEventListener('click', () => this.handleAuthClick());
+
+        if (this.btnAnonymousLogin) {
+            this.btnAnonymousLogin.addEventListener('click', () => this.handleAnonymousLogin());
+        }
 
         this.userAvatar.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -3094,9 +3119,9 @@ class UIController {
             this.loginOverlay.style.display = 'none';
             this.btnLogin.style.display = 'none';
             this.userInfo.style.display = 'block';
-            this.userAvatar.src = user.photoURL;
-            if (this.userName) this.userName.textContent = user.displayName;
-            if (this.userEmail) this.userEmail.textContent = user.email;
+            this.userAvatar.src = user.photoURL || 'https://ui-avatars.com/api/?name=Visi+tante&background=random';
+            if (this.userName) this.userName.textContent = user.displayName || 'Visitante';
+            if (this.userEmail) this.userEmail.textContent = user.email || 'Conta Temporária';
 
             if (this.btnImport) this.btnImport.style.display = 'none';
             if (this.btnExport) this.btnExport.style.display = 'none';

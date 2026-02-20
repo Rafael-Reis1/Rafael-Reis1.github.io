@@ -1,1 +1,14 @@
 /.vscode
+
+firebase-debug.log*
+ui-debug.log*
+
+emulator-data/
+firebase-export/
+
+node_modules/
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+firestore-debug.log
