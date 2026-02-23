@@ -20,6 +20,7 @@
 
 html {
     scrollbar-color: var(--accent-color) var(--body-color);
+    scrollbar-gutter: stable;
 }
 
 body {
@@ -315,12 +316,17 @@ iframe {
     cursor: pointer;
     display: flex;
     justify-content: center;
+    gap: 5px;
     align-items: center;
     view-transition-name: shared-curriculo-area;
 }
 
 .btnDownload:hover {
     background-color: var(--base-color-hover);
+}
+
+.btnDownload p {
+    margin-top: 0.125rem;
 }
 
 .curriculoLive {
@@ -339,12 +345,14 @@ iframe {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--body-color);
 }
 
 .curriculoLive.show {
     width: 90vw;
     max-width: 56.25rem;
-    height: 90vh;
+    height: 100vh;
     max-height: 56.25rem;
     opacity: 1;
 }
