@@ -1,11 +1,30 @@
-
 document.addEventListener('DOMContentLoaded', () => {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
     setupTabs();
     setupDragScroll();
     setupModal();
     fetchAndDisplayRepos();
     setupAnimations();
+
+    window.addEventListener('scroll', () => {
+        sessionStorage.setItem('scrollPosition', window.scrollY);
+    });
 });
+
+function restoreScrollPosition() {
+    const savedScroll = sessionStorage.getItem('scrollPosition');
+    if (savedScroll) {
+        setTimeout(() => {
+            window.scrollTo({
+                top: parseInt(savedScroll, 10),
+                behavior: 'smooth'
+            });
+        }, 150); 
+    }
+}
 
 function setupTabs() {
     const tabs = {
@@ -79,8 +98,11 @@ function setupTabs() {
             targetSection.style.opacity = 1;
 
             resizeObserver.observe(targetSection);
-
             mainInfo.style.height = targetSection.offsetHeight + 'px';
+            
+            if (savedTab !== 'btnPortfolio') {
+                restoreScrollPosition();
+            }
         }
     } else {
         const initialSection = document.getElementById('sobre');
@@ -326,7 +348,11 @@ function fetchAndDisplayRepos() {
             this.container = document.getElementById(containerId);
             this.paginationContainer = document.getElementById(paginationId);
             this.renderItemCallback = renderItemCallback;
-            this.currentPage = 1;
+            this.containerId = containerId;
+
+            const savedPage = sessionStorage.getItem(`pagina_${this.containerId}`);
+            this.currentPage = savedPage ? parseInt(savedPage, 10) : 1;
+
             this.filteredData = [...data];
         }
 
@@ -341,7 +367,10 @@ function fetchAndDisplayRepos() {
                 return item.name.toLowerCase().includes(term) ||
                     (item.description && item.description.toLowerCase().includes(term));
             });
+            
             this.currentPage = 1;
+            sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
+            
             this.render(animate);
         }
 
@@ -352,6 +381,12 @@ function fetchAndDisplayRepos() {
             if (this.filteredData.length === 0) {
                 this.container.innerHTML = '<p style="text-align: center; color: var(--text-color); width: 100%; padding: 20px;">Nenhum resultado encontrado.</p>';
                 return;
+            }
+
+            const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+            if (this.currentPage > totalPages && totalPages > 0) {
+                this.currentPage = totalPages;
+                sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
             }
 
             const startIndex = (this.currentPage - 1) * this.itemsPerPage;
@@ -388,6 +423,7 @@ function fetchAndDisplayRepos() {
             this.paginationContainer.appendChild(createBtn('<', () => {
                 if (this.currentPage > 1) {
                     this.currentPage--;
+                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
                     this.render();
                 }
             }, this.currentPage === 1));
@@ -402,6 +438,7 @@ function fetchAndDisplayRepos() {
             for (let i = startPage; i <= endPage; i++) {
                 this.paginationContainer.appendChild(createBtn(i, () => {
                     this.currentPage = i;
+                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
                     this.render();
                 }, false, i === this.currentPage));
             }
@@ -409,6 +446,7 @@ function fetchAndDisplayRepos() {
             this.paginationContainer.appendChild(createBtn('>', () => {
                 if (this.currentPage < totalPages) {
                     this.currentPage++;
+                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
                     this.render();
                 }
             }, this.currentPage === totalPages));
@@ -483,8 +521,11 @@ function fetchAndDisplayRepos() {
 
         if (allFetchedRepos.length > 0) {
             if (reposTitle) reposTitle.style.display = 'block';
-
             reposList.updateData(allFetchedRepos);
+        }
+        
+        if (sessionStorage.getItem('activeTab') === 'btnPortfolio') {
+            restoreScrollPosition();
         }
     }
 }
