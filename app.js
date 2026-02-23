@@ -133,6 +133,12 @@ function setupModal() {
     if (!btnDownload || !modal || !overlay) return;
 
     function toggleModal(show) {
+        if (show) {
+            document.documentElement.style.overflow = 'hidden';
+        } else {
+            document.documentElement.style.overflow = '';
+        }
+
         if (document.startViewTransition) {
             document.startViewTransition(() => {
                 if (show) {
