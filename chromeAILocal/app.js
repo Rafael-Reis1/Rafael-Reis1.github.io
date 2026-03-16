@@ -285,16 +285,42 @@ class AIService {
             if (!this.factory) throw new Error('Model factory not found');
 
             const lastMessage = messages[messages.length - 1];
-            const history = messages.slice(0, -1);
+            let rawHistory = messages.slice(0, -1);
 
             const mermaidInstruction = `[DIRETRIZ VISUAL] NÃO gere códigos, HTML ou diagramas Mermaid a menos que o usuário solicite EXPLICITAMENTE. Se o usuário quiser apenas conversar, responda apenas com texto natural. Se um diagrama for estritamente exigido, use apenas 'graph TD' ou 'sequenceDiagram' simples com aspas nos nós.`;
 
-            const initialPrompts = [];
-            const fullSystemPrompt = systemPrompt
-                ? `${systemPrompt}\n\n${mermaidInstruction}`
+            let safeSystemPrompt = systemPrompt || '';
+            
+            if (safeSystemPrompt.length > 1500) {
+                 safeSystemPrompt = safeSystemPrompt.substring(0, 1500) + "\n\n...[Contexto truncado por limite de memória do modelo local]";
+            }
+
+            const fullSystemPrompt = safeSystemPrompt
+                ? `${safeSystemPrompt}\n\n${mermaidInstruction}`
                 : mermaidInstruction;
+
+            const MAX_CHARS = 12000;
+            const fixedLength = fullSystemPrompt.length + lastMessage.content.length;
+            let availableBudget = MAX_CHARS - fixedLength;
+            let optimizedHistory = [];
+
+            if (availableBudget > 0) {
+                for (let i = rawHistory.length - 1; i >= 0; i--) {
+                    const msg = rawHistory[i];
+                    const msgSize = msg.role.length + msg.content.length + 10;
+
+                    if (availableBudget - msgSize >= 0) {
+                        optimizedHistory.unshift(msg);
+                        availableBudget -= msgSize;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            const initialPrompts = [];
             initialPrompts.push({ role: 'system', content: fullSystemPrompt });
-            initialPrompts.push(...history);
+            initialPrompts.push(...optimizedHistory);
 
             const options = {
                 initialPrompts,
@@ -1958,8 +1984,13 @@ ${code}
 
             if (hasCodeContext) {
                 const combinedCode = this.combineCode(this.codeState);
-                if (combinedCode && combinedCode.length < 5000) {
-                    systemPrompt += `\n\n[CONTEXTO ATUAL DO PROJETO]:\nUse este código como referência para edições:\n\`\`\`html\n${combinedCode}\n\`\`\``;
+                if (combinedCode) {
+                    if (combinedCode.length <= 1800) {
+                        systemPrompt += `\n\n[CONTEXTO ATUAL DO PROJETO]:\nUse este código como referência:\n\`\`\`html\n${combinedCode}\n\`\`\``;
+                    } else {
+                        const truncatedCode = combinedCode.substring(0, 1800);
+                        systemPrompt += `\n\n[CONTEXTO ATUAL DO PROJETO (PARCIAL)]:\nO código é muito grande, aqui está a primeira parte dele:\n\`\`\`html\n${truncatedCode}\n... [CÓDIGO TRUNCADO POR LIMITE DE MEMÓRIA]\n\`\`\``;
+                    }
                 }
             }
 
