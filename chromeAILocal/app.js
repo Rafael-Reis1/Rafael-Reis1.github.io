@@ -2412,6 +2412,18 @@ ${code}
         this.els.messages.appendChild(div);
     }
 
+    scrollToBottom(force = false) {
+        if (!this.els.messages) return;
+
+        const el = this.els.messages;
+        const threshold = 150;
+        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+
+        if (force || isNearBottom) {
+            el.scrollTop = el.scrollHeight;
+        }
+    }
+
     setLoadingState(isLoading) {
         if (this.els.sendBtn) this.els.sendBtn.style.display = isLoading ? 'none' : 'block';
         if (this.els.stopBtn) this.els.stopBtn.style.display = isLoading ? 'block' : 'none';
