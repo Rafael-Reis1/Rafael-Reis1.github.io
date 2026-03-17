@@ -311,9 +311,9 @@ class AIService {
                     let msgContent = msg.content;
                     
                     if (msg.role === 'assistant' && msgContent.length > 300) {
-                        msgContent = msgContent.substring(0, 300) + "... [texto comprimido]";
+                        msgContent = msgContent.substring(0, 300) + "\n...\n```\n[texto comprimido]";
                     } else if (msg.role === 'user' && msgContent.length > 600) {
-                        msgContent = msgContent.substring(0, 600) + "... [texto comprimido]";
+                        msgContent = msgContent.substring(0, 600) + "\n...\n```\n[texto comprimido]";
                     }
 
                     const msgSize = msg.role.length + msgContent.length + 10;
