@@ -328,7 +328,7 @@ class AIService {
             }
             
             const formattedHistory = optimizedHistory.map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
+                role: msg.role,
                 content: msg.content
             }));
 
