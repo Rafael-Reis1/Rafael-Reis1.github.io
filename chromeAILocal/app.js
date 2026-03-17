@@ -308,10 +308,18 @@ class AIService {
             if (availableBudget > 0) {
                 for (let i = rawHistory.length - 1; i >= 0; i--) {
                     const msg = rawHistory[i];
-                    const msgSize = msg.role.length + msg.content.length + 10;
+                    let msgContent = msg.content;
+                    
+                    if (msg.role === 'assistant' && msgContent.length > 300) {
+                        msgContent = msgContent.substring(0, 300) + "... [texto comprimido]";
+                    } else if (msg.role === 'user' && msgContent.length > 600) {
+                        msgContent = msgContent.substring(0, 600) + "... [texto comprimido]";
+                    }
+
+                    const msgSize = msg.role.length + msgContent.length + 10;
 
                     if (availableBudget - msgSize >= 0) {
-                        optimizedHistory.unshift(msg);
+                        optimizedHistory.unshift({ role: msg.role, content: msgContent });
                         availableBudget -= msgSize;
                     } else {
                         break;
@@ -2028,7 +2036,8 @@ ${code}
 
                         fullResponse = text;
                         this.throttledRender(fullResponse, msgElement, false);
-                        this.checkAutoUpdateCanvas(fullResponse);
+                        
+                        this.checkAutoUpdateCanvas(fullResponse, false);
                     },
                     onDownloadProgress: (e) => {
                         this.handleDownloadProgress(e, downloadMsgId);
