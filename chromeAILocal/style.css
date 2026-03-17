@@ -1745,6 +1745,43 @@ textarea.modal-input {
     left: 0;
 }
 
+.rowAssistant .message table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rowAssistant .message th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom: 2px solid var(--glass-border);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.rowAssistant .message td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    vertical-align: top;
+    line-height: 1.5;
+}
+
+.rowAssistant .message tr:last-child td {
+    border-bottom: none;
+}
+
+.rowAssistant .message td:first-child {
+    font-weight: 500;
+    color: var(--text-primary);
+    width: 30%;
+}
+
 @media (max-width: 1024px) {
     .main-wrapper.canvas-open .container {
         flex: 0 0 35%;
