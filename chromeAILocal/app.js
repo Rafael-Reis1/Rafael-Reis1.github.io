@@ -284,23 +284,24 @@ class AIService {
 
             if (!this.factory) throw new Error('Model factory not found');
 
-            const lastMessage = messages[messages.length - 1];
+            const currentPromptText = messages[messages.length - 1].content;
+            
             let rawHistory = messages.slice(0, -1);
 
             const mermaidInstruction = `[DIRETRIZ VISUAL] NÃO gere códigos, HTML ou diagramas Mermaid a menos que o usuário solicite EXPLICITAMENTE. Se o usuário quiser apenas conversar, responda apenas com texto natural. Se um diagrama for estritamente exigido, use apenas 'graph TD' ou 'sequenceDiagram' simples com aspas nos nós.`;
 
             let safeSystemPrompt = systemPrompt || '';
             
-            if (safeSystemPrompt.length > 1500) {
-                 safeSystemPrompt = safeSystemPrompt.substring(0, 1500) + "\n\n...[Contexto truncado por limite de memória do modelo local]";
+            if (safeSystemPrompt.length > 3500) {
+                 safeSystemPrompt = safeSystemPrompt.substring(0, 3500) + "\n\n...[Contexto de projeto truncado]";
             }
 
             const fullSystemPrompt = safeSystemPrompt
                 ? `${safeSystemPrompt}\n\n${mermaidInstruction}`
                 : mermaidInstruction;
 
-            const MAX_CHARS = 12000;
-            const fixedLength = fullSystemPrompt.length + lastMessage.content.length;
+            const MAX_CHARS = 14000;
+            const fixedLength = fullSystemPrompt.length + currentPromptText.length;
             let availableBudget = MAX_CHARS - fixedLength;
             let optimizedHistory = [];
 
@@ -318,9 +319,25 @@ class AIService {
                 }
             }
 
+            if (optimizedHistory.length > 0 && optimizedHistory[0].role !== 'user') {
+                optimizedHistory.shift();
+            }
+
+            if (optimizedHistory.length > 0 && optimizedHistory[optimizedHistory.length - 1].role === 'user') {
+                optimizedHistory.pop();
+            }
+            
+            const formattedHistory = optimizedHistory.map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                content: msg.content
+            }));
+
             const initialPrompts = [];
             initialPrompts.push({ role: 'system', content: fullSystemPrompt });
-            initialPrompts.push(...optimizedHistory);
+            
+            if (formattedHistory.length > 0) {
+                 initialPrompts.push(...formattedHistory);
+            }
 
             const options = {
                 initialPrompts,
@@ -333,7 +350,7 @@ class AIService {
 
             this.session = await this.factory.create(options);
 
-            const stream = await this.session.promptStreaming(lastMessage.content, { signal });
+            const stream = await this.session.promptStreaming(currentPromptText, { signal });
             const reader = stream.getReader();
             let firstTokenTime = null;
 
@@ -1969,6 +1986,7 @@ ${code}
             const downloadMsgId = 'download-progress-msg';
 
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
+            
             let systemPrompt = currentChat ? currentChat.systemPrompt : '';
 
             const hasCodeContext = this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js);
@@ -1979,29 +1997,22 @@ ${code}
             );
 
             if (isDevPersona || hasCodeContext) {
-                systemPrompt += `\n\n[REGRAS TÉCNICAS PARA CÓDIGO]:\nSe você for gerar ou editar HTML, siga estas regras: 1. Todo elemento HTML gerado deve ter 'id' (mantenha IDs existentes). 2. ECONOMIA DE TOKENS: Ao editar, gere APENAS o bloco HTML do elemento alterado (ex: apenas o <div id='container'>...</div>) e não o arquivo todo, a menos que solicitado.`;
+                systemPrompt += `\n\n[REGRAS TÉCNICAS PARA CÓDIGO]:\nSe você for gerar ou editar HTML, siga estas regras: 1. Todo elemento HTML gerado deve ter 'id'. 2. ECONOMIA DE TOKENS: Ao editar, gere APENAS o bloco HTML alterado e não o arquivo todo, a menos que solicitado.`;
             }
 
             if (hasCodeContext) {
                 const combinedCode = this.combineCode(this.codeState);
                 if (combinedCode) {
-                    if (combinedCode.length <= 1800) {
-                        systemPrompt += `\n\n[CONTEXTO ATUAL DO PROJETO]:\nUse este código como referência:\n\`\`\`html\n${combinedCode}\n\`\`\``;
+                    if (combinedCode.length <= 2500) {
+                        systemPrompt += `\n\n[CONTEXTO ATUAL]:\n\`\`\`html\n${combinedCode}\n\`\`\``;
                     } else {
-                        const truncatedCode = combinedCode.substring(0, 1800);
-                        systemPrompt += `\n\n[CONTEXTO ATUAL DO PROJETO (PARCIAL)]:\nO código é muito grande, aqui está a primeira parte dele:\n\`\`\`html\n${truncatedCode}\n... [CÓDIGO TRUNCADO POR LIMITE DE MEMÓRIA]\n\`\`\``;
+                        const truncatedCode = combinedCode.substring(0, 2500);
+                        systemPrompt += `\n\n[CONTEXTO ATUAL (PARCIAL)]:\n\`\`\`html\n${truncatedCode}\n...[CÓDIGO TRUNCADO]\n\`\`\``;
                     }
                 }
             }
 
             let responseStats = null;
-
-            if (this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js)) {
-                const combinedCode = this.combineCode(this.codeState);
-                if (combinedCode && combinedCode.length < 5000) {
-                    systemPrompt += `\n\nCONTEXTO ATUAL (Estado do Projeto):\nUse este código como referência absoluta para suas edições.\n\`\`\`html\n${combinedCode}\n\`\`\``;
-                }
-            }
 
             await this.ai.generateStream(
                 context,
