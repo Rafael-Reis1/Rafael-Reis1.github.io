@@ -2321,7 +2321,7 @@ ${code}
 
     throttledRender(fullText, element, force) {
         const now = Date.now();
-        if (!force && (now - this.lastRenderTime < 100)) return;
+        if (!force && (now - this.lastRenderTime < 10)) return;
 
         this.lastRenderTime = now;
         this.renderMarkdownUpdate(fullText, element, !force);
