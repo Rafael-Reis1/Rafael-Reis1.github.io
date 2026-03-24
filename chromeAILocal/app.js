@@ -265,7 +265,7 @@ class AIService {
     async isAvailable() {
         if (!this.factory) return false;
         try {
-            return (await this.factory.availability()) !== 'no';
+            return (await this.factory.availability()) === 'available';
         } catch {
             return false;
         }
@@ -2300,13 +2300,17 @@ ${code}
     handleDownloadProgress(e, msgId) {
         let existing = document.getElementById(msgId);
 
-        if (e.loaded > 0 && e.loaded < 1) {
-            const pct = (e.loaded * 100).toFixed(0);
-            const text = e.loaded < 0.85 ? `Baixando modelo (${pct}%)` : `Processando modelo...`;
+        const total = e.total || 0;
+        const loaded = e.loaded || 0;
+        const fraction = total > 0 ? loaded / total : (loaded > 0 && loaded <= 1 ? loaded : 0);
+
+        if (fraction > 0 && fraction < 1) {
+            const pct = (fraction * 100).toFixed(0);
+            const text = fraction < 0.85 ? `Baixando modelo (${pct}%)` : `Processando modelo...`;
 
             const html = `
                 <p><b>Preparando IA:</b> ${text}</p>
-                <progress value="${e.loaded}" max="1" style="width: 100%; border-radius: 8px; overflow: hidden;"></progress>
+                <progress value="${fraction}" max="1" style="width: 100%; border-radius: 8px; overflow: hidden;"></progress>
             `;
 
             if (!existing) {
@@ -2314,8 +2318,11 @@ ${code}
             } else {
                 existing.innerHTML = html;
             }
-        } else if (e.loaded === 1 && existing) {
+        } else if (fraction >= 1 && existing) {
             existing.innerHTML = '<p><b>Quase lá!</b> Carregando modelo...</p>';
+        } else if (fraction === 0 && !existing) {
+            const html = `<p><b>Preparando IA:</b> Iniciando download do modelo...</p>`;
+            this.addMessageToDOM(`<div class="message" id="${msgId}">${html}</div>`, 'assistant');
         }
     }
 
