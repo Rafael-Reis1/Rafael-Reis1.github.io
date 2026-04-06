@@ -1113,7 +1113,11 @@ class FinanceManager {
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
         try {
-            const subscriptions = await this.getSubscriptions();
+            const subsSnapshot = await db.collection('finance_data')
+                .doc(auth.currentUser.uid)
+                .collection('subscriptions')
+                .get();
+            const subscriptions = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             for (const sub of subscriptions) {
                 if (sub.active === false) continue;
