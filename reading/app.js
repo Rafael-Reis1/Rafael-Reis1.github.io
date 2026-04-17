@@ -1330,7 +1330,7 @@ const App = {
         const container = document.getElementById('formatFilters');
         if (!container) return;
 
-        if (this.state.filter === 'owned') {
+        if (['owned', 'favorite', 'read'].includes(this.state.filter)) {
             container.style.display = 'flex';
             
             const formats = [
