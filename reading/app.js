@@ -287,6 +287,7 @@ const App = {
     state: {
         filter: 'all',
         yearFilter: 'all',
+        formatFilter: 'all',
         books: [],
         searchResults: [],
         sortBy: 'recent',
@@ -957,6 +958,21 @@ const App = {
                 this.refresh();
             }
         });
+
+        const formatContainer = document.getElementById('formatFilters');
+        if (formatContainer) {
+            formatContainer.addEventListener('click', (e) => {
+                const chip = e.target.closest('.chip');
+                if (!chip) return;
+
+                this.state.formatFilter = chip.dataset.format;
+                this.state.currentPage = 1;
+                
+                this.renderFormatFilters();
+                this.renderYearFilters();
+                this.render();
+            });
+        }
     },
 
     handleAnonymousLogin() {
@@ -1125,6 +1141,7 @@ const App = {
         }
 
         this.renderYearFilters();
+        this.renderFormatFilters()
         this.render();
     },
 
@@ -1221,6 +1238,7 @@ const App = {
 
         this.renderYearFilters();
         this.render();
+        this.renderFormatFilters()
     },
 
     getFilteredBooks() {
@@ -1242,6 +1260,10 @@ const App = {
             filtered = filtered.filter(book => {
                 return book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter));
             });
+        }
+
+        if (this.state.formatFilter !== 'all') {
+            filtered = filtered.filter(book => book.tags && book.tags.includes(this.state.formatFilter));
         }
 
         if (this.state.yearFilter !== 'all') {
@@ -1302,6 +1324,33 @@ const App = {
         }
 
         this.dom.yearContainer.innerHTML = html;
+    },
+
+    renderFormatFilters() {
+        const container = document.getElementById('formatFilters');
+        if (!container) return;
+
+        if (this.state.filter === 'owned') {
+            container.style.display = 'flex';
+            
+            const formats = [
+                { id: 'all', label: 'Todos os Formatos' },
+                { id: 'physical', label: 'Físicos' },
+                { id: 'ebook', label: 'E-books' },
+                { id: 'audiobook', label: 'Audiobooks' }
+            ];
+
+            let html = '';
+            formats.forEach(format => {
+                html += `<button class="chip ${this.state.formatFilter === format.id ? 'active' : ''}" data-format="${format.id}">${format.label}</button>`;
+            });
+            container.innerHTML = html;
+
+        } else {
+            container.style.display = 'none';
+            this.state.formatFilter = 'all'; 
+            container.innerHTML = '';
+        }
     },
 
     handleEscKey(e) {
