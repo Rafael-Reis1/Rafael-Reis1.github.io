@@ -1,15 +1,16 @@
 :root {
     --body-color: #06071A;
-    --base-color: rgba(255, 255, 255, .05);
-    --base-color-hover: rgba(255, 255, 255, .1);
+    --base-color: #131426;
+    --base-color-hover: #1f2031;
     --accent-color: #f2511b;
     --accent-color-hover: #ee6233;
     --success-color: #22c55e;
     --text-color: #f7f7f7;
-    --border-color: rgba(255, 255, 255, .1);
+    --border-color: rgba(255, 255, 255, 0.07);
     --font-body: 'Inter', sans-serif;
-    --card-bg: rgba(26, 27, 39, 0.7);
-    --glass-bg: rgba(255, 255, 255, 0.05);
+    --card-bg: #131426;
+    --card-bg-hover: --base-color-hover: #1f2031;
+    --glass-bg: #131426;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -22,6 +23,8 @@
 html,
 body {
     background-color: var(--body-color);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+    background-size: 28px 28px;
     color: var(--text-color);
     font-family: var(--font-body);
     min-height: 100vh;
@@ -759,12 +762,6 @@ body.modal-open {
         text-overflow: ellipsis;
     }
 
-    /* "Baixar Imagem" (último) em destaque ou linha inteira se preferir */
-    .modal-footer button:last-child {
-        /* grid-column: 1 / -1;  <-- Opcional: faz o botão de baixar ocupar a largura total */
-    }
-
-    /* Ajuste para telas muito pequenas (ex: iPhone SE) */
     @media (max-width: 380px) {
         .tools-grid {
             grid-template-columns: 1fr;
@@ -772,7 +769,6 @@ body.modal-open {
 
         .modal-footer {
             grid-template-columns: 1fr;
-            /* 1 coluna em telas minusculas */
         }
     }
 }

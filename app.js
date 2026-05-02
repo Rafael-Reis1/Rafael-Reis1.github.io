@@ -14,18 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function restoreScrollPosition() {
-    const savedScroll = sessionStorage.getItem('scrollPosition');
-    if (savedScroll) {
-        setTimeout(() => {
-            window.scrollTo({
-                top: parseInt(savedScroll, 10),
-                behavior: 'smooth'
-            });
-        }, 150); 
-    }
-}
-
 function setupTabs() {
     const tabs = {
         'btnSobre': 'sobre',
@@ -72,7 +60,10 @@ function setupTabs() {
 
         setTimeout(() => {
             targetSection.style.opacity = 1;
-        }, 100);
+            targetSection.querySelectorAll('.fade-in:not(.visible)').forEach(el => {
+                el.classList.add('visible');
+            });
+        }, 150);
 
         sessionStorage.setItem('activeTab', btnId);
     };
@@ -99,10 +90,6 @@ function setupTabs() {
 
             resizeObserver.observe(targetSection);
             mainInfo.style.height = targetSection.offsetHeight + 'px';
-            
-            if (savedTab !== 'btnPortfolio') {
-                restoreScrollPosition();
-            }
         }
     } else {
         const initialSection = document.getElementById('sobre');
@@ -115,6 +102,9 @@ function setupTabs() {
     document.getElementById('github')?.addEventListener('click', () => window.open('https://github.com/Rafael-Reis1', 'github'));
     document.getElementById('LinkedIn')?.addEventListener('click', () => window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn'));
     document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
+
+    document.getElementById('btnVerPortfolio')?.addEventListener('click', () => activateTab('btnPortfolio'));
+    document.getElementById('btnContato')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Contato via Portfólio');
 }
 
 function setupDragScroll() {
@@ -166,16 +156,13 @@ function setupModal() {
                 if (show) {
                     modal.style.display = 'block';
                     modal.classList.add('show');
-                    btnDownload.style.display = 'none';
                     overlay.style.display = 'block';
                     overlay.classList.add('show');
                     closeBtn.style.display = 'flex';
                     closeBtn.classList.add('show');
                     downloadBtnModal.classList.add('show');
                 } else {
-                    modal.style.display = 'none';
                     modal.classList.remove('show');
-                    btnDownload.style.display = 'flex';
                     overlay.style.display = 'none';
                     overlay.classList.remove('show');
                     closeBtn.style.display = 'none';
@@ -185,10 +172,8 @@ function setupModal() {
             });
         } else {
             if (show) {
-                modal.style.display = 'block';
                 modal.offsetHeight;
                 modal.classList.add('show');
-                btnDownload.style.display = 'none';
                 overlay.style.display = 'block';
                 setTimeout(() => overlay.classList.add('show'), 10);
                 closeBtn.style.display = 'flex';
@@ -202,7 +187,6 @@ function setupModal() {
 
                 setTimeout(() => {
                     modal.style.display = 'none';
-                    btnDownload.style.display = 'flex';
                     overlay.style.display = 'none';
                     closeBtn.style.display = 'none';
                 }, 300);
@@ -358,19 +342,24 @@ function fetchAndDisplayRepos() {
 
         updateData(newData) {
             this.data = newData;
-            this.filter(currentFilter, currentFilter === '');
+            this.filter(currentFilter, currentFilter === '', false);
         }
 
-        filter(searchTerm, animate = false) {
+        filter(searchTerm, animate = false, resetarPagina = true) {
             this.filteredData = this.data.filter(item => {
                 const term = searchTerm.toLowerCase();
                 return item.name.toLowerCase().includes(term) ||
                     (item.description && item.description.toLowerCase().includes(term));
             });
             
-            this.currentPage = 1;
-            sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
+            if (resetarPagina) {
+                this.currentPage = 1;
+                sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
+            }
             
+            const repoCount = document.getElementById('repo-count');
+            if(repoCount) repoCount.textContent = this.filteredData.length;
+
             this.render(animate);
         }
 
@@ -379,7 +368,7 @@ function fetchAndDisplayRepos() {
             this.paginationContainer.innerHTML = '';
 
             if (this.filteredData.length === 0) {
-                this.container.innerHTML = '<p style="text-align: center; color: var(--text-color); width: 100%; padding: 20px;">Nenhum resultado encontrado.</p>';
+                this.container.innerHTML = '<p style="text-align: center; color: var(--text-color); width: 100%; padding: 20px;">Nenhum repositório encontrado.</p>';
                 return;
             }
 
@@ -391,93 +380,92 @@ function fetchAndDisplayRepos() {
 
             const startIndex = (this.currentPage - 1) * this.itemsPerPage;
             const endIndex = startIndex + this.itemsPerPage;
-            const pageItems = this.filteredData.slice(startIndex, endIndex);
+            const pageData = this.filteredData.slice(startIndex, endIndex);
 
-            pageItems.forEach(item => {
-                const card = this.renderItemCallback(item);
+            pageData.forEach((item, index) => {
+                const card = this.renderItemCallback(item, index, this.currentPage);
                 if (!animate) {
                     card.classList.remove('fade-in');
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
                 }
                 this.container.appendChild(card);
             });
 
-            this.renderPagination();
-            if (animate) {
-                setupAnimations();
-            }
+            this.renderPagination(totalPages);
+            if (animate) setupAnimations();
         }
 
-        renderPagination() {
-            const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+        renderPagination(totalPages) {
             if (totalPages <= 1) return;
 
-            const createBtn = (text, onClick, disabled = false, active = false) => {
+            const createBtn = (text, page, disabled = false, active = false) => {
                 const btn = document.createElement('button');
-                btn.innerText = text;
-                btn.className = `pagination-btn ${active ? 'active' : ''}`;
+                btn.className = `page-btn ${active ? 'active' : ''}`;
+                btn.innerHTML = text;
                 btn.disabled = disabled;
-                btn.addEventListener('click', onClick);
+                if (!disabled && !active) {
+                    btn.addEventListener('click', () => {
+                        this.currentPage = page;
+                        sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
+                        this.render();
+                        
+                        const sectionHeader = document.querySelector('.bento-header');
+                        if (sectionHeader) {
+                            const yOffset = -20; 
+                            const y = sectionHeader.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                            window.scrollTo({top: y, behavior: 'smooth'});
+                        }
+                    });
+                }
                 return btn;
             };
 
-            this.paginationContainer.appendChild(createBtn('<', () => {
-                if (this.currentPage > 1) {
-                    this.currentPage--;
-                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
-                    this.render();
+            this.paginationContainer.appendChild(createBtn('&lt;', this.currentPage - 1, this.currentPage === 1));
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (
+                    i === 1 || 
+                    i === totalPages || 
+                    (i >= this.currentPage - 1 && i <= this.currentPage + 1)
+                ) {
+                    this.paginationContainer.appendChild(createBtn(i, i, false, i === this.currentPage));
+                } else if (
+                    i === this.currentPage - 2 || 
+                    i === this.currentPage + 2
+                ) {
+                    const dots = document.createElement('span');
+                    dots.className = 'page-dots';
+                    dots.innerText = '...';
+                    this.paginationContainer.appendChild(dots);
                 }
-            }, this.currentPage === 1));
-
-            let startPage = Math.max(1, this.currentPage - 2);
-            let endPage = Math.min(totalPages, startPage + 4);
-
-            if (endPage - startPage < 4) {
-                startPage = Math.max(1, endPage - 4);
             }
 
-            for (let i = startPage; i <= endPage; i++) {
-                this.paginationContainer.appendChild(createBtn(i, () => {
-                    this.currentPage = i;
-                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
-                    this.render();
-                }, false, i === this.currentPage));
-            }
-
-            this.paginationContainer.appendChild(createBtn('>', () => {
-                if (this.currentPage < totalPages) {
-                    this.currentPage++;
-                    sessionStorage.setItem(`pagina_${this.containerId}`, this.currentPage);
-                    this.render();
-                }
-            }, this.currentPage === totalPages));
+            this.paginationContainer.appendChild(createBtn('&gt;', this.currentPage + 1, this.currentPage === totalPages));
         }
     }
 
-    const featuredList = new PaginatedList(
-        extraRepos,
-        6,
-        'destaquesContainer',
-        'paginationDestaques',
-        createFeaturedCard
-    );
-    featuredList.render();
+    const bentoList = new PaginatedList([], 11, 'bentoGrid', 'paginationRepos', createBentoCard);
 
-    const reposList = new PaginatedList(
-        [],
-        6,
-        'repos',
-        'paginationRepos',
-        createRepoCard
-    );
+    if (searchInput) {
+        let timeout = null;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                currentFilter = e.target.value;
+                bentoList.filter(currentFilter, true, true); 
+            }, 300);
+        });
 
-    searchInput.addEventListener('input', (e) => {
-        currentFilter = e.target.value;
-        featuredList.filter(currentFilter, false);
-        reposList.filter(currentFilter, false);
-    });
+        const storedFilter = sessionStorage.getItem('portfolioFilter') || '';
+        if (storedFilter) {
+            searchInput.value = storedFilter;
+            currentFilter = storedFilter;
+        }
+    }
 
     const CACHE_KEY = 'github_repos_cache';
-    const CACHE_DURATION = 5 * 60 * 1000;
+    const CACHE_DURATION = 10 * 60 * 1000;
 
     const cached = localStorage.getItem(CACHE_KEY);
     const now = new Date().getTime();
@@ -511,68 +499,54 @@ function fetchAndDisplayRepos() {
             })
             .catch(err => {
                 console.error('Error fetching repos:', err);
-                if (reposTitle) reposTitle.style.display = 'none';
+                bentoList.updateData([...extraRepos]);
             });
     }
 
     function handleReposData(data) {
         const extraRepoNames = extraRepos.map(r => r.name.toLowerCase());
         allFetchedRepos = data.filter(repo => !extraRepoNames.includes(repo.name.toLowerCase()));
-
-        if (allFetchedRepos.length > 0) {
-            if (reposTitle) reposTitle.style.display = 'block';
-            reposList.updateData(allFetchedRepos);
-        }
         
-        if (sessionStorage.getItem('activeTab') === 'btnPortfolio') {
-            restoreScrollPosition();
+        allFetchedRepos.forEach(repo => repo.isGithub = true);
+
+        if (bentoList) {
+            bentoList.updateData([...extraRepos, ...allFetchedRepos]);
         }
     }
 }
 
-function createFeaturedCard(repo) {
+function createBentoCard(repo, index, currentPage = 1) {
+    const isHero = (index === 0 && currentPage === 1);
     const card = document.createElement('a');
     card.href = repo.html_url;
+    if (repo.html_url.startsWith('http')) { card.target = '_blank'; card.rel = 'noopener'; }
+    card.className = `bento-card fade-in ${isHero ? 'bento-hero' : 'bento-feat'}`;
 
-    card.className = 'destaqueCard fade-in';
+    const lang = repo.language || 'Web';
+    const langAccents = {
+        'JavaScript': '#F7DF1E', 'TypeScript': '#3178C6',
+        'HTML': '#E34C26', 'CSS': '#2449E4',
+        'C#': '#68217A', 'Java': '#ED8B00',
+    };
+    const accent = langAccents[lang] || '#f2511b';
+    const imgSrc = repo.image || 'imgs/JavaScript.svg';
 
-    const imgSrc = repo.image || 'imgs/GitHub.svg';
-
-    card.innerHTML = `
-        <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.name}" style="height: 60%; width: auto;">
-        </div>
-        <div class="destaqueInfo">
-            <h3>${repo.name}</h3>
-            <p>${repo.description || 'Sem descrição'}</p>
-        </div>
-    `;
-    return card;
-}
-
-function createRepoCard(repo) {
-    const card = document.createElement('a');
-    card.href = repo.html_url;
-    card.target = "_blank";
-    card.className = 'destaqueCard fade-in';
-
-    let imgSrc = 'imgs/GitHub.svg';
-    if (repo.language) {
-        const lang = repo.language.toLowerCase();
-        if (lang.includes('html')) imgSrc = 'imgs/Html 5.svg';
-        else if (lang.includes('css')) imgSrc = 'imgs/CSS3.svg';
-        else if (lang.includes('javascript')) imgSrc = 'imgs/JavaScript.svg';
-        else if (lang.includes('c#')) imgSrc = 'imgs/C Sharp Logo.svg';
-        else if (lang.includes('typescript')) imgSrc = 'imgs/JavaScript.svg';
-    }
+    const isInternal = !repo.isGithub;
+    const badgeHtml = isInternal 
+        ? `<div class="bento-badge internal">Aplicação Web</div>`
+        : `<div class="bento-badge github"><img src="imgs/GitHub.svg" alt="GitHub">GitHub Repo</div>`;
 
     card.innerHTML = `
-        <div class="destaqueImg" style="background: #2a2b3d; display: flex; align-items: center; justify-content: center; height: 200px;">
-            <img src="${imgSrc}" alt="${repo.name}" style="height: 60%; width: auto;">
+        <div class="bento-card-header">
+            ${badgeHtml}
+            ${!isInternal ? '<span class="bento-card-arrow">↗</span>' : ''}
         </div>
-        <div class="destaqueInfo">
-            <h3>${repo.name}</h3>
-            <p>${repo.description || 'Sem descrição'}</p>
+        <div class="bento-card-content">
+            <h3 class="bento-card-title">${repo.name}</h3>
+            <p class="bento-card-desc">${repo.description || 'Sem descrição'}</p>
+            <div class="bento-card-bottom">
+                <span class="bento-card-lang" style="color:${accent}">${lang}</span>
+            </div>
         </div>
     `;
     return card;

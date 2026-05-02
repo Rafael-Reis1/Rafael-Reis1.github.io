@@ -1,10 +1,10 @@
 :root {
-    --body-bg: #0f0c29;
+    --body-bg: #06071A;
     --body-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
 
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-bg-hover: rgba(255, 255, 255, 0.08);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-bg: #131426;
+    --glass-bg-hover: #26284c;
+    --glass-border: rgba(255, 255, 255, 0.07);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     --glass-blur: blur(12px);
 
@@ -88,12 +88,13 @@ html {
 }
 
 body {
-    background: var(--body-gradient);
     background-attachment: fixed;
     color: var(--text-primary);
     min-height: 100dvh;
     font-family: var(--font-body);
     line-height: 1.6;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+    background-size: 28px 28px;
 }
 
 .app-container {
@@ -155,7 +156,6 @@ body {
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 10px;
-    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
     text-decoration: none;
@@ -201,7 +201,7 @@ body {
     top: calc(100% + 0.5rem);
     right: 0;
     width: 13.75rem;
-    background: linear-gradient(135deg, rgba(26, 27, 46, 0.95), rgba(37, 38, 64, 0.95));
+    background-color: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 0.5rem;
@@ -289,7 +289,7 @@ body {
 .sidebar {
     width: var(--sidebar-width);
     border-right: 1px solid var(--glass-border);
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(15, 12, 41, 0.9);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1015,7 +1015,7 @@ body {
 }
 
 .modal-content {
-    background: linear-gradient(135deg, #1a1b2e, #252640);
+    background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     width: 95%;

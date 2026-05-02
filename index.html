@@ -11,39 +11,46 @@
     <meta name="author" content="Rafael Reis da Silveira">
     <meta property="og:title" content="Rafael Reis - Desenvolvedor Web Full-Stack">
     <meta property="og:description" content="Confira meu portfólio e projetos de desenvolvimento web.">
-    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=1704261503">
+    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=0205260747">
     <meta property="og:url" content="https://rafael-reis1.github.io/">
     <meta property="og:type" content="website">
 
     <link rel="stylesheet" href="assets/libs_comuns/fonts.css">
-    <link rel="stylesheet" href="style.css?v=1704261503">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1704261503">
-    <script src="app.js?v=1704261503" defer></script>
+    <link rel="stylesheet" href="style.css?v=0205260747">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=0205260747">
+    <script src="app.js?v=0205260747" defer></script>
     <title>Rafael Reis - Desenvolvedor Web</title>
 </head>
 
 <body>
     <div class="main">
+        <div class="layoutWrapper">
+        <div class="infoCardWrapper">
         <aside class="infoCard">
-            <div class="name">
-                <h1>Rafael Reis da Silveira</h1>
+            <div class="profilePhotoWrapper">
+                <div class="profilePhoto">
+                    <img src="https://github.com/Rafael-Reis1.png" alt="Rafael Reis da Silveira">
+                </div>
+                <!-- <span class="statusBadge">● Disponível</span> -->
             </div>
-            <hr>
-            <div class="contacts">
-                <div class="contact" id="mail">
-                    <img src="imgs/Email.svg" alt="Mail">
-                    <p>reisr5941@gmail.com</p>
-                </div>
-                <div class="contact smallLeftPadding" id="github">
-                    <img src="imgs/GitHubOutLine.svg" alt="Github">
-                    <p>Rafael-Reis1</p>
-                </div>
-                <div class="contact smallLeftPadding" id="LinkedIn">
+            <div class="cardContent">
+                <h1>Rafael Reis da Silveira</h1>
+                <p class="profileRole">Full-Stack Developer</p>
+            </div>
+            <div class="socialLinks">
+                <button class="socialBtn" id="mail" aria-label="Email: reisr5941@gmail.com" title="reisr5941@gmail.com">
+                    <img src="imgs/Email.svg" alt="Email">
+                </button>
+                <button class="socialBtn" id="github" aria-label="GitHub: Rafael-Reis1" title="GitHub: Rafael-Reis1">
+                    <img src="imgs/GitHubOutLine.svg" alt="GitHub">
+                </button>
+                <button class="socialBtn" id="LinkedIn" aria-label="LinkedIn: Rafael Reis" title="LinkedIn: Rafael Reis">
                     <img src="imgs/LinkedIn.svg" alt="LinkedIn">
-                    <p>Rafael Reis</p>
-                </div>
+                </button>
             </div>
         </aside>
+        </div>
+
         <div class="mainInfo">
             <div class="navBar">
                 <button id="btnSobre" class="navBarButtuns btnAccentColor">Sobre</button>
@@ -56,16 +63,37 @@
                 </div>
                 <div id="informacaoSobre">
                     <p>
-                        Programador com interesse profundo em como os sistemas funcionam, da infraestrutura ao código.
-                        Utilizo tecnologias como Node.js, SQL e frameworks modernos para construir aplicações que sejam
-                        estáveis e fáceis de manter.
-                        Gosto de explorar novas ferramentas — de virtualização a modelos de IA locais — e aplicar esse
-                        conhecimento técnico para criar softwares mais eficientes e bem estruturados.
+                        Desenvolvedor <strong>Full-Stack</strong> com foco em <strong>performance e arquitetura limpa</strong>.
+                        Trabalho com Node.js, JavaScript vanilla, SQL e ferramentas como Totvs Fluig e NestJS
+                        para construir sistemas que resolvem problemas reais — do protótipo ao deploy em produção.
                     </p>
+                    <p class="sobreParagrafo2">
+                        Atualmente como <strong>Programador de Sistemas na Univale</strong>, desenvolvendo portais web,
+                        automatizando processos e integrando com ERPs.
+                    </p>
+                </div>
+                <div class="quickStats">
+                    <div class="statItem">
+                        <span class="statNumber">2+</span>
+                        <span class="statLabel">Anos de exp.</span>
+                    </div>
+                    <div class="statItem">
+                        <span class="statNumber">10+</span>
+                        <span class="statLabel">Projetos</span>
+                    </div>
+                    <div class="statItem">
+                        <span class="statNumber">11</span>
+                        <span class="statLabel">Tecnologias</span>
+                    </div>
+                </div>
+                <div class="ctaContainer">
+                    <button id="btnVerPortfolio" class="ctaBtn">Ver Portfólio →</button>
+                    <button id="btnContato" class="ctaBtnSecondary">Contato</button>
                 </div>
                 <br>
                 <hr>
                 <h3 id="habilidadesH3">Habilidades</h3>
+                <p class="scrollHint">← arraste para explorar →</p>
                 <div class="habilidadesContainer" id="habilidadesContainer">
                     <div class="habilidadesBox">
                         <img src="imgs/Html 5.svg" alt="Html">
@@ -114,104 +142,99 @@
                 </div>
             </div>
             <div class="infos" id="curriculo" style="display: none;">
-                <div class="title">
-                    <h2>Currículo</h2>
-                </div>
-                <div class="infosCurriculo">
-                    <h3 class="titulosCurriculo">
-                        <div class="icon-box">
-                            <img src="imgs/Open Book.svg" alt="Ícone de livro">
-                        </div>
-                        Educação
-                    </h3>
-                    <div class="detalhesCurriculo" id="detalhesCurriculoEducacao">
-                        <div class="cursos">
-                            <h4 class="pontosCurriculo">Eng. elétrica / Graduação</h4>
-                            <p>Formação em projeto, desenvolvimento e manutenção de sistemas elétricos,
-                                abrangendo eletrônica, eletromagnetismo, sistemas de potência, controle
-                                e automação, e telecomunicações.</p>
-                            <p style="color: #f2511b; font-weight: bold;">02/2018 - 06/2021 (trancado)</p>
-                        </div>
-                        <div class="cursos">
-                            <h4 class="pontosCurriculo">Sistemas de informação / Graduação</h4>
-                            <p>Formação em desenvolvimento, implementação e gestão de sistemas
-                                computacionais, incluindo análise de sistemas, banco de dados,
-                                redes, segurança da informação e gestão de projetos de TI.</p>
-                            <p style="color: #f2511b; font-weight: bold;">02/2023 - atual</p>
-                        </div>
+                <div class="bento-header">
+                    <div class="title">
+                        <h2>Currículo</h2>
                     </div>
                 </div>
-                <div class="infosCurriculo">
-                    <h3 class="titulosCurriculo">
-                        <div class="icon-box">
-                            <img src="imgs/Open Book.svg" alt="Ícone de livro">
+
+                <div class="bento-resume-grid">
+                    <div class="bento-card fade-in">
+                        <div class="bento-card-header">
+                            <div class="bento-badge" style="background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.8);">
+                                <img src="imgs/Open Book.svg" alt="Livro"> Educação
+                            </div>
                         </div>
-                        Experiência
-                    </h3>
-                    <div class="detalhesCurriculo" id="detalhesCurriculoExperiencia">
-                        <div class="cursos">
-                            <h4 class="pontosCurriculo">Cafezinho / Estágio Dev. Mobile Android Java</h4>
-                            <p style="color: #f2511b; font-weight: bold;">04/2024 - 08/2024</p>
-                            <p>Desde o protótipo no Figma até a implementação no Android de forma nativa.</p>
-                        </div>
-                        <div class="cursos">
-                            <h4 class="pontosCurriculo">Univale / Estágio Sistemas de Informação</h4>
-                            <p style="color: #f2511b; font-weight: bold;">08/2024 - 03/2025</p>
-                            <ul>
-                                <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
-                                <li>Desenvolvimento na plataforma Totvs Fluig</li>
-                                <li>Suporte ao sistema ERP Totvs RM</li>
-                            </ul>
-                        </div>
-                        <div class="cursos">
-                            <h4 class="pontosCurriculo">Univale / Programador de sistemas de informática</h4>
-                            <p style="color: #f2511b; font-weight: bold;">03/2025 - atual</p>
-                            <ul>
-                                <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
-                                <li>Desenvolvimento na plataforma Totvs Fluig</li>
-                                <li>Suporte ao sistema ERP Totvs RM</li>
-                            </ul>
+                        <div class="bento-card-content">
+                            <div class="bento-timeline">
+                                <div class="timeline-item">
+                                    <span class="timeline-date">02/2023 - atual</span>
+                                    <h4 class="timeline-title">Sistemas de informação / Graduação</h4>
+                                    <p class="timeline-desc">Formação em desenvolvimento, implementação e gestão de sistemas computacionais, incluindo análise de sistemas, banco de dados, redes, segurança da informação e gestão de projetos de TI.</p>
+                                </div>
+                                <div class="timeline-item">
+                                    <span class="timeline-date">02/2018 - 06/2021 (trancado)</span>
+                                    <h4 class="timeline-title">Eng. elétrica / Graduação</h4>
+                                    <p class="timeline-desc">Formação em projeto, desenvolvimento e manutenção de sistemas elétricos, abrangendo eletrônica, eletromagnetismo, sistemas de potência, controle e automação, e telecomunicações.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div id="downloadCV">
-                    <button id="btnCurriculoDownload" class="btnDownload">
-                        <img src="imgs/Document.svg" alt="Curriculo">
-                        <p>Currículo</p>
-                    </button>
+
+                    <div class="bento-card fade-in">
+                        <div class="bento-card-header">
+                            <div class="bento-badge"  style="background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.8);">
+                                <img src="imgs/Document.svg" alt="Maleta"> Experiência
+                            </div>
+                        </div>
+                        <div class="bento-card-content">
+                            <div class="bento-timeline">
+                                <div class="timeline-item">
+                                    <span class="timeline-date">03/2025 - atual</span>
+                                    <h4 class="timeline-title">Univale / Programador de sistemas de informática</h4>
+                                    <ul class="timeline-list">
+                                        <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
+                                        <li>Desenvolvimento na plataforma Totvs Fluig</li>
+                                        <li>Suporte ao sistema ERP Totvs RM</li>
+                                    </ul>
+                                </div>
+                                <div class="timeline-item">
+                                    <span class="timeline-date">08/2024 - 03/2025</span>
+                                    <h4 class="timeline-title">Univale / Estágio Sistemas de Informação</h4>
+                                    <ul class="timeline-list">
+                                        <li>Desenvolvimento Web Full Stack (HTML, CSS, Javascript, Nodejs e NestJs)</li>
+                                        <li>Desenvolvimento na plataforma Totvs Fluig</li>
+                                        <li>Suporte ao sistema ERP Totvs RM</li>
+                                    </ul>
+                                </div>
+                                <div class="timeline-item">
+                                    <span class="timeline-date">04/2024 - 08/2024</span>
+                                    <h4 class="timeline-title">Cafezinho / Estágio Dev. Mobile Android Java</h4>
+                                    <p class="timeline-desc">Desde o protótipo no Figma até a implementação no Android de forma nativa.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bento-card bento-hero bento-hero-cv fade-in" id="downloadCVBento" style="display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;">
+                        <button id="btnCurriculoDownload" class="btnDownload" style="width: 100%; height: 100%; border-radius: 16px; background: transparent; padding: 2rem;">
+                            <img src="imgs/Document.svg" alt="Curriculo">
+                            <p style="font-size: 1.1rem;">Ver Currículo em PDF</p>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="infos" id="portfolio" style="display: none;">
-                <div class="title">
-                    <h2>Portfólio</h2>
-                </div>
-                <div class="detalhesGithub">
-                    <div>
-                        <a href="https://github.com/Rafael-Reis1" target="github">
-                            <img src="https://github-readme-activity-graph.vercel.app/graph?username=Rafael-Reis1&bg_color=1a1b27&color=6493e1&line=38bdae&point=38bdae&area=true&hide_border=true&hide_title=true&radius=10"
-                                alt="Gráfico de atividade do GitHub de Rafael-Reis1" class="github-graph">
-                        </a>
+                <div class="bento-header">
+                    <div class="title">
+                        <h2>Portfólio</h2>
+                    </div>
+                    <div class="search-container bento-search">
+                        <input type="text" id="searchInput" placeholder="Buscar projeto ou repositório..." class="search-input">
+                        <div class="search-icon">
+                            <img src="imgs/Search.svg" alt="Buscar">
+                        </div>
                     </div>
                 </div>
 
-                <div class="search-container">
-                    <input type="text" id="searchInput" placeholder="Buscar repositório..." class="search-input">
-                    <div class="search-icon">
-                        <img src="imgs/Search.svg" alt="Buscar">
-                    </div>
+                <div class="bento-grid" id="bentoGrid">
                 </div>
-
-                <div id="projetosDestaque" class="projetosDestaque">
-                    <h3 class="subtitleDest">Destaques</h3>
-                    <div class="destaquesContainer" id="destaquesContainer">
-                    </div>
-                    <div class="pagination-container" id="paginationDestaques"></div>
+                
+                <div class="pagination-wrapper">
+                    <div class="pagination-container" id="paginationRepos"></div>
                 </div>
-
-                <h3 class="subtitleReposi">Repositórios</h3>
-                <div id="repos"></div>
-                <div class="pagination-container" id="paginationRepos"></div>
             </div>
+        </div>
         </div>
     </div>
     <div id="curriculoLive" class="curriculoLive">
