@@ -1,8 +1,9 @@
 :root {
-    --body-bg: #0f0c29;
+    --body-bg: #06071A;
+    --base-color: #131426;
     --body-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.07);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     --glass-blur: blur(12px);
     --accent-color: #f2511b;
@@ -23,13 +24,15 @@
 }
 
 body {
-    background: var(--body-gradient);
+    background-color: var(--body-bg);
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+    background-size: 28px 28px;
     background-attachment: fixed;
     color: var(--text-primary);
     min-height: 100dvh;
     font-family: var(--font-body);
+    line-height: 1.6;
 }
-
 
 .container {
     display: flex;
@@ -508,7 +511,6 @@ progress {
     width: 260px;
     height: 100%;
     background: rgba(15, 12, 41, 0.95);
-    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-right: 1px solid var(--glass-border);
     display: flex;
@@ -687,7 +689,7 @@ progress {
     gap: 0.75rem;
     height: 44px;
     padding: 0 1rem;
-    background: var(--glass-bg);
+    background: var(--base-color);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
     color: var(--text-primary);
@@ -699,7 +701,7 @@ progress {
 }
 
 .btnVoltar:hover {
-    background: var(--glass-border);
+    background: var(--base-color-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

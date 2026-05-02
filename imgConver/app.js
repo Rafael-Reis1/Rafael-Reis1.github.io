@@ -587,9 +587,8 @@ function buildCropControls(container) {
         resizeHandle = null;
     };
 
-    // Touch support
     canvas.ontouchstart = (e) => {
-        if (e.touches.length > 1) return; // Ignore multi-touch
+        if (e.touches.length > 1) return;
         e.preventDefault();
         const touch = e.touches[0];
         const rect = canvas.getBoundingClientRect();
