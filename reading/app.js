@@ -401,6 +401,7 @@ const App = {
             btnOpenHistoryFromModal: document.getElementById('btnOpenHistoryFromModal'),
             historyBookId: document.getElementById('historyBookId'),
             historyTotalPages: document.getElementById('historyTotalPages'),
+            historyEntryId: document.getElementById('historyEntryId'),
             historyBookTitle: document.getElementById('historyBookTitle'),
 
             notesModal: document.getElementById('notesModal'),
@@ -408,6 +409,7 @@ const App = {
             notesForm: document.getElementById('notesForm'),
             notesList: document.getElementById('notesList'),
             notesBookId: document.getElementById('notesBookId'),
+            noteId: document.getElementById('noteId'),
 
             deleteModal: document.getElementById('deleteModal'),
             closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
@@ -2026,12 +2028,23 @@ const App = {
         modalTitle.textContent = `📝 Anotações de ${this.state.currentBookTitle}`;
         modalTitle.title = this.state.currentBookTitle;
         this.dom.notesForm.reset();
+        document.getElementById('noteId').value = '';
     },
 
-    showNotesFormView() {
+    showNotesFormView(note = null) {
         document.getElementById('notesListView').style.display = 'none';
         document.getElementById('notesFormView').style.display = 'block';
-        document.getElementById('notesModalTitle').textContent = `Nova Anotação (${this.state.currentBookTitle})`;
+        
+        if (note) {
+            document.getElementById('notesModalTitle').textContent = `Editar Anotação (${this.state.currentBookTitle})`;
+            document.getElementById('noteId').value = note.id;
+            document.getElementById('noteContent').value = note.content;
+            document.getElementById('noteLocation').value = note.location || '';
+        } else {
+            document.getElementById('notesModalTitle').textContent = `Nova Anotação (${this.state.currentBookTitle})`;
+            document.getElementById('noteId').value = '';
+            this.dom.notesForm.reset();
+        }
     },
 
     async openHistoryModal(bookId) {
@@ -2053,12 +2066,26 @@ const App = {
         document.getElementById('historyFormView').style.display = 'none';
         document.getElementById('historyModalTitle').textContent = `Histórico de ${this.state.currentBookTitle}`;
         this.dom.historyForm.reset();
+        document.getElementById('historyEntryId').value = '';
     },
 
-    showHistoryFormView() {
+    showHistoryFormView(entry = null) {
         document.getElementById('historyListView').style.display = 'none';
         document.getElementById('historyFormView').style.display = 'block';
-        document.getElementById('historyModalTitle').textContent = `Novo Registro (${this.state.currentBookTitle})`;
+        
+        if (entry) {
+            document.getElementById('historyModalTitle').textContent = `Editar Registro (${this.state.currentBookTitle})`;
+            document.getElementById('historyEntryId').value = entry.date;
+            document.getElementById('newCurrentPage').value = entry.page;
+            document.getElementById('isPercentage').checked = false;
+            document.getElementById('lblHistoryInput').textContent = 'Página Atual';
+        } else {
+            document.getElementById('historyModalTitle').textContent = `Novo Registro (${this.state.currentBookTitle})`;
+            document.getElementById('historyEntryId').value = '';
+            this.dom.historyForm.reset();
+            document.getElementById('isPercentage').checked = false;
+            document.getElementById('lblHistoryInput').textContent = 'Página Atual';
+        }
     },
 
     renderHistoryList(book) {
@@ -2093,6 +2120,12 @@ const App = {
                     </div>
                     <div class="history-actions">
                         <div class="action-buttons">
+                            <button type="button" class="action-btn edit" onclick="App.editHistoryItem('${book.id}', '${entry.date}')" title="Editar">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
                             <button type="button" class="action-btn delete" onclick="App.deleteHistoryItem('${book.id}', '${entry.date}')" title="Excluir">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -2121,15 +2154,7 @@ const App = {
 
         this.openDeleteModal('Tem certeza que deseja excluir esse registro?', () => {
             book.history = book.history.filter(h => h.date !== dateStr);
-
-            if (book.history.length > 0) {
-                const latest = book.history.filter(h => !h.type || h.type === 'progress' || h.type === 'finish').reduce((prev, current) => {
-                    return (new Date(prev.date) > new Date(current.date)) ? prev : current;
-                }, book.history[0]);
-                book.readPages = latest.type === 'finish' ? book.pages : (latest.page || 0);
-            } else {
-                book.readPages = 0;
-            }
+            this.recalculateBookProgress(book);
 
             rm.update(book.id, book);
             this.refresh();
@@ -2143,9 +2168,45 @@ const App = {
         });
     },
 
+    editHistoryItem(bookId, dateStr) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        const entry = book.history.find(h => h.date === dateStr);
+        if (entry) {
+            this.showHistoryFormView(entry);
+        }
+    },
+
+    recalculateBookProgress(book) {
+        if (!book.history || book.history.length === 0) {
+            book.readPages = 0;
+            return;
+        }
+
+        const validEntries = book.history.filter(h => !h.type || h.type === 'progress' || h.type === 'finish');
+        
+        if (validEntries.length > 0) {
+            const latest = validEntries.reduce((prev, current) => {
+                return (new Date(prev.date) > new Date(current.date)) ? prev : current;
+            }, validEntries[0]);
+            
+            book.readPages = latest.type === 'finish' ? book.pages : (latest.page || 0);
+            
+            if (latest.type === 'finish') {
+                book.status = 'read';
+            } else if (book.status === 'read' && latest.type !== 'finish') {
+                book.status = 'reading'; 
+            }
+        } else {
+            book.readPages = 0;
+        }
+    },
+
     async handleHistorySubmit(e) {
         e.preventDefault();
         const bookId = document.getElementById('historyBookId').value;
+        const entryId = document.getElementById('historyEntryId').value;
         const inputVal = document.getElementById('newCurrentPage').value;
         const isPercentage = document.getElementById('isPercentage').checked;
 
@@ -2155,11 +2216,6 @@ const App = {
         }
 
         let val = parseInt(inputVal);
-        if (val === 0) {
-            this.showMessage('Atenção', 'O valor não pode ser zero.', '⚠️');
-            return;
-        }
-
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
@@ -2168,19 +2224,38 @@ const App = {
             newPageCount = Math.round((val / 100) * book.pages);
         }
 
-        if (newPageCount === (book.readPages || 0)) {
-            this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
-            return;
-        }
+        if (newPageCount > book.pages) newPageCount = book.pages;
+        if (newPageCount < 0) newPageCount = 0;
 
-        await this.updateProgress(bookId, newPageCount);
+        if (entryId) {
+            const entryIndex = book.history.findIndex(h => h.date === entryId);
+            if (entryIndex !== -1) {
+                const entry = book.history[entryIndex];
+                entry.page = newPageCount;
+                
+                if (newPageCount === book.pages) {
+                    entry.type = 'finish';
+                    if (!book.readDate) {
+                        book.readDate = new Date().toISOString().split('T')[0];
+                    }
+                } else if (entry.type === 'finish') {
+                    entry.type = 'progress';
+                }
+
+                this.recalculateBookProgress(book);
+                await rm.update(book.id, book);
+                this.refresh();
+            }
+        } else {
+            if (newPageCount === (book.readPages || 0)) {
+                this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
+                return;
+            }
+            await this.updateProgress(bookId, newPageCount);
+        }
         
         this.renderHistoryList(book); 
-        
-        const percent = this.calculateProgress(book);
-        this.dom.historyProgressText.textContent = `${percent}%`;
-        this.dom.historyProgressBar.style.width = `${percent}%`;
-
+        this.updateModalProgressHeader(book);
         this.showHistoryListView();
     },
 
@@ -2659,22 +2734,35 @@ const App = {
         e.preventDefault();
         try {
             const bookId = document.getElementById('notesBookId').value;
+            const noteId = document.getElementById('noteId').value;
             const content = document.getElementById('noteContent').value;
             const location = document.getElementById('noteLocation').value;
 
             if (!content.trim()) return;
 
-            const newNote = {
-                id: Date.now().toString(),
-                content: content.trim(),
-                location: location.trim(),
-                createdAt: new Date().toISOString()
-            };
-
             const book = this.state.books.find(b => b.id === bookId);
             if (book) {
                 book.notes = book.notes || [];
-                book.notes.push(newNote);
+
+                if (noteId) {
+                    const noteIndex = book.notes.findIndex(n => n.id === noteId);
+                    if (noteIndex !== -1) {
+                        book.notes[noteIndex] = {
+                            ...book.notes[noteIndex],
+                            content: content.trim(),
+                            location: location.trim(),
+                            updatedAt: new Date().toISOString()
+                        };
+                    }
+                } else {
+                    const newNote = {
+                        id: Date.now().toString(),
+                        content: content.trim(),
+                        location: location.trim(),
+                        createdAt: new Date().toISOString()
+                    };
+                    book.notes.push(newNote);
+                }
 
                 await rm.update(bookId, { notes: book.notes });
                 this.showNotesListView();
@@ -2704,12 +2792,20 @@ const App = {
                             <span class="history-date">${new Date(note.createdAt).toLocaleDateString('pt-BR')} às ${new Date(note.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                             ${note.location ? `<span class="note-location-tag">${note.location}</span>` : ''}
                         </div>
-                        <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Excluir nota">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
+                        <div class="action-buttons">
+                            <button type="button" class="action-btn edit" onclick="App.editNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Editar nota">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Excluir nota">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="note-text">${note.content}</div>
                 </div>
@@ -2726,6 +2822,16 @@ const App = {
             rm.update(bookId, { notes: book.notes });
             this.renderNotesList(book.notes);
         });
+    },
+
+    editNoteItem(bookId, noteId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book || !book.notes) return;
+
+        const note = book.notes.find(n => n.id === noteId);
+        if (note) {
+            this.showNotesFormView(note);
+        }
     },
 };
 
