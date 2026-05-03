@@ -7,18 +7,18 @@
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
     <link rel="stylesheet" href="../assets/libs_comuns/fonts.css">
-    <link rel="stylesheet" href="style.css?v=0305260232">
+    <link rel="stylesheet" href="style.css?v=0305260235">
     <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css">
     <script src="../assets/libs_comuns/flatpickr/flatpickr.js"></script>
     <script src="../assets/libs_comuns/flatpickr/pt.js"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0305260232">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0305260235">
 
-    <link rel="manifest" href="manifest.json?v=0305260232">
+    <link rel="manifest" href="manifest.json?v=0305260235">
     <meta name="theme-color" content="#0f0c29">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=0305260232">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=0305260235">
     <meta name="mobile-web-app-capable" content="yes">
 
     <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js"></script>
@@ -30,7 +30,7 @@
             return false;
         };
     </script>
-    <script src="app.js?v=0305260232" defer></script>
+    <script src="app.js?v=0305260235" defer></script>
 </head>
 
 <body>
@@ -410,23 +410,21 @@
                 </div>
 
                 <div id="paginationControls" class="pagination-controls" style="display: none;">
-                    <div id="paginationControls" class="pagination-controls" style="display: none;">
-                        <button id="btnPrevPage" class="btn btn-secondary btn-sm" disabled>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="15 18 9 12 15 6"></polyline>
-                            </svg>
-                            Anterior
-                        </button>
-                        <span id="pageInfo" class="page-info">Página 1</span>
-                        <button id="btnNextPage" class="btn btn-secondary btn-sm">
-                            Próximo
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
-                        </button>
-                    </div>
+                    <button id="btnPrevPage" class="btn btn-secondary btn-sm" disabled>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Anterior
+                    </button>
+                    <span id="pageInfo" class="page-info">Página 1</span>
+                    <button id="btnNextPage" class="btn btn-secondary btn-sm">
+                        Próximo
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
                 </div>
             </section>
 
