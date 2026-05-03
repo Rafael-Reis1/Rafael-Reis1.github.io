@@ -1204,37 +1204,44 @@ const App = {
                 header.style.background = '';
                 header.style.borderBottom = '';
                 header.classList.remove('header-active-filter');
+                
+                const themeMeta = document.querySelector('meta[name="theme-color"]');
+                if (themeMeta) themeMeta.setAttribute('content', '#0f0c29');
+
             } else {
-                const color = colors[filter];
-                if (color) {
-                    const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
-                    let iconHtml = '';
-                    let labelText = labels[filter] || filter;
-
-                    if (sidebarItem) {
-                        const iconEl = sidebarItem.querySelector('.nav-icon');
-                        if (iconEl) iconHtml = iconEl.innerHTML;
-
-                        const labelEl = sidebarItem.querySelector('.nav-label');
-                        if (labelEl) labelText = labelEl.textContent;
-                    }
-
-                    header.style.background = color;
-                    header.style.borderBottom = 'none';
-                    header.classList.add('header-active-filter');
-
-                    h1.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="display: flex; align-items: center; justify-content: center;">${iconHtml}</div>
-                            <span>${labelText}</span>
-                        </div>
-                    `;
+                const color = colors[filter]; 
+                const themeMeta = document.querySelector('meta[name="theme-color"]');
+                if (themeMeta) {
+                    themeMeta.setAttribute('content', color || '#0f0c29');
                 }
+
+                const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
+                let iconHtml = '';
+                let labelText = labels[filter] || filter;
+
+                if (sidebarItem) {
+                    const iconEl = sidebarItem.querySelector('.nav-icon');
+                    if (iconEl) iconHtml = iconEl.innerHTML;
+
+                    const labelEl = sidebarItem.querySelector('.nav-label');
+                    if (labelEl) labelText = labelEl.textContent;
+                }
+
+                header.style.background = color;
+                header.style.borderBottom = 'none';
+                header.classList.add('header-active-filter');
+
+                h1.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: center;">${iconHtml}</div>
+                        <span>${labelText}</span>
+                    </div>
+                `;
             }
         }
 
         this.render();
-        this.renderFormatFilters()
+        this.renderFormatFilters();
     },
 
     getFilteredBooks() {
@@ -2169,8 +2176,11 @@ const App = {
 
         await this.updateProgress(bookId, newPageCount);
         
-        this.renderHistoryList(book);
-        this.updateModalProgressHeader(book);
+        this.renderHistoryList(book); 
+        
+        const percent = this.calculateProgress(book);
+        this.dom.historyProgressText.textContent = `${percent}%`;
+        this.dom.historyProgressBar.style.width = `${percent}%`;
 
         this.showHistoryListView();
     },

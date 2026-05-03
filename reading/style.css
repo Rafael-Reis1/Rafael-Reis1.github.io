@@ -2032,7 +2032,7 @@ input[type=number] {
     font-size: 0.75rem;
     color: var(--text-muted);
     font-family: var(--font-main);
-    width: 5.3125rem;
+    width: 9.375rem;
     opacity: 0.8;
 }
 
@@ -3838,7 +3838,7 @@ input[type=number] {
 }
 
 #notesListView .modal-body {
-    padding-bottom: 0;
+    padding-bottom: 0.75rem;
     padding-top: 0.75rem;
 }
 
