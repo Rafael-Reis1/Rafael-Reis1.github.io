@@ -66,17 +66,19 @@ html {
 body {
     background-attachment: fixed;
     color: var(--text-primary);
-    min-height: 100dvh;
+    height: 100dvh;
     font-family: var(--font-body);
     line-height: 1.6;
     background-image: radial-gradient(circle, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
     background-size: 28px 28px;
+    overflow: hidden;
 }
 
 .app-container {
-    min-height: 100dvh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .header {
@@ -244,6 +246,15 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    height: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+    min-height: 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.main-content::-webkit-scrollbar {
+    display: none;
 }
 
 .dashboard {
@@ -520,6 +531,7 @@ input[type=number] {
 
 .transactions-section {
     min-height: 200px;
+    overflow: clip;
 }
 
 .section-header {
@@ -1568,8 +1580,15 @@ input[type=number] {
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    padding-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(19, 20, 38, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--glass-border);
+    position: sticky;
+    bottom: -25px;
+    margin: 1.5rem -1.25rem -1.25rem -1.25rem;
+    z-index: 10;
 }
 
 .page-info {
@@ -2851,4 +2870,8 @@ input[type=number] {
 .transaction-item.income {
     background: rgba(34, 197, 94, 0.12) !important;
     border-left: 3px solid #22c55e !important;
+}
+
+.firebase-emulator-warning {
+    display: none !important;
 }

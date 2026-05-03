@@ -292,7 +292,7 @@ const App = {
         searchResults: [],
         sortBy: 'recent',
         currentPage: 1,
-        itemsPerPage: window.innerWidth > 768 ? 100 : 30,
+        itemsPerPage: window.innerWidth > 768 ? 200 : 30,
         searchQuery: ''
     },
 
@@ -1432,8 +1432,8 @@ const App = {
             const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
 
             card.innerHTML = `
-            <div class="book-cover-container skeleton ${isPlaceholder ? 'is-placeholder' : ''}">
-                <img src="${book.cover}" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
+            <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
+                <img src="${book.cover}" loading="lazy" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
                 
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${book.title}</div>
@@ -1690,7 +1690,7 @@ const App = {
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
                     <div class="api-result-cover-container ${!info.imageLinks ? 'is-placeholder' : ''}">
-                         <img src="${cover}" class="api-result-cover" alt="${title}" 
+                         <img src="${cover}" class="api-result-cover" loading="lazy" alt="${title}" 
                               style="${!info.imageLinks ? 'display:none' : ''}" 
                               onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
                          <div class="book-cover-placeholder ${!info.imageLinks ? 'visible' : ''}">
@@ -2485,7 +2485,7 @@ const App = {
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
-                             <img src="${cover}" class="api-result-cover" alt="${book.title}"
+                             <img src="${cover}" class="api-result-cover" loading="lazy" alt="${book.title}"
                                   style="${isPlaceholder ? 'display:none' : ''}"
                                   onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
                              <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
