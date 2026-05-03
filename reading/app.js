@@ -287,7 +287,6 @@ const StorageService = {
 const App = {
     state: {
         filter: 'all',
-        yearFilter: 'all',
         formatFilter: 'all',
         books: [],
         searchResults: [],
@@ -365,7 +364,6 @@ const App = {
             totalPagesRead: document.getElementById('total-pages-read'),
             resultsCount: document.getElementById('resultsCount'),
             currentSectionLabel: document.getElementById('currentSectionLabel'),
-            yearContainer: document.querySelector('.year-filters'),
 
             addBtn: document.getElementById('btnAddBook'),
             modal: document.getElementById('bookModal'),
@@ -373,6 +371,8 @@ const App = {
             cancelModalBtn: document.getElementById('cancelBook'),
             bookForm: document.getElementById('bookForm'),
             groupReadDate: document.getElementById('groupReadDate'),
+            rowReadFormat: document.getElementById('rowReadFormat'),
+            groupReadFormat: document.getElementById('groupReadFormat'),
 
             statusTrigger: document.getElementById('statusTrigger'),
             statusOptions: document.getElementById('statusOptions'),
@@ -496,15 +496,7 @@ const App = {
 
 
 
-        this.dom.yearContainer.addEventListener('click', (e) => {
-            const chip = e.target.closest('.chip');
-            if (!chip) return;
 
-            this.dom.yearContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            this.state.yearFilter = chip.dataset.year;
-            this.render();
-        });
 
         this.dom.addBtn.addEventListener('click', () => {
             this.dom.bookForm.reset();
@@ -522,6 +514,11 @@ const App = {
 
             if (this.dom.groupReadDate) this.dom.groupReadDate.style.display = 'none';
             if (this.datePicker) this.datePicker.clear();
+
+            if (this.dom.rowReadFormat) this.dom.rowReadFormat.style.display = 'none';
+            if (this.dom.groupReadFormat) {
+                document.querySelectorAll('input[name="readFormat"]').forEach(cb => cb.checked = false);
+            }
 
             const groupRating = document.getElementById('groupRating');
             if (groupRating) groupRating.style.display = 'none';
@@ -592,8 +589,14 @@ const App = {
                 }
 
                 const groupRating = document.getElementById('groupRating');
+                const rowReadFormat = document.getElementById('rowReadFormat');
+                const isReadStatus = ['read', 'reading', 're-reading', 'rereading'].includes(value);
+
                 if (groupRating) {
                     groupRating.style.display = (value === 'read') ? '' : 'none';
+                }
+                if (rowReadFormat) {
+                    rowReadFormat.style.display = isReadStatus ? '' : 'none';
                 }
 
                 this.dom.triggerText.textContent = label;
@@ -966,7 +969,6 @@ const App = {
                 this.state.currentPage = 1;
                 
                 this.renderFormatFilters();
-                this.renderYearFilters();
                 this.render();
             });
         }
@@ -1137,7 +1139,6 @@ const App = {
             this.dom.totalPagesRead.textContent = totalPagesRead.toLocaleString('pt-BR');
         }
 
-        this.renderYearFilters();
         this.renderFormatFilters();
 
         const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
@@ -1154,7 +1155,6 @@ const App = {
     setFilter(filter) {
         this.state.filter = filter;
         this.state.currentPage = 1;
-        this.state.yearFilter = 'all';
 
         const labels = {
             'all': '📚 Minha Biblioteca',
@@ -1232,7 +1232,6 @@ const App = {
             }
         }
 
-        this.renderYearFilters();
         this.render();
         this.renderFormatFilters()
     },
@@ -1259,89 +1258,158 @@ const App = {
         }
 
         if (this.state.formatFilter !== 'all') {
-            filtered = filtered.filter(book => book.tags && book.tags.includes(this.state.formatFilter));
-        }
+            const f = this.state.formatFilter;
+            filtered = filtered.filter(book => {
+                if (['physical', 'ebook', 'audiobook'].includes(f)) {
+                    if (['read', 'reading', 're-reading', 'rereading'].includes(this.state.filter)) {
+                        if (book.readFormat) {
+                            const readFormats = Array.isArray(book.readFormat) ? book.readFormat : [book.readFormat];
+                            const validReadFormats = readFormats.filter(fmt => fmt);
+                            if (validReadFormats.length > 0) {
+                                return validReadFormats.includes(f);
+                            }
+                        }
+                    }
+                    return book.tags && book.tags.includes(f);
+                }
 
-        if (this.state.yearFilter !== 'all') {
-            if (this.state.filter === 'target') {
-                filtered = filtered.filter(book => book.goalYear && book.goalYear.toString() === this.state.yearFilter);
-            } else {
-                filtered = filtered.filter(book => book.year.toString() === this.state.yearFilter);
-            }
+                if (['read', 'reading', 'want-to-read', 're-reading', 'abandoned'].includes(f)) {
+                    return book.status === f;
+                }
+                
+                if (['owned', 'favorite', 'desired'].includes(f)) {
+                    return book.tags && book.tags.includes(f);
+                }
+
+                if (f === '5-stars') return book.rating === 5;
+                if (f === '4-stars') return book.rating >= 4;
+
+                if (['started', 'halfway', 'final-stretch', 'early', 'late'].includes(f)) {
+                    const prog = this.calculateProgress(book);
+                    if (f === 'started') return prog > 0 && prog < 25;
+                    if (f === 'halfway') return prog >= 25 && prog <= 75;
+                    if (f === 'final-stretch') return prog > 75 && prog < 100;
+                    if (f === 'early') return prog < 20;
+                    if (f === 'late') return prog > 50;
+                    return false;
+                }
+
+                if (!isNaN(f) && f.length === 4) {
+                    return book.goalYear && book.goalYear.toString() === f;
+                }
+                if (f === 'completed') return book.status === 'read';
+                if (f === 'pending') return book.status !== 'read';
+
+                if (f === 'short') return book.pages > 0 && book.pages < 200;
+                if (f === 'long') return book.pages > 500;
+
+                return true;
+            });
         }
 
         return filtered;
-    },
-
-    renderYearFilters() {
-        if (!this.dom.yearContainer) return;
-
-        let html = '';
-
-        if (this.state.filter === 'target') {
-            const years = [...new Set(this.state.books
-                .filter(book => book.goalYear && book.tags && book.tags.includes('target'))
-                .map(book => book.goalYear)
-            )].sort((a, b) => b - a);
-
-            if (years.length > 0) {
-                if (this.state.yearFilter === 'all' || !years.includes(parseInt(this.state.yearFilter))) {
-                    this.state.yearFilter = years[0].toString();
-                }
-
-                years.forEach(year => {
-                    html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
-                });
-            } else {
-                html += `<button class="chip active" disabled>Sem metas</button>`;
-                this.state.yearFilter = 'none';
-            }
-
-        } else {
-            let relevantBooks = this.state.books;
-            if (this.state.filter !== 'all') {
-                relevantBooks = relevantBooks.filter(book => {
-                    return book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter));
-                });
-            }
-
-            const years = [...new Set(relevantBooks.map(book => book.year))].sort((a, b) => b - a);
-
-            if (years.length > 0) {
-                html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
-                years.forEach(year => {
-                    html += `<button class="chip ${this.state.yearFilter === year.toString() ? 'active' : ''}" data-year="${year}">${year}</button>`;
-                });
-            } else if (relevantBooks.length === 0) {
-                html += `<button class="chip active" disabled>Sem livros</button>`;
-            } else {
-                html += `<button class="chip ${this.state.yearFilter === 'all' ? 'active' : ''}" data-year="all">Todos</button>`;
-            }
-        }
-
-        this.dom.yearContainer.innerHTML = html;
     },
 
     renderFormatFilters() {
         const container = document.getElementById('formatFilters');
         if (!container) return;
 
-        if (['owned', 'favorite', 'read'].includes(this.state.filter)) {
+        let formats = [];
+
+        switch(this.state.filter) {
+            case 'read':
+                formats = [
+                    { id: 'all', label: 'Todos os Formatos' },
+                    { id: 'physical', label: 'Físicos' },
+                    { id: 'ebook', label: 'E-books' },
+                    { id: 'audiobook', label: 'Audiobooks' },
+                    { id: '5-stars', label: 'Favoritos (5★)' },
+                    { id: '4-stars', label: 'Recomendados (4★+)' }
+                ];
+                break;
+            case 'reading':
+            case 're-reading':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'started', label: 'Iniciado (<25%)' },
+                    { id: 'halfway', label: 'Na Metade (25-75%)' },
+                    { id: 'final-stretch', label: 'Reta Final (>75%)' }
+                ];
+                break;
+            case 'want-to-read':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'owned', label: 'Tenho' },
+                    { id: 'desired', label: 'Desejado' },
+                    { id: 'short', label: 'Curtos (<200p)' },
+                    { id: 'long', label: 'Tijolaços (>500p)' }
+                ];
+                break;
+            case 'favorite':
+            case 'owned':
+            case 'physical':
+            case 'ebook':
+            case 'audiobook':
+            case 'borrowed':
+            case 'lent':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'read', label: 'Lido' },
+                    { id: 'reading', label: 'Lendo' },
+                    { id: 'want-to-read', label: 'Quero ler' }
+                ];
+                break;
+            case 'abandoned':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'early', label: 'Início (<20%)' },
+                    { id: 'late', label: 'Quase lá (>50%)' },
+                    { id: 'physical', label: 'Físicos' },
+                    { id: 'ebook', label: 'E-books' }
+                ];
+                break;
+            case 'desired':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'physical', label: 'Físicos' },
+                    { id: 'ebook', label: 'E-books' },
+                    { id: 'short', label: 'Curtos (<200p)' },
+                    { id: 'long', label: 'Tijolaços (>500p)' }
+                ];
+                break;
+            case 'target':
+                const targetYears = [...new Set(this.state.books
+                    .filter(b => b.goalYear && b.tags && b.tags.includes('target'))
+                    .map(b => b.goalYear.toString())
+                )].sort((a, b) => b - a);
+
+                formats = [{ id: 'all', label: 'Todas as Metas' }];
+                targetYears.forEach(year => {
+                    formats.push({ id: year, label: `Meta ${year}` });
+                });
+                formats.push({ id: 'completed', label: 'Concluídas' });
+                formats.push({ id: 'pending', label: 'Pendentes' });
+                break;
+            case 'all':
+                formats = [
+                    { id: 'all', label: 'Todos os Formatos' },
+                    { id: 'physical', label: 'Físicos' },
+                    { id: 'ebook', label: 'E-books' },
+                    { id: 'audiobook', label: 'Audiobooks' }
+                ];
+                break;
+        }
+
+        if (formats.length > 0) {
             container.style.display = 'flex';
             
-            const formats = [
-                { id: 'all', label: 'Todos os Formatos' },
-                { id: 'physical', label: 'Físicos' },
-                { id: 'ebook', label: 'E-books' },
-                { id: 'audiobook', label: 'Audiobooks' }
-            ];
+            if (!formats.find(f => f.id === this.state.formatFilter)) {
+                this.state.formatFilter = 'all';
+            }
 
-            let html = '';
-            formats.forEach(format => {
-                html += `<button class="chip ${this.state.formatFilter === format.id ? 'active' : ''}" data-format="${format.id}">${format.label}</button>`;
-            });
-            container.innerHTML = html;
-
+            container.innerHTML = formats.map(format => 
+                `<button class="chip ${this.state.formatFilter === format.id ? 'active' : ''}" data-format="${format.id}">${format.label}</button>`
+            ).join('');
         } else {
             container.style.display = 'none';
             this.state.formatFilter = 'all'; 
@@ -1781,6 +1849,9 @@ const App = {
         }
 
         const groupRating = document.getElementById('groupRating');
+        const rowReadFormat = document.getElementById('rowReadFormat');
+        const isReadStatus = ['read', 'reading', 're-reading', 'rereading'].includes(book.status);
+
         if (groupRating) {
             groupRating.style.display = (book.status === 'read') ? '' : 'none';
             const ratingInput = document.getElementById('bookRating');
@@ -1788,6 +1859,14 @@ const App = {
             if (this.updateStarRatingWidget) {
                 this.updateStarRatingWidget(book.rating || 0);
             }
+        }
+
+        if (rowReadFormat) {
+            rowReadFormat.style.display = isReadStatus ? '' : 'none';
+            const readFormats = Array.isArray(book.readFormat) ? book.readFormat : (book.readFormat ? [book.readFormat] : []);
+            document.querySelectorAll('input[name="readFormat"]').forEach(cb => {
+                cb.checked = readFormats.includes(cb.value);
+            });
         }
 
         const matchingOption = Array.from(this.dom.customOptions).find(op => op.dataset.value === book.status);
@@ -1832,8 +1911,13 @@ const App = {
             readDate: readDateVal || null,
             rating: document.getElementById('bookRating').value || 0,
             goalYear: document.getElementById('bookGoalYear').value || null,
+            readFormat: [],
             tags: []
         };
+
+        document.querySelectorAll('input[name="readFormat"]:checked').forEach(checkbox => {
+            formData.readFormat.push(checkbox.value);
+        });
 
         document.querySelectorAll('input[name="tags"]:checked').forEach(checkbox => {
             formData.tags.push(checkbox.value);
