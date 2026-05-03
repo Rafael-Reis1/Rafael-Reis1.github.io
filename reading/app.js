@@ -117,6 +117,7 @@ db.enablePersistence({ synchronizeTabs: true })
     });
 
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+const starSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="star-pill-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
 
 class ReadingManager {
     constructor() {
@@ -1323,8 +1324,8 @@ const App = {
                     { id: 'physical', label: 'Físicos' },
                     { id: 'ebook', label: 'Ebooks' },
                     { id: 'audiobook', label: 'Audiobooks' },
-                    { id: '5-stars', label: 'Favoritos (5★)' },
-                    { id: '4-stars', label: 'Recomendados (4★+)' }
+                    { id: '5-stars', label: `Favoritos (5 ${starSvg})` },
+                    { id: '4-stars', label: `Recomendados (4 ${starSvg}+)` }
                 ];
                 break;
             case 'reading':
@@ -1532,7 +1533,7 @@ const App = {
                     ${this.calculateProgress(book)}%
                 </div>
                 <div class="book-rating">
-                    <span>★</span> ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
+                    ${starSvg} ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
                 </div>
             </div>
         `;
@@ -2157,7 +2158,6 @@ const App = {
         if (!book) return;
 
         let newPageCount = val;
-
         if (isPercentage) {
             newPageCount = Math.round((val / 100) * book.pages);
         }
@@ -2168,7 +2168,21 @@ const App = {
         }
 
         await this.updateProgress(bookId, newPageCount);
+        
+        this.renderHistoryList(book);
+        this.updateModalProgressHeader(book);
+
         this.showHistoryListView();
+    },
+
+    updateModalProgressHeader(book) {
+        const percent = this.calculateProgress(book);
+        if (this.dom.historyProgressText) {
+            this.dom.historyProgressText.textContent = `${percent}%`;
+        }
+        if (this.dom.historyProgressBar) {
+            this.dom.historyProgressBar.style.width = `${percent}%`;
+        }
     },
 
     async updateProgress(bookId, newPage) {
