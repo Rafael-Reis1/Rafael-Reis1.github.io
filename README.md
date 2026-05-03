@@ -70,7 +70,7 @@ Além dos projetos principais, desenvolvi diversas ferramentas para automação 
 
 * **Ambient Light Effect:** ([`Ambient-Light-SVG-Filters`](./Ambient-Light-SVG-Filters/))
     * Recria o efeito "Ambilight" em vídeos do YouTube usando filtros SVG avançados e iframes.
-* **Comparador de Listas:** ([`Compara 2 listas de nomes`](./Compara%202%20listas%20de%20nomes/))
+* **Comparador de Listas:** ([`Comparador de Listas`](./Compara%202%20listas%20de%20nomes/))
     * Identifica itens ausentes, adicionais e duplicados entre duas listas de texto.
 * **Formatador de Listas:** ([`Formatar para lista separada por virgulas`](./Formatar%20para%20lista%20separada%20por%20virgulas/))
     * Utilitário para transformar colunas de dados (Excel/SQL) em listas formatadas para queries SQL (`IN (...)`).

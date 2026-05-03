@@ -230,7 +230,7 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'PDF Booklet Maker',
+            name: 'Criador de Livretos PDF',
             description: "Transforme qualquer PDF em livreto (booklet) pronto para impressão. Faz a imposição de páginas automaticamente, reorganizando-as para encadernação com visualização em tempo real.",
             html_url: '/pdfFormatter/pdfFormater.html',
             language: 'JavaScript',
@@ -238,7 +238,7 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'P2P Share & Stream',
+            name: 'WebDrop P2P',
             description: "Plataforma P2P para transferência de arquivos e streaming de vídeo/tela em tempo real via WebRTC. Possui integração nativa com OBS Studio (Clean Feed), suporte a PWA (Mobile/Desktop), 'Share Target' e arquitetura Serverless com reconexão inteligente.",
             html_url: '/P2PShare/P2PShare.html',
             language: 'JavaScript',
@@ -246,7 +246,7 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Ferramentas de Imagem & IA',
+            name: 'Estúdio de Imagem com IA',
             description: "Suíte completa de edição 100% client-side (Privacidade garantida). Inclui IA para remoção de fundo e OCR, além de compressão, conversão, filtros e ferramentas de censura automática.",
             html_url: '/imgConver/imgConver.html',
             language: 'JavaScript',
@@ -254,7 +254,7 @@ function fetchAndDisplayRepos() {
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Leitor de Logs Totvs Fluig',
+            name: 'Leitor de Logs TOTVS/Fluig',
             description: "Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.",
             html_url: '/Leitor-logs-totvs-fluig/leitor.html',
             language: 'JavaScript',
@@ -263,39 +263,39 @@ function fetchAndDisplayRepos() {
         },
         {
             name: 'Gemini Nano Web App',
-            description: "Experience the speed and privacy of on-device AI. Uses Chrome's built-in Gemini Nano API.",
+            description: "Experimente a velocidade e privacidade da IA rodando direto no dispositivo. Utiliza a API Gemini Nano embutida no Chrome.",
             html_url: '/chromeAILocal/chromeAILocal.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Formatar para lista de números separada por vírgulas',
-            description: 'Easily format any list of numbers into a clean, comma-separated list.',
+            name: 'Formatador de Listas (CSV)',
+            description: "Formate facilmente qualquer lista de números ou textos em uma string limpa e separada por vírgulas.",
             html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/Html 5.svg'
         },
         {
-            name: 'Compara 2 listas de nomes',
-            description: "Quickly analyze any two lists to see what's missing, extra, or repeated.",
+            name: 'Comparador de Listas',
+            description: "Analise rapidamente duas listas para identificar elementos ausentes, extras ou duplicados entre elas.",
             html_url: '/ComparaListasNomes/ComparaListasNomes.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/Html 5.svg'
         },
         {
-            name: 'Efeito de luz ambiente imersivo',
-            description: "Create a more immersive viewing experience with a dynamic ambient glow for your videos.",
+            name: 'Ambilight Web Player',
+            description: "Crie uma experiência de visualização mais imersiva com um brilho ambiente dinâmico e reativo para seus vídeos.",
             html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/CSS3.svg'
         },
         {
-            name: 'Soma lista de valores',
-            description: "A simple calculator to sum a list of values, handling complex formats like currency (R$), negatives, and mixed separators.",
+            name: 'Calculadora de Listas',
+            description: "Utilitário simples para somar uma lista de valores, lidando com formatos complexos como moeda (R$), números negativos e separadores mistos.",
             html_url: '/somaValores/somaValores.html',
             language: 'HTML',
             featured: true,
