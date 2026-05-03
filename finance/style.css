@@ -2357,7 +2357,6 @@ input[type=number] {
 }
 
 @media (display-mode: standalone) {
-
     .btn-back,
     a[href*="index.html"],
     #installAppBtn {
