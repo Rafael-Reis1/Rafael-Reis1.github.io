@@ -294,7 +294,8 @@ const App = {
         sortBy: 'recent',
         currentPage: 1,
         itemsPerPage: window.innerWidth > 768 ? 200 : 30,
-        searchQuery: ''
+        searchQuery: '',
+        currentBookTitle: ''
     },
 
     init() {
@@ -397,11 +398,15 @@ const App = {
             historyProgressBar: document.getElementById('historyProgressBar'),
             historyProgressText: document.getElementById('historyProgressText'),
             btnOpenHistoryFromModal: document.getElementById('btnOpenHistoryFromModal'),
+            historyBookId: document.getElementById('historyBookId'),
+            historyTotalPages: document.getElementById('historyTotalPages'),
+            historyBookTitle: document.getElementById('historyBookTitle'),
 
             notesModal: document.getElementById('notesModal'),
             closeNotesModalBtn: document.getElementById('closeNotesModal'),
             notesForm: document.getElementById('notesForm'),
             notesList: document.getElementById('notesList'),
+            notesBookId: document.getElementById('notesBookId'),
 
             deleteModal: document.getElementById('deleteModal'),
             closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
@@ -687,39 +692,10 @@ const App = {
             this.handleBookSubmit();
         });
 
-        this.dom.historyForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const bookId = document.getElementById('historyBookId').value;
-            const inputVal = document.getElementById('newCurrentPage').value;
-            const isPercentage = document.getElementById('isPercentage').checked;
+        this.dom.historyForm.addEventListener('submit', (e) => this.handleHistorySubmit(e));
 
-            if (inputVal === '') {
-                this.showMessage('Atenção', 'Por favor, informe a página ou porcentagem atual.', '⚠️');
-                return;
-            }
-
-            let val = parseInt(inputVal);
-            if (val === 0) {
-                this.showMessage('Atenção', 'O valor não pode ser zero.', '⚠️');
-                return;
-            }
-
-            const book = this.state.books.find(b => b.id === bookId);
-            if (!book) return;
-
-            let newPageCount = val;
-
-            if (isPercentage) {
-                newPageCount = Math.round((val / 100) * book.pages);
-            }
-
-            if (newPageCount === (book.readPages || 0)) {
-                this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
-                return;
-            }
-
-            this.updateProgress(bookId, newPageCount);
-        });
+        document.getElementById('btnAddHistory').addEventListener('click', () => this.showHistoryFormView());
+        document.getElementById('backToHistoryList').addEventListener('click', () => this.showHistoryListView());
 
         document.getElementById('isPercentage').addEventListener('change', (e) => {
             const input = document.getElementById('newCurrentPage');
@@ -830,11 +806,11 @@ const App = {
         });
 
         if (this.dom.notesForm) {
-            this.dom.notesForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleNoteSubmit(e);
-            });
+            this.dom.notesForm.addEventListener('submit', (e) => this.handleNoteSubmit(e));
         }
+
+        document.getElementById('btnAddNote').addEventListener('click', () => this.showNotesFormView());
+        document.getElementById('backToNotesList').addEventListener('click', () => this.showNotesListView());
 
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
             if (document.getElementById('bookId').value) return;
@@ -1167,11 +1143,6 @@ const App = {
         const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
         if (isNotesModalOpen) return;
 
-        this.render();
-    },
-
-    setSort(sortType) {
-        this.state.sortBy = sortType;
         this.render();
     },
 
@@ -1616,12 +1587,13 @@ const App = {
         }
     },
 
-    openModal() {
+    openModal(modalElement) {
         if (this.closeModalTimer) {
             clearTimeout(this.closeModalTimer);
             this.closeModalTimer = null;
         }
-        this.dom.modal.classList.add('active');
+        const modal = modalElement || this.dom.modal;
+        modal.classList.add('active');
         this.toggleBodyScroll(true);
     },
 
@@ -1913,9 +1885,6 @@ const App = {
                     timesRead: newTimesRead,
                     history: history,
                     rating: parseFloat(formData.rating) || 0,
-                    rating: parseFloat(formData.rating) || 0,
-                    year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
-                    rating: parseFloat(formData.rating) || 0,
                     year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
                     goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
                 };
@@ -1937,10 +1906,6 @@ const App = {
             const newBookData = {
                 ...formData,
                 rating: parseFloat(formData.rating) || 0,
-                ...formData,
-                rating: parseFloat(formData.rating) || 0,
-                year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear(),
-                rating: parseFloat(formData.rating) || 0,
                 year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : new Date().getFullYear(),
                 goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
             };
@@ -1952,43 +1917,57 @@ const App = {
         this.closeModal();
     },
 
-    openHistoryModal(bookId) {
+    async openNotesModal(bookId) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
-        document.getElementById('historyBookId').value = book.id;
-        document.getElementById('historyBookTitle').textContent = book.title;
-        document.getElementById('historyTotalPages').value = book.pages;
-        document.getElementById('newCurrentPage').value = '';
+        this.state.currentBookTitle = book.title;
+        this.dom.notesBookId.value = bookId;
+        this.showNotesListView();
+        this.renderNotesList(book.notes || []);
+        this.openModal(this.dom.notesModal);
+    },
 
-        const isPercentage = document.getElementById('isPercentage');
-        isPercentage.checked = false;
-        document.getElementById('lblHistoryInput').textContent = 'Página Atual';
-        document.getElementById('newCurrentPage').placeholder = 'Número da página';
-        document.getElementById('newCurrentPage').removeAttribute('max');
+    showNotesListView() {
+        const modalTitle = document.getElementById('notesModalTitle');
+        document.getElementById('notesListView').style.display = 'block';
+        document.getElementById('notesFormView').style.display = 'none';
+        modalTitle.textContent = `📝 Anotações de ${this.state.currentBookTitle}`;
+        modalTitle.title = this.state.currentBookTitle;
+        this.dom.notesForm.reset();
+    },
 
-        const percent = Math.round(((book.readPages || 0) / book.pages) * 100);
-        this.dom.historyProgressText.textContent = `${percent}%`;
-        this.dom.historyProgressBar.style.width = `${percent}%`;
+    showNotesFormView() {
+        document.getElementById('notesListView').style.display = 'none';
+        document.getElementById('notesFormView').style.display = 'block';
+        document.getElementById('notesModalTitle').textContent = `Nova Anotação (${this.state.currentBookTitle})`;
+    },
 
-        const isActiveReading = book.status === 'reading' || book.status === 're-reading';
-        const pageInput = document.getElementById('newCurrentPage');
-        const percentCheckbox = document.getElementById('isPercentage');
-        const submitBtn = this.dom.historyForm.querySelector('button[type="submit"]');
+    async openHistoryModal(bookId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
 
-        pageInput.disabled = !isActiveReading;
-        percentCheckbox.disabled = !isActiveReading;
-        if (submitBtn) {
-            submitBtn.disabled = !isActiveReading;
-            submitBtn.style.opacity = isActiveReading ? '1' : '0.5';
-            submitBtn.style.cursor = isActiveReading ? 'pointer' : 'not-allowed';
-        }
+        this.state.currentBookTitle = book.title;
+        this.dom.historyBookId.value = bookId;
+        this.dom.historyTotalPages.value = book.pages;
+        this.dom.historyBookTitle.textContent = book.title;
 
+        this.showHistoryListView();
         this.renderHistoryList(book);
+        this.openModal(this.dom.historyModal);
+    },
 
-        this.toggleMenu(bookId);
-        this.dom.historyModal.classList.add('active');
-        this.toggleBodyScroll(true);
+    showHistoryListView() {
+        document.getElementById('historyListView').style.display = 'block';
+        document.getElementById('historyFormView').style.display = 'none';
+        document.getElementById('historyModalTitle').textContent = `Histórico de ${this.state.currentBookTitle}`;
+        this.dom.historyForm.reset();
+    },
+
+    showHistoryFormView() {
+        document.getElementById('historyListView').style.display = 'none';
+        document.getElementById('historyFormView').style.display = 'block';
+        document.getElementById('historyModalTitle').textContent = `Novo Registro (${this.state.currentBookTitle})`;
     },
 
     renderHistoryList(book) {
@@ -2073,7 +2052,42 @@ const App = {
         });
     },
 
-    updateProgress(bookId, newPage) {
+    async handleHistorySubmit(e) {
+        e.preventDefault();
+        const bookId = document.getElementById('historyBookId').value;
+        const inputVal = document.getElementById('newCurrentPage').value;
+        const isPercentage = document.getElementById('isPercentage').checked;
+
+        if (inputVal === '') {
+            this.showMessage('Atenção', 'Por favor, informe a página ou porcentagem atual.', '⚠️');
+            return;
+        }
+
+        let val = parseInt(inputVal);
+        if (val === 0) {
+            this.showMessage('Atenção', 'O valor não pode ser zero.', '⚠️');
+            return;
+        }
+
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        let newPageCount = val;
+
+        if (isPercentage) {
+            newPageCount = Math.round((val / 100) * book.pages);
+        }
+
+        if (newPageCount === (book.readPages || 0)) {
+            this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
+            return;
+        }
+
+        await this.updateProgress(bookId, newPageCount);
+        this.showHistoryListView();
+    },
+
+    async updateProgress(bookId, newPage) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
@@ -2101,10 +2115,8 @@ const App = {
             type: entryType
         });
 
-        rm.update(book.id, book);
+        await rm.update(book.id, book);
         this.refresh();
-        this.dom.historyModal.classList.remove('active');
-        this.toggleBodyScroll(false);
 
         if (wasFinished) {
             this.showMessage('Parabéns!', 'Você concluiu este livro!');
@@ -2535,51 +2547,44 @@ const App = {
 
         modal.classList.add('active');
     },
-    openNotesModal(bookId) {
-        const book = rm.get(bookId);
-        if (!book) return;
 
-        document.getElementById('notesBookId').value = bookId;
-        if (this.dom.notesForm) this.dom.notesForm.reset();
-        this.renderNotesList(book);
-        
-        if (this.dom.notesModal) {
-            this.dom.notesModal.classList.add('active');
-            this.toggleBodyScroll(true);
+    async handleNoteSubmit(e) {
+        e.preventDefault();
+        try {
+            const bookId = document.getElementById('notesBookId').value;
+            const content = document.getElementById('noteContent').value;
+            const location = document.getElementById('noteLocation').value;
+
+            if (!content.trim()) return;
+
+            const newNote = {
+                id: Date.now().toString(),
+                content: content.trim(),
+                location: location.trim(),
+                createdAt: new Date().toISOString()
+            };
+
+            const book = this.state.books.find(b => b.id === bookId);
+            if (book) {
+                book.notes = book.notes || [];
+                book.notes.push(newNote);
+
+                await rm.update(bookId, { notes: book.notes });
+                this.showNotesListView();
+                this.renderNotesList(book.notes);
+                this.dom.notesForm.reset();
+            }
+        } catch (error) {
+            console.error("Erro ao salvar nota:", error);
+            alert("Erro ao salvar anotação. Tente novamente.");
         }
     },
 
-    handleNoteSubmit(e) {
-        const bookId = document.getElementById('notesBookId').value;
-        const content = document.getElementById('noteContent').value;
-        const location = document.getElementById('noteLocation').value;
-
-        if (!content.trim()) return;
-
-        const book = rm.get(bookId);
-        if (!book) return;
-
-        const newNote = {
-            id: Date.now().toString(),
-            content: content.trim(),
-            location: location.trim(),
-            createdAt: new Date().toISOString()
-        };
-
-        if (!book.notes) book.notes = [];
-        book.notes.unshift(newNote);
-
-        rm.update(book.id, { notes: book.notes });
-        this.renderNotesList(book);
-        if (this.dom.notesForm) this.dom.notesForm.reset();
-    },
-
-    renderNotesList(book) {
-        const notes = book.notes || [];
+    renderNotesList(notes) {
         const list = this.dom.notesList;
         if (!list) return;
 
-        if (notes.length === 0) {
+        if (!notes || notes.length === 0) {
             list.innerHTML = '<div class="empty-msg">Nenhuma anotação ainda.<br>Que tal registrar sua primeira reflexão?</div>';
             return;
         }
@@ -2590,9 +2595,9 @@ const App = {
                     <div class="note-header">
                         <div class="note-meta">
                             <span class="history-date">${new Date(note.createdAt).toLocaleDateString('pt-BR')} às ${new Date(note.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                            ${note.location ? `<span class="note-location-tag">📍 ${note.location}</span>` : ''}
+                            ${note.location ? `<span class="note-location-tag">${note.location}</span>` : ''}
                         </div>
-                        <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${book.id}', '${note.id}')" title="Excluir nota">
+                        <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Excluir nota">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18"></path>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2612,7 +2617,7 @@ const App = {
 
             book.notes = book.notes.filter(n => n.id !== noteId);
             rm.update(bookId, { notes: book.notes });
-            this.renderNotesList(book);
+            this.renderNotesList(book.notes);
         });
     },
 };
