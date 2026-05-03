@@ -1,7 +1,7 @@
 {
-    "name": "Finance Manager",
+    "name": "Financeiro Pessoal",
     "short_name": "Finanças",
-    "description": "Gerenciador de finanças pessoais",
+    "description": "Controle suas receitas e despesas",
     "start_url": "/finance/finance.html",
     "display": "standalone",
     "background_color": "#06071",

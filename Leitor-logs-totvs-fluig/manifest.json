@@ -1,6 +1,6 @@
 {
     "name": "Leitor de Logs TOTVS/Fluig",
-    "short_name": "Leitor Logs",
+    "short_name": "Logs Fluig",
     "start_url": "./leitor.html",
     "display": "standalone",
     "background_color": "#06071A",

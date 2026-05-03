@@ -1,6 +1,6 @@
 {
-    "name": "Reading Manager",
-    "short_name": "Leitura",
+    "name": "Minha Biblioteca",
+    "short_name": "Biblioteca",
     "description": "Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso",
     "start_url": "/reading/reading.html",
     "display": "standalone",
