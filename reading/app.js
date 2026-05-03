@@ -292,7 +292,7 @@ const App = {
         searchResults: [],
         sortBy: 'recent',
         currentPage: 1,
-        itemsPerPage: 30,
+        itemsPerPage: window.innerWidth > 768 ? 100 : 30,
         searchQuery: ''
     },
 
