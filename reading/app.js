@@ -1198,22 +1198,25 @@ const App = {
 
         if (header && h1) {
             if (filter === 'all') {
-                h1.innerHTML = '📚 Minha Biblioteca <span id="currentSectionLabel"></span>';
+                h1.innerHTML = 'Minha Biblioteca <span id="currentSectionLabel"></span>';
                 this.dom.currentSectionLabel = h1.querySelector('#currentSectionLabel');
+
+                const themeMeta = document.querySelector('meta[name="theme-color"]');
+                if (themeMeta) themeMeta.setAttribute('content', '#0f0c29');
 
                 header.style.background = '';
                 header.style.borderBottom = '';
                 header.classList.remove('header-active-filter');
-                
-                const themeMeta = document.querySelector('meta[name="theme-color"]');
-                if (themeMeta) themeMeta.setAttribute('content', '#0f0c29');
-
             } else {
                 const color = colors[filter]; 
                 const themeMeta = document.querySelector('meta[name="theme-color"]');
                 if (themeMeta) {
                     themeMeta.setAttribute('content', color || '#0f0c29');
                 }
+                
+                header.style.background = color;
+                header.style.borderBottom = 'none';
+                header.classList.add('header-active-filter');
 
                 const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
                 let iconHtml = '';
@@ -1226,10 +1229,6 @@ const App = {
                     const labelEl = sidebarItem.querySelector('.nav-label');
                     if (labelEl) labelText = labelEl.textContent;
                 }
-
-                header.style.background = color;
-                header.style.borderBottom = 'none';
-                header.classList.add('header-active-filter');
 
                 h1.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
