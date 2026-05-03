@@ -713,7 +713,7 @@ class UIManager {
         if (this.els.backBtn) {
             this.els.backBtn.onclick = () => {
                 if (window.opener) window.close();
-                else window.location.href = '../index.html';
+                else window.location.href = '/';
             };
         }
 

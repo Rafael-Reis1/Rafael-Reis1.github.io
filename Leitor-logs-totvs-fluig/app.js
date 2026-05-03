@@ -712,7 +712,7 @@ function closeModal() {
 const btnVoltar = document.getElementById('btnVoltar');
 if (btnVoltar) {
     btnVoltar.addEventListener('click', () => {
-        window.location.href = '../index.html';
+        window.location.href = '/';
     });
 }
 
