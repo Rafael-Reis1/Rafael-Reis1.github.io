@@ -1,11 +1,11 @@
-const CACHE_NAME = 'finance-app-?v=0305261102';
+const CACHE_NAME = 'finance-app-?v=0305261106';
 const urlsToCache = [
     '/finance/finance.html',
-    '/finance/style.css?v=0305261102',
-    '/finance/app.js?v=0305261102',
+    '/finance/style.css?v=0305261106',
+    '/finance/app.js?v=0305261106',
     '/finance/icon-512.png',
     '/finance/icon-maskable.png',
-    '/finance/manifest.json?v=0305261102',
+    '/finance/manifest.json?v=0305261106',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
