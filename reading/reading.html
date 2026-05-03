@@ -680,7 +680,7 @@
     <div id="historyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Histórico de Leitura</h3>
+                <h3 id="historyModalTitle">Histórico de Leitura</h3>
                 <button class="modal-close" id="closeHistoryModal">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -690,11 +690,8 @@
                 </button>
             </div>
 
-            <form id="historyForm" autocomplete="off">
+            <div id="historyListView">
                 <div class="modal-body">
-                    <input type="hidden" id="historyBookId">
-                    <input type="hidden" id="historyTotalPages">
-
                     <div class="book-progress-summary">
                         <div class="progress-info">
                             <span id="historyBookTitle" class="history-title">Título do Livro</span>
@@ -705,40 +702,57 @@
                         </div>
                     </div>
 
-                    <div class="form-row" style="align-items: center; margin-top: 1rem;">
-                        <div class="form-group">
-                            <label id="lblHistoryInput">Página Atual</label>
-                            <input type="number" id="newCurrentPage" class="form-input" min="0">
-                        </div>
-
-                        <div class="form-group" style="flex: 0 0 auto; margin-top: 1.5rem;">
-                            <label class="tag-checkbox">
-                                <input type="checkbox" id="isPercentage">
-                                <span>É porcentagem?</span>
-                            </label>
-                        </div>
-                    </div>
-
                     <div class="history-log">
-                        <h4>Registro de Leitura</h4>
                         <div id="historyList" class="history-list">
                         </div>
                     </div>
                 </div>
-
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary"
-                        onclick="document.getElementById('closeHistoryModal').click()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeHistoryModal').click()">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="btnAddHistory">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Novo Registro
+                    </button>
                 </div>
-            </form>
+            </div>
+
+            <div id="historyFormView" style="display: none;">
+                <form id="historyForm" autocomplete="off">
+                    <div class="modal-body">
+                        <input type="hidden" id="historyBookId">
+                        <input type="hidden" id="historyTotalPages">
+
+                        <div class="form-row" style="align-items: center;">
+                            <div class="form-group">
+                                <label id="lblHistoryInput">Página Atual</label>
+                                <input type="number" id="newCurrentPage" class="form-input" min="0" placeholder="Número da página">
+                            </div>
+
+                            <div class="form-group" style="flex: 0 0 auto; margin-top: 1.5rem;">
+                                <label class="tag-checkbox">
+                                    <input type="checkbox" id="isPercentage">
+                                    <span>É porcentagem?</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="backToHistoryList">Voltar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <div id="notesModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>📝 Anotações do Livro</h3>
+                <h3 id="notesModalTitle">📝 Anotações do Livro</h3>
                 <button class="modal-close" id="closeNotesModal">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -748,38 +762,53 @@
                 </button>
             </div>
 
-            <form id="notesForm" autocomplete="off">
+            <div id="notesListView">
                 <div class="modal-body">
-                    <input type="hidden" id="notesBookId">
-                    
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="noteContent">Sua Anotação</label>
-                            <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="min-height: 120px; resize: vertical;"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="noteLocation">Onde? (Página, Capítulo, %)</label>
-                            <input type="text" id="noteLocation" class="form-input" placeholder="Ex: pág. 250, Cap. 4, 50%...">
-                        </div>
-                    </div>
-
                     <div class="notes-log">
-                        <h4>Notas Anteriores</h4>
                         <div id="notesList" class="history-list">
                         </div>
                     </div>
                 </div>
-
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeNotesModal').click()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Adicionar Nota</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeNotesModal').click()">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="btnAddNote">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Nova Anotação
+                    </button>
                 </div>
-            </form>
+            </div>
 
+            <div id="notesFormView" style="display: none;">
+                <form id="notesForm" autocomplete="off">
+                    <div class="modal-body">
+                        <input type="hidden" id="notesBookId">
+                        
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="noteContent">Sua Anotação</label>
+                                <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="min-height: 150px; resize: vertical;"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group full-width">
+                                <label for="noteLocation">Onde? (Página, Capítulo, %)</label>
+                                <input type="text" id="noteLocation" class="form-input" placeholder="Ex: pág. 250, Cap. 4, 50%...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" id="backToNotesList">Voltar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Anotação</button>
+                    </div>
+                </form>
+            </div>
         </div>
+    </div>
     </div>
 
 

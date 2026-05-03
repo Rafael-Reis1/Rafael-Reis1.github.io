@@ -1161,6 +1161,18 @@ body {
 .modal-header h3 {
     font-family: var(--font-heading);
     font-size: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 1rem;
+    flex: 1;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .modal-close {
@@ -3517,8 +3529,21 @@ input[type=number] {
     z-index: 1016;
 }
 
-#notesModal .modal-body {
-    padding: 1.5rem 0 0;
+#notesModal .modal-body,
+#historyModal .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+#notesListView, #notesFormView,
+#historyListView, #historyFormView {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.modal-body {
+    flex: 1;
 }
 
 #notesModal .form-row {
@@ -3545,10 +3570,6 @@ input[type=number] {
     box-shadow: 0 0 0 4px rgba(242, 81, 27, 0.1);
 }
 
-#notesForm {
-    gap: 0;
-}
-
 #noteLocation {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
@@ -3563,8 +3584,6 @@ input[type=number] {
     max-height: 100%;
     overflow-y: auto;
     scrollbar-width: thin;
-    border-top: 1px solid var(--glass-border);
-    overflow: clip;
 }
 
 .notes-log h4 {
@@ -3670,4 +3689,67 @@ input[type=number] {
 
 .firebase-emulator-warning {
     display: none !important;
+}
+
+.note-location-tag {
+    background: var(--accent-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+#historyModal .modal-actions,
+#notesModal .modal-actions {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    width: 100%;
+    margin: 0;
+    border-radius: 0 0 16px 16px;
+}
+
+#historyModal .modal-actions .btn-secondary,
+#notesModal .modal-actions .btn-secondary {
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    #notesModal .modal-content,
+    #historyModal .modal-content {
+        height: 100dvh;
+        max-height: 100dvh;
+        width: 100%;
+        border-radius: 0;
+    }
+
+    #historyModal .modal-actions,
+    #notesModal .modal-actions {
+        border-radius: 0;
+    }
+}
+
+#notesForm {
+    padding: 0;
+    gap: 0;
+}
+
+#notesListView .modal-body {
+    padding-bottom: 0;
+    padding-top: 0.75rem;
+}
+
+#historyForm {
+    padding: 0;
+    gap: 0;
+}
+
+#historyListView .modal-body {
+    padding-bottom: 0.75rem;
+    padding-top: 0.75rem;
 }
