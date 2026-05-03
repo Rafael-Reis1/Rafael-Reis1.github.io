@@ -1960,10 +1960,15 @@ input[type=number] {
 .history-list {
     overflow-y: auto;
     max-height: 350px;
-    padding-right: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    scrollbar-width: none; 
+    -ms-overflow-style: none; 
+}
+
+.history-list::-webkit-scrollbar {
+    display: none;
 }
 
 .history-item {
@@ -3507,6 +3512,126 @@ input[type=number] {
 #historyModal {
     z-index: 1015;
 }
+
+#notesModal {
+    z-index: 1016;
+}
+
+#notesModal .modal-body {
+    padding: 1.5rem 0 0;
+}
+
+#notesModal .form-row {
+    margin-bottom: 10px;
+}
+
+#noteContent {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+#noteContent:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 4px rgba(242, 81, 27, 0.1);
+}
+
+#notesForm {
+    gap: 0;
+}
+
+#noteLocation {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.notes-log {
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    border-top: 1px solid var(--glass-border);
+    overflow: clip;
+}
+
+.notes-log h4 {
+    margin: 16px 0 10px 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.note-item {
+    padding: 1rem !important;
+    margin-bottom: 0.75rem;
+    border-radius: 12px !important;
+    background: #0f101e !important;
+    border: 1px solid var(--glass-border) !important;
+}
+
+
+.note-content-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.note-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.note-location-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    background: rgba(242, 81, 27, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(242, 81, 27, 0.2);
+    align-self: flex-start;
+}
+
+.note-text {
+    color: var(--text-primary);
+    font-size: 0.925rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.note-item:hover .action-btn {
+    opacity: 1;
+}
+
+
 
 #deleteModal {
     z-index: 1020;

@@ -75,6 +75,7 @@ const BookModel = {
             timesRead: 0,
             readDate: data.readDate || null,
             history: [],
+            notes: [],
             createdAt: new Date().toISOString(),
             year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear(),
             goalYear: data.goalYear ? parseInt(data.goalYear) : null
@@ -396,6 +397,11 @@ const App = {
             historyProgressBar: document.getElementById('historyProgressBar'),
             historyProgressText: document.getElementById('historyProgressText'),
             btnOpenHistoryFromModal: document.getElementById('btnOpenHistoryFromModal'),
+
+            notesModal: document.getElementById('notesModal'),
+            closeNotesModalBtn: document.getElementById('closeNotesModal'),
+            notesForm: document.getElementById('notesForm'),
+            notesList: document.getElementById('notesList'),
 
             deleteModal: document.getElementById('deleteModal'),
             closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
@@ -753,6 +759,10 @@ const App = {
             this.toggleBodyScroll(false);
         });
         this.setupModalCloseAttributes(this.dom.deleteModal, () => this.closeDeleteModal());
+        this.setupModalCloseAttributes(this.dom.notesModal, () => {
+            this.dom.notesModal.classList.remove('active');
+            this.toggleBodyScroll(false);
+        });
         this.setupModalCloseAttributes(this.dom.messageModal, () => {
             this.dom.messageModal.classList.remove('active');
             this.toggleBodyScroll(false);
@@ -773,6 +783,10 @@ const App = {
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.closeHistoryModalBtn.addEventListener('click', () => {
             this.dom.historyModal.classList.remove('active');
+            this.toggleBodyScroll(false);
+        });
+        this.dom.closeNotesModalBtn.addEventListener('click', () => {
+            this.dom.notesModal.classList.remove('active');
             this.toggleBodyScroll(false);
         });
 
@@ -814,6 +828,13 @@ const App = {
             this.dom.messageModal.classList.remove('active');
             this.toggleBodyScroll(false);
         });
+
+        if (this.dom.notesForm) {
+            this.dom.notesForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleNoteSubmit(e);
+            });
+        }
 
         this.dom.apiSearch.addEventListener('input', debounce((e) => {
             if (document.getElementById('bookId').value) return;
@@ -1141,7 +1162,11 @@ const App = {
         }
 
         this.renderYearFilters();
-        this.renderFormatFilters()
+        this.renderFormatFilters();
+
+        const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
+        if (isNotesModalOpen) return;
+
         this.render();
     },
 
@@ -1457,6 +1482,7 @@ const App = {
             </button>
             <div class="options-menu" id="menu-${book.id}">
                 <ul>
+                    <li><button class="menu-item notes-btn" onclick="App.openNotesModal('${book.id}')">📝 Anotações</button></li>
                     <li><button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button></li>
                     <li><button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button></li>
                 </ul>
@@ -2508,7 +2534,87 @@ const App = {
         }
 
         modal.classList.add('active');
-    }
+    },
+    openNotesModal(bookId) {
+        const book = rm.get(bookId);
+        if (!book) return;
+
+        document.getElementById('notesBookId').value = bookId;
+        if (this.dom.notesForm) this.dom.notesForm.reset();
+        this.renderNotesList(book);
+        
+        if (this.dom.notesModal) {
+            this.dom.notesModal.classList.add('active');
+            this.toggleBodyScroll(true);
+        }
+    },
+
+    handleNoteSubmit(e) {
+        const bookId = document.getElementById('notesBookId').value;
+        const content = document.getElementById('noteContent').value;
+        const location = document.getElementById('noteLocation').value;
+
+        if (!content.trim()) return;
+
+        const book = rm.get(bookId);
+        if (!book) return;
+
+        const newNote = {
+            id: Date.now().toString(),
+            content: content.trim(),
+            location: location.trim(),
+            createdAt: new Date().toISOString()
+        };
+
+        if (!book.notes) book.notes = [];
+        book.notes.unshift(newNote);
+
+        rm.update(book.id, { notes: book.notes });
+        this.renderNotesList(book);
+        if (this.dom.notesForm) this.dom.notesForm.reset();
+    },
+
+    renderNotesList(book) {
+        const notes = book.notes || [];
+        const list = this.dom.notesList;
+        if (!list) return;
+
+        if (notes.length === 0) {
+            list.innerHTML = '<div class="empty-msg">Nenhuma anotação ainda.<br>Que tal registrar sua primeira reflexão?</div>';
+            return;
+        }
+
+        list.innerHTML = notes.map(note => `
+            <div class="history-item note-item">
+                <div class="note-content-wrapper">
+                    <div class="note-header">
+                        <div class="note-meta">
+                            <span class="history-date">${new Date(note.createdAt).toLocaleDateString('pt-BR')} às ${new Date(note.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            ${note.location ? `<span class="note-location-tag">📍 ${note.location}</span>` : ''}
+                        </div>
+                        <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${book.id}', '${note.id}')" title="Excluir nota">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="note-text">${note.content}</div>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    deleteNoteItem(bookId, noteId) {
+        this.openDeleteModal('Deseja realmente excluir esta anotação?', () => {
+            const book = rm.get(bookId);
+            if (!book || !book.notes) return;
+
+            book.notes = book.notes.filter(n => n.id !== noteId);
+            rm.update(bookId, { notes: book.notes });
+            this.renderNotesList(book);
+        });
+    },
 };
 
 window.App = App;
