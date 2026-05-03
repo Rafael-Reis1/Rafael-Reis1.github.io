@@ -2156,12 +2156,12 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 1.75rem;
+    height: 1.75rem;
     border-radius: 6px;
     border: none;
-    background: var(--glass-bg);
-    color: var(--text-secondary);
+    background: transparent;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     padding: 0;
@@ -2169,14 +2169,12 @@ input[type=number] {
 
 .action-btn:hover {
     background: var(--glass-bg-hover);
-    color: var(--text-primary);
 }
 
 .action-btn.delete:hover {
     background: rgba(220, 53, 69, 0.2);
     color: var(--danger-color);
 }
-
 
 .history-date {
     color: var(--text-muted);
@@ -3705,8 +3703,6 @@ input[type=number] {
 .note-item:hover .action-btn {
     opacity: 1;
 }
-
-
 
 #deleteModal {
     z-index: 1020;

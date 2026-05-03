@@ -1106,22 +1106,50 @@ class FinanceManager {
         });
     }
 
-    async checkRecurringExpenses() {
+    async checkRecurringExpenses(specificSubId = null) {
         if (!auth.currentUser) return;
 
         const now = new Date();
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
         try {
-            const subsSnapshot = await db.collection('finance_data')
-                .doc(auth.currentUser.uid)
-                .collection('subscriptions')
-                .get();
-            const subscriptions = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            let subscriptionsToCheck = [];
+            
+            if (specificSubId) {
+                const subRef = db.collection('finance_data')
+                    .doc(auth.currentUser.uid)
+                    .collection('subscriptions')
+                    .doc(specificSubId);
+                const subDoc = await subRef.get();
+                if (subDoc.exists) {
+                    subscriptionsToCheck = [{ id: subDoc.id, ...subDoc.data() }];
+                }
+            } else {
+                const subsSnapshot = await db.collection('finance_data')
+                    .doc(auth.currentUser.uid)
+                    .collection('subscriptions')
+                    .get();
+                subscriptionsToCheck = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
 
-            for (const sub of subscriptions) {
+            for (const sub of subscriptionsToCheck) {
                 if (sub.active === false) continue;
+                
                 if (sub.lastGenerated === currentMonth) continue;
+
+                const alreadyExists = this.transactions.some(t => 
+                    t.subscriptionId === sub.id && 
+                    t.date && t.date.startsWith(currentMonth)
+                );
+
+                if (alreadyExists) {
+                    const subRef = db.collection('finance_data')
+                        .doc(auth.currentUser.uid)
+                        .collection('subscriptions')
+                        .doc(sub.id);
+                    await subRef.update({ lastGenerated: currentMonth });
+                    continue;
+                }
 
                 const day = Math.min(sub.day, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
                 const transactionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -2809,8 +2837,7 @@ class UIController {
                         </button>
                         <button class="btn-activate-sub" data-id="${sub.id}" title="Reativar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </button>
                         <button class="btn-delete-sub" data-id="${sub.id}" title="Excluir Permanentemente">
@@ -2854,7 +2881,8 @@ class UIController {
                         const id = e.currentTarget.dataset.id;
                         try {
                             await this.fm.activateSubscription(id);
-                            this.showToast('Assinatura reativada com sucesso!', 'success');
+                            await this.fm.checkRecurringExpenses(id);
+                            this.showToast('Assinatura reativada e verificada!', 'success');
                         } catch (error) {
                             console.error(error);
                             this.showToast('Erro ao reativar assinatura', 'error');
