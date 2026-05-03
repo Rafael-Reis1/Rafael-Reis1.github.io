@@ -1157,21 +1157,21 @@ const App = {
         this.state.currentPage = 1;
 
         const labels = {
-            'all': '📚 Minha Biblioteca',
-            'read': '✅ Lidos',
-            'reading': '📖 Lendo',
-            'want-to-read': '🔖 Quero Ler',
-            're-reading': '🔄 Relendo',
-            'abandoned': '🚫 Abandonados',
-            'favorite': '❤️ Favoritos',
-            'desired': '✨ Desejados',
-            'borrowed': '📘 Emprestados',
-            'physical': '📚 Físicos',
-            'owned': '📦 Tenho',
-            'lent': '🤝 Emprestei',
-            'target': '🎯 Meta',
-            'ebook': '📱 E-book',
-            'audiobook': '🎧 Audiobook'
+            'all': 'Minha Biblioteca',
+            'read': 'Lidos',
+            'reading': 'Lendo',
+            'want-to-read': 'Quero Ler',
+            're-reading': 'Relendo',
+            'abandoned': 'Abandonados',
+            'favorite': 'Favoritos',
+            'desired': 'Desejados',
+            'borrowed': 'Emprestados',
+            'physical': 'Físicos',
+            'owned': 'Tenho',
+            'lent': 'Emprestei',
+            'target': 'Meta',
+            'ebook': 'Ebook',
+            'audiobook': 'Audiobook'
         };
 
         const colors = {
@@ -1321,7 +1321,7 @@ const App = {
                 formats = [
                     { id: 'all', label: 'Todos os Formatos' },
                     { id: 'physical', label: 'Físicos' },
-                    { id: 'ebook', label: 'E-books' },
+                    { id: 'ebook', label: 'Ebooks' },
                     { id: 'audiobook', label: 'Audiobooks' },
                     { id: '5-stars', label: 'Favoritos (5★)' },
                     { id: '4-stars', label: 'Recomendados (4★+)' }
@@ -1365,14 +1365,14 @@ const App = {
                     { id: 'early', label: 'Início (<20%)' },
                     { id: 'late', label: 'Quase lá (>50%)' },
                     { id: 'physical', label: 'Físicos' },
-                    { id: 'ebook', label: 'E-books' }
+                    { id: 'ebook', label: 'Ebooks' }
                 ];
                 break;
             case 'desired':
                 formats = [
                     { id: 'all', label: 'Todos' },
                     { id: 'physical', label: 'Físicos' },
-                    { id: 'ebook', label: 'E-books' },
+                    { id: 'ebook', label: 'Ebooks' },
                     { id: 'short', label: 'Curtos (<200p)' },
                     { id: 'long', label: 'Tijolaços (>500p)' }
                 ];
@@ -1394,7 +1394,7 @@ const App = {
                 formats = [
                     { id: 'all', label: 'Todos os Formatos' },
                     { id: 'physical', label: 'Físicos' },
-                    { id: 'ebook', label: 'E-books' },
+                    { id: 'ebook', label: 'Ebooks' },
                     { id: 'audiobook', label: 'Audiobooks' }
                 ];
                 break;
