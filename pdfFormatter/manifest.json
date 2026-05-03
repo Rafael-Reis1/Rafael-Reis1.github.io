@@ -1,6 +1,6 @@
 {
-    "name": "PDF Booklet Maker",
-    "short_name": "PDF Booklet",
+    "name": "Criador de Livretos PDF",
+    "short_name": "Livreto PDF",
     "description": "Formatação de PDF para impressão tipo livreto (Booklet)",
     "start_url": "./pdfFormater.html",
     "id": "/pdfFormatter/",

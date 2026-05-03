@@ -108,8 +108,11 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    height: var(--header-height);
-    padding: 0 1.5rem;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 5px);
+    height: calc(50px + env(safe-area-inset-top, 0px)); 
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-bottom: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -2940,8 +2943,8 @@ input[type=number] {
     }
 
     .header {
-        height: 5rem;
-        padding: 1.5rem 0.75rem 0 0.75rem;
+       padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+       height: calc(60px + env(safe-area-inset-top, 0px)); 
     }
 
     .header-left {

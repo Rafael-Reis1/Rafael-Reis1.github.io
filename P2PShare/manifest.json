@@ -1,6 +1,6 @@
 {
-    "name": "P2P Share",
-    "short_name": "P2P Share",
+    "name": "WebDrop P2P",
+    "short_name": "WebDrop",
     "description": "Compartilhamento de arquivos P2P seguro e rápido.",
     "start_url": "./P2PShare.html",
     "id": "/P2PShare/",
