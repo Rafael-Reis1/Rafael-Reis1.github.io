@@ -2297,6 +2297,10 @@ input[type=number] {
     box-shadow: 0 8px 16px rgba(242, 81, 27, 0.2);
 }
 
+#groupLoanInfo {
+    margin-top: 0.5rem;
+}
+
 .stats-header {
     margin-bottom: 1rem;
 }
