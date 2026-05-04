@@ -1530,9 +1530,36 @@ const App = {
             </button>
             <div class="options-menu" id="menu-${book.id}">
                 <ul>
-                    <li><button class="menu-item notes-btn" onclick="App.openNotesModal('${book.id}')">📝 Anotações</button></li>
-                    <li><button class="menu-item edit-btn" data-id="${book.id}">✏️ Editar</button></li>
-                    <li><button class="menu-item delete-btn" data-id="${book.id}">🗑️ Excluir</button></li>
+                    <li>
+                        <button class="menu-item notes-btn" onclick="App.openNotesModal('${book.id}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <polyline points="10 9 9 9 8 9"></polyline>
+                            </svg>
+                            Anotações
+                        </button>
+                    </li>
+                    <li>
+                        <button class="menu-item edit-btn" data-id="${book.id}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Editar
+                        </button>
+                    </li>
+                    <li>
+                        <button class="menu-item delete-btn" data-id="${book.id}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Excluir
+                        </button>
+                    </li>
                 </ul>
             </div>
             
@@ -2025,7 +2052,10 @@ const App = {
         const modalTitle = document.getElementById('notesModalTitle');
         document.getElementById('notesListView').style.display = 'block';
         document.getElementById('notesFormView').style.display = 'none';
-        modalTitle.textContent = `📝 Anotações de ${this.state.currentBookTitle}`;
+        modalTitle.innerHTML = `
+            <span style="display: block; line-height: 1.2;">Anotações</span>
+            <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+        `;
         modalTitle.title = this.state.currentBookTitle;
         this.dom.notesForm.reset();
         document.getElementById('noteId').value = '';
