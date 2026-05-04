@@ -15,7 +15,7 @@
     --success-color: #22c55e;
     --danger-color: #ef4444;
 
-    --text-primary: #ffffff;
+    --text-primary: #fafafa;
     --text-secondary: rgba(255, 255, 255, 0.7);
     --text-muted: rgba(255, 255, 255, 0.5);
 
@@ -317,7 +317,7 @@ body {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-muted);
+    color: var(--text-primary);
     margin-bottom: 0.75rem;
     font-weight: 600;
 }
@@ -329,7 +329,7 @@ body {
     padding-right: 3.5rem;
     margin-bottom: 0.5rem;
     border-radius: 12px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
@@ -668,7 +668,7 @@ body {
     flex-shrink: 0;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     padding: 0.4rem 1rem;
     border-radius: 20px;
     font-size: 0.85rem;
@@ -687,7 +687,6 @@ body {
 
 .chip:hover {
     background: var(--glass-bg-hover);
-    border-color: var(--text-secondary);
 }
 
 .chip.active {
@@ -711,7 +710,7 @@ body {
 .search-icon {
     position: absolute;
     left: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     pointer-events: none;
 }
 
@@ -1225,7 +1224,7 @@ body {
 
 .form-group label {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .form-group input,
@@ -1381,19 +1380,24 @@ body {
 .form-divider {
     display: flex;
     align-items: center;
-    margin: 0.25rem 0;
-    color: var(--text-muted);
+    justify-content: center;
+    text-align: center;
+    gap: 1rem;
+    color: var(--text-secondary);
     font-size: 0.75rem;
-    text-transform: uppercase;
+    font-weight: 600;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin: 0.625rem 0;
+    width: 100%;
 }
 
 .form-divider::before,
 .form-divider::after {
-    content: "";
+    content: '';
     flex: 1;
     height: 1px;
-    background: var(--glass-border);
+    background: var(--text-secondary);
 }
 
 .form-divider span {
@@ -1430,7 +1434,7 @@ body {
 
 .dropdown-header {
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     padding: 0.5rem 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1599,7 +1603,7 @@ input[type=number] {
     right: 5px;
     z-index: 20;
     background: rgba(0, 0, 0, 0.6);
-    color: white;
+    color: var(--text-primary);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -1668,7 +1672,7 @@ input[type=number] {
 .menu-item {
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     text-align: left;
     padding: 0.5rem;
     border-radius: 4px;
@@ -1679,8 +1683,7 @@ input[type=number] {
 }
 
 .menu-item:hover {
-    background: var(--glass-bg-hover);
-    color: var(--text-primary);
+    background: var(--glass-bg);
 }
 
 .menu-item.delete-btn:hover {
@@ -2274,14 +2277,13 @@ input[type=number] {
     border-radius: 8px;
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .modal-close:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
 }
 
 .stats-card {
@@ -3710,29 +3712,6 @@ input[type=number] {
 
 #messageModal {
     z-index: 1030;
-}
-
-.form-divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 1rem;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin: 0.625rem 0;
-    width: 100%;
-}
-
-.form-divider::before,
-.form-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--glass-border);
 }
 
 #apiSearch {
