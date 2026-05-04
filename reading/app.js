@@ -512,6 +512,8 @@ const App = {
             if (borrowedCheckbox.checked || lentCheckbox.checked) {
                 groupLoanInfo.style.display = 'flex';
                 const lblLoanDate = document.getElementById('lblLoanDate');
+                const inputLoanDate = document.getElementById('loanDate');
+
                 if (borrowedCheckbox.checked) {
                     lblLoanDate.textContent = 'Peguei em';
                     lblLoanDetails.textContent = 'De quem você pegou?';
@@ -520,6 +522,14 @@ const App = {
                     lblLoanDate.textContent = 'Emprestei em';
                     lblLoanDetails.textContent = 'Para quem você emprestou?';
                     inputLoanDetails.placeholder = 'Nome da pessoa ou local';
+                }
+
+                if (!inputLoanDate.value) {
+                    if (this.loanDatePicker) {
+                        this.loanDatePicker.setDate(new Date());
+                    } else {
+                        inputLoanDate.value = new Date().toISOString().split('T')[0];
+                    }
                 }
             } else {
                 groupLoanInfo.style.display = 'none';
