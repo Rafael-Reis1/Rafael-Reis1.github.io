@@ -300,9 +300,8 @@ const App = {
 
     init() {
         this.cacheDOM();
-
+        document.body.appendChild(this.dom.statusOptions)
         this.bindEvents();
-
         this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
@@ -497,10 +496,6 @@ const App = {
             cb.addEventListener('change', toggleGoalInput);
         });
 
-
-
-
-
         this.dom.addBtn.addEventListener('click', () => {
             this.dom.bookForm.reset();
             const groupGoalYear = document.getElementById('groupGoalYear');
@@ -567,12 +562,14 @@ const App = {
             });
         });
 
+        statusTrigger.addEventListener('click', (e) => {
+            const rect = statusTrigger.getBoundingClientRect();
+            
+            statusOptions.style.top = `${rect.bottom + 8}px`;
+            statusOptions.style.left = `${rect.left}px`;
+            statusOptions.style.width = `${rect.width}px`;
 
-
-        this.dom.statusTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.dom.statusOptions.classList.toggle('open');
-            this.dom.statusTrigger.parentElement.classList.toggle('active');
+            statusOptions.classList.toggle('open');
         });
 
         this.dom.customOptions.forEach(option => {
@@ -832,11 +829,6 @@ const App = {
             window._escListenerAttached = true;
         }
 
-
-
-
-
-
         this.dom.btnPrevPage.addEventListener('click', () => {
             if (this.state.currentPage > 1) {
                 this.state.currentPage--;
@@ -975,6 +967,13 @@ const App = {
                 this.render();
             });
         }
+
+        document.querySelector('#bookForm .modal-body').addEventListener('scroll', () => {
+            if (this.dom.statusOptions.classList.contains('open')) {
+                this.dom.statusOptions.classList.remove('open');
+                this.dom.statusTrigger.parentElement.classList.remove('active');
+            }
+        });
     },
 
     handleAnonymousLogin() {
@@ -2064,14 +2063,20 @@ const App = {
     showNotesFormView(note = null) {
         document.getElementById('notesListView').style.display = 'none';
         document.getElementById('notesFormView').style.display = 'block';
-        
+
         if (note) {
-            document.getElementById('notesModalTitle').textContent = `Editar Anotação (${this.state.currentBookTitle})`;
+            document.getElementById('notesModalTitle').innerHTML = `
+                <span style="display: block; line-height: 1.2;">Editar Anotação</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+            `;
             document.getElementById('noteId').value = note.id;
             document.getElementById('noteContent').value = note.content;
             document.getElementById('noteLocation').value = note.location || '';
         } else {
-            document.getElementById('notesModalTitle').textContent = `Nova Anotação (${this.state.currentBookTitle})`;
+            document.getElementById('notesModalTitle').innerHTML = `
+                <span style="display: block; line-height: 1.2;">Nova Anotação</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+            `;
             document.getElementById('noteId').value = '';
             this.dom.notesForm.reset();
         }
@@ -2094,7 +2099,9 @@ const App = {
     showHistoryListView() {
         document.getElementById('historyListView').style.display = 'block';
         document.getElementById('historyFormView').style.display = 'none';
-        document.getElementById('historyModalTitle').textContent = `Histórico de ${this.state.currentBookTitle}`;
+        document.getElementById('historyModalTitle').innerHTML = `
+            <span style="display: block; line-height: 1.2;">Histórico de Leitura</span>
+        `;
         this.dom.historyForm.reset();
         document.getElementById('historyEntryId').value = '';
     },
@@ -2102,15 +2109,21 @@ const App = {
     showHistoryFormView(entry = null) {
         document.getElementById('historyListView').style.display = 'none';
         document.getElementById('historyFormView').style.display = 'block';
-        
+
         if (entry) {
-            document.getElementById('historyModalTitle').textContent = `Editar Registro (${this.state.currentBookTitle})`;
+            document.getElementById('historyModalTitle').innerHTML = `
+                <span style="display: block; line-height: 1.2;">Editar Registro</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+            `;
             document.getElementById('historyEntryId').value = entry.date;
             document.getElementById('newCurrentPage').value = entry.page;
             document.getElementById('isPercentage').checked = false;
             document.getElementById('lblHistoryInput').textContent = 'Página Atual';
         } else {
-            document.getElementById('historyModalTitle').textContent = `Novo Registro (${this.state.currentBookTitle})`;
+            document.getElementById('historyModalTitle').innerHTML = `
+                <span style="display: block; line-height: 1.2;">Novo Registro</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+            `;
             document.getElementById('historyEntryId').value = '';
             this.dom.historyForm.reset();
             document.getElementById('isPercentage').checked = false;

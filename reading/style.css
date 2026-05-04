@@ -1388,7 +1388,6 @@ body {
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin: 0.625rem 0;
     width: 100%;
 }
 
@@ -1485,7 +1484,6 @@ input[type=number] {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
-    padding: 0.5rem 0;
 }
 
 .tag-checkbox {
@@ -1786,14 +1784,11 @@ input[type=number] {
 }
 
 .custom-options {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    left: 0;
-    right: 0;
+    position: fixed;
     background: #1a1b2e;
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    z-index: 2000;
+    z-index: 99999;
     display: none;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -1811,7 +1806,7 @@ input[type=number] {
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     border-radius: 8px;
     transition: all 0.2s ease;
     font-size: 0.9rem;
@@ -1844,7 +1839,7 @@ input[type=number] {
 }
 
 .custom-option.selected {
-    color: white;
+    color: var(--text-primary);
 }
 
 .status-indicator {
@@ -1889,7 +1884,7 @@ input[type=number] {
 }
 
 .custom-option.selected .status-indicator {
-    background-color: var(--accent-color) !important;
+    background-color: var(--text-primary) !important;
 }
 
 .custom-option.selected[data-value="re-reading"] .status-indicator {
@@ -1915,7 +1910,7 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.2);
     padding: 1rem;
     border-radius: 12px;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .progress-info {
@@ -1951,10 +1946,9 @@ input[type=number] {
 }
 
 .history-log {
-    margin-top: 1rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 0 1rem;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -1971,9 +1965,9 @@ input[type=number] {
 .history-list {
     overflow-y: auto;
     flex: 1;
+    padding: 1rem 0;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
     scrollbar-width: none; 
     -ms-overflow-style: none; 
 }
@@ -2026,7 +2020,6 @@ input[type=number] {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 0.75rem;
     flex: 1;
 }
 
@@ -2036,22 +2029,23 @@ input[type=number] {
     font-family: var(--font-main);
     width: fit-content;
     opacity: 0.8;
+    padding-right: 0.625rem;
 }
 
 .history-val {
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-primary);
     position: relative;
     padding-left: 1.25rem;
     display: flex;
     align-items: center;
-    letter-spacing: 0.02em;
 }
 
 .history-val::before {
     content: '';
     position: absolute;
-    left: 3px;
+    left: 0.3125rem;
     top: 50%;
     transform: translateY(-50%);
     width: 1px;
@@ -2181,11 +2175,6 @@ input[type=number] {
 
 .history-date {
     color: var(--text-primary);
-}
-
-.history-val {
-    color: var(--text-primary);
-    font-weight: 500;
 }
 
 .empty-msg {
@@ -3438,7 +3427,7 @@ input[type=number] {
     border-radius: 10px;
     border: 1px solid var(--glass-border);
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 @media (hover: hover) {
@@ -3793,11 +3782,6 @@ input[type=number] {
         font-size: 0.8rem;
     }
 
-    .history-date {
-        width: auto;
-        padding-right: 0.5rem;
-    }
-
     .history-icon {
         font-size: 1rem;
     }
@@ -3908,3 +3892,9 @@ input[type=number] {
 }
 
 .heatmap-cell.level-0 { background: rgba(255, 255, 255, 0.1); }
+
+#bookForm .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}

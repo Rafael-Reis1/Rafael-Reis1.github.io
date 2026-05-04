@@ -6,31 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0405260352">
-    <link rel="stylesheet" href="style.css?v=0405260352">
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=0405260352">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=0405260352"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=0405260352"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0405260352">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0405260445">
+    <link rel="stylesheet" href="style.css?v=0405260445">
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=0405260445">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=0405260445"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=0405260445"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0405260445">
 
-    <link rel="manifest" href="manifest.json?v=0405260352">
+    <link rel="manifest" href="manifest.json?v=0405260445">
     <meta name="theme-color" content="#0f0c28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=0405260352">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=0405260445">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=0405260352"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=0405260352"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=0405260352"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=0405260445"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=0405260445"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=0405260445"></script>
     <script>
         window.onerror = function (msg, url, line, col, error) {
             alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + "\ncol: " + col + "\nerror: " + error);
             return false;
         };
     </script>
-    <script src="app.js?v=0405260352" defer></script>
+    <script src="app.js?v=0405260445" defer></script>
 </head>
 
 <body>
@@ -579,7 +579,7 @@
                     <div class="form-row" id="rowReadFormat" style="display: none;">
                         <div class="form-group full-width" id="groupReadFormat">
                             <label>Formato lido</label>
-                            <div class="read-format-container" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+                            <div class="read-format-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 <label class="tag-checkbox">
                                     <input type="checkbox" name="readFormat" value="physical" hidden>
                                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -763,7 +763,7 @@
                             <div class="form-group" style="flex: 0 0 auto; margin-top: 1.5rem;">
                                 <label class="tag-checkbox">
                                     <input type="checkbox" id="isPercentage">
-                                    <span>É porcentagem?</span>
+                                    <span>Usar %</span>
                                 </label>
                             </div>
                         </div>
