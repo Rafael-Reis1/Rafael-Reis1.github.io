@@ -78,7 +78,8 @@ const BookModel = {
             notes: [],
             createdAt: new Date().toISOString(),
             year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear(),
-            goalYear: data.goalYear ? parseInt(data.goalYear) : null
+            goalYear: data.goalYear ? parseInt(data.goalYear) : null,
+            loanDetails: data.loanDetails || ''
         };
     }
 };
@@ -484,16 +485,45 @@ const App = {
             });
         });
 
-        const toggleGoalInput = () => {
+        const handleTagChanges = (e) => {
             const targetCheckbox = document.querySelector('input[name="tags"][value="target"]');
             const groupGoalYear = document.getElementById('groupGoalYear');
+            
+            const borrowedCheckbox = document.querySelector('input[name="tags"][value="borrowed"]');
+            const lentCheckbox = document.querySelector('input[name="tags"][value="lent"]');
+            const groupLoanInfo = document.getElementById('groupLoanInfo');
+            const lblLoanDetails = document.getElementById('lblLoanDetails');
+            const inputLoanDetails = document.getElementById('loanDetails');
+
             if (targetCheckbox && groupGoalYear) {
                 groupGoalYear.style.display = targetCheckbox.checked ? 'flex' : 'none';
+            }
+
+            if (e && e.target.name === 'tags') {
+                if (e.target.value === 'borrowed' && e.target.checked) {
+                    lentCheckbox.checked = false;
+                } else if (e.target.value === 'lent' && e.target.checked) {
+                    borrowedCheckbox.checked = false;
+                }
+            }
+
+            if (borrowedCheckbox.checked || lentCheckbox.checked) {
+                groupLoanInfo.style.display = 'flex';
+                if (borrowedCheckbox.checked) {
+                    lblLoanDetails.textContent = 'De quem você pegou?';
+                    inputLoanDetails.placeholder = 'Nome da pessoa ou local';
+                } else {
+                    lblLoanDetails.textContent = 'Para quem você emprestou?';
+                    inputLoanDetails.placeholder = 'Nome da pessoa ou local';
+                }
+            } else {
+                groupLoanInfo.style.display = 'none';
+                inputLoanDetails.value = '';
             }
         };
 
         document.querySelectorAll('input[name="tags"]').forEach(cb => {
-            cb.addEventListener('change', toggleGoalInput);
+            cb.addEventListener('change', handleTagChanges);
         });
 
         this.dom.addBtn.addEventListener('click', () => {
@@ -1704,6 +1734,12 @@ const App = {
             if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
             if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
 
+            const groupGoalYear = document.getElementById('groupGoalYear');
+            const groupLoanInfo = document.getElementById('groupLoanInfo');
+            if (groupGoalYear) groupGoalYear.style.display = 'none';
+            if (groupLoanInfo) groupLoanInfo.style.display = 'none';
+            document.getElementById('loanDetails').value = '';
+
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
         }, 300);
@@ -1914,6 +1950,19 @@ const App = {
             groupGoalYear.style.display = targetCheckbox.checked ? 'flex' : 'none';
         }
 
+        document.getElementById('loanDetails').value = book.loanDetails || '';
+        const borrowedCheckbox = document.querySelector('input[name="tags"][value="borrowed"]');
+        const lentCheckbox = document.querySelector('input[name="tags"][value="lent"]');
+        const groupLoanInfo = document.getElementById('groupLoanInfo');
+        const lblLoanDetails = document.getElementById('lblLoanDetails');
+        
+        if (borrowedCheckbox.checked || lentCheckbox.checked) {
+            groupLoanInfo.style.display = 'flex';
+            lblLoanDetails.textContent = borrowedCheckbox.checked ? 'De quem você pegou?' : 'Para quem você emprestou?';
+        } else {
+            groupLoanInfo.style.display = 'none';
+        }
+
         if (this.dom.btnOpenHistoryFromModal) {
             this.dom.btnOpenHistoryFromModal.style.display = 'flex';
         }
@@ -1934,6 +1983,7 @@ const App = {
             readDate: readDateVal || null,
             rating: document.getElementById('bookRating').value || 0,
             goalYear: document.getElementById('bookGoalYear').value || null,
+            loanDetails: document.getElementById('loanDetails').value || '',
             readFormat: [],
             tags: []
         };
