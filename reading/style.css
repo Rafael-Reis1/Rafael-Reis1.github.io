@@ -1189,17 +1189,21 @@ body {
 }
 
 .modal-action-btn {
-    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--text-primary);
     cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 4px;
-    transition: color 0.2s ease, background 0.2s ease;
+    padding: 0.4375rem;
+    transition: all 0.2s ease;
 }
 
 .modal-action-btn:hover {
-    color: var(--accent-color);
     background: rgba(255, 255, 255, 0.1);
 }
 
@@ -2261,8 +2265,8 @@ input[type=number] {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     border-radius: 8px;
     background: transparent;
     border: none;
