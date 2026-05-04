@@ -79,7 +79,8 @@ const BookModel = {
             createdAt: new Date().toISOString(),
             year: data.readDate ? parseInt(data.readDate.split('-')[0]) : new Date().getFullYear(),
             goalYear: data.goalYear ? parseInt(data.goalYear) : null,
-            loanDetails: data.loanDetails || ''
+            loanDetails: data.loanDetails || '',
+            loanDate: data.loanDate || null
         };
     }
 };
@@ -338,6 +339,7 @@ const App = {
                 }
             };
             this.datePicker = flatpickr("#bookReadDate", config);
+            this.loanDatePicker = flatpickr("#loanDate", config);
         }
     },
 
@@ -509,16 +511,21 @@ const App = {
 
             if (borrowedCheckbox.checked || lentCheckbox.checked) {
                 groupLoanInfo.style.display = 'flex';
+                const lblLoanDate = document.getElementById('lblLoanDate');
                 if (borrowedCheckbox.checked) {
+                    lblLoanDate.textContent = 'Peguei em';
                     lblLoanDetails.textContent = 'De quem você pegou?';
                     inputLoanDetails.placeholder = 'Nome da pessoa ou local';
                 } else {
+                    lblLoanDate.textContent = 'Emprestei em';
                     lblLoanDetails.textContent = 'Para quem você emprestou?';
                     inputLoanDetails.placeholder = 'Nome da pessoa ou local';
                 }
             } else {
                 groupLoanInfo.style.display = 'none';
                 inputLoanDetails.value = '';
+                if (this.loanDatePicker) this.loanDatePicker.clear();
+                else document.getElementById('loanDate').value = '';
             }
         };
 
@@ -1739,6 +1746,8 @@ const App = {
             if (groupGoalYear) groupGoalYear.style.display = 'none';
             if (groupLoanInfo) groupLoanInfo.style.display = 'none';
             document.getElementById('loanDetails').value = '';
+            if (this.loanDatePicker) this.loanDatePicker.clear();
+            else document.getElementById('loanDate').value = '';
 
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
@@ -1951,6 +1960,12 @@ const App = {
         }
 
         document.getElementById('loanDetails').value = book.loanDetails || '';
+        if (this.loanDatePicker) {
+            this.loanDatePicker.setDate(book.loanDate || null);
+        } else {
+            document.getElementById('loanDate').value = book.loanDate || '';
+        }
+        
         const borrowedCheckbox = document.querySelector('input[name="tags"][value="borrowed"]');
         const lentCheckbox = document.querySelector('input[name="tags"][value="lent"]');
         const groupLoanInfo = document.getElementById('groupLoanInfo');
@@ -1958,6 +1973,8 @@ const App = {
         
         if (borrowedCheckbox.checked || lentCheckbox.checked) {
             groupLoanInfo.style.display = 'flex';
+            const lblLoanDate = document.getElementById('lblLoanDate');
+            lblLoanDate.textContent = borrowedCheckbox.checked ? 'Peguei em' : 'Emprestei em';
             lblLoanDetails.textContent = borrowedCheckbox.checked ? 'De quem você pegou?' : 'Para quem você emprestou?';
         } else {
             groupLoanInfo.style.display = 'none';
@@ -1984,6 +2001,7 @@ const App = {
             rating: document.getElementById('bookRating').value || 0,
             goalYear: document.getElementById('bookGoalYear').value || null,
             loanDetails: document.getElementById('loanDetails').value || '',
+            loanDate: document.getElementById('loanDate').value || null,
             readFormat: [],
             tags: []
         };
