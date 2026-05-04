@@ -240,17 +240,24 @@ body {
     width: 100%;
 }
 
-.main-content {
+.app-body-wrapper {
     flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    height: calc(100dvh - var(--header-height));
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+}
+
+.app-body-wrapper::-webkit-scrollbar {
+    display: none;
+}
+
+.main-content {
     padding: 1.5rem;
-    max-width: 1400px;
+    max-width: 87.5rem;
     margin: 0 auto;
     width: 100%;
-    height: calc(100dvh - var(--header-height));
-    overflow-y: auto;
-    min-height: 0;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
 }
 
 .main-content::-webkit-scrollbar {
@@ -1581,7 +1588,7 @@ input[type=number] {
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--glass-border);
     position: sticky;
-    bottom: -25px;
+    bottom: 0;
     margin: 1.5rem -1.25rem -1.25rem -1.25rem;
     z-index: 10;
 }
@@ -1969,7 +1976,8 @@ input[type=number] {
     }
 
     .pagination-controls {
-        padding: 0.5rem 1rem 2rem 1rem;
+        bottom: -2px;
+        padding: 0.5rem 1rem 1rem 1rem;
     }
 }
 
