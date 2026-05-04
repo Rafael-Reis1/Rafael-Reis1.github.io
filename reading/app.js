@@ -70,6 +70,7 @@ const BookModel = {
             status: data.status || 'want-to-read',
             cover: data.cover || 'https://placehold.co/200x300?text=Sem+Capa',
             tags: data.tags || [],
+            readFormat: data.readFormat || [],
             rating: parseFloat(data.rating) || 0,
             readPages: data.status === 'read' ? (parseInt(data.pages) || 0) : 0,
             timesRead: 0,
@@ -203,6 +204,28 @@ class ReadingManager {
         return null;
     }
 
+    async updateMultiple(updates) {
+        if (!auth.currentUser || Object.keys(updates).length === 0) return;
+
+        const userRef = db.collection('library_data').doc(auth.currentUser.uid).collection('books');
+        const updateEntries = Object.entries(updates);
+
+        for (let i = 0; i < updateEntries.length; i += 400) {
+            const batch = db.batch();
+            const chunk = updateEntries.slice(i, i + 400);
+
+            chunk.forEach(([id, data]) => {
+                const index = this.books.findIndex(b => b.id === id);
+                if (index !== -1) {
+                    this.books[index] = { ...this.books[index], ...data };
+                    batch.update(userRef.doc(id), data);
+                }
+            });
+
+            await batch.commit();
+        }
+    }
+
     delete(id) {
         this.books = this.books.filter(b => b.id !== id);
 
@@ -223,7 +246,7 @@ class ReadingManager {
         };
     }
 
-    async import(data, replace = false) {
+    async import(data, replace = false, onProgress = null) {
         if (!data.books || !Array.isArray(data.books)) {
             throw new Error('Formato inválido');
         }
@@ -235,21 +258,47 @@ class ReadingManager {
         const userRef = db.collection('library_data').doc(auth.currentUser.uid).collection('books');
 
         if (replace) {
-            const existing = await userRef.get();
-            const batch = db.batch();
-            existing.docs.forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
+            if (onProgress) onProgress('Limpando biblioteca atual...');
+            try {
+                const existing = await Promise.race([
+                    userRef.get(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                ]);
+                
+                for (let i = 0; i < existing.docs.length; i += 400) {
+                    const batch = db.batch();
+                    const chunk = existing.docs.slice(i, i + 400);
+                    chunk.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+            } catch (e) {
+                console.warn('Limpeza via nuvem lenta ou offline. Continuando...');
+            }
         }
 
-        const importBatch = db.batch();
-        data.books.forEach(book => {
-            const id = book.id || this.generateId();
-            const ref = userRef.doc(id);
-            importBatch.set(ref, { ...book, id });
-        });
-        await importBatch.commit();
+        const total = data.books.length;
+        for (let i = 0; i < total; i += 400) {
+            if (onProgress) onProgress(`Importando (${Math.min(i + 400, total)} de ${total})...`);
+            const batch = db.batch();
+            const chunk = data.books.slice(i, i + 400);
+            chunk.forEach(book => {
+                const id = book.id || this.generateId();
+                const ref = userRef.doc(id);
+                batch.set(ref, { ...book, id });
+            });
+            
+            try {
+                await Promise.race([
+                    batch.commit(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                ]);
+            } catch (e) {
+                console.warn('Commit demorado ou offline. Continuando em background...');
+                break;
+            }
+        }
 
-        return data.books.length;
+        return total;
     }
 }
 
@@ -297,7 +346,8 @@ const App = {
         currentPage: 1,
         itemsPerPage: window.innerWidth > 768 ? 200 : 30,
         searchQuery: '',
-        currentBookTitle: ''
+        currentBookTitle: '',
+        migrated: false
     },
 
     init() {
@@ -308,6 +358,60 @@ const App = {
         this.initDatePicker();
         this.initStats();
         this.refresh();
+    },
+
+    async migrateLegacyHistory() {
+        if (!rm.books || rm.books.length === 0) return;
+        
+        const updates = {};
+        let count = 0;
+
+        rm.books.forEach(book => {
+            const history = book.history || [];
+            const hasFinish = history.some(h => h.type === 'finish');
+            
+            if (book.status === 'read' && !hasFinish) {
+                let date = book.readDate || book.createdAt;
+                let isFallback = false;
+                
+                if (!date && book.year) {
+                    date = `${book.year}-01-01`;
+                } else if (!date) {
+                    date = new Date().toISOString();
+                    isFallback = true;
+                }
+
+                const syntheticHistory = [
+                    { id: `MIGRATED_ST_${book.id}_${Date.now()}`, date: date, type: 'start', page: 0, migrated: true, isFallbackDate: isFallback },
+                    { id: `MIGRATED_FI_${book.id}_${Date.now()}`, date: date, type: 'finish', page: parseInt(book.pages) || 0, migrated: true, isFallbackDate: isFallback }
+                ];
+                
+                updates[book.id] = { history: [...history, ...syntheticHistory] };
+                count++;
+            } else if (history.length > 0) {
+                let needsHealing = false;
+                const healedHistory = history.map(h => {
+                    const d = new Date(h.date);
+                    const isJan2026 = d.getFullYear() === 2026 && d.getMonth() === 0;
+                    const isPrefixed = h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_'));
+                    
+                    if (isJan2026 && !h.migrated && !isPrefixed) {
+                        needsHealing = true;
+                        return { ...h, migrated: true, isFallbackDate: true };
+                    }
+                    return h;
+                });
+
+                if (needsHealing) {
+                    updates[book.id] = { history: healedHistory };
+                    count++;
+                }
+            }
+        });
+
+        if (count > 0) {
+            await rm.updateMultiple(updates);
+        }
     },
 
     initDatePicker() {
@@ -579,6 +683,12 @@ const App = {
             document.getElementById('bookRating').value = 0;
             if (this.updateStarRatingWidget) this.updateStarRatingWidget(0);
 
+            const groupTimesRead = document.getElementById('groupTimesRead');
+            if (groupTimesRead) groupTimesRead.style.display = 'none';
+            const inputTimesRead = document.getElementById('bookTimesRead');
+            inputTimesRead.value = 0;
+            inputTimesRead.disabled = false;
+
             document.getElementById('modalTitle').textContent = 'Adicionar Livro';
 
             if (this.dom.btnOpenHistoryFromModal) {
@@ -646,6 +756,7 @@ const App = {
 
                 const groupRating = document.getElementById('groupRating');
                 const rowReadFormat = document.getElementById('rowReadFormat');
+                const groupTimesRead = document.getElementById('groupTimesRead');
                 const isReadStatus = ['read', 'reading', 're-reading', 'rereading'].includes(value);
 
                 if (groupRating) {
@@ -653,6 +764,9 @@ const App = {
                 }
                 if (rowReadFormat) {
                     rowReadFormat.style.display = isReadStatus ? '' : 'none';
+                }
+                if (groupTimesRead) {
+                    groupTimesRead.style.display = isReadStatus ? 'flex' : 'none';
                 }
 
                 this.dom.triggerText.textContent = label;
@@ -799,8 +913,7 @@ const App = {
             this.toggleBodyScroll(false);
         });
         this.setupModalCloseAttributes(this.dom.messageModal, () => {
-            this.dom.messageModal.classList.remove('active');
-            this.toggleBodyScroll(false);
+            this.dom.messageOkBtn.click();
         });
 
         if (this.dom.statsModal) {
@@ -860,8 +973,12 @@ const App = {
         });
 
         this.dom.messageOkBtn.addEventListener('click', () => {
-            this.dom.messageModal.classList.remove('active');
-            this.toggleBodyScroll(false);
+            if (this.dom.messageOkBtn.onclick) {
+                this.dom.messageOkBtn.onclick();
+            } else {
+                this.dom.messageModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            }
         });
 
         if (this.dom.notesForm) {
@@ -968,19 +1085,35 @@ const App = {
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
-                const count = await rm.import(data, true);
-                this.showMessage('Sucesso!', `${count} livros importados com sucesso.`, '✅');
-            } catch (err) {
-                this.showMessage('Erro', 'Falha ao importar: ' + err.message, '❌');
-            } finally {
+                
+                const count = await rm.import(data, true, (msg) => {
+                    if (loadingText) loadingText.textContent = msg;
+                });
+
+                setTimeout(() => {
+                    if (overlay && overlay.style.display !== 'none') {
+                        overlay.style.display = 'none';
+                        overlay.classList.add('hidden');
+                        this.showMessage('Importado!', `${count} livros foram processados e estão sendo sincronizados.`, '⏳');
+                    }
+                }, 10000);
+
                 if (overlay) {
                     overlay.style.display = 'none';
                     overlay.classList.add('hidden');
                 }
+                await this.migrateLegacyHistory();
+                this.refresh();
+                
+                this.showMessage('Sucesso!', `${count} livros importados com sucesso.`, '✅');
+            } catch (err) {
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    overlay.classList.add('hidden');
+                }
+                this.showMessage('Erro', 'Falha ao importar: ' + err.message, '❌');
+            } finally {
                 if (loadingText) loadingText.textContent = originalText;
-
-                if (content) content.style.display = 'flex';
-
                 e.target.value = '';
             }
         });
@@ -1002,6 +1135,10 @@ const App = {
             if (user) {
                 await rm.initListener(user, () => {
                     this.refresh();
+                    if (!this.state.migrated && rm.books.length > 0) {
+                        this.state.migrated = true;
+                        this.migrateLegacyHistory();
+                    }
                 });
             } else {
                 rm.stopListener();
@@ -1153,44 +1290,73 @@ const App = {
             }
             mousedownTarget = null;
         });
-
-
     },
 
     refresh() {
         this.state.books = rm.books;
         this.updateCounts();
 
+        const dailyPages = {};
         const activeStatuses = ['read', 'reading', 're-reading', 'rereading', 'abandoned'];
         const totalPagesRead = this.state.books.reduce((total, book) => {
             const isActiveStatus = activeStatuses.includes(book.status);
+            if (!isActiveStatus) return total;
 
-            if (!isActiveStatus) {
-                return total;
-            }
-
+            const p = parseInt(book.pages) || 0;
             const history = book.history || [];
-            if (history.length === 0) {
-                if (book.status === 'read') return total + (book.pages * (book.timesRead || 1));
-                return total + (book.readPages || 0);
-            }
-
+            
             let bookTotal = 0;
-            let currentCycleProgress = 0;
-            const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+            let lastPage = 0;
+            let historyFinishes = 0;
+            const sortedHistory = [...history].sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                if (dateA - dateB !== 0) return dateA - dateB;
+                
+                const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+                const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+                const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+                return orderA - orderB;
+            });
 
             sortedHistory.forEach(entry => {
+                let diff = 0;
+                const pageNum = parseInt(entry.page) || 0;
+                const entryDate = new Date(entry.date);
+                const isMig = entry.migrated || entry.isFallbackDate ||
+                             (entry.id && (String(entry.id).startsWith('mig_') || String(entry.id).startsWith('MIGRATED_')));
+                
                 if (entry.type === 'finish') {
-                    bookTotal += book.pages;
-                    currentCycleProgress = 0;
+                    diff = p - lastPage;
+                    lastPage = 0;
+                    historyFinishes++;
                 } else if (entry.type === 'start') {
-                    currentCycleProgress = 0;
+                    lastPage = 0;
                 } else {
-                    currentCycleProgress = entry.page || 0;
+                    diff = pageNum - lastPage;
+                    lastPage = pageNum;
+                }
+                
+                if (diff > 0 && !isMig) {
+                    bookTotal += diff;
+                    const dateKey = new Date(entry.date).toISOString().split('T')[0];
+                    dailyPages[dateKey] = (dailyPages[dateKey] || 0) + diff;
+                } else if (diff > 0 && isMig) {
+                    bookTotal += diff;
                 }
             });
 
-            return total + bookTotal + currentCycleProgress;
+            const manualSessions = book.timesRead || 0;
+            const isRereading = ['re-reading', 'rereading'].includes(book.status);
+            const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
+            
+            bookTotal += ((manualSessions + fallback) * p);
+
+            if (history.length === 0 && book.status !== 'read') {
+                bookTotal += (book.readPages || 0);
+            }
+
+            return total + bookTotal;
         }, 0);
 
         if (this.dom.totalPagesRead) {
@@ -1198,6 +1364,7 @@ const App = {
         }
 
         this.renderFormatFilters();
+        this.renderHeatMap(dailyPages, 'all');
 
         const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
         if (isNotesModalOpen) return;
@@ -1488,7 +1655,8 @@ const App = {
                 if (topModal) {
                     const closeBtn = topModal.querySelector('.modal-close') ||
                         topModal.querySelector('.btn-secondary[id^="cancel"]') ||
-                        topModal.querySelector('.modal-footer .btn-secondary');
+                        topModal.querySelector('.modal-footer .btn-secondary') ||
+                        topModal.querySelector('#messageOkBtn');
 
                     if (closeBtn) {
                         closeBtn.click();
@@ -1694,11 +1862,7 @@ const App = {
         document.querySelectorAll('.options-menu.active').forEach(m => m.classList.remove('active'));
     },
 
-    calculateProgress(book) {
-        if (book.status === 'read') return 100;
-        if (book.pages === 0) return 0;
-        return Math.round((book.readPages / book.pages) * 100);
-    },
+
 
     updateCounts() {
         const books = this.state.books;
@@ -1770,80 +1934,80 @@ const App = {
 
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
-        }, 300);
+}, 300);
     },
 
     async handleAPISearch(query) {
-        if (!query || query.length < 2) {
+        if (!query || query.trim().length < 3) {
             this.dom.apiResults.classList.remove('active');
             return;
         }
+        
+        if (this.apiSearchTimeout) clearTimeout(this.apiSearchTimeout);
+        
+        this.apiSearchTimeout = setTimeout(async () => {
+            this.dom.apiResults.innerHTML = '<div class="api-loading">Buscando na nuvem...</div>';
+            this.dom.apiResults.classList.add('active');
 
-        this.dom.searchLoader.style.display = 'block';
+            try {
+                const results = await Promise.allSettled([
+                    GoogleBooksAPI.search(query),
+                    OpenLibraryAPI.search(query)
+                ]);
 
-        try {
-            const [googleResults, olResults] = await Promise.allSettled([
-                GoogleBooksAPI.search(query),
-                OpenLibraryAPI.search(query)
-            ]);
+                const gBooks = results[0].status === 'fulfilled' ? results[0].value : [];
+                const olBooks = results[1].status === 'fulfilled' ? results[1].value : [];
 
-            const gBooks = googleResults.status === 'fulfilled' ? googleResults.value : [];
-            const olBooks = olResults.status === 'fulfilled' ? olResults.value : [];
+                const combined = [...gBooks];
+                const getYear = (dateStr) => dateStr ? dateStr.substring(0, 4) : '0000';
 
-            const combined = [...gBooks];
+                const existingSignatures = new Set(
+                    gBooks.map(b => {
+                        const t = b.volumeInfo.title.toLowerCase().trim();
+                        const a = (b.volumeInfo.authors[0] || '').toLowerCase().trim();
+                        const y = getYear(b.volumeInfo.publishedDate);
+                        return `${t}|${a}|${y}`;
+                    })
+                );
 
-            const getYear = (dateStr) => dateStr ? dateStr.substring(0, 4) : '0000';
+                olBooks.forEach(book => {
+                    const t = book.volumeInfo.title.toLowerCase().trim();
+                    const a = (book.volumeInfo.authors[0] || '').toLowerCase().trim();
+                    const y = getYear(book.volumeInfo.publishedDate);
+                    const sig = `${t}|${a}|${y}`;
 
-            const existingSignatures = new Set(
-                gBooks.map(b => {
-                    const t = b.volumeInfo.title.toLowerCase().trim();
-                    const a = (b.volumeInfo.authors[0] || '').toLowerCase().trim();
-                    const y = getYear(b.volumeInfo.publishedDate);
-                    return `${t}|${a}|${y}`;
-                })
-            );
+                    if (!existingSignatures.has(sig)) {
+                        combined.push(book);
+                    }
+                });
 
-            olBooks.forEach(book => {
-                const t = book.volumeInfo.title.toLowerCase().trim();
-                const a = (book.volumeInfo.authors[0] || '').toLowerCase().trim();
-                const y = getYear(book.volumeInfo.publishedDate);
-                const sig = `${t}|${a}|${y}`;
-
-                if (!existingSignatures.has(sig)) {
-                    combined.push(book);
-                }
-            });
-
-            this.state.searchResults = combined;
-            this.displayAPIResults(combined);
-
-        } catch (error) {
-            console.error('Search Error:', error);
-            this.state.searchResults = [];
-            this.displayAPIResults([]);
-        } finally {
-            this.dom.searchLoader.style.display = 'none';
-        }
+                this.state.searchResults = combined;
+                this.renderAPISearchResults(combined);
+            } catch (error) {
+                console.error('API Search error:', error);
+                this.dom.apiResults.innerHTML = '<div class="api-loading">Erro na busca.</div>';
+            }
+        }, 500);
     },
 
-    displayAPIResults(books) {
+    renderAPISearchResults(books) {
         if (books.length === 0) {
-            this.dom.apiResults.innerHTML = '<div style="padding: 10px; color: var(--text-muted); font-size: 0.85rem;">Nenhum livro encontrado.</div>';
-            this.dom.apiResults.classList.add('active');
+            this.dom.apiResults.innerHTML = '<div class="api-loading">Nenhum livro encontrado.</div>';
             return;
         }
 
         let html = '';
         books.forEach(book => {
             const info = book.volumeInfo;
-            const cover = info.imageLinks ? info.imageLinks.thumbnail : 'https://placehold.co/45x65?text=Capa';
-            const title = info.title;
+            const coverUrl = info.imageLinks ? info.imageLinks.thumbnail : null;
+            const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : 'https://placehold.co/200x300?text=Sem+Capa';
+            const title = info.title || 'Título desconhecido';
             const author = info.authors ? info.authors.join(', ') : 'Autor desconhecido';
-
+            
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
                     <div class="api-result-cover-container ${!info.imageLinks ? 'is-placeholder' : ''}">
-                         <img src="${cover}" class="api-result-cover" loading="lazy" alt="${title}" 
+                         <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${title}" 
                               style="${!info.imageLinks ? 'display:none' : ''}" 
                               onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
                          <div class="book-cover-placeholder ${!info.imageLinks ? 'visible' : ''}">
@@ -1965,6 +2129,20 @@ const App = {
             matchingOption.classList.add('selected');
         }
 
+        const groupTimesRead = document.getElementById('groupTimesRead');
+        if (groupTimesRead) {
+            const isActiveRead = ['read', 'reading', 're-reading', 'rereading'].includes(book.status);
+            groupTimesRead.style.display = isActiveRead ? 'flex' : 'none';
+            
+            const historyFinishes = (book.history || []).filter(h => h.type === 'finish').length;
+            
+            const totalTimesRead = (book.timesRead || 0) + historyFinishes;
+            
+            const input = document.getElementById('bookTimesRead');
+            input.value = totalTimesRead;
+            input.disabled = true;
+        }
+
         document.querySelectorAll('input[name="tags"]').forEach(checkbox => {
             checkbox.checked = book.tags.includes(checkbox.value);
         });
@@ -2008,6 +2186,16 @@ const App = {
 
     handleBookSubmit() {
         const id = document.getElementById('bookId').value;
+        const title = document.getElementById('bookTitle').value.trim();
+        const author = document.getElementById('bookAuthor').value.trim();
+        const pages = document.getElementById('bookPages').value;
+        const status = document.getElementById('bookStatus').value;
+
+        if (!title || !author || !pages) {
+            this.showMessage('Campos Obrigatórios', 'Por favor, preencha o título, autor e número de páginas.', '⚠️');
+            return;
+        }
+
         const readDateVal = document.getElementById('bookReadDate').value;
 
         const formData = {
@@ -2021,6 +2209,7 @@ const App = {
             goalYear: document.getElementById('bookGoalYear').value || null,
             loanDetails: document.getElementById('loanDetails').value || '',
             loanDate: document.getElementById('loanDate').value || null,
+            timesRead: parseInt(document.getElementById('bookTimesRead').value) || 0,
             readFormat: [],
             tags: []
         };
@@ -2043,12 +2232,16 @@ const App = {
                 const wasRereading = oldStatus === 'rereading' || oldStatus === 're-reading';
 
                 let newReadPages = existingBook.readPages || 0;
-                let newTimesRead = existingBook.timesRead || 0;
+                
+                const historyFinishes = (existingBook.history || []).filter(h => h.type === 'finish').length;
+                let newTimesRead = Math.max(0, (parseInt(formData.timesRead) || 0) - historyFinishes);
+                
                 let history = existingBook.history || [];
 
                 if (newStatus === 'read' && oldStatus !== 'read') {
                     newReadPages = parseInt(formData.pages) || 0;
                     history.push({
+                        id: `auto_fi_${Date.now()}`,
                         date: new Date().toISOString(),
                         page: newReadPages,
                         type: 'finish'
@@ -2056,6 +2249,7 @@ const App = {
                 } else if ((newStatus === 'reading' || isRereading) && oldStatus === 'read') {
                     newReadPages = 0;
                     history.push({
+                        id: `auto_st_${Date.now()}`,
                         date: new Date().toISOString(),
                         page: 0,
                         type: 'start'
@@ -2063,6 +2257,7 @@ const App = {
                 } else if (isRereading && !wasRereading && oldStatus !== 'read') {
                     newReadPages = 0;
                     history.push({
+                        id: `auto_st_${Date.now()}`,
                         date: new Date().toISOString(),
                         page: 0,
                         type: 'start'
@@ -2074,6 +2269,8 @@ const App = {
                 const updatedBook = {
                     ...existingBook,
                     ...formData,
+                    title: (formData.title || '').trim() || existingBook.title,
+                    author: (formData.author || '').trim() || existingBook.author,
                     pages: parseInt(formData.pages) || 0,
                     readPages: newReadPages,
                     timesRead: newTimesRead,
@@ -2104,6 +2301,24 @@ const App = {
                 goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
             };
             const newBook = BookModel.create(newBookData);
+            
+            const initialStatus = newBook.status;
+            const pagesTotal = parseInt(newBook.pages) || 0;
+            const now = new Date().toISOString();
+            const histDate = formData.readDate ? new Date(formData.readDate).toISOString() : now;
+
+            if (initialStatus === 'read') {
+                newBook.history.push({ id: `auto_st_${Date.now()}`, date: histDate, type: 'start', page: 0 });
+                newBook.history.push({ id: `auto_fi_${Date.now()}`, date: histDate, type: 'finish', page: pagesTotal });
+                newBook.readPages = pagesTotal;
+            } else if (initialStatus === 'reading' || initialStatus === 're-reading' || initialStatus === 'rereading') {
+                newBook.history.push({ id: `auto_st_${Date.now()}`, date: now, type: 'start', page: 0 });
+                newBook.readPages = 0;
+            }
+
+            const newHistoryFinishes = newBook.history.filter(h => h.type === 'finish').length;
+            newBook.timesRead = Math.max(0, formData.timesRead - newHistoryFinishes);
+
             rm.add(newBook);
         }
 
@@ -2168,6 +2383,7 @@ const App = {
 
         this.showHistoryListView();
         this.renderHistoryList(book);
+        this.updateModalProgressHeader(book);
         this.openModal(this.dom.historyModal);
     },
 
@@ -2212,7 +2428,16 @@ const App = {
             return;
         }
 
-        const sortedHistory = [...book.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedHistory = [...book.history].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA - dateB !== 0) return dateB - dateA;
+            
+            const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+            const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+            const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+            return orderB - orderA;
+        });
 
         this.dom.historyList.innerHTML = sortedHistory.map(entry => {
             const date = new Date(entry.date).toLocaleDateString();
@@ -2262,11 +2487,19 @@ const App = {
         if (!book) return;
 
         const entryToDelete = book.history.find(h => h.date === dateStr);
-        if (entryToDelete && entryToDelete.type === 'start') {
+        
+        if (entryToDelete) {
             const hasFutureEntries = book.history.some(h => new Date(h.date) > new Date(dateStr));
+            
             if (hasFutureEntries) {
-                this.showMessage('Atenção', 'Não é possível excluir o início da leitura enquanto houver progresso registrado depois dele.', '⚠️');
-                return;
+                if (entryToDelete.type === 'start') {
+                    this.showMessage('Atenção', 'Não é possível excluir o início da leitura enquanto houver progresso registrado depois dele.', '⚠️');
+                    return;
+                }
+                if (entryToDelete.type === 'finish') {
+                    this.showMessage('Atenção', 'Não é possível excluir a conclusão de uma leitura anterior. Exclua a releitura atual primeiro.', '⚠️');
+                    return;
+                }
             }
         }
 
@@ -2398,25 +2631,38 @@ const App = {
     recalculateBookProgress(book) {
         if (!book.history || book.history.length === 0) {
             book.readPages = 0;
+            if (['read', 'reading', 're-reading', 'rereading'].includes(book.status)) {
+                book.status = 'want-to-read';
+            }
             return;
         }
 
-        const validEntries = book.history.filter(h => !h.type || h.type === 'progress' || h.type === 'finish');
+        const sortedHistory = [...book.history].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA - dateB !== 0) return dateA - dateB;
+            
+            const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+            const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+            const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+            return orderA - orderB;
+        });
+
+        const latestEntry = sortedHistory[sortedHistory.length - 1];
         
-        if (validEntries.length > 0) {
-            const latest = validEntries.reduce((prev, current) => {
-                return (new Date(prev.date) > new Date(current.date)) ? prev : current;
-            }, validEntries[0]);
-            
-            book.readPages = latest.type === 'finish' ? book.pages : (latest.page || 0);
-            
-            if (latest.type === 'finish') {
-                book.status = 'read';
-            } else if (book.status === 'read' && latest.type !== 'finish') {
-                book.status = 'reading'; 
-            }
+        const totalFinishes = sortedHistory.filter(h => h.type === 'finish').length;
+
+        if (latestEntry.type === 'finish') {
+            book.status = 'read';
+            book.readPages = parseInt(book.pages) || 0;
         } else {
-            book.readPages = 0;
+            book.readPages = parseInt(latestEntry.page) || 0;
+            
+            if (totalFinishes > 0) {
+                book.status = 're-reading';
+            } else {
+                book.status = 'reading';
+            }
         }
     },
 
@@ -2474,6 +2720,56 @@ const App = {
         this.renderHistoryList(book); 
         this.updateModalProgressHeader(book);
         this.showHistoryListView();
+    },
+
+    calculateProgress(book) {
+        const pages = parseInt(book.pages) || 0;
+        if (pages === 0) return 0;
+        
+        const history = book.history || [];
+        if (history.length === 0) {
+            if (book.status === 'read') return 100;
+            return Math.min(100, Math.round(((parseInt(book.readPages) || 0) / pages) * 100));
+        }
+
+        const sortedH = [...history].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA - dateB !== 0) return dateA - dateB;
+            
+            const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+            const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+            const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+            return orderA - orderB;
+        });
+
+        let lastStartIndex = -1;
+        for (let i = sortedH.length - 1; i >= 0; i--) {
+            if (sortedH[i].type === 'start') {
+                lastStartIndex = i;
+                break;
+            }
+        }
+
+        const currentCycle = lastStartIndex !== -1 ? sortedH.slice(lastStartIndex) : sortedH;
+        const lastEntry = currentCycle[currentCycle.length - 1];
+
+        if (lastEntry.type === 'finish') return 100;
+        
+        if (lastEntry.type === 'start' && currentCycle.length === 1) return 0;
+
+        let maxPage = 0;
+        currentCycle.forEach(h => {
+            if (h.type === 'finish') {
+                maxPage = pages;
+            } else {
+                const p = parseInt(h.page) || 0;
+                if (p > maxPage) maxPage = p;
+            }
+        });
+
+        const progress = Math.min(100, Math.round((maxPage / pages) * 100));
+        return isNaN(progress) ? 0 : progress;
     },
 
     updateModalProgressHeader(book) {
@@ -2535,12 +2831,30 @@ const App = {
         this.deleteCallback = null;
     },
 
+    closeAllModals() {
+        if (this.closeModal) this.closeModal();
+        if (this.dom.historyModal) this.dom.historyModal.classList.remove('active');
+        if (this.dom.notesModal) this.dom.notesModal.classList.remove('active');
+        if (this.dom.statsModal) this.dom.statsModal.classList.remove('active');
+        if (this.dom.periodDetailsModal) this.dom.periodDetailsModal.classList.remove('active');
+        if (this.dom.messageModal) this.dom.messageModal.classList.remove('active');
+    },
+
     showMessage(title, text, icon = '🎉') {
         this.dom.messageTitle.textContent = title;
         this.dom.messageText.textContent = text;
         this.dom.messageIcon.textContent = icon;
         this.dom.messageModal.classList.add('active');
         this.toggleBodyScroll(true);
+
+        this.dom.messageOkBtn.onclick = () => {
+            if (icon === '🎉' || icon === '✅') {
+                this.closeAllModals();
+            } else {
+                this.dom.messageModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            }
+        };
     },
 
     initStats() {
@@ -2590,12 +2904,19 @@ const App = {
             monthlyPagesDist: new Array(12).fill(0)
         });
 
-        const statsData = {
-            years: {},
-            all: createStatObj()
-        };
+            const statsData = {
+                years: {},
+                all: createStatObj()
+            };
 
-        this.state.books.forEach(book => {
+            const isMigrationEntry = (entry) => {
+                if (!entry) return false;
+                return entry.migrated === true || 
+                       entry.isFallbackDate === true || 
+                       (entry.id && (String(entry.id).startsWith('mig_') || String(entry.id).startsWith('MIGRATED_')));
+            };
+
+            this.state.books.forEach(book => {
             if (book.goalYear) {
                 if (!statsData.years[book.goalYear]) statsData.years[book.goalYear] = createStatObj();
             }
@@ -2606,55 +2927,42 @@ const App = {
 
             if (book.status === 'want-to-read' && !hasProgress) return;
 
-            let year = 'Desconhecido';
-            let month = -1;
-
-            if (book.readDate) {
-                const parts = book.readDate.split('-');
-                if (parts.length === 3) {
-                    year = parseInt(parts[0]);
-                    month = parseInt(parts[1]) - 1;
-                } else {
-                    const d = new Date(book.readDate);
-                    year = d.getFullYear();
-                    month = d.getMonth();
-                }
+            const activeYears = new Set();
+            if (book.readDate) activeYears.add(parseInt(book.readDate.split('-')[0]));
+            if (book.history && book.history.length > 0) {
+                book.history.forEach(h => activeYears.add(new Date(h.date).getFullYear()));
             }
+            if (book.goalYear) activeYears.add(parseInt(book.goalYear));
+            if (activeYears.size === 0) activeYears.add('Desconhecido');
 
-            if (!year || year === 'Desconhecido') {
-                if (book.history && book.history.length > 0) {
-                    const sortedH = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
-                    const lastEntry = sortedH[sortedH.length - 1];
-                    const d = new Date(lastEntry.date);
-                    year = d.getFullYear();
-                    month = d.getMonth();
-                }
-            }
+            const updateStats = (target, b, targetYear) => {
+                const history = b.history || [];
+                const p = parseInt(b.pages) || 0;
+                
+                const hasRealActivityInYear = history.some(h => {
+                    const d = new Date(h.date);
+                    return !isMigrationEntry(h) && (targetYear === 'all' || d.getFullYear() == targetYear);
+                });
 
-            if (!statsData.years[year]) statsData.years[year] = createStatObj();
-
-            const updateStats = (target, b) => {
-                target.books.push(b);
-
-                if (b.status === 'read') {
+                if (targetYear === 'all' || hasRealActivityInYear) {
+                    target.books.push(b);
                     target.booksCount++;
                 }
 
-                const p = parseInt(b.pages) || 0;
-
-                let effortPages = 0;
-                const history = b.history || [];
-
+                let historyFinishes = 0;
                 if (history.length > 0) {
-                    let currentCycleProgress = 0;
                     let lastPageForDaily = 0;
                     const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
 
                     sortedHistory.forEach(entry => {
+                        const entryDate = new Date(entry.date);
+                        const isThisYear = (targetYear === 'all' || entryDate.getFullYear() == targetYear);
+                        
                         let dailyDiff = 0;
                         if (entry.type === 'finish') {
                             dailyDiff = p - lastPageForDaily;
                             lastPageForDaily = 0;
+                            historyFinishes++;
                         } else if (entry.type === 'start') {
                             lastPageForDaily = 0;
                         } else {
@@ -2662,44 +2970,77 @@ const App = {
                             lastPageForDaily = entry.page || 0;
                         }
 
-                        if (dailyDiff > 0) {
-                            const d = new Date(entry.date);
-                            const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        if (isThisYear && dailyDiff > 0 && !isMigrationEntry(entry)) {
+                            const dKey = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
                             target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + dailyDiff;
                             
-                            const entryMonth = d.getMonth();
+                            const entryMonth = entryDate.getMonth();
                             target.monthlyPagesDist[entryMonth] += dailyDiff;
-                        }
-
-                        if (entry.type === 'finish') {
-                            effortPages += p;
-                            currentCycleProgress = 0;
-                        } else if (entry.type === 'start') {
-                            currentCycleProgress = 0;
-                        } else {
-                            currentCycleProgress = entry.page || 0;
+                            target.pages += dailyDiff;
+                        } else if (isThisYear && dailyDiff > 0 && isMigrationEntry(entry) && targetYear === 'all') {
+                            target.pages += dailyDiff;
                         }
                     });
-                    effortPages += currentCycleProgress;
                 } else {
-                    if (b.status === 'read') {
-                        effortPages = p * (b.timesRead || 1);
+                    const hasExplicitDate = b.readDate && b.readDate.length > 0;
+                    const isPotentiallyMigrated = b.migrated || (b.history && b.history.some(h => isMigrationEntry(h))) || (b.id && String(b.id).startsWith('mig_'));
+                    
+                    if (!hasExplicitDate || isPotentiallyMigrated) {
+                        if (targetYear === 'all') {
+                            let effortPages = (b.status === 'read' && (b.timesRead || 0) === 0) ? p : (b.readPages || 0);
+                            effortPages += p * (b.timesRead || 0);
+                            target.pages += effortPages;
+                        }
                     } else {
-                        effortPages = (b.readPages || 0);
-                        if (b.timesRead > 0) {
-                            effortPages += (p * b.timesRead);
+                        let matchesYear = (targetYear === 'all' || b.readDate.startsWith(targetYear.toString()));
+                        if (matchesYear) {
+                            let effortPages = (b.status === 'read' && (b.timesRead || 0) === 0) ? p : (b.readPages || 0);
+                            effortPages += p * (b.timesRead || 0);
+                            target.pages += effortPages;
                         }
                     }
                 }
 
-                target.pages += effortPages;
+                const isRereading = ['re-reading', 'rereading'].includes(b.status);
+                const isMigratedBook = b.migrated || (b.id && (String(b.id).startsWith('mig_') || String(b.id).startsWith('MIGRATED_')));
+                
+                const manualSessions = b.timesRead || 0;
+                const fallback = (manualSessions === 0 && historyFinishes === 0 && (b.status === 'read' || isRereading)) ? 1 : 0;
+                const manualPages = (manualSessions + fallback) * p;
+
+                if (targetYear === 'all') {
+                    target.pages += manualPages;
+                }
 
                 if (b.rating > 0) {
                     target.ratingSum += parseFloat(b.rating);
                     target.ratedCount++;
                 }
 
-                if (month >= 0) target.monthlyDist[month]++;
+                const activeMonths = new Set();
+                const isPotentiallyMigratedBook = b.migrated || (b.history && b.history.some(h => h.isFallbackDate)) ||
+                                                 (b.id && (String(b.id).startsWith('mig_') || String(b.id).startsWith('MIGRATED_')));
+                if (targetYear !== 'all' && !isPotentiallyMigratedBook) {
+                    if (b.readDate && b.readDate.startsWith(targetYear.toString())) {
+                        const parts = b.readDate.split('-');
+                        const bMonth = parts.length === 3 ? parseInt(parts[1]) - 1 : new Date(b.readDate).getMonth();
+                        if (bMonth >= 0) activeMonths.add(bMonth);
+                    }
+                }
+
+                if (b.history && b.history.length > 0) {
+                    b.history.forEach(h => {
+                        const d = new Date(h.date);
+                        const isMigH = h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
+                        if (!isMigH && (targetYear === 'all' || d.getFullYear() == targetYear)) {
+                            activeMonths.add(d.getMonth());
+                        }
+                    });
+                }
+                
+                activeMonths.forEach(m => {
+                    if (m >= 0 && m < 12) target.monthlyDist[m]++;
+                });
 
                 if (p > 0 && b.status === 'read') {
                     if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = b;
@@ -2709,22 +3050,13 @@ const App = {
                 if (b.author) {
                     target.authors[b.author] = (target.authors[b.author] || 0) + 1;
                 }
-
-                if (b.status === 'read' && b.readDate) {
-                    const dateKey = b.readDate;
-                    if (!target.dailyPages[dateKey]) {
-                        const pCount = parseInt(b.pages) || 0;
-                        target.dailyPages[dateKey] = (target.dailyPages[dateKey] || 0) + pCount;
-                        
-                        if (month >= 0) {
-                            target.monthlyPagesDist[month] += pCount;
-                        }
-                    }
-                }
             };
 
-            updateStats(statsData.years[year], book);
-            updateStats(statsData.all, book);
+            activeYears.forEach(y => {
+                if (!statsData.years[y]) statsData.years[y] = createStatObj();
+                updateStats(statsData.years[y], book, y);
+            });
+            updateStats(statsData.all, book, 'all');
         });
 
         this.statsState = { data: statsData, selectedYear: 'all' };
@@ -2913,40 +3245,36 @@ const App = {
 
         let books = [];
         let periodLabel = '';
+        let yearStr = '';
+        let monthIdx = -1;
 
         if (type === 'year') {
-            const yearStr = value.toString();
+            yearStr = value.toString();
             periodLabel = yearStr;
             books = this.state.books.filter(b => {
-                const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
-                if (!isRead && (b.timesRead || 0) === 0) return false;
-
+                const yearNum = parseInt(yearStr);
+                
+                let matches = false;
                 if (yearStr === 'Desconhecido') {
-                    if (!b.readDate) return true;
-                } else {
-                    if (b.readDate && b.readDate.startsWith(yearStr)) return true;
+                    if (!b.readDate) matches = true;
+                } else if (b.readDate && b.readDate.startsWith(yearStr)) {
+                    matches = true;
                 }
-
-                if (b.history && b.history.length > 0) {
-                    return b.history.some(h => {
-                        if (h.type !== 'finish') return false;
-                        const hYear = new Date(h.date).getFullYear().toString();
-                        if (yearStr === 'Desconhecido') return false;
-                        return hYear === yearStr;
-                    });
+                
+                if (!matches && b.history && b.history.length > 0) {
+                    matches = b.history.some(h => new Date(h.date).getFullYear() === yearNum);
                 }
-                return false;
+                
+                return matches;
             });
         } else if (type === 'month') {
-            const yearStr = this.statsState.selectedYear;
-            const monthIdx = parseInt(value);
+            yearStr = this.statsState.selectedYear.toString();
+            monthIdx = parseInt(value);
             const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             periodLabel = `${mNames[monthIdx]} de ${yearStr} `;
 
             books = this.state.books.filter(b => {
-                const isRead = b.status === 'read' || (b.readPages === parseInt(b.pages) && parseInt(b.pages) > 0);
-                if (!isRead && (b.timesRead || 0) === 0) return false;
-
+                const yearNum = parseInt(yearStr);
                 let matches = false;
 
                 if (b.readDate) {
@@ -2960,14 +3288,13 @@ const App = {
                         bMonth = parseInt(parts[1]) - 1;
                     }
 
-                    if (bYear.toString() === yearStr && bMonth === monthIdx) matches = true;
+                    if (bYear === yearNum && bMonth === monthIdx) matches = true;
                 }
 
                 if (!matches && b.history && b.history.length > 0) {
                     matches = b.history.some(h => {
-                        if (h.type !== 'finish') return false;
                         const d = new Date(h.date);
-                        return d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx;
+                        return d.getFullYear() === yearNum && d.getMonth() === monthIdx;
                     });
                 }
 
@@ -2984,26 +3311,55 @@ const App = {
         } else {
             let html = '<div class="books-list-compact">';
             books.forEach(book => {
-                const cover = book.cover || 'https://placehold.co/45x65?text=Capa';
+                const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
+
+                let pagesInPeriod = 0;
+                if (book.history && book.history.length > 0) {
+                    const sortedH = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    let lastPage = 0;
+                    
+                    sortedH.forEach(h => {
+                        const d = new Date(h.date);
+                        let diff = 0;
+                        
+                        if (h.type === 'finish') {
+                            diff = (parseInt(book.pages) || 0) - lastPage;
+                            lastPage = 0;
+                        } else if (h.type === 'start') {
+                            lastPage = 0;
+                        } else {
+                            diff = (h.page || 0) - lastPage;
+                            lastPage = h.page || 0;
+                        }
+
+                        if (type === 'year') {
+                            if (d.getFullYear().toString() === yearStr && diff > 0) pagesInPeriod += diff;
+                        } else {
+                            if (d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx && diff > 0) pagesInPeriod += diff;
+                        }
+                    });
+                } else if (book.status === 'read') {
+                    const d = new Date(book.readDate);
+                    if (type === 'year') {
+                        if (d.getFullYear().toString() === yearStr) pagesInPeriod = parseInt(book.pages) || 0;
+                    } else {
+                        if (d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx) pagesInPeriod = parseInt(book.pages) || 0;
+                    }
+                }
 
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
-                             <img src="${cover}" class="api-result-cover" loading="lazy" alt="${book.title}"
-                                  style="${isPlaceholder ? 'display:none' : ''}"
-                                  onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
-                             <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
-                                <div class="placeholder-title">${book.title}</div>
-                                <div class="placeholder-author">${book.author}</div>
-                             </div>
+                             <img src="${coverUrl}" class="api-result-cover" loading="lazy" alt="${book.title}"
+                                  onerror="this.src='https://placehold.co/200x300?text=Sem+Capa'">
                         </div>
                         <div class="api-result-info">
                             <div class="api-result-title">${book.title}</div>
                             <div class="api-result-author">${book.author}</div>
                             <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
-                               ${book.rating > 0 ? '★ ' + book.rating : ''} 
-                               ${book.pages ? ' • ' + book.pages + ' pág' : ''}
+                               ${book.rating > 0 ? '★ ' + book.rating + ' • ' : ''} 
+                               ${pagesInPeriod > 0 ? `${pagesInPeriod} pág lidas no ${type === 'year' ? 'ano' : 'mês'}` : (book.pages ? book.pages + ' pág' : '')}
                             </div>
                         </div>
                     </div>`;

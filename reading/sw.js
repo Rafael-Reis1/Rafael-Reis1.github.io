@@ -1,11 +1,11 @@
-const CACHE_NAME = 'reading-app-?v=0405261030';
+const CACHE_NAME = 'reading-app-?v=0405261630';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css?v=0405261030',
-    '/reading/app.js?v=0405261030',
+    '/reading/style.css?v=0405261630',
+    '/reading/app.js?v=0405261630',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json?v=0405261030',
+    '/reading/manifest.json?v=0405261630',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
@@ -39,11 +39,9 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
-
-    if (event.request.url.startsWith('https://firestore.googleapis.com') ||
-        event.request.url.startsWith('https://www.googleapis.com') ||
-        (event.request.url.includes('firebase') && !event.request.url.includes(self.registration.scope.origin))) {
-        return;
+    
+    if (!event.request.url.startsWith(self.location.origin)) {
+        return; 
     }
 
     event.respondWith(
