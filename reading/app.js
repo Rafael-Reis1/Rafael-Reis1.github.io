@@ -1200,7 +1200,6 @@ const App = {
         if (header && h1) {
             if (filter === 'all') {
                 h1.innerHTML = 'Minha Biblioteca <span id="currentSectionLabel"></span>';
-                this.dom.currentSectionLabel = h1.querySelector('#currentSectionLabel');
 
                 const themeMeta = document.querySelector('meta[name="theme-color"]');
                 if (themeMeta) themeMeta.setAttribute('content', '#0f0c29');
@@ -1219,21 +1218,10 @@ const App = {
                 header.style.borderBottom = 'none';
                 header.classList.add('header-active-filter');
 
-                const sidebarItem = document.querySelector(`.nav-item[data-filter="${filter}"]`);
-                let iconHtml = '';
                 let labelText = labels[filter] || filter;
-
-                if (sidebarItem) {
-                    const iconEl = sidebarItem.querySelector('.nav-icon');
-                    if (iconEl) iconHtml = iconEl.innerHTML;
-
-                    const labelEl = sidebarItem.querySelector('.nav-label');
-                    if (labelEl) labelText = labelEl.textContent;
-                }
 
                 h1.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="display: flex; align-items: center; justify-content: center;">${iconHtml}</div>
                         <span>${labelText}</span>
                     </div>
                 `;
