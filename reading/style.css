@@ -3844,6 +3844,11 @@ input[type=number] {
     padding-top: 0.75rem;
 }
 
+#notesForm .modal-body {
+    padding-bottom: 0;
+    padding-top: 0.75rem;
+}
+
 .heatmap-wrapper {
     overflow-x: auto;
     padding: 1rem 0;
