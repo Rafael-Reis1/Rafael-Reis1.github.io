@@ -2473,6 +2473,7 @@ input[type=number] {
     border-radius: 16px !important;
     font-family: var(--font-body) !important;
     z-index: 3000 !important;
+    margin-top: 0.3125rem;
 }
 
 .flatpickr-calendar.arrowTop:before,
