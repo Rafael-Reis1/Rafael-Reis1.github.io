@@ -2960,6 +2960,12 @@ const App = {
                             ${note.location ? `<span class="note-location-tag">${note.location}</span>` : ''}
                         </div>
                         <div class="action-buttons">
+                        <button type="button" class="action-btn" onclick="App.copyNoteToClipboard('${note.id}')" title="Copiar anotação">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
                             <button type="button" class="action-btn edit" onclick="App.editNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Editar nota">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -2978,6 +2984,18 @@ const App = {
                 </div>
             </div>
         `).join('');
+    },
+
+    copyNoteToClipboard(noteId) {
+        const bookId = document.getElementById('notesBookId').value;
+        const book = this.state.books.find(b => b.id === bookId);
+        const note = book.notes.find(n => n.id === noteId);
+        
+        if (note) {
+            navigator.clipboard.writeText(note.content).then(() => {
+                this.showMessage('Copiado!', 'Anotação copiada para a área de transferência.', '📋');
+            });
+        }
     },
 
     deleteNoteItem(bookId, noteId) {
@@ -3001,6 +3019,7 @@ const App = {
         }
     },
 };
+
 
 window.App = App;
 
