@@ -2710,8 +2710,16 @@ const App = {
                 this.refresh();
             }
         } else {
-            if (newPageCount === (book.readPages || 0)) {
-                this.showMessage('Atenção', 'O progresso informado é igual ao atual.', '⚠️');
+            let lastHistoryPage = 0;
+            if (book.history && book.history.length > 0) {
+                const sortedH = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                lastHistoryPage = sortedH[sortedH.length - 1].page || 0;
+            } else {
+                lastHistoryPage = book.readPages || 0;
+            }
+
+            if (newPageCount === lastHistoryPage) {
+                this.showMessage('Atenção', 'O progresso informado é igual ao último registro.', '⚠️');
                 return;
             }
             await this.updateProgress(bookId, newPageCount);
