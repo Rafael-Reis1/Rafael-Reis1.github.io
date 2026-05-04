@@ -341,6 +341,15 @@ const App = {
             this.datePicker = flatpickr("#bookReadDate", config);
             this.loanDatePicker = flatpickr("#loanDate", config);
         }
+
+        document.querySelectorAll('.format-filters, .year-filters').forEach(filters => {
+            filters.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    filters.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+        });
     },
 
     cacheDOM() {
