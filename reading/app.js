@@ -2902,169 +2902,172 @@ const App = {
 
         const createStatObj = () => ({
             books: [], booksCount: 0,
-            pages: 0,
-            ratingSum: 0, ratedCount: 0,
+            pages: 0, ratingSum: 0, ratedCount: 0,
             monthlyDist: new Array(12).fill(0),
-            longestBook: null,
-            shortestBook: null,
-            authors: {},
-            dailyPages: {},
+            longestBook: null, shortestBook: null,
+            authors: {}, dailyPages: {},
             monthlyPagesDist: new Array(12).fill(0)
         });
 
-            const statsData = {
-                years: {},
-                all: createStatObj()
-            };
+        const statsData = { years: {}, all: createStatObj() };
 
-            const isMigrationEntry = (entry) => {
-                if (!entry) return false;
-                return entry.migrated === true || 
-                       entry.isFallbackDate === true || 
-                       (entry.id && (String(entry.id).startsWith('mig_') || String(entry.id).startsWith('MIGRATED_')));
-            };
+        const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
 
-            this.state.books.forEach(book => {
-            if (book.goalYear) {
-                if (!statsData.years[book.goalYear]) statsData.years[book.goalYear] = createStatObj();
-            }
-
-            const isRead = book.status === 'read';
-            const timesRead = book.timesRead || 0;
-            const hasProgress = (book.readPages && book.readPages > 0) || timesRead > 0;
-
+        this.state.books.forEach(book => {
+            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0;
             if (book.status === 'want-to-read' && !hasProgress) return;
 
-            const activeYears = new Set();
-            if (book.readDate) activeYears.add(parseInt(book.readDate.split('-')[0]));
-            if (book.history && book.history.length > 0) {
-                book.history.forEach(h => activeYears.add(new Date(h.date).getFullYear()));
+            let readYear = 'Desconhecido';
+            let readMonth = -1;
+            
+            if (book.readDate) {
+                const parts = book.readDate.split('-');
+                readYear = parseInt(parts[0]);
+                if (parts.length >= 2) readMonth = parseInt(parts[1]) - 1;
             }
+
+            const activeYears = new Set();
+            if (readYear !== 'Desconhecido') activeYears.add(readYear);
+            
+            const realHistory = (book.history || []).filter(h => !isSynthetic(h));
+            realHistory.forEach(h => activeYears.add(new Date(h.date).getFullYear()));
+            
+            const hasSynthetic = (book.history || []).some(h => isSynthetic(h));
+            if (hasSynthetic && readYear === 'Desconhecido') {
+                activeYears.add('Desconhecido');
+            }
+            
             if (book.goalYear) activeYears.add(parseInt(book.goalYear));
             if (activeYears.size === 0) activeYears.add('Desconhecido');
 
-            const updateStats = (target, b, targetYear) => {
-                const history = b.history || [];
-                const p = parseInt(b.pages) || 0;
+            const processForYear = (target, targetYear) => {
+                let countsAsBookThisYear = false;
                 
-                const hasRealActivityInYear = history.some(h => {
-                    const d = new Date(h.date);
-                    return !isMigrationEntry(h) && (targetYear === 'all' || d.getFullYear() == targetYear);
-                });
-
-                if (targetYear === 'all' || hasRealActivityInYear) {
-                    target.books.push(b);
-                    target.booksCount++;
+                if (targetYear === 'all' || targetYear === 'Desconhecido') {
+                    countsAsBookThisYear = true;
+                } else if (book.status === 'read' && readYear === targetYear) {
+                    countsAsBookThisYear = true;
                 }
 
+                const p = parseInt(book.pages) || 0;
+                let pagesInYear = 0;
+                let pagesInMonths = new Array(12).fill(0);
+                let dailyPagesForHeatmap = {};
                 let historyFinishes = 0;
-                if (history.length > 0) {
-                    let lastPageForDaily = 0;
-                    const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+                if (book.history && book.history.length > 0) {
+                    let lastPage = 0;
+                    const sortedHistory = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
                     sortedHistory.forEach(entry => {
-                        const entryDate = new Date(entry.date);
-                        const isThisYear = (targetYear === 'all' || entryDate.getFullYear() == targetYear);
-                        
-                        let dailyDiff = 0;
+                        let diff = 0;
                         if (entry.type === 'finish') {
-                            dailyDiff = p - lastPageForDaily;
-                            lastPageForDaily = 0;
+                            diff = p - lastPage;
+                            lastPage = 0;
                             historyFinishes++;
                         } else if (entry.type === 'start') {
-                            lastPageForDaily = 0;
+                            lastPage = 0;
                         } else {
-                            dailyDiff = (entry.page || 0) - lastPageForDaily;
-                            lastPageForDaily = entry.page || 0;
+                            diff = (entry.page || 0) - lastPage;
+                            lastPage = entry.page || 0;
                         }
 
-                        if (isThisYear && dailyDiff > 0 && !isMigrationEntry(entry)) {
-                            const dKey = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}-${String(entryDate.getDate()).padStart(2, '0')}`;
-                            target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + dailyDiff;
-                            
-                            const entryMonth = entryDate.getMonth();
-                            target.monthlyPagesDist[entryMonth] += dailyDiff;
-                            target.pages += dailyDiff;
-                        } else if (isThisYear && dailyDiff > 0 && isMigrationEntry(entry) && targetYear === 'all') {
-                            target.pages += dailyDiff;
+                        if (diff > 0) {
+                            if (!isSynthetic(entry)) {
+                                const d = new Date(entry.date);
+                                const eYear = d.getFullYear();
+                                const eMonth = d.getMonth();
+                                
+                                if (targetYear === 'all' || eYear === targetYear) {
+                                    pagesInYear += diff;
+                                    pagesInMonths[eMonth] += diff;
+                                    const dKey = `${eYear}-${String(eMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                                    dailyPagesForHeatmap[dKey] = (dailyPagesForHeatmap[dKey] || 0) + diff;
+                                }
+                            } else {
+                                if (targetYear === 'all' || readYear === targetYear) {
+                                    pagesInYear += diff;
+                                    if (readMonth !== -1 && readYear !== 'Desconhecido') {
+                                        pagesInMonths[readMonth] += diff;
+                                    }
+                                }
+                            }
                         }
                     });
-                } else {
-                    const hasExplicitDate = b.readDate && b.readDate.length > 0;
-                    const isPotentiallyMigrated = b.migrated || (b.history && b.history.some(h => isMigrationEntry(h))) || (b.id && String(b.id).startsWith('mig_'));
+                }
+
+                const manualSessions = book.timesRead || 0;
+                const isRereading = ['re-reading', 'rereading'].includes(book.status);
+                const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
+                const extraPages = (manualSessions + fallback) * p;
+
+                if (extraPages > 0) {
+                    if (targetYear === 'all' || readYear === targetYear) {
+                        pagesInYear += extraPages;
+                        if (readMonth !== -1 && readYear !== 'Desconhecido') {
+                            pagesInMonths[readMonth] += extraPages;
+                        }
+                    }
+                }
+
+                if ((!book.history || book.history.length === 0) && book.status !== 'read') {
+                    const rPages = book.readPages || 0;
+                    if (rPages > 0) {
+                        if (targetYear === 'all' || readYear === targetYear) {
+                            pagesInYear += rPages;
+                            if (readMonth !== -1 && readYear !== 'Desconhecido') {
+                                pagesInMonths[readMonth] += rPages;
+                            }
+                        }
+                    }
+                }
+
+                if (!countsAsBookThisYear && pagesInYear > 0) {
+                    countsAsBookThisYear = true;
+                }
+
+                const hasAnyActivity = countsAsBookThisYear || pagesInYear > 0 || (book.goalYear === targetYear);
+
+                if (hasAnyActivity) {
+                    target.books.push(book);
                     
-                    if (!hasExplicitDate || isPotentiallyMigrated) {
-                        if (targetYear === 'all') {
-                            let effortPages = (b.status === 'read' && (b.timesRead || 0) === 0) ? p : (b.readPages || 0);
-                            effortPages += p * (b.timesRead || 0);
-                            target.pages += effortPages;
-                        }
-                    } else {
-                        let matchesYear = (targetYear === 'all' || b.readDate.startsWith(targetYear.toString()));
-                        if (matchesYear) {
-                            let effortPages = (b.status === 'read' && (b.timesRead || 0) === 0) ? p : (b.readPages || 0);
-                            effortPages += p * (b.timesRead || 0);
-                            target.pages += effortPages;
-                        }
+                    if (countsAsBookThisYear) {
+                        target.booksCount++;
                     }
-                }
 
-                const isRereading = ['re-reading', 'rereading'].includes(b.status);
-                const isMigratedBook = b.migrated || (b.id && (String(b.id).startsWith('mig_') || String(b.id).startsWith('MIGRATED_')));
-                
-                const manualSessions = b.timesRead || 0;
-                const fallback = (manualSessions === 0 && historyFinishes === 0 && (b.status === 'read' || isRereading)) ? 1 : 0;
-                const manualPages = (manualSessions + fallback) * p;
-
-                if (targetYear === 'all') {
-                    target.pages += manualPages;
-                }
-
-                if (b.rating > 0) {
-                    target.ratingSum += parseFloat(b.rating);
-                    target.ratedCount++;
-                }
-
-                const activeMonths = new Set();
-                const isPotentiallyMigratedBook = b.migrated || (b.history && b.history.some(h => h.isFallbackDate)) ||
-                                                 (b.id && (String(b.id).startsWith('mig_') || String(b.id).startsWith('MIGRATED_')));
-                if (targetYear !== 'all' && !isPotentiallyMigratedBook) {
-                    if (b.readDate && b.readDate.startsWith(targetYear.toString())) {
-                        const parts = b.readDate.split('-');
-                        const bMonth = parts.length === 3 ? parseInt(parts[1]) - 1 : new Date(b.readDate).getMonth();
-                        if (bMonth >= 0) activeMonths.add(bMonth);
-                    }
-                }
-
-                if (b.history && b.history.length > 0) {
-                    b.history.forEach(h => {
-                        const d = new Date(h.date);
-                        const isMigH = h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
-                        if (!isMigH && (targetYear === 'all' || d.getFullYear() == targetYear)) {
-                            activeMonths.add(d.getMonth());
+                    for (let m = 0; m < 12; m++) {
+                        if (pagesInMonths[m] > 0 || (book.status === 'read' && readYear === targetYear && readMonth === m)) {
+                            target.monthlyDist[m]++;
                         }
-                    });
-                }
-                
-                activeMonths.forEach(m => {
-                    if (m >= 0 && m < 12) target.monthlyDist[m]++;
-                });
+                        target.monthlyPagesDist[m] += pagesInMonths[m];
+                    }
 
-                if (p > 0 && b.status === 'read') {
-                    if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = b;
-                    if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = b;
-                }
+                    target.pages += pagesInYear;
+                    for (const [dKey, pgs] of Object.entries(dailyPagesForHeatmap)) {
+                        target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + pgs;
+                    }
 
-                if (b.author) {
-                    target.authors[b.author] = (target.authors[b.author] || 0) + 1;
+                    if (book.rating > 0) {
+                        target.ratingSum += parseFloat(book.rating);
+                        target.ratedCount++;
+                    }
+
+                    if (countsAsBookThisYear && p > 0) {
+                        if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = book;
+                        if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = book;
+                    }
+
+                    if (countsAsBookThisYear && book.author) {
+                        target.authors[book.author] = (target.authors[book.author] || 0) + 1;
+                    }
                 }
             };
 
             activeYears.forEach(y => {
                 if (!statsData.years[y]) statsData.years[y] = createStatObj();
-                updateStats(statsData.years[y], book, y);
+                processForYear(statsData.years[y], y);
             });
-            updateStats(statsData.all, book, 'all');
+            processForYear(statsData.all, 'all');
         });
 
         this.statsState = { data: statsData, selectedYear: 'all' };
@@ -3245,70 +3248,125 @@ const App = {
         container.innerHTML = html;
         this.renderHeatMap(current.dailyPages, selectedYear);
     },
+    
     openPeriodDetails(type, value) {
         const modal = document.getElementById('periodDetailsModal');
         const content = document.getElementById('periodDetailsContent');
         const title = document.getElementById('periodDetailsTitle');
         if (!modal || !content) return;
 
+        const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
+
         let books = [];
         let periodLabel = '';
         let yearStr = '';
         let monthIdx = -1;
+        let targetYear;
 
         if (type === 'year') {
             yearStr = value.toString();
             periodLabel = yearStr;
-            books = this.state.books.filter(b => {
-                const yearNum = parseInt(yearStr);
-                
-                let matches = false;
-                if (yearStr === 'Desconhecido') {
-                    if (!b.readDate) matches = true;
-                } else if (b.readDate && b.readDate.startsWith(yearStr)) {
-                    matches = true;
-                }
-                
-                if (!matches && b.history && b.history.length > 0) {
-                    matches = b.history.some(h => new Date(h.date).getFullYear() === yearNum);
-                }
-                
-                return matches;
-            });
+            targetYear = yearStr === 'Desconhecido' ? 'Desconhecido' : parseInt(yearStr);
         } else if (type === 'month') {
             yearStr = this.statsState.selectedYear.toString();
             monthIdx = parseInt(value);
+            targetYear = parseInt(yearStr);
             const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             periodLabel = `${mNames[monthIdx]} de ${yearStr} `;
+        }
 
-            books = this.state.books.filter(b => {
-                const yearNum = parseInt(yearStr);
-                let matches = false;
+        books = this.state.books.filter(book => {
+            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0;
+            if (book.status === 'want-to-read' && !hasProgress) return false;
 
-                if (b.readDate) {
-                    const d = new Date(b.readDate);
-                    const parts = b.readDate.split('-');
-                    let bYear = d.getFullYear();
-                    let bMonth = d.getMonth();
+            let readYear = 'Desconhecido';
+            let readMonth = -1;
+            if (book.readDate) {
+                const parts = book.readDate.split('-');
+                readYear = parseInt(parts[0]);
+                if (parts.length >= 2) readMonth = parseInt(parts[1]) - 1;
+            }
 
-                    if (parts.length === 3) {
-                        bYear = parseInt(parts[0]);
-                        bMonth = parseInt(parts[1]) - 1;
+            let pagesInPeriod = 0;
+            const p = parseInt(book.pages) || 0;
+            let historyFinishes = 0;
+
+            if (book.history && book.history.length > 0) {
+                let lastPage = 0;
+                const sortedHistory = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                sortedHistory.forEach(entry => {
+                    let diff = 0;
+                    if (entry.type === 'finish') {
+                        diff = p - lastPage;
+                        lastPage = 0;
+                        historyFinishes++;
+                    } else if (entry.type === 'start') {
+                        lastPage = 0;
+                    } else {
+                        diff = (entry.page || 0) - lastPage;
+                        lastPage = entry.page || 0;
                     }
 
-                    if (bYear === yearNum && bMonth === monthIdx) matches = true;
-                }
+                    if (diff > 0) {
+                        if (!isSynthetic(entry)) {
+                            const d = new Date(entry.date);
+                            const eYear = d.getFullYear();
+                            const eMonth = d.getMonth();
+                            if (type === 'year' && eYear === targetYear) {
+                                pagesInPeriod += diff;
+                            } else if (type === 'month' && eYear === targetYear && eMonth === monthIdx) {
+                                pagesInPeriod += diff;
+                            }
+                        } else {
+                            if (type === 'year' && readYear === targetYear) {
+                                pagesInPeriod += diff;
+                            } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
+                                pagesInPeriod += diff;
+                            }
+                        }
+                    }
+                });
+            }
 
-                if (!matches && b.history && b.history.length > 0) {
-                    matches = b.history.some(h => {
-                        const d = new Date(h.date);
-                        return d.getFullYear() === yearNum && d.getMonth() === monthIdx;
-                    });
-                }
+            const manualSessions = book.timesRead || 0;
+            const isRereading = ['re-reading', 'rereading'].includes(book.status);
+            const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
+            const extraPages = (manualSessions + fallback) * p;
 
-                return matches;
-            });
-        }
+            if (extraPages > 0) {
+                if (type === 'year' && readYear === targetYear) {
+                    pagesInPeriod += extraPages;
+                } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
+                    pagesInPeriod += extraPages;
+                }
+            }
+
+            if ((!book.history || book.history.length === 0) && book.status !== 'read') {
+                const rPages = book.readPages || 0;
+                if (rPages > 0) {
+                    if (type === 'year' && readYear === targetYear) {
+                        pagesInPeriod += rPages;
+                    } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
+                        pagesInPeriod += rPages;
+                    }
+                }
+            }
+
+            let countsAsBook = false;
+            if (type === 'year') {
+                countsAsBook = (targetYear === 'Desconhecido') || (book.status === 'read' && readYear === targetYear) || pagesInPeriod > 0;
+            } else if (type === 'month') {
+                countsAsBook = (book.status === 'read' && readYear === targetYear && readMonth === monthIdx) || pagesInPeriod > 0;
+            }
+
+            const hasGoal = (type === 'year' && book.goalYear === targetYear);
+
+            if (countsAsBook || pagesInPeriod > 0 || hasGoal) {
+                book._tempPagesInPeriod = pagesInPeriod;
+                return true;
+            }
+            return false;
+        });
 
         books.sort((a, b) => new Date(b.readDate || 0) - new Date(a.readDate || 0));
 
@@ -3321,40 +3379,7 @@ const App = {
             books.forEach(book => {
                 const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
-
-                let pagesInPeriod = 0;
-                if (book.history && book.history.length > 0) {
-                    const sortedH = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
-                    let lastPage = 0;
-                    
-                    sortedH.forEach(h => {
-                        const d = new Date(h.date);
-                        let diff = 0;
-                        
-                        if (h.type === 'finish') {
-                            diff = (parseInt(book.pages) || 0) - lastPage;
-                            lastPage = 0;
-                        } else if (h.type === 'start') {
-                            lastPage = 0;
-                        } else {
-                            diff = (h.page || 0) - lastPage;
-                            lastPage = h.page || 0;
-                        }
-
-                        if (type === 'year') {
-                            if (d.getFullYear().toString() === yearStr && diff > 0) pagesInPeriod += diff;
-                        } else {
-                            if (d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx && diff > 0) pagesInPeriod += diff;
-                        }
-                    });
-                } else if (book.status === 'read') {
-                    const d = new Date(book.readDate);
-                    if (type === 'year') {
-                        if (d.getFullYear().toString() === yearStr) pagesInPeriod = parseInt(book.pages) || 0;
-                    } else {
-                        if (d.getFullYear().toString() === yearStr && d.getMonth() === monthIdx) pagesInPeriod = parseInt(book.pages) || 0;
-                    }
-                }
+                const pagesInPeriod = book._tempPagesInPeriod || 0;
 
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
