@@ -2914,8 +2914,8 @@ const App = {
         const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
 
         this.state.books.forEach(book => {
-            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0;
-            if (book.status === 'want-to-read' && !hasProgress) return;
+            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0 || (book.history && book.history.length > 0);
+            if (book.status === 'want-to-read' && !hasProgress && !book.goalYear) return;
 
             let readYear = 'Desconhecido';
             let readMonth = -1;
@@ -2957,10 +2957,20 @@ const App = {
 
                 if (book.history && book.history.length > 0) {
                     let lastPage = 0;
-                    const sortedHistory = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    const sortedHistory = [...book.history].sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        if (dateA - dateB !== 0) return dateA - dateB;
+                        const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+                        const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+                        const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+                        return orderA - orderB;
+                    });
                     
                     sortedHistory.forEach(entry => {
                         let diff = 0;
+                        const pageNum = parseInt(entry.page) || 0;
+
                         if (entry.type === 'finish') {
                             diff = p - lastPage;
                             lastPage = 0;
@@ -2968,8 +2978,8 @@ const App = {
                         } else if (entry.type === 'start') {
                             lastPage = 0;
                         } else {
-                            diff = (entry.page || 0) - lastPage;
-                            lastPage = entry.page || 0;
+                            diff = pageNum - lastPage;
+                            lastPage = pageNum;
                         }
 
                         if (diff > 0) {
@@ -3119,7 +3129,7 @@ const App = {
             <div class="stats-summary">
                 <div class="summary-card">
                     <div class="summary-value">${current.booksCount}</div>
-                    <div class="summary-label">Livros Lidos</div>
+                    <div class="summary-label">Lidos, Lendo ou Relendo</div>
                 </div>
                 <div class="summary-card">
                     <div class="summary-value">${current.pages.toLocaleString()}</div>
@@ -3276,8 +3286,8 @@ const App = {
         }
 
         books = this.state.books.filter(book => {
-            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0;
-            if (book.status === 'want-to-read' && !hasProgress) return false;
+            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0 || (book.history && book.history.length > 0);
+            if (book.status === 'want-to-read' && !hasProgress && !book.goalYear) return false;
 
             let readYear = 'Desconhecido';
             let readMonth = -1;
@@ -3293,9 +3303,20 @@ const App = {
 
             if (book.history && book.history.length > 0) {
                 let lastPage = 0;
-                const sortedHistory = [...book.history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sortedHistory = [...book.history].sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    if (dateA - dateB !== 0) return dateA - dateB;
+                    const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+                    const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
+                    const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
+                    return orderA - orderB;
+                });
+
                 sortedHistory.forEach(entry => {
                     let diff = 0;
+                    const pageNum = parseInt(entry.page) || 0;
+
                     if (entry.type === 'finish') {
                         diff = p - lastPage;
                         lastPage = 0;
@@ -3303,8 +3324,8 @@ const App = {
                     } else if (entry.type === 'start') {
                         lastPage = 0;
                     } else {
-                        diff = (entry.page || 0) - lastPage;
-                        lastPage = entry.page || 0;
+                        diff = pageNum - lastPage;
+                        lastPage = pageNum;
                     }
 
                     if (diff > 0) {
@@ -3354,14 +3375,12 @@ const App = {
 
             let countsAsBook = false;
             if (type === 'year') {
-                countsAsBook = (targetYear === 'Desconhecido') || (book.status === 'read' && readYear === targetYear) || pagesInPeriod > 0;
+                countsAsBook = (targetYear === 'Desconhecido' && readYear === 'Desconhecido') || (book.status === 'read' && readYear === targetYear) || pagesInPeriod > 0 || (book.goalYear === targetYear);
             } else if (type === 'month') {
                 countsAsBook = (book.status === 'read' && readYear === targetYear && readMonth === monthIdx) || pagesInPeriod > 0;
             }
 
-            const hasGoal = (type === 'year' && book.goalYear === targetYear);
-
-            if (countsAsBook || pagesInPeriod > 0 || hasGoal) {
+            if (countsAsBook) {
                 book._tempPagesInPeriod = pagesInPeriod;
                 return true;
             }
@@ -3379,6 +3398,7 @@ const App = {
             books.forEach(book => {
                 const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
+                
                 const pagesInPeriod = book._tempPagesInPeriod || 0;
 
                 html += `
