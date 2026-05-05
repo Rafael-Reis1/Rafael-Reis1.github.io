@@ -1123,10 +1123,9 @@ body {
     min-height: 0;
 }
 
-.modal-actions,
 .modal-footer {
     padding: 1rem 1.25rem;
-    background: rgba(0, 0, 0, 0.4);
+    background: #0f101e;
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: flex-end;
@@ -1147,11 +1146,6 @@ body {
     flex: 1;
     min-height: 0;
 }
-
-.modal-content form .modal-actions {
-    flex-shrink: 0;
-}
-
 
 .modal-header h3 {
     font-family: var(--font-heading);
@@ -1537,18 +1531,6 @@ input[type=number] {
 
 .tag-checkbox:has(input:checked) svg {
     color: var(--accent-color);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1.25rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    width: calc(100% + 2.5rem);
-    margin: 0 -1.25rem -1.25rem -1.25rem;
-    border-radius: 0 0 16px 16px;
 }
 
 @media (max-width: 768px) {
@@ -2221,7 +2203,7 @@ input[type=number] {
     gap: 1rem;
     padding: 1.25rem 1.5rem;
     border-top: 1px solid var(--glass-border);
-    background: rgba(0, 0, 0, 0.2);
+    background: #0f101e;
 }
 
 .message-modal .modal-body {
@@ -2244,6 +2226,7 @@ input[type=number] {
     justify-content: center;
     padding: 1.25rem 1.5rem;
     border-top: 1px solid var(--glass-border);
+    background: #0f101e;
 }
 
 .btn-danger {
@@ -3053,7 +3036,6 @@ input[type=number] {
         font-size: 1.1rem;
     }
 
-    .modal-actions,
     .modal-footer {
         padding: 0.75rem 1rem;
     }
@@ -3740,25 +3722,6 @@ input[type=number] {
     font-weight: 600;
 }
 
-#historyModal .modal-actions,
-#notesModal .modal-actions {
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    border-top: 1px solid var(--glass-border);
-    background: rgba(0, 0, 0, 0.2);
-    flex-shrink: 0;
-    width: 100%;
-    margin: 0;
-    border-radius: 0 0 16px 16px;
-}
-
-#historyModal .modal-actions .btn-secondary,
-#notesModal .modal-actions .btn-secondary {
-    margin-right: auto;
-}
-
 @media (max-width: 768px) {
     #notesModal .modal-content,
     #historyModal .modal-content {
@@ -3766,11 +3729,6 @@ input[type=number] {
         width: 95%;
         margin: auto;
         border-radius: 16px;
-    }
-
-    #historyModal .modal-actions,
-    #notesModal .modal-actions {
-        border-radius: 0 0 16px 16px;
     }
 
     #historyListView,
@@ -3913,8 +3871,29 @@ input[type=number] {
 
 .heatmap-cell.level-0 { background: rgba(255, 255, 255, 0.1); }
 
+#bookForm {
+    padding: 0;
+    gap: 0;
+}
+
 #bookForm .modal-body {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    padding: 20px
+}
+
+.modal-content, 
+.modal-body {
+    scrollbar-width: none; 
+}
+
+.modal-content, 
+.modal-body {
+    -ms-overflow-style: none; 
+}
+
+.modal-content::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar {
+    display: none;
 }
