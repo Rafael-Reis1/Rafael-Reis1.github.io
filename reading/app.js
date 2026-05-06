@@ -78,7 +78,7 @@ const BookModel = {
             author: data.author.trim(),
             pages: parseInt(data.pages) || 0,
             status: data.status || 'want-to-read',
-            cover: data.cover || 'https://placehold.co/200x300?text=Sem+Capa',
+            cover: data.cover || '',
             tags: data.tags || [],
             readFormat: data.readFormat || [],
             rating: parseFloat(data.rating) || 0,
@@ -2229,7 +2229,7 @@ const App = {
         books.forEach(book => {
             const info = book.volumeInfo;
             const coverUrl = info.imageLinks ? info.imageLinks.thumbnail : null;
-            const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : 'https://placehold.co/200x300?text=Sem+Capa';
+            const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : '';
             
             const title = info.title || 'Título desconhecido';
             const author = info.authors ? info.authors.join(', ') : 'Autor desconhecido';
