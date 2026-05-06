@@ -397,7 +397,7 @@ const App = {
 
                 for (const entry of sortedHistory) {
                     if (entry.type === 'finish') {
-                        if (lastFinish && (new Date(entry.date) - new Date(lastFinish.date) < 3600000)) {
+                        if (lastFinish && (new Date(entry.date) - new Date(lastFinish.date) < 86400000)) {
                             historyWasCleaned = true;
                             const idx = sanitized.indexOf(lastFinish);
                             if (idx !== -1) sanitized.splice(idx, 1);
@@ -1395,23 +1395,16 @@ const App = {
             return book.computed.activityByMonth[ym];
         };
 
-        let historyFinishes = 0;
         let lastPage = 0;
-        const sortedHistory = [...(book.history || [])].sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            if (dateA - dateB !== 0) return dateA - dateB;
-            const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
-            return (typeOrder[a.type] ?? 1) - (typeOrder[b.type] ?? 1);
-        });
+        const sortedHistory = [...(book.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
         sortedHistory.forEach(h => {
             let diff = 0;
             const pageNum = parseInt(h.page) || 0;
+            
             if (h.type === 'finish') {
                 diff = p - lastPage;
                 lastPage = 0;
-                historyFinishes++;
             } else if (h.type === 'start') {
                 lastPage = 0;
             } else {
@@ -1419,105 +1412,74 @@ const App = {
                 lastPage = pageNum;
             }
 
-            if (diff > 0) {
-                let d, year, month, ym, dKey;
-                if (isSynthetic(h)) {
-                    if (book.readDate) {
-                        d = new Date(book.readDate + 'T12:00:00');
-                        year = d.getFullYear();
-                        month = d.getMonth();
-                        ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-                        dKey = book.readDate;
-                    } else {
-                        year = 'Desconhecido';
-                        ym = 'Desconhecido';
+            if (diff > 0 || h.type === 'finish') {
+                if (diff > 0) book.computed.totalReadPages += diff;
+
+                if (isSynthetic(h) && !book.readDate) {
+                    if (diff > 0) {
+                        ensureYear('Desconhecido').pages += diff;
+                        ensureYear('Desconhecido').active = true;
+                        ensureMonth('Desconhecido').pages += diff;
+                        ensureMonth('Desconhecido').active = true;
                     }
+                    if (h.type === 'finish') {
+                        ensureYear('Desconhecido').finishes++;
+                        ensureMonth('Desconhecido').finishes++;
+                    }
+                    return;
+                }
+
+                let d;
+                if (isSynthetic(h) && book.readDate) {
+                    d = new Date(book.readDate + 'T12:00:00');
                 } else {
                     d = new Date(h.date);
-                    year = d.getFullYear();
-                    month = d.getMonth();
-                    ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-                    dKey = d.toISOString().split('T')[0];
                 }
 
-                book.computed.totalReadPages += diff;
-                const yObj = ensureYear(year);
-                yObj.pages += diff;
-                yObj.active = true;
+                const year = d.getFullYear();
+                const month = d.getMonth();
+                const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                const dKey = d.toISOString().split('T')[0];
 
-                const mObj = ensureMonth(ym);
-                mObj.pages += diff;
-                mObj.active = true;
-
-                if (!isSynthetic(h) && dKey) {
-                    book.computed.heatmapDays[dKey] = (book.computed.heatmapDays[dKey] || 0) + diff;
-                }
-            }
-
-            if (h.type === 'finish') {
-                let d, year, month, ym;
-                if (isSynthetic(h)) {
-                    if (book.readDate) {
-                        d = new Date(book.readDate + 'T12:00:00');
-                        year = d.getFullYear();
-                        month = d.getMonth();
-                        ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-                    } else {
-                        year = 'Desconhecido';
-                        ym = 'Desconhecido';
+                if (diff > 0) {
+                    ensureYear(year).pages += diff;
+                    ensureYear(year).active = true;
+                    ensureMonth(ym).pages += diff;
+                    ensureMonth(ym).active = true;
+                    
+                    if (!isSynthetic(h)) {
+                        book.computed.heatmapDays[dKey] = (book.computed.heatmapDays[dKey] || 0) + diff;
                     }
-                } else {
-                    d = new Date(h.date);
-                    year = d.getFullYear();
-                    month = d.getMonth();
-                    ym = `${year}-${String(month + 1).padStart(2, '0')}`;
                 }
-                ensureYear(year).finishes++;
-                ensureMonth(ym).finishes++;
+
+                if (h.type === 'finish') {
+                    ensureYear(year).finishes++;
+                    ensureMonth(ym).finishes++;
+                }
             }
         });
 
-        const manualSessions = book.timesRead || 0;
-        const isRereading = ['re-reading', 'rereading'].includes(book.status);
-        const fallbackCount = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
-        const extraSessions = manualSessions + fallbackCount;
-
-        if (extraSessions > 0) {
-            let year, month, ym;
-            if (book.readDate) {
-                const d = new Date(book.readDate + 'T12:00:00');
-                year = d.getFullYear();
-                month = d.getMonth();
-                ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-            } else {
-                year = 'Desconhecido';
-                ym = 'Desconhecido';
-            }
-
-            const totalExtraPages = extraSessions * p;
-            book.computed.totalReadPages += totalExtraPages;
+        const manualSessions = parseInt(book.timesRead) || 0;
+        if (manualSessions > 0) {
+            const manualPages = manualSessions * p;
+            book.computed.totalReadPages += manualPages;
             
-            const yObj = ensureYear(year);
-            yObj.pages += totalExtraPages;
-            yObj.finishes += extraSessions;
-            yObj.active = true;
-
-            const mObj = ensureMonth(ym);
-            mObj.pages += totalExtraPages;
-            mObj.finishes += extraSessions;
-            mObj.active = true;
+            ensureYear('Desconhecido').pages += manualPages;
+            ensureYear('Desconhecido').finishes += manualSessions;
+            ensureYear('Desconhecido').active = true;
+            
+            ensureMonth('Desconhecido').pages += manualPages;
+            ensureMonth('Desconhecido').finishes += manualSessions;
+            ensureMonth('Desconhecido').active = true;
         }
 
         if ((!book.history || book.history.length === 0) && book.status !== 'read' && (book.readPages || 0) > 0) {
-            let year, month, ym;
+            let year = 'Desconhecido';
+            let ym = 'Desconhecido';
             if (book.readDate) {
                 const d = new Date(book.readDate + 'T12:00:00');
                 year = d.getFullYear();
-                month = d.getMonth();
-                ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-            } else {
-                year = 'Desconhecido';
-                ym = 'Desconhecido';
+                ym = `${year}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             }
             
             const rPages = parseInt(book.readPages) || 0;
@@ -2476,7 +2438,14 @@ const App = {
                         page: newReadPages,
                         type: 'finish'
                     });
-                } else if ((newStatus === 'reading' || isRereading) && oldStatus === 'read') {
+                } else if (newStatus === 'reading' && oldStatus === 'read') {
+                    newReadPages = 0;
+                    const lastFinishIndex = [...history].reverse().findIndex(h => h.type === 'finish');
+                    if (lastFinishIndex !== -1) {
+                        const actualIndex = history.length - 1 - lastFinishIndex;
+                        history.splice(actualIndex, 1);
+                    }
+                } else if (isRereading && oldStatus === 'read') {
                     newReadPages = 0;
                     history.push({
                         id: `auto_st_${Date.now()}`,
@@ -2944,6 +2913,7 @@ const App = {
                 this.recalculateBookProgress(book);
                 await rm.update(book.id, book);
                 this.refresh();
+                if (newPageCount === book.pages) return;
             }
         } else {
             let lastHistoryPage = 0;
@@ -2959,6 +2929,7 @@ const App = {
                 return;
             }
             await this.updateProgress(bookId, newPageCount);
+            if (newPageCount === book.pages) return;
         }
         
         this.renderHistoryList(book); 
@@ -3058,6 +3029,7 @@ const App = {
         this.refresh();
 
         if (wasFinished) {
+            this.closeAllModals();
             this.showMessage('Parabéns!', 'Você concluiu este livro!');
         } else {
             this.showToast(`Progresso atualizado: ${newPage} pág.`, 'success');
@@ -3094,11 +3066,15 @@ const App = {
         this.toggleBodyScroll(true);
         
         this.dom.messageOkBtn.onclick = () => {
-            if (icon === '🎉' || icon === '✅' || icon === '🏆') {
-                this.closeAllModals();
-            } else {
-                this.dom.messageModal.classList.remove('active');
+            this.dom.messageModal.classList.remove('active');
+            
+            const activeModals = document.querySelectorAll('.modal.active, .modal-overlay.active');
+            if (activeModals.length === 0) {
                 this.toggleBodyScroll(false);
+            }
+
+            if (icon === '🎉' || icon === '✅' || icon === '🏆' || icon === '✨') {
+                this.closeAllModals();
             }
         };
     },
