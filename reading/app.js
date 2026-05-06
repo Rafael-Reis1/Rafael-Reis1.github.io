@@ -7,6 +7,16 @@ const debounce = (fn, delay) => {
     };
 };
 
+const escapeHTML = (str) => {
+    if (!str) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
 const GoogleBooksAPI = {
     async search(query) {
         if (!query || query.length < 3) return [];
@@ -272,7 +282,8 @@ class ReadingManager {
                     await batch.commit();
                 }
             } catch (e) {
-                console.warn('Limpeza via nuvem lenta ou offline. Continuando...');
+                const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                if (isDev) console.warn('Limpeza via nuvem lenta ou offline. Continuando...');
             }
         }
 
@@ -293,7 +304,8 @@ class ReadingManager {
                     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
                 ]);
             } catch (e) {
-                console.warn('Commit demorado ou offline. Continuando em background...');
+                const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                if (isDev) console.warn('Commit demorado ou offline. Continuando em background...');
                 break;
             }
         }
@@ -352,11 +364,19 @@ const App = {
 
     init() {
         this.cacheDOM();
+
+        this.state.filter = localStorage.getItem('rm_filter') || 'all';
+        this.state.formatFilter = localStorage.getItem('rm_formatFilter') || 'all';
+        this.state.sortBy = localStorage.getItem('rm_sortBy') || 'recent';
+
         document.body.appendChild(this.dom.statusOptions)
         this.bindEvents();
         this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
+
+        this.setFilter(this.state.filter);UI
+        this.setSort(this.state.sortBy);
         this.refresh();
     },
 
@@ -364,12 +384,39 @@ const App = {
         if (!rm.books || rm.books.length === 0) return;
         
         const updates = {};
-        let count = 0;
+        let totalUpdated = 0;
 
         rm.books.forEach(book => {
-            const history = book.history || [];
+            let history = book.history || [];
+            let changed = false;
+            if (history.length > 1) {
+                const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const sanitized = [];
+                let lastFinish = null;
+                let historyWasCleaned = false;
+
+                for (const entry of sortedHistory) {
+                    if (entry.type === 'finish') {
+                        if (lastFinish && (new Date(entry.date) - new Date(lastFinish.date) < 3600000)) {
+                            historyWasCleaned = true;
+                            const idx = sanitized.indexOf(lastFinish);
+                            if (idx !== -1) sanitized.splice(idx, 1);
+                            sanitized.push(entry);
+                            lastFinish = entry;
+                            continue;
+                        }
+                        lastFinish = entry;
+                    }
+                    sanitized.push(entry);
+                }
+
+                if (historyWasCleaned) {
+                    history = sanitized;
+                    changed = true;
+                }
+            }
+
             const hasFinish = history.some(h => h.type === 'finish');
-            
             if (book.status === 'read' && !hasFinish) {
                 let date = book.readDate || book.createdAt;
                 let isFallback = false;
@@ -386,8 +433,8 @@ const App = {
                     { id: `MIGRATED_FI_${book.id}_${Date.now()}`, date: date, type: 'finish', page: parseInt(book.pages) || 0, migrated: true, isFallbackDate: isFallback }
                 ];
                 
-                updates[book.id] = { history: [...history, ...syntheticHistory] };
-                count++;
+                history = [...history, ...syntheticHistory];
+                changed = true;
             } else if (history.length > 0) {
                 let needsHealing = false;
                 const healedHistory = history.map(h => {
@@ -403,14 +450,21 @@ const App = {
                 });
 
                 if (needsHealing) {
-                    updates[book.id] = { history: healedHistory };
-                    count++;
+                    history = healedHistory;
+                    changed = true;
                 }
+            }
+
+            if (changed) {
+                updates[book.id] = { history };
+                totalUpdated++;
             }
         });
 
-        if (count > 0) {
+        if (totalUpdated > 0) {
             await rm.updateMultiple(updates);
+            const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            if (isDev) console.log(`✅ Sanitização concluída: ${totalUpdated} livros corrigidos.`);
         }
     },
 
@@ -457,115 +511,137 @@ const App = {
     },
 
     cacheDOM() {
+        const getById = (id) => document.getElementById(id);
         this.dom = {
-            grid: document.getElementById('booksGrid'),
+            grid: getById('booksGrid'),
             sidebarLinks: document.querySelectorAll('.nav-item[data-filter]'),
             counts: {
-                all: document.getElementById('count-all'),
-                read: document.getElementById('count-read'),
-                reading: document.getElementById('count-reading'),
-                want: document.getElementById('count-want'),
-                rereading: document.getElementById('count-rereading'),
-                abandoned: document.getElementById('count-abandoned'),
-                favorite: document.getElementById('count-favorite'),
-                desired: document.getElementById('count-desired'),
-                borrowed: document.getElementById('count-borrowed'),
-                physical: document.getElementById('count-physical'),
-                owned: document.getElementById('count-owned'),
-                lent: document.getElementById('count-lent'),
-                target: document.getElementById('count-target'),
-                ebook: document.getElementById('count-ebook'),
-                audiobook: document.getElementById('count-audiobook'),
+                all: getById('count-all'),
+                read: getById('count-read'),
+                reading: getById('count-reading'),
+                want: getById('count-want'),
+                rereading: getById('count-rereading'),
+                abandoned: getById('count-abandoned'),
+                favorite: getById('count-favorite'),
+                desired: getById('count-desired'),
+                borrowed: getById('count-borrowed'),
+                physical: getById('count-physical'),
+                owned: getById('count-owned'),
+                lent: getById('count-lent'),
+                target: getById('count-target'),
+                ebook: getById('count-ebook'),
+                audiobook: getById('count-audiobook'),
             },
-            totalPagesRead: document.getElementById('total-pages-read'),
-            resultsCount: document.getElementById('resultsCount'),
-            currentSectionLabel: document.getElementById('currentSectionLabel'),
+            totalPagesRead: getById('total-pages-read'),
+            resultsCount: getById('resultsCount'),
+            currentSectionLabel: getById('currentSectionLabel'),
 
-            addBtn: document.getElementById('btnAddBook'),
-            modal: document.getElementById('bookModal'),
-            closeModalBtn: document.getElementById('closeBookModal'),
-            cancelModalBtn: document.getElementById('cancelBook'),
-            bookForm: document.getElementById('bookForm'),
-            groupReadDate: document.getElementById('groupReadDate'),
-            rowReadFormat: document.getElementById('rowReadFormat'),
-            groupReadFormat: document.getElementById('groupReadFormat'),
+            addBtn: getById('btnAddBook'),
+            modal: getById('bookModal'),
+            modalTitle: getById('modalTitle'),
+            closeModalBtn: getById('closeBookModal'),
+            cancelModalBtn: getById('cancelBook'),
+            bookForm: getById('bookForm'),
+            groupReadDate: getById('groupReadDate'),
+            rowReadFormat: getById('rowReadFormat'),
+            groupReadFormat: getById('groupReadFormat'),
 
-            statusTrigger: document.getElementById('statusTrigger'),
-            statusOptions: document.getElementById('statusOptions'),
-            statusHiddenInput: document.getElementById('bookStatus'),
-            triggerText: document.getElementById('triggerText'),
-            triggerIndicator: document.getElementById('triggerIndicator'),
+            bookId: getById('bookId'),
+            bookTitle: getById('bookTitle'),
+            bookAuthor: getById('bookAuthor'),
+            bookPages: getById('bookPages'),
+            bookCover: getById('bookCover'),
+            bookReadDate: getById('bookReadDate'),
+            bookRating: getById('bookRating'),
+            bookGoalYear: getById('bookGoalYear'),
+            loanDetails: getById('loanDetails'),
+            loanDate: getById('loanDate'),
+            bookTimesRead: getById('bookTimesRead'),
+            groupRating: getById('groupRating'),
+            lblLoanDetails: getById('lblLoanDetails'),
+
+            statusTrigger: getById('statusTrigger'),
+            statusOptions: getById('statusOptions'),
+            statusHiddenInput: getById('bookStatus'),
+            triggerText: getById('triggerText'),
+            triggerIndicator: getById('triggerIndicator'),
             customOptions: document.querySelectorAll('.custom-option'),
 
-            apiSearch: document.getElementById('apiSearch'),
-            apiResults: document.getElementById('apiResults'),
+            apiSearch: getById('apiSearch'),
+            apiResults: getById('apiResults'),
             searchRow: document.querySelector('.search-row'),
             formDivider: document.querySelector('.form-divider'),
-            searchLoader: document.getElementById('searchLoader'),
+            searchLoader: getById('searchLoader'),
 
-            btnSort: document.getElementById('btnSort'),
-            sortDropdown: document.getElementById('sortDropdown'),
+            btnSort: getById('btnSort'),
+            sortDropdown: getById('sortDropdown'),
             sortOptions: document.querySelectorAll('.dropdown-item[data-sort]'),
 
-            historyModal: document.getElementById('historyModal'),
-            closeHistoryModalBtn: document.getElementById('closeHistoryModal'),
-            historyForm: document.getElementById('historyForm'),
-            historyList: document.getElementById('historyList'),
-            historyProgressBar: document.getElementById('historyProgressBar'),
-            historyProgressText: document.getElementById('historyProgressText'),
-            btnOpenHistoryFromModal: document.getElementById('btnOpenHistoryFromModal'),
-            historyBookId: document.getElementById('historyBookId'),
-            historyTotalPages: document.getElementById('historyTotalPages'),
-            historyEntryId: document.getElementById('historyEntryId'),
-            historyBookTitle: document.getElementById('historyBookTitle'),
+            historyModal: getById('historyModal'),
+            historyModalTitle: getById('historyModalTitle'),
+            closeHistoryModalBtn: getById('closeHistoryModal'),
+            historyForm: getById('historyForm'),
+            historyList: getById('historyList'),
+            historyProgressBar: getById('historyProgressBar'),
+            historyProgressText: getById('historyProgressText'),
+            btnOpenHistoryFromModal: getById('btnOpenHistoryFromModal'),
+            historyBookId: getById('historyBookId'),
+            historyTotalPages: getById('historyTotalPages'),
+            historyEntryId: getById('historyEntryId'),
+            historyBookTitle: getById('historyBookTitle'),
+            newCurrentPage: getById('newCurrentPage'),
+            isPercentage: getById('isPercentage'),
+            lblHistoryInput: getById('lblHistoryInput'),
 
-            notesModal: document.getElementById('notesModal'),
-            closeNotesModalBtn: document.getElementById('closeNotesModal'),
-            notesForm: document.getElementById('notesForm'),
-            notesList: document.getElementById('notesList'),
-            notesBookId: document.getElementById('notesBookId'),
-            noteId: document.getElementById('noteId'),
+            notesModal: getById('notesModal'),
+            closeNotesModalBtn: getById('closeNotesModal'),
+            notesForm: getById('notesForm'),
+            notesList: getById('notesList'),
+            notesBookId: getById('notesBookId'),
+            noteId: getById('noteId'),
 
-            deleteModal: document.getElementById('deleteModal'),
-            closeDeleteModalBtn: document.getElementById('closeDeleteModal'),
-            cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
-            confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
-            deleteModalMessage: document.getElementById('deleteModalMessage'),
+            deleteModal: getById('deleteModal'),
+            closeDeleteModalBtn: getById('closeDeleteModal'),
+            cancelDeleteBtn: getById('cancelDeleteBtn'),
+            confirmDeleteBtn: getById('confirmDeleteBtn'),
+            deleteModalMessage: getById('deleteModalMessage'),
 
-            messageModal: document.getElementById('messageModal'),
-            messageOkBtn: document.getElementById('messageOkBtn'),
-            messageTitle: document.getElementById('messageTitle'),
-            messageText: document.getElementById('messageText'),
-            messageIcon: document.getElementById('messageIcon'),
+            messageModal: getById('messageModal'),
+            messageOkBtn: getById('messageOkBtn'),
+            messageTitle: getById('messageTitle'),
+            messageText: getById('messageText'),
+            messageIcon: getById('messageIcon'),
 
-            statsModal: document.getElementById('statsModal'),
-            periodDetailsModal: document.getElementById('periodDetailsModal'),
-            closePeriodDetailsModalBtn: document.getElementById('closePeriodDetailsModal'),
-            btnClosePeriodDetails: document.getElementById('btnClosePeriodDetails'),
+            statsModal: getById('statsModal'),
+            periodDetailsModal: getById('periodDetailsModal'),
+            periodDetailsContent: getById('periodDetailsContent'),
+            periodDetailsTitle: getById('periodDetailsTitle'),
+            closePeriodDetailsModalBtn: getById('closePeriodDetailsModal'),
+            btnClosePeriodDetails: getById('btnClosePeriodDetails'),
 
-            paginationControls: document.getElementById('paginationControls'),
-            btnPrevPage: document.getElementById('btnPrevPage'),
-            btnNextPage: document.getElementById('btnNextPage'),
-            pageInfo: document.getElementById('pageInfo'),
+            paginationControls: getById('paginationControls'),
+            btnPrevPage: getById('btnPrevPage'),
+            btnNextPage: getById('btnNextPage'),
+            pageInfo: getById('pageInfo'),
 
-            bookSearch: document.getElementById('bookSearch'),
+            bookSearch: getById('bookSearch'),
 
-            btnMenu: document.getElementById('btnMenu'),
-            sidebar: document.getElementById('sidebar'),
-            sidebarOverlay: document.getElementById('sidebarOverlay'),
+            btnMenu: getById('btnMenu'),
+            sidebar: getById('sidebar'),
+            sidebarOverlay: getById('sidebarOverlay'),
 
-            btnLogin: document.getElementById('btnLogin'),
-            userInfo: document.getElementById('userInfo'),
-            userAvatar: document.getElementById('userAvatar'),
-            userDropdown: document.getElementById('userDropdown'),
-            userName: document.getElementById('userName'),
-            userEmail: document.getElementById('userEmail'),
-            btnExportMenu: document.getElementById('btnExportMenu'),
-            btnImportMenu: document.getElementById('btnImportMenu'),
-            btnLogout: document.getElementById('btnLogout'),
-            fileInput: document.getElementById('fileInput'),
+            btnLogin: getById('btnLogin'),
+            userInfo: getById('userInfo'),
+            userAvatar: getById('userAvatar'),
+            userDropdown: getById('userDropdown'),
+            userName: getById('userName'),
+            userEmail: getById('userEmail'),
+            btnExportMenu: getById('btnExportMenu'),
+            btnImportMenu: getById('btnImportMenu'),
+            btnLogout: getById('btnLogout'),
+            fileInput: getById('fileInput'),
 
-            loginOverlay: document.getElementById('loginOverlay'),
+            loginOverlay: getById('loginOverlay'),
             authLoading: document.getElementById('authLoading'),
             authContent: document.getElementById('authContent'),
             btnLoginOverlay: document.getElementById('btnLoginOverlay'),
@@ -1105,7 +1181,7 @@ const App = {
                 await this.migrateLegacyHistory();
                 this.refresh();
                 
-                this.showMessage('Sucesso!', `${count} livros importados com sucesso.`, '✅');
+                this.showToast(`${count} livros importados com sucesso.`, 'success');
             } catch (err) {
                 if (overlay) {
                     overlay.style.display = 'none';
@@ -1154,6 +1230,7 @@ const App = {
                 if (!chip) return;
 
                 this.state.formatFilter = chip.dataset.format;
+                localStorage.setItem('rm_formatFilter', this.state.formatFilter);
                 this.state.currentPage = 1;
                 
                 this.renderFormatFilters();
@@ -1292,72 +1369,189 @@ const App = {
         });
     },
 
-    refresh() {
-        this.state.books = rm.books;
-        this.updateCounts();
+    processBookStats(book) {
+        const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
+        const p = parseInt(book.pages) || 0;
+        
+        book.computed = {
+            totalReadPages: 0,
+            hasFinishedBefore: book.status === 'read' || ['re-reading', 'rereading'].includes(book.status) || (book.timesRead > 0),
+            activityByYear: {},
+            activityByMonth: {},
+            heatmapDays: {}
+        };
 
-        const dailyPages = {};
-        const activeStatuses = ['read', 'reading', 're-reading', 'rereading', 'abandoned'];
-        const totalPagesRead = this.state.books.reduce((total, book) => {
-            const isActiveStatus = activeStatuses.includes(book.status);
-            if (!isActiveStatus) return total;
+        const ensureYear = (y) => {
+            if (!book.computed.activityByYear[y]) {
+                book.computed.activityByYear[y] = { pages: 0, finishes: 0, active: false };
+            }
+            return book.computed.activityByYear[y];
+        };
 
-            const p = parseInt(book.pages) || 0;
-            const history = book.history || [];
-            
-            let bookTotal = 0;
-            let lastPage = 0;
-            let historyFinishes = 0;
-            const sortedHistory = [...history].sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                if (dateA - dateB !== 0) return dateA - dateB;
-                
-                const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
-                const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
-                const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
-                return orderA - orderB;
-            });
+        const ensureMonth = (ym) => {
+            if (!book.computed.activityByMonth[ym]) {
+                book.computed.activityByMonth[ym] = { pages: 0, finishes: 0, active: false };
+            }
+            return book.computed.activityByMonth[ym];
+        };
 
-            sortedHistory.forEach(entry => {
-                let diff = 0;
-                const pageNum = parseInt(entry.page) || 0;
-                const entryDate = new Date(entry.date);
-                const isMig = entry.migrated || entry.isFallbackDate ||
-                             (entry.id && (String(entry.id).startsWith('mig_') || String(entry.id).startsWith('MIGRATED_')));
-                
-                if (entry.type === 'finish') {
-                    diff = p - lastPage;
-                    lastPage = 0;
-                    historyFinishes++;
-                } else if (entry.type === 'start') {
-                    lastPage = 0;
-                } else {
-                    diff = pageNum - lastPage;
-                    lastPage = pageNum;
-                }
-                
-                if (diff > 0 && !isMig) {
-                    bookTotal += diff;
-                    const dateKey = new Date(entry.date).toISOString().split('T')[0];
-                    dailyPages[dateKey] = (dailyPages[dateKey] || 0) + diff;
-                } else if (diff > 0 && isMig) {
-                    bookTotal += diff;
-                }
-            });
+        let historyFinishes = 0;
+        let lastPage = 0;
+        const sortedHistory = [...(book.history || [])].sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA - dateB !== 0) return dateA - dateB;
+            const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
+            return (typeOrder[a.type] ?? 1) - (typeOrder[b.type] ?? 1);
+        });
 
-            const manualSessions = book.timesRead || 0;
-            const isRereading = ['re-reading', 'rereading'].includes(book.status);
-            const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
-            
-            bookTotal += ((manualSessions + fallback) * p);
-
-            if (history.length === 0 && book.status !== 'read') {
-                bookTotal += (book.readPages || 0);
+        sortedHistory.forEach(h => {
+            let diff = 0;
+            const pageNum = parseInt(h.page) || 0;
+            if (h.type === 'finish') {
+                diff = p - lastPage;
+                lastPage = 0;
+                historyFinishes++;
+            } else if (h.type === 'start') {
+                lastPage = 0;
+            } else {
+                diff = pageNum - lastPage;
+                lastPage = pageNum;
             }
 
-            return total + bookTotal;
-        }, 0);
+            if (diff > 0) {
+                let d, year, month, ym, dKey;
+                if (isSynthetic(h)) {
+                    if (book.readDate) {
+                        d = new Date(book.readDate + 'T12:00:00');
+                        year = d.getFullYear();
+                        month = d.getMonth();
+                        ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                        dKey = book.readDate;
+                    } else {
+                        year = 'Desconhecido';
+                        ym = 'Desconhecido';
+                    }
+                } else {
+                    d = new Date(h.date);
+                    year = d.getFullYear();
+                    month = d.getMonth();
+                    ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    dKey = d.toISOString().split('T')[0];
+                }
+
+                book.computed.totalReadPages += diff;
+                const yObj = ensureYear(year);
+                yObj.pages += diff;
+                yObj.active = true;
+
+                const mObj = ensureMonth(ym);
+                mObj.pages += diff;
+                mObj.active = true;
+
+                if (!isSynthetic(h) && dKey) {
+                    book.computed.heatmapDays[dKey] = (book.computed.heatmapDays[dKey] || 0) + diff;
+                }
+            }
+
+            if (h.type === 'finish') {
+                let d, year, month, ym;
+                if (isSynthetic(h)) {
+                    if (book.readDate) {
+                        d = new Date(book.readDate + 'T12:00:00');
+                        year = d.getFullYear();
+                        month = d.getMonth();
+                        ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    } else {
+                        year = 'Desconhecido';
+                        ym = 'Desconhecido';
+                    }
+                } else {
+                    d = new Date(h.date);
+                    year = d.getFullYear();
+                    month = d.getMonth();
+                    ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                }
+                ensureYear(year).finishes++;
+                ensureMonth(ym).finishes++;
+            }
+        });
+
+        const manualSessions = book.timesRead || 0;
+        const isRereading = ['re-reading', 'rereading'].includes(book.status);
+        const fallbackCount = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
+        const extraSessions = manualSessions + fallbackCount;
+
+        if (extraSessions > 0) {
+            let year, month, ym;
+            if (book.readDate) {
+                const d = new Date(book.readDate + 'T12:00:00');
+                year = d.getFullYear();
+                month = d.getMonth();
+                ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+            } else {
+                year = 'Desconhecido';
+                ym = 'Desconhecido';
+            }
+
+            const totalExtraPages = extraSessions * p;
+            book.computed.totalReadPages += totalExtraPages;
+            
+            const yObj = ensureYear(year);
+            yObj.pages += totalExtraPages;
+            yObj.finishes += extraSessions;
+            yObj.active = true;
+
+            const mObj = ensureMonth(ym);
+            mObj.pages += totalExtraPages;
+            mObj.finishes += extraSessions;
+            mObj.active = true;
+        }
+
+        if ((!book.history || book.history.length === 0) && book.status !== 'read' && (book.readPages || 0) > 0) {
+            let year, month, ym;
+            if (book.readDate) {
+                const d = new Date(book.readDate + 'T12:00:00');
+                year = d.getFullYear();
+                month = d.getMonth();
+                ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+            } else {
+                year = 'Desconhecido';
+                ym = 'Desconhecido';
+            }
+            
+            const rPages = parseInt(book.readPages) || 0;
+            book.computed.totalReadPages += rPages;
+            ensureYear(year).pages += rPages;
+            ensureYear(year).active = true;
+            ensureMonth(ym).pages += rPages;
+            ensureMonth(ym).active = true;
+        }
+
+        if (book.goalYear) {
+            ensureYear(parseInt(book.goalYear));
+        }
+    },
+
+    refresh() {
+        this.state.books = rm.books;
+        const dailyPages = {};
+        let totalPagesRead = 0;
+
+        const activeStatuses = ['read', 'reading', 're-reading', 'rereading', 'abandoned'];
+        
+        this.state.books.forEach(book => {
+            this.processBookStats(book);
+            
+            if (activeStatuses.includes(book.status)) {
+                totalPagesRead += book.computed.totalReadPages;
+                Object.entries(book.computed.heatmapDays).forEach(([date, pages]) => {
+                    dailyPages[date] = (dailyPages[date] || 0) + pages;
+                });
+            }
+        });
+
+        this.updateCounts();
 
         if (this.dom.totalPagesRead) {
             this.dom.totalPagesRead.textContent = totalPagesRead.toLocaleString('pt-BR');
@@ -1374,12 +1568,27 @@ const App = {
 
     setSort(sortType) {
         this.state.sortBy = sortType;
+        localStorage.setItem('rm_sortBy', sortType);
+        
+        if (this.dom.sortOptions) {
+            this.dom.sortOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.sort === sortType);
+            });
+        }
+
         this.render();
     },
 
     setFilter(filter) {
         this.state.filter = filter;
+        localStorage.setItem('rm_filter', filter);
         this.state.currentPage = 1;
+
+        if (this.dom.sidebarLinks) {
+            this.dom.sidebarLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.filter === filter);
+            });
+        }
 
         const labels = {
             'all': 'Minha Biblioteca',
@@ -1714,24 +1923,26 @@ const App = {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
             const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+            
+            const escTitle = escapeHTML(book.title);
+            const escAuthor = escapeHTML(book.author);
 
             card.innerHTML = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
-                <img src="${book.cover}" loading="lazy" alt="${book.title}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
+                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
                 
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
-                    <div class="placeholder-title">${book.title}</div>
-                    <div class="placeholder-author">${book.author}</div>
+                    <div class="placeholder-title">${escTitle}</div>
+                    <div class="placeholder-author">${escAuthor}</div>
                 </div>
 
                 <!-- Bookmark Icon SVG -->
                 <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
                     <path d="M0 0h24v32l-12-8-12 8z"/>
                 </svg>
-                <div class="title-overlay">${book.title}</div>
+                <div class="title-overlay">${escTitle}</div>
             </div>
 
-            <!-- NEW: Moved outside container so it's not clipped -->
             <button class="btn-options" data-id="${book.id}" title="Opções">
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="1"></circle>
@@ -1742,8 +1953,8 @@ const App = {
             <div class="options-menu" id="menu-${book.id}">
                 <ul>
                     <li>
-                        <button class="menu-item notes-btn" onclick="App.openNotesModal('${book.id}')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button class="menu-item notes-btn" data-id="${book.id}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
                                 <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -1755,7 +1966,7 @@ const App = {
                     </li>
                     <li>
                         <button class="menu-item edit-btn" data-id="${book.id}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
@@ -1764,7 +1975,7 @@ const App = {
                     </li>
                     <li>
                         <button class="menu-item delete-btn" data-id="${book.id}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                             </svg>
@@ -1788,7 +1999,7 @@ const App = {
                 const menuList = card.querySelector('.options-menu ul');
                 const updateItem = document.createElement('li');
                 updateItem.innerHTML = `
-                <button class="menu-item" onclick="App.openHistoryModal('${book.id}')">
+                <button class="menu-item history-btn" data-id="${book.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
@@ -1837,6 +2048,24 @@ const App = {
         if (btnOptions) {
             e.stopPropagation();
             this.toggleMenu(btnOptions.dataset.id);
+            return;
+        }
+
+        const btnNotes = target.closest('.notes-btn');
+        if (btnNotes) {
+            e.stopPropagation();
+            this.openNotesModal(btnNotes.dataset.id);
+            const menu = btnNotes.closest('.options-menu');
+            if (menu) menu.classList.remove('active');
+            return;
+        }
+
+        const btnHistory = target.closest('.history-btn');
+        if (btnHistory) {
+            e.stopPropagation();
+            this.openHistoryModal(btnHistory.dataset.id);
+            const menu = btnHistory.closest('.options-menu');
+            if (menu) menu.classList.remove('active');
             return;
         }
 
@@ -2001,23 +2230,27 @@ const App = {
             const info = book.volumeInfo;
             const coverUrl = info.imageLinks ? info.imageLinks.thumbnail : null;
             const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : 'https://placehold.co/200x300?text=Sem+Capa';
+            
             const title = info.title || 'Título desconhecido';
             const author = info.authors ? info.authors.join(', ') : 'Autor desconhecido';
             
+            const escTitle = escapeHTML(title);
+            const escAuthor = escapeHTML(author);
+
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
                     <div class="api-result-cover-container ${!info.imageLinks ? 'is-placeholder' : ''}">
-                         <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${title}" 
+                         <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${escTitle}" 
                               style="${!info.imageLinks ? 'display:none' : ''}" 
                               onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
                          <div class="book-cover-placeholder ${!info.imageLinks ? 'visible' : ''}">
-                            <div class="placeholder-title">${title}</div>
-                            <div class="placeholder-author">${author}</div>
+                            <div class="placeholder-title">${escTitle}</div>
+                            <div class="placeholder-author">${escAuthor}</div>
                          </div>
                     </div>
                     <div class="api-result-info">
-                        <div class="api-result-title">${title}</div>
-                        <div class="api-result-author">${author}</div>
+                        <div class="api-result-title">${escTitle}</div>
+                        <div class="api-result-author">${escAuthor}</div>
                     </div>
                 </div>
             `;
@@ -2072,22 +2305,16 @@ const App = {
         const book = this.state.books.find(b => b.id === id);
         if (!book) return;
 
-        if (!book) return;
+        this.dom.modalTitle.textContent = 'Editar Livro';
 
-        document.getElementById('modalTitle').textContent = 'Editar Livro';
+        if (this.dom.searchRow) this.dom.searchRow.style.display = 'none';
+        if (this.dom.formDivider) this.dom.formDivider.style.display = 'none';
 
-        if (this.dom.searchRow) {
-            this.dom.searchRow.style.display = 'none';
-        }
-        if (this.dom.formDivider) {
-            this.dom.formDivider.style.display = 'none';
-        }
-
-        document.getElementById('bookId').value = book.id;
-        document.getElementById('bookTitle').value = book.title;
-        document.getElementById('bookAuthor').value = book.author;
-        document.getElementById('bookPages').value = book.pages;
-        document.getElementById('bookCover').value = book.cover;
+        this.dom.bookId.value = book.id;
+        this.dom.bookTitle.value = book.title;
+        this.dom.bookAuthor.value = book.author;
+        this.dom.bookPages.value = book.pages;
+        this.dom.bookCover.value = book.cover;
 
         if (this.datePicker) {
             this.datePicker.setDate(book.readDate || null);
@@ -2099,21 +2326,18 @@ const App = {
             this.dom.groupReadDate.style.display = (book.status === 'read') ? '' : 'none';
         }
 
-        const groupRating = document.getElementById('groupRating');
-        const rowReadFormat = document.getElementById('rowReadFormat');
         const isReadStatus = ['read', 'reading', 're-reading', 'rereading'].includes(book.status);
 
-        if (groupRating) {
-            groupRating.style.display = (book.status === 'read') ? '' : 'none';
-            const ratingInput = document.getElementById('bookRating');
-            if (ratingInput) ratingInput.value = book.rating || 0;
+        if (this.dom.groupRating) {
+            this.dom.groupRating.style.display = (book.status === 'read') ? '' : 'none';
+            if (this.dom.bookRating) this.dom.bookRating.value = book.rating || 0;
             if (this.updateStarRatingWidget) {
                 this.updateStarRatingWidget(book.rating || 0);
             }
         }
 
-        if (rowReadFormat) {
-            rowReadFormat.style.display = isReadStatus ? '' : 'none';
+        if (this.dom.rowReadFormat) {
+            this.dom.rowReadFormat.style.display = isReadStatus ? '' : 'none';
             const readFormats = Array.isArray(book.readFormat) ? book.readFormat : (book.readFormat ? [book.readFormat] : []);
             document.querySelectorAll('input[name="readFormat"]').forEach(cb => {
                 cb.checked = readFormats.includes(cb.value);
@@ -2185,31 +2409,37 @@ const App = {
     },
 
     handleBookSubmit() {
-        const id = document.getElementById('bookId').value;
-        const title = document.getElementById('bookTitle').value.trim();
-        const author = document.getElementById('bookAuthor').value.trim();
-        const pages = document.getElementById('bookPages').value;
-        const status = document.getElementById('bookStatus').value;
+        const id = this.dom.bookId.value;
+        const title = this.dom.bookTitle.value.trim();
+        const author = this.dom.bookAuthor.value.trim();
+        const pages = this.dom.bookPages.value;
+        const status = this.dom.statusHiddenInput.value;
 
         if (!title || !author || !pages) {
             this.showMessage('Campos Obrigatórios', 'Por favor, preencha o título, autor e número de páginas.', '⚠️');
             return;
         }
 
-        const readDateVal = document.getElementById('bookReadDate').value;
+        const submitBtn = this.dom.bookForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            setTimeout(() => { if (submitBtn) submitBtn.disabled = false; }, 2000);
+        }
+
+        const readDateVal = this.dom.bookReadDate.value;
 
         const formData = {
-            title: document.getElementById('bookTitle').value.trim(),
-            author: document.getElementById('bookAuthor').value.trim(),
-            pages: document.getElementById('bookPages').value,
-            status: document.getElementById('bookStatus').value,
-            cover: document.getElementById('bookCover').value,
+            title: title,
+            author: author,
+            pages: pages,
+            status: status,
+            cover: this.dom.bookCover.value,
             readDate: readDateVal || null,
-            rating: document.getElementById('bookRating').value || 0,
-            goalYear: document.getElementById('bookGoalYear').value || null,
-            loanDetails: document.getElementById('loanDetails').value || '',
-            loanDate: document.getElementById('loanDate').value || null,
-            timesRead: parseInt(document.getElementById('bookTimesRead').value) || 0,
+            rating: this.dom.bookRating.value || 0,
+            goalYear: this.dom.bookGoalYear.value || null,
+            loanDetails: this.dom.loanDetails.value || '',
+            loanDate: this.dom.loanDate.value || null,
+            timesRead: parseInt(this.dom.bookTimesRead.value) || 0,
             readFormat: [],
             tags: []
         };
@@ -2402,23 +2632,23 @@ const App = {
         document.getElementById('historyFormView').style.display = 'block';
 
         if (entry) {
-            document.getElementById('historyModalTitle').innerHTML = `
+            this.dom.historyModalTitle.innerHTML = `
                 <span style="display: block; line-height: 1.2;">Editar Registro</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${escapeHTML(this.state.currentBookTitle)}</span>
             `;
-            document.getElementById('historyEntryId').value = entry.date;
-            document.getElementById('newCurrentPage').value = entry.page;
-            document.getElementById('isPercentage').checked = false;
-            document.getElementById('lblHistoryInput').textContent = 'Página Atual';
+            this.dom.historyEntryId.value = entry.date;
+            this.dom.newCurrentPage.value = entry.page;
+            this.dom.isPercentage.checked = false;
+            this.dom.lblHistoryInput.textContent = 'Página Atual';
         } else {
-            document.getElementById('historyModalTitle').innerHTML = `
+            this.dom.historyModalTitle.innerHTML = `
                 <span style="display: block; line-height: 1.2;">Novo Registro</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
+                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${escapeHTML(this.state.currentBookTitle)}</span>
             `;
-            document.getElementById('historyEntryId').value = '';
+            this.dom.historyEntryId.value = '';
             this.dom.historyForm.reset();
-            document.getElementById('isPercentage').checked = false;
-            document.getElementById('lblHistoryInput').textContent = 'Página Atual';
+            this.dom.isPercentage.checked = false;
+            this.dom.lblHistoryInput.textContent = 'Página Atual';
         }
     },
 
@@ -2440,7 +2670,7 @@ const App = {
         });
 
         this.dom.historyList.innerHTML = sortedHistory.map(entry => {
-            const date = new Date(entry.date).toLocaleDateString();
+            const dateDisplay = this.formatRelativeDate(entry.date);
             let label = `Pág. ${entry.page}`;
             let icon = '📖';
 
@@ -2457,7 +2687,7 @@ const App = {
                     <div class="history-info">
                         <span class="history-icon">${icon}</span>
                         <div class="history-details">
-                            <span class="history-date">${date}</span>
+                            <span class="history-date">${dateDisplay}</span>
                             <span class="history-val">${label}</span>
                         </div>
                     </div>
@@ -2678,6 +2908,12 @@ const App = {
             return;
         }
 
+        const submitBtn = this.dom.historyForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            setTimeout(() => { if (submitBtn) submitBtn.disabled = false; }, 1500);
+        }
+
         let val = parseInt(inputVal);
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
@@ -2732,7 +2968,7 @@ const App = {
 
     calculateProgress(book) {
         const pages = parseInt(book.pages) || 0;
-        if (pages === 0) return 0;
+        if (pages <= 0) return 0;
         
         const history = book.history || [];
         if (history.length === 0) {
@@ -2823,6 +3059,8 @@ const App = {
 
         if (wasFinished) {
             this.showMessage('Parabéns!', 'Você concluiu este livro!');
+        } else {
+            this.showToast(`Progresso atualizado: ${newPage} pág.`, 'success');
         }
     },
 
@@ -2848,21 +3086,62 @@ const App = {
         if (this.dom.messageModal) this.dom.messageModal.classList.remove('active');
     },
 
-    showMessage(title, text, icon = '🎉') {
+    showMessage(title, text, icon = '✨') {
         this.dom.messageTitle.textContent = title;
         this.dom.messageText.textContent = text;
-        this.dom.messageIcon.textContent = icon;
+        this.dom.messageIcon.innerHTML = icon;
         this.dom.messageModal.classList.add('active');
         this.toggleBodyScroll(true);
-
+        
         this.dom.messageOkBtn.onclick = () => {
-            if (icon === '🎉' || icon === '✅') {
+            if (icon === '🎉' || icon === '✅' || icon === '🏆') {
                 this.closeAllModals();
             } else {
                 this.dom.messageModal.classList.remove('active');
                 this.toggleBodyScroll(false);
             }
         };
+    },
+
+    showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+        
+        toast.innerHTML = `
+            <span class="toast-icon">${icon}</span>
+            <span class="toast-message">${message}</span>
+        `;
+        
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => toast.remove(), 500);
+        }, 3000);
+    },
+
+    formatRelativeDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const now = new Date();
+        
+        const isToday = date.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+        
+        if (isToday) return 'Hoje';
+        if (isYesterday) return 'Ontem';
+        
+        return date.toLocaleDateString('pt-BR');
     },
 
     initStats() {
@@ -2911,173 +3190,98 @@ const App = {
 
         const statsData = { years: {}, all: createStatObj() };
 
-        const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
-
         this.state.books.forEach(book => {
-            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0 || (book.history && book.history.length > 0);
-            if (book.status === 'want-to-read' && !hasProgress && !book.goalYear) return;
-
-            let readYear = 'Desconhecido';
-            let readMonth = -1;
-            
-            if (book.readDate) {
-                const parts = book.readDate.split('-');
-                readYear = parseInt(parts[0]);
-                if (parts.length >= 2) readMonth = parseInt(parts[1]) - 1;
-            }
-
-            const activeYears = new Set();
-            if (readYear !== 'Desconhecido') activeYears.add(readYear);
-            
-            const realHistory = (book.history || []).filter(h => !isSynthetic(h));
-            realHistory.forEach(h => activeYears.add(new Date(h.date).getFullYear()));
-            
-            const hasSynthetic = (book.history || []).some(h => isSynthetic(h));
-            if (hasSynthetic && readYear === 'Desconhecido') {
-                activeYears.add('Desconhecido');
-            }
-            
-            if (book.goalYear) activeYears.add(parseInt(book.goalYear));
-            if (activeYears.size === 0) activeYears.add('Desconhecido');
+            const hasProgress = book.computed.totalReadPages > 0 || book.goalYear;
+            if (book.status === 'want-to-read' && !hasProgress) return;
 
             const processForYear = (target, targetYear) => {
-                let countsAsBookThisYear = false;
-                
-                if (targetYear === 'all' || targetYear === 'Desconhecido') {
-                    countsAsBookThisYear = true;
-                } else if (book.status === 'read' && readYear === targetYear) {
-                    countsAsBookThisYear = true;
+                let yearStats;
+                if (targetYear === 'all') {
+                    yearStats = { pages: book.computed.totalReadPages, finishes: 0, active: false };
+                    Object.values(book.computed.activityByYear).forEach(y => {
+                        yearStats.finishes += y.finishes;
+                        if (y.active) yearStats.active = true;
+                    });
+                } else {
+                    yearStats = book.computed.activityByYear[targetYear];
+                }
+
+                if (!yearStats) {
+                    if (book.goalYear == targetYear) {
+                        target.books.push(book);
+                    }
+                    return;
+                }
+
+                target.books.push(book);
+                target.booksCount += 1;
+                target.pages += yearStats.pages;
+
+                for (let m = 0; m < 12; m++) {
+                    const ym = targetYear === 'all' ? null : `${targetYear}-${String(m + 1).padStart(2, '0')}`;
+                    
+                    if (targetYear === 'all') {
+                        Object.entries(book.computed.activityByMonth).forEach(([key, mData]) => {
+                            if (key.endsWith(`-${String(m + 1).padStart(2, '0')}`)) {
+                                target.monthlyDist[m] += mData.finishes;
+                                target.monthlyPagesDist[m] += mData.pages;
+                            }
+                        });
+                    } else {
+                        const mData = book.computed.activityByMonth[ym];
+                        if (mData) {
+                            target.monthlyDist[m] += mData.finishes;
+                            target.monthlyPagesDist[m] += mData.pages;
+                        }
+                    }
+                }
+
+                if (targetYear === 'all') {
+                    Object.entries(book.computed.heatmapDays).forEach(([dKey, pgs]) => {
+                        target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + pgs;
+                    });
+                } else {
+                    Object.entries(book.computed.heatmapDays).forEach(([dKey, pgs]) => {
+                        if (dKey.startsWith(targetYear + '-')) {
+                            target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + pgs;
+                        }
+                    });
+                }
+
+                if (book.rating > 0 && (yearStats.active || yearStats.finishes > 0)) {
+                    target.ratingSum += parseFloat(book.rating);
+                    target.ratedCount++;
                 }
 
                 const p = parseInt(book.pages) || 0;
-                let pagesInYear = 0;
-                let pagesInMonths = new Array(12).fill(0);
-                let dailyPagesForHeatmap = {};
-                let historyFinishes = 0;
-
-                if (book.history && book.history.length > 0) {
-                    let lastPage = 0;
-                    const sortedHistory = [...book.history].sort((a, b) => {
-                        const dateA = new Date(a.date);
-                        const dateB = new Date(b.date);
-                        if (dateA - dateB !== 0) return dateA - dateB;
-                        const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
-                        const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
-                        const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
-                        return orderA - orderB;
-                    });
-                    
-                    sortedHistory.forEach(entry => {
-                        let diff = 0;
-                        const pageNum = parseInt(entry.page) || 0;
-
-                        if (entry.type === 'finish') {
-                            diff = p - lastPage;
-                            lastPage = 0;
-                            historyFinishes++;
-                        } else if (entry.type === 'start') {
-                            lastPage = 0;
-                        } else {
-                            diff = pageNum - lastPage;
-                            lastPage = pageNum;
-                        }
-
-                        if (diff > 0) {
-                            if (!isSynthetic(entry)) {
-                                const d = new Date(entry.date);
-                                const eYear = d.getFullYear();
-                                const eMonth = d.getMonth();
-                                
-                                if (targetYear === 'all' || eYear === targetYear) {
-                                    pagesInYear += diff;
-                                    pagesInMonths[eMonth] += diff;
-                                    const dKey = `${eYear}-${String(eMonth + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                                    dailyPagesForHeatmap[dKey] = (dailyPagesForHeatmap[dKey] || 0) + diff;
-                                }
-                            } else {
-                                if (targetYear === 'all' || readYear === targetYear) {
-                                    pagesInYear += diff;
-                                    if (readMonth !== -1 && readYear !== 'Desconhecido') {
-                                        pagesInMonths[readMonth] += diff;
-                                    }
-                                }
-                            }
-                        }
-                    });
+                if (p > 0 && (yearStats.active || yearStats.finishes > 0)) {
+                    if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = book;
+                    if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = book;
                 }
 
-                const manualSessions = book.timesRead || 0;
-                const isRereading = ['re-reading', 'rereading'].includes(book.status);
-                const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
-                const extraPages = (manualSessions + fallback) * p;
-
-                if (extraPages > 0) {
-                    if (targetYear === 'all' || readYear === targetYear) {
-                        pagesInYear += extraPages;
-                        if (readMonth !== -1 && readYear !== 'Desconhecido') {
-                            pagesInMonths[readMonth] += extraPages;
-                        }
-                    }
-                }
-
-                if ((!book.history || book.history.length === 0) && book.status !== 'read') {
-                    const rPages = book.readPages || 0;
-                    if (rPages > 0) {
-                        if (targetYear === 'all' || readYear === targetYear) {
-                            pagesInYear += rPages;
-                            if (readMonth !== -1 && readYear !== 'Desconhecido') {
-                                pagesInMonths[readMonth] += rPages;
-                            }
-                        }
-                    }
-                }
-
-                if (!countsAsBookThisYear && pagesInYear > 0) {
-                    countsAsBookThisYear = true;
-                }
-
-                const hasAnyActivity = countsAsBookThisYear || pagesInYear > 0 || (book.goalYear === targetYear);
-
-                if (hasAnyActivity) {
-                    target.books.push(book);
-                    
-                    if (countsAsBookThisYear) {
-                        target.booksCount++;
-                    }
-
-                    for (let m = 0; m < 12; m++) {
-                        if (pagesInMonths[m] > 0 || (book.status === 'read' && readYear === targetYear && readMonth === m)) {
-                            target.monthlyDist[m]++;
-                        }
-                        target.monthlyPagesDist[m] += pagesInMonths[m];
-                    }
-
-                    target.pages += pagesInYear;
-                    for (const [dKey, pgs] of Object.entries(dailyPagesForHeatmap)) {
-                        target.dailyPages[dKey] = (target.dailyPages[dKey] || 0) + pgs;
-                    }
-
-                    if (book.rating > 0) {
-                        target.ratingSum += parseFloat(book.rating);
-                        target.ratedCount++;
-                    }
-
-                    if (countsAsBookThisYear && p > 0) {
-                        if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = book;
-                        if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = book;
-                    }
-
-                    if (countsAsBookThisYear && book.author) {
-                        target.authors[book.author] = (target.authors[book.author] || 0) + 1;
-                    }
+                if (book.author && (yearStats.active || yearStats.finishes > 0)) {
+                    target.authors[book.author] = (target.authors[book.author] || 0) + (yearStats.finishes || 1);
                 }
             };
 
-            activeYears.forEach(y => {
+            const yearsOfActivity = Object.keys(book.computed.activityByYear);
+            if (book.goalYear && !yearsOfActivity.includes(book.goalYear.toString())) {
+                yearsOfActivity.push(book.goalYear.toString());
+            }
+
+            yearsOfActivity.forEach(y => {
                 if (!statsData.years[y]) statsData.years[y] = createStatObj();
                 processForYear(statsData.years[y], y);
             });
             processForYear(statsData.all, 'all');
+        });
+
+        statsData.all.booksCount = 0;
+        this.state.books.forEach(book => {
+            const hasActivity = (book.computed.totalReadPages > 0 || book.computed.hasFinishedBefore);
+            if (hasActivity && book.status !== 'want-to-read') {
+                statsData.all.booksCount += 1;
+            }
         });
 
         this.statsState = { data: statsData, selectedYear: 'all' };
@@ -3129,7 +3333,7 @@ const App = {
             <div class="stats-summary">
                 <div class="summary-card">
                     <div class="summary-value">${current.booksCount}</div>
-                    <div class="summary-label">Lidos, Lendo ou Relendo</div>
+                    <div class="summary-label">Total de Leituras</div>
                 </div>
                 <div class="summary-card">
                     <div class="summary-value">${current.pages.toLocaleString()}</div>
@@ -3265,123 +3469,27 @@ const App = {
         const title = document.getElementById('periodDetailsTitle');
         if (!modal || !content) return;
 
-        const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
-
         let books = [];
         let periodLabel = '';
-        let yearStr = '';
-        let monthIdx = -1;
-        let targetYear;
+        let targetKey = '';
 
         if (type === 'year') {
-            yearStr = value.toString();
-            periodLabel = yearStr;
-            targetYear = yearStr === 'Desconhecido' ? 'Desconhecido' : parseInt(yearStr);
+            targetKey = value.toString();
+            periodLabel = targetKey;
         } else if (type === 'month') {
-            yearStr = this.statsState.selectedYear.toString();
-            monthIdx = parseInt(value);
-            targetYear = parseInt(yearStr);
+            const yearStr = this.statsState.selectedYear.toString();
+            const monthIdx = parseInt(value);
+            targetKey = `${yearStr}-${String(monthIdx + 1).padStart(2, '0')}`;
             const mNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            periodLabel = `${mNames[monthIdx]} de ${yearStr} `;
+            periodLabel = `${mNames[monthIdx]} de ${yearStr}`;
         }
 
         books = this.state.books.filter(book => {
-            const hasProgress = (book.readPages && book.readPages > 0) || (book.timesRead || 0) > 0 || (book.history && book.history.length > 0);
-            if (book.status === 'want-to-read' && !hasProgress && !book.goalYear) return false;
-
-            let readYear = 'Desconhecido';
-            let readMonth = -1;
-            if (book.readDate) {
-                const parts = book.readDate.split('-');
-                readYear = parseInt(parts[0]);
-                if (parts.length >= 2) readMonth = parseInt(parts[1]) - 1;
-            }
-
-            let pagesInPeriod = 0;
-            const p = parseInt(book.pages) || 0;
-            let historyFinishes = 0;
-
-            if (book.history && book.history.length > 0) {
-                let lastPage = 0;
-                const sortedHistory = [...book.history].sort((a, b) => {
-                    const dateA = new Date(a.date);
-                    const dateB = new Date(b.date);
-                    if (dateA - dateB !== 0) return dateA - dateB;
-                    const typeOrder = { 'start': 0, 'progress': 1, 'finish': 2 };
-                    const orderA = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 1;
-                    const orderB = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 1;
-                    return orderA - orderB;
-                });
-
-                sortedHistory.forEach(entry => {
-                    let diff = 0;
-                    const pageNum = parseInt(entry.page) || 0;
-
-                    if (entry.type === 'finish') {
-                        diff = p - lastPage;
-                        lastPage = 0;
-                        historyFinishes++;
-                    } else if (entry.type === 'start') {
-                        lastPage = 0;
-                    } else {
-                        diff = pageNum - lastPage;
-                        lastPage = pageNum;
-                    }
-
-                    if (diff > 0) {
-                        if (!isSynthetic(entry)) {
-                            const d = new Date(entry.date);
-                            const eYear = d.getFullYear();
-                            const eMonth = d.getMonth();
-                            if (type === 'year' && eYear === targetYear) {
-                                pagesInPeriod += diff;
-                            } else if (type === 'month' && eYear === targetYear && eMonth === monthIdx) {
-                                pagesInPeriod += diff;
-                            }
-                        } else {
-                            if (type === 'year' && readYear === targetYear) {
-                                pagesInPeriod += diff;
-                            } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
-                                pagesInPeriod += diff;
-                            }
-                        }
-                    }
-                });
-            }
-
-            const manualSessions = book.timesRead || 0;
-            const isRereading = ['re-reading', 'rereading'].includes(book.status);
-            const fallback = (manualSessions === 0 && historyFinishes === 0 && (book.status === 'read' || isRereading)) ? 1 : 0;
-            const extraPages = (manualSessions + fallback) * p;
-
-            if (extraPages > 0) {
-                if (type === 'year' && readYear === targetYear) {
-                    pagesInPeriod += extraPages;
-                } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
-                    pagesInPeriod += extraPages;
-                }
-            }
-
-            if ((!book.history || book.history.length === 0) && book.status !== 'read') {
-                const rPages = book.readPages || 0;
-                if (rPages > 0) {
-                    if (type === 'year' && readYear === targetYear) {
-                        pagesInPeriod += rPages;
-                    } else if (type === 'month' && readYear === targetYear && readMonth === monthIdx) {
-                        pagesInPeriod += rPages;
-                    }
-                }
-            }
-
-            let countsAsBook = false;
-            if (type === 'year') {
-                countsAsBook = (targetYear === 'Desconhecido' && readYear === 'Desconhecido') || (book.status === 'read' && readYear === targetYear) || pagesInPeriod > 0 || (book.goalYear === targetYear);
-            } else if (type === 'month') {
-                countsAsBook = (book.status === 'read' && readYear === targetYear && readMonth === monthIdx) || pagesInPeriod > 0;
-            }
-
-            if (countsAsBook) {
-                book._tempPagesInPeriod = pagesInPeriod;
+            const stats = type === 'year' ? book.computed.activityByYear[targetKey] : book.computed.activityByMonth[targetKey];
+            const hasGoal = (type === 'year' && book.goalYear == targetKey);
+            
+            if (stats || hasGoal) {
+                book._tempPagesInPeriod = stats ? stats.pages : 0;
                 return true;
             }
             return false;
@@ -3398,21 +3506,23 @@ const App = {
             books.forEach(book => {
                 const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
-                
                 const pagesInPeriod = book._tempPagesInPeriod || 0;
+
+                const escTitle = escapeHTML(book.title);
+                const escAuthor = escapeHTML(book.author);
 
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
-                             <img src="${coverUrl}" class="api-result-cover" loading="lazy" alt="${book.title}"
+                             <img src="${coverUrl}" class="api-result-cover" loading="lazy" alt="${escTitle}"
                                   onerror="this.src='https://placehold.co/200x300?text=Sem+Capa'">
                         </div>
                         <div class="api-result-info">
-                            <div class="api-result-title">${book.title}</div>
-                            <div class="api-result-author">${book.author}</div>
+                            <div class="api-result-title">${escTitle}</div>
+                            <div class="api-result-author">${escAuthor}</div>
                             <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
                                ${book.rating > 0 ? '★ ' + book.rating + ' • ' : ''} 
-                               ${pagesInPeriod > 0 ? `${pagesInPeriod} pág lidas no ${type === 'year' ? 'ano' : 'mês'}` : (book.pages ? book.pages + ' pág' : '')}
+                               ${pagesInPeriod > 0 ? `${pagesInPeriod.toLocaleString()} pág lidas no ${type === 'year' ? 'ano' : 'mês'}` : (book.pages ? book.pages + ' pág' : '')}
                             </div>
                         </div>
                     </div>`;
@@ -3422,6 +3532,7 @@ const App = {
         }
 
         modal.classList.add('active');
+        this.toggleBodyScroll(true);
     },
 
     async handleNoteSubmit(e) {
@@ -3478,13 +3589,17 @@ const App = {
             return;
         }
 
-        list.innerHTML = notes.map(note => `
+        list.innerHTML = notes.map(note => {
+            const escContent = escapeHTML(note.content);
+            const escLocation = escapeHTML(note.location);
+            
+            return `
             <div class="history-item note-item">
                 <div class="note-content-wrapper">
                     <div class="note-header">
                         <div class="note-meta">
-                            <span class="history-date">${new Date(note.createdAt).toLocaleDateString('pt-BR')} às ${new Date(note.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                            ${note.location ? `<span class="note-location-tag">${note.location}</span>` : ''}
+                            <span class="history-date">${this.formatRelativeDate(note.createdAt)} às ${new Date(note.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            ${note.location ? `<span class="note-location-tag">${escLocation}</span>` : ''}
                         </div>
                         <div class="action-buttons">
                         <button type="button" class="action-btn" onclick="App.copyNoteToClipboard('${note.id}')" title="Copiar anotação">
@@ -3507,10 +3622,10 @@ const App = {
                             </button>
                         </div>
                     </div>
-                    <div class="note-text">${note.content}</div>
+                    <div class="note-text">${escContent}</div>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     },
 
     copyNoteToClipboard(noteId) {
@@ -3520,7 +3635,7 @@ const App = {
         
         if (note) {
             navigator.clipboard.writeText(note.content).then(() => {
-                this.showMessage('Copiado!', 'Anotação copiada para a área de transferência.', '📋');
+                this.showToast('Anotação copiada!', 'success');
             });
         }
     },
