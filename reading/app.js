@@ -1919,7 +1919,6 @@ const App = {
                     <div class="placeholder-author">${escAuthor}</div>
                 </div>
 
-                <!-- Bookmark Icon SVG -->
                 <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
                     <path d="M0 0h24v32l-12-8-12 8z"/>
                 </svg>
@@ -2228,15 +2227,22 @@ const App = {
             const escTitle = escapeHTML(title);
             const escAuthor = escapeHTML(author);
 
+            const isPlaceholder = !info.imageLinks;
+
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
-                    <div class="api-result-cover-container ${!info.imageLinks ? 'is-placeholder' : ''}">
+                    <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
                          <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${escTitle}" 
-                              style="${!info.imageLinks ? 'display:none' : ''}" 
+                              style="${isPlaceholder ? 'display:none' : ''}" 
                               onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
-                         <div class="book-cover-placeholder ${!info.imageLinks ? 'visible' : ''}">
-                            <div class="placeholder-title">${escTitle}</div>
-                            <div class="placeholder-author">${escAuthor}</div>
+                         
+                         <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}" style="border-radius: 4px;">
+                            <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                   <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                </svg>
+                            </div>
                          </div>
                     </div>
                     <div class="api-result-info">
@@ -3551,8 +3557,9 @@ const App = {
         } else {
             let html = '<div class="books-list-compact">';
             books.forEach(book => {
-                const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
-                const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
+                const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+                const finalCover = isPlaceholder ? '' : book.cover;
+                
                 const pagesInPeriod = book._tempPagesInPeriod || 0;
                 const escTitle = escapeHTML(book.title);
                 const escAuthor = escapeHTML(book.author);
@@ -3560,8 +3567,18 @@ const App = {
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
-                             <img src="${coverUrl}" class="api-result-cover" loading="lazy" alt="${escTitle}"
-                                  onerror="this.src='https://placehold.co/200x300?text=Sem+Capa'">
+                             <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${escTitle}"
+                                  style="${isPlaceholder ? 'display:none' : ''}"
+                                  onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                             
+                             <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}" style="border-radius: 4px;">
+                                <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                                    </svg>
+                                </div>
+                             </div>
                         </div>
                         <div class="api-result-info">
                             <div class="api-result-title">${escTitle}</div>

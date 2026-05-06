@@ -1336,7 +1336,7 @@ body {
 }
 
 .api-result-cover-container .book-cover-placeholder {
-    padding: 2px !important;
+    padding: 0px !important;
     justify-content: center;
 }
 
@@ -2115,6 +2115,7 @@ input[type=number] {
 .format-chip-checkbox {
     cursor: pointer;
 }
+
 .format-chip-checkbox span {
     display: inline-block;
     padding: 6px 14px;
