@@ -1756,13 +1756,26 @@ const App = {
                     { id: 'long', label: 'Tijolaços (>500p)' }
                 ];
                 break;
-            case 'favorite':
             case 'owned':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'physical', label: 'Físico' },
+                    { id: 'ebook', label: 'Ebook' },
+                    { id: 'audiobook', label: 'Audiobook' }
+                ];
+                break;
+            case 'lent':
+                formats = [
+                    { id: 'all', label: 'Todos' },
+                    { id: 'read', label: 'Lido' },
+                    { id: 'want-to-read', label: 'Quero ler' }
+                ];
+                break;
+            case 'favorite':
             case 'physical':
             case 'ebook':
             case 'audiobook':
             case 'borrowed':
-            case 'lent':
                 formats = [
                     { id: 'all', label: 'Todos' },
                     { id: 'read', label: 'Lido' },
@@ -1776,7 +1789,8 @@ const App = {
                     { id: 'early', label: 'Início (<20%)' },
                     { id: 'late', label: 'Quase lá (>50%)' },
                     { id: 'physical', label: 'Físicos' },
-                    { id: 'ebook', label: 'Ebooks' }
+                    { id: 'ebook', label: 'Ebooks' },
+                    { id: 'audiobook', label: 'Audiobook' }
                 ];
                 break;
             case 'desired':
