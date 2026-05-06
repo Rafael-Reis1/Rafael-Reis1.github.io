@@ -3924,15 +3924,17 @@ input[type=number] {
     color: white;
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     gap: 0.75rem;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     animation: toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     pointer-events: auto;
 }
 
-.toast-success { border-left: 4px solid var(--success-color); }
-.toast-error { border-left: 4px solid var(--danger-color); }
-.toast-info { border-left: 4px solid var(--accent-color); }
+.toast-success { border: 1px solid var(--success-color); }
+.toast-error { border: 1px solid var(--danger-color); }
+.toast-info { border: 1px solid var(--accent-color); }
 
 .toast-icon { font-size: 1.25rem; }
 .toast-message { font-size: 0.9rem; font-weight: 500; }

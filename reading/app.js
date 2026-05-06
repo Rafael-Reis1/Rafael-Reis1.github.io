@@ -1119,6 +1119,7 @@ const App = {
             auth.signOut();
             this.dom.userDropdown.classList.remove('active');
             this.refresh();
+            this.showToast('Você saiu com sucesso.', 'success');
         });
 
         this.dom.btnExportMenu.addEventListener('click', () => {
@@ -1170,7 +1171,6 @@ const App = {
                     if (overlay && overlay.style.display !== 'none') {
                         overlay.style.display = 'none';
                         overlay.classList.add('hidden');
-                        this.showMessage('Importado!', `${count} livros foram processados e estão sendo sincronizados.`, '⏳');
                     }
                 }, 10000);
 
@@ -1254,7 +1254,7 @@ const App = {
         if (content) content.style.display = 'none';
 
         auth.signInAnonymously().then(() => {
-            this.showMessage('Bem-vindo!', 'Você está testando como visitante.', '👻');
+            this.showToast(`Bem-vindo! Você está testando como visitante.`, 'success');
         }).catch((error) => {
             console.error('Erro no login anônimo:', error);
             if (loading) loading.style.display = 'none';
@@ -1270,7 +1270,9 @@ const App = {
         if (loading) loading.style.display = 'flex';
         if (content) content.style.display = 'none';
 
-        auth.signInWithPopup(googleProvider).catch((error) => {
+        auth.signInWithPopup(googleProvider).then((result) => {
+            this.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
+        }).catch((error) => {
             console.error('Erro no login:', error);
             if (loading) loading.style.display = 'none';
             if (content) content.style.display = 'flex';
@@ -3143,10 +3145,8 @@ const App = {
     showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
         
         toast.innerHTML = `
-            <span class="toast-icon">${icon}</span>
             <span class="toast-message">${message}</span>
         `;
         
