@@ -1429,17 +1429,13 @@ const App = {
                     return;
                 }
 
-                let d;
-                if (isSynthetic(h) && book.readDate) {
-                    d = new Date(book.readDate + 'T12:00:00');
-                } else {
-                    d = new Date(h.date);
-                }
+                let d = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+                const isEpoch = d.getFullYear() <= 1970;
 
-                const year = d.getFullYear();
+                const year = isEpoch ? 'Desconhecido' : d.getFullYear();
                 const month = d.getMonth();
-                const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
-                const dKey = d.toISOString().split('T')[0];
+                const ym = isEpoch ? 'Desconhecido' : `${year}-${String(month + 1).padStart(2, '0')}`;
+                const dKey = isEpoch ? '1970-01-01' : d.toISOString().split('T')[0];
 
                 if (diff > 0) {
                     ensureYear(year).pages += diff;
@@ -1447,7 +1443,7 @@ const App = {
                     ensureMonth(ym).pages += diff;
                     ensureMonth(ym).active = true;
                     
-                    if (!isSynthetic(h)) {
+                    if (!isSynthetic(h) && !isEpoch) {
                         book.computed.heatmapDays[dKey] = (book.computed.heatmapDays[dKey] || 0) + diff;
                     }
                 }
@@ -1458,6 +1454,31 @@ const App = {
                 }
             }
         });
+
+        const isRereading = ['re-reading', 'rereading'].includes(book.status);
+        const historyFinishes = sortedHistory.filter(h => h.type === 'finish').length;
+        
+        if (historyFinishes === 0 && (book.status === 'read' || isRereading)) {
+            let year, month, ym;
+            if (book.readDate) {
+                const d = new Date(book.readDate + 'T12:00:00');
+                year = d.getFullYear();
+                month = d.getMonth();
+                ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+            } else {
+                year = 'Desconhecido';
+                ym = 'Desconhecido';
+            }
+
+            book.computed.totalReadPages += p;
+            ensureYear(year).pages += p;
+            ensureYear(year).finishes += 1;
+            ensureYear(year).active = true;
+
+            ensureMonth(ym).pages += p;
+            ensureMonth(ym).finishes += 1;
+            ensureMonth(ym).active = true;
+        }
 
         const manualSessions = parseInt(book.timesRead) || 0;
         if (manualSessions > 0) {
@@ -2095,6 +2116,14 @@ const App = {
             this.closeModalTimer = null;
         }
         const modal = modalElement || this.dom.modal;
+
+        const modalBody = modal.querySelector('.modal-body');
+        if (modalBody) {
+            modalBody.scrollTop = 0;
+        } else {
+            modal.scrollTop = 0;
+        }
+
         modal.classList.add('active');
         this.toggleBodyScroll(true);
     },
@@ -2279,7 +2308,8 @@ const App = {
         this.dom.bookCover.value = book.cover;
 
         if (this.datePicker) {
-            this.datePicker.setDate(book.readDate || null);
+            const displayDate = book.readDate === '1970-01-01' ? null : (book.readDate || null);
+            this.datePicker.setDate(displayDate);
         }
 
         this.dom.statusHiddenInput.value = book.status;
@@ -2406,6 +2436,15 @@ const App = {
             tags: []
         };
 
+        const isReadOrReread = ['read', 're-reading', 'rereading'].includes(formData.status);
+        if (isReadOrReread && !formData.readDate) {
+            formData.readDate = '1970-01-01';
+        }
+
+        if (['read', 're-reading', 'rereading'].includes(formData.status) && formData.timesRead === 0) {
+            formData.timesRead = 1;
+        }
+
         document.querySelectorAll('input[name="readFormat"]:checked').forEach(checkbox => {
             formData.readFormat.push(checkbox.value);
         });
@@ -2504,11 +2543,13 @@ const App = {
             const initialStatus = newBook.status;
             const pagesTotal = parseInt(newBook.pages) || 0;
             const now = new Date().toISOString();
-            const histDate = formData.readDate ? new Date(formData.readDate).toISOString() : now;
+            const logDate = formData.readDate
+                ? (formData.readDate.includes('T') ? formData.readDate : formData.readDate + 'T12:00:00') 
+                : now;
 
             if (initialStatus === 'read') {
-                newBook.history.push({ id: `auto_st_${Date.now()}`, date: histDate, type: 'start', page: 0 });
-                newBook.history.push({ id: `auto_fi_${Date.now()}`, date: histDate, type: 'finish', page: pagesTotal });
+                newBook.history.push({ id: `auto_st_${Date.now()}`, date: logDate, type: 'start', page: 0 });
+                newBook.history.push({ id: `auto_fi_${Date.now()}`, date: logDate, type: 'finish', page: pagesTotal });
                 newBook.readPages = pagesTotal;
             } else if (initialStatus === 'reading' || initialStatus === 're-reading' || initialStatus === 'rereading') {
                 newBook.history.push({ id: `auto_st_${Date.now()}`, date: now, type: 'start', page: 0 });
@@ -3106,10 +3147,21 @@ const App = {
 
     formatRelativeDate(dateString) {
         if (!dateString) return '';
-        const date = new Date(dateString);
-        const now = new Date();
         
+        let date;
+        if (dateString.includes('T00:00:00.000Z')) {
+            date = new Date(dateString.replace('T00:00:00.000Z', 'T12:00:00'));
+        }
+        else if (dateString.length === 10) {
+            date = new Date(dateString + 'T12:00:00');
+        }
+        else {
+            date = new Date(dateString);
+        }
+        
+        const now = new Date();
         const isToday = date.toDateString() === now.toDateString();
+        
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const isYesterday = date.toDateString() === yesterday.toDateString();
@@ -3190,7 +3242,9 @@ const App = {
                 }
 
                 target.books.push(book);
-                target.booksCount += 1;
+                
+                target.booksCount += yearStats.finishes; 
+                
                 target.pages += yearStats.pages;
 
                 for (let m = 0; m < 12; m++) {
@@ -3224,19 +3278,19 @@ const App = {
                     });
                 }
 
-                if (book.rating > 0 && (yearStats.active || yearStats.finishes > 0)) {
+                if (book.rating > 0 && yearStats.finishes > 0) {
                     target.ratingSum += parseFloat(book.rating);
                     target.ratedCount++;
                 }
 
                 const p = parseInt(book.pages) || 0;
-                if (p > 0 && (yearStats.active || yearStats.finishes > 0)) {
+                if (p > 0 && yearStats.finishes > 0) {
                     if (!target.longestBook || p > parseInt(target.longestBook.pages)) target.longestBook = book;
                     if (!target.shortestBook || p < parseInt(target.shortestBook.pages)) target.shortestBook = book;
                 }
 
-                if (book.author && (yearStats.active || yearStats.finishes > 0)) {
-                    target.authors[book.author] = (target.authors[book.author] || 0) + (yearStats.finishes || 1);
+                if (book.author && yearStats.finishes > 0) {
+                    target.authors[book.author] = (target.authors[book.author] || 0) + yearStats.finishes;
                 }
             };
 
@@ -3254,10 +3308,9 @@ const App = {
 
         statsData.all.booksCount = 0;
         this.state.books.forEach(book => {
-            const hasActivity = (book.computed.totalReadPages > 0 || book.computed.hasFinishedBefore);
-            if (hasActivity && book.status !== 'want-to-read') {
-                statsData.all.booksCount += 1;
-            }
+            Object.values(book.computed.activityByYear).forEach(y => {
+                statsData.all.booksCount += y.finishes;
+            });
         });
 
         this.statsState = { data: statsData, selectedYear: 'all' };
@@ -3307,9 +3360,9 @@ const App = {
 
         html += `
             <div class="stats-summary">
-                <div class="summary-card">
+                <div class="summary-card" onclick="App.openPeriodDetails('${selectedYear === 'all' ? 'all' : 'year'}', '${selectedYear}', 'finishes')" style="cursor: pointer;">
                     <div class="summary-value">${current.booksCount}</div>
-                    <div class="summary-label">Total de Leituras</div>
+                    <div class="summary-label">Livros Concluídos</div>
                 </div>
                 <div class="summary-card">
                     <div class="summary-value">${current.pages.toLocaleString()}</div>
@@ -3392,7 +3445,7 @@ const App = {
 
         html += `<div class="chart-container">`;
         if (selectedYear === 'all') {
-            html += `<div class="chart-title">Livros por Ano</div><div class="chart-bars">`;
+            html += `<div class="chart-title">Livros Concluídos por Ano</div><div class="chart-bars">`;
             const ySorted = Object.keys(data.years).sort((a, b) => a - b).filter(y => y !== 'Desconhecido');
             let maxY = 0; ySorted.forEach(y => maxY = Math.max(maxY, data.years[y].booksCount));
             if (maxY === 0) maxY = 1;
@@ -3400,36 +3453,36 @@ const App = {
             ySorted.forEach(y => {
                 const c = data.years[y].booksCount;
                 const h = Math.max((c / maxY) * 100, 4);
-                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}', 'finishes')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
             });
             html += `</div>`;
             html += `</div>`;
         } else if (selectedYear === 'Desconhecido') {
             html += `<div class="chart-title">Livros sem Data Definida</div>
                         <div style="display: flex; justify-content: center; align-items: center; padding: 2rem;">
-                            <button class="btn btn-primary" onclick="App.openPeriodDetails('year', 'Desconhecido')">Ver Lista Completa (${current.booksCount} livros)</button>
+                            <button class="btn btn-primary" onclick="App.openPeriodDetails('year', 'Desconhecido', 'finishes')">Ver Lista Completa (${current.booksCount} livros)</button>
                         </div>`;
         } else {
-            html += `<div class="chart-title">Páginas Lidas por Mês (${selectedYear})</div><div class="chart-bars">`;
+            html += `<div class="chart-title">Volume de Leitura - Páginas (${selectedYear})</div><div class="chart-bars">`;
             const mNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
             let maxP = Math.max(...current.monthlyPagesDist, 0);
             if (maxP === 0) maxP = 1;
 
             current.monthlyPagesDist.forEach((pVal, i) => {
                 const h = Math.max((pVal / Math.max(maxP, 1)) * 100, 4);
-                html += `<div class="bar-group" title="${pVal.toLocaleString()} páginas" onclick="App.openPeriodDetails('month', '${i}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+                html += `<div class="bar-group" title="${pVal.toLocaleString()} páginas" onclick="App.openPeriodDetails('month', '${i}', 'pages')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
             });
             html += `</div>`;
 
             html += `<div style="margin-bottom: 2.5rem;"></div>`;
 
-            html += `<div class="chart-title">Livros Lidos por Mês (${selectedYear})</div><div class="chart-bars">`;
+            html += `<div class="chart-title">Livros Concluídos por Mês (${selectedYear})</div><div class="chart-bars">`;
             let maxM = Math.max(...current.monthlyDist, 0);
             if (maxM === 0) maxM = 1;
 
             current.monthlyDist.forEach((c, i) => {
                 const h = Math.max((c / maxM) * 100, 4);
-                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('month', '${i}')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('month', '${i}', 'finishes')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
             });
             html += `</div>`;
         }
@@ -3439,7 +3492,7 @@ const App = {
         this.renderHeatMap(current.dailyPages, selectedYear);
     },
     
-    openPeriodDetails(type, value) {
+    openPeriodDetails(type, value, mode = 'pages') {
         const modal = document.getElementById('periodDetailsModal');
         const content = document.getElementById('periodDetailsContent');
         const title = document.getElementById('periodDetailsTitle');
@@ -3449,7 +3502,9 @@ const App = {
         let periodLabel = '';
         let targetKey = '';
 
-        if (type === 'year') {
+        if (type === 'all') {
+            periodLabel = 'Todo o Período';
+        } else if (type === 'year') {
             targetKey = value.toString();
             periodLabel = targetKey;
         } else if (type === 'month') {
@@ -3461,10 +3516,26 @@ const App = {
         }
 
         books = this.state.books.filter(book => {
+            if (type === 'all') {
+                const totalFinishes = Object.values(book.computed.activityByYear).reduce((acc, y) => acc + y.finishes, 0);
+                
+                if (mode === 'finishes') {
+                    if (totalFinishes === 0) return false;
+                } else {
+                    if (book.computed.totalReadPages === 0) return false;
+                }
+                
+                book._tempPagesInPeriod = book.computed.totalReadPages;
+                return true;
+            }
+
             const stats = type === 'year' ? book.computed.activityByYear[targetKey] : book.computed.activityByMonth[targetKey];
             const hasGoal = (type === 'year' && book.goalYear == targetKey);
             
             if (stats || hasGoal) {
+                if (mode === 'finishes' && (!stats || stats.finishes === 0) && !hasGoal) return false;
+                if (mode === 'pages' && (!stats || stats.pages === 0)) return false;
+
                 book._tempPagesInPeriod = stats ? stats.pages : 0;
                 return true;
             }
@@ -3476,14 +3547,13 @@ const App = {
         title.textContent = `Leituras: ${periodLabel} (${books.length})`;
 
         if (books.length === 0) {
-            content.innerHTML = '<div class="empty-state"><p>Nenhum livro encontrado para este período.</p></div>';
+            content.innerHTML = `<div class="empty-state"><p>Nenhum livro ${mode === 'finishes' ? 'concluído' : 'lido'} para este período.</p></div>`;
         } else {
             let html = '<div class="books-list-compact">';
             books.forEach(book => {
                 const coverUrl = book.cover && book.cover !== 'null' ? book.cover : 'https://placehold.co/200x300?text=Sem+Capa';
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co');
                 const pagesInPeriod = book._tempPagesInPeriod || 0;
-
                 const escTitle = escapeHTML(book.title);
                 const escAuthor = escapeHTML(book.author);
 
@@ -3498,7 +3568,7 @@ const App = {
                             <div class="api-result-author">${escAuthor}</div>
                             <div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 2px;">
                                ${book.rating > 0 ? '★ ' + book.rating + ' • ' : ''} 
-                               ${pagesInPeriod > 0 ? `${pagesInPeriod.toLocaleString()} pág lidas no ${type === 'year' ? 'ano' : 'mês'}` : (book.pages ? book.pages + ' pág' : '')}
+                               ${pagesInPeriod > 0 ? `${pagesInPeriod.toLocaleString()} pág lidas` : (book.pages ? book.pages + ' pág' : '')}
                             </div>
                         </div>
                     </div>`;
