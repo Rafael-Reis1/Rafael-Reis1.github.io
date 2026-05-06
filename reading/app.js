@@ -375,7 +375,7 @@ const App = {
         this.initDatePicker();
         this.initStats();
 
-        this.setFilter(this.state.filter);UI
+        this.setFilter(this.state.filter);
         this.setSort(this.state.sortBy);
         this.refresh();
     },
