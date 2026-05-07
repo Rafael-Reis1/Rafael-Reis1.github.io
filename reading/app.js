@@ -21,7 +21,7 @@ const GoogleBooksAPI = {
     async search(query) {
         if (!query || query.length < 3) return [];
         try {
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5`);
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`);
             const data = await response.json();
             return data.items || [];
         } catch (error) {
@@ -35,7 +35,7 @@ const OpenLibraryAPI = {
     async search(query) {
         if (!query || query.length < 3) return [];
         try {
-            const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=5&fields=key,title,author_name,cover_i,number_of_pages_median,first_publish_year`);
+            const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=key,title,author_name,cover_i,number_of_pages_median,first_publish_year`);
             const data = await response.json();
 
             return (data.docs || []).map(doc => ({

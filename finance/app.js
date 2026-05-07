@@ -1206,7 +1206,7 @@ class UIController {
         this.pendingImportData = null;
 
         this.currentPage = 1;
-        this.itemsPerPage = 50;
+        this.itemsPerPage = 300;
         this.mousedownTarget = null;
 
         this.btnLogin = document.getElementById('btnLogin');
