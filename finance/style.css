@@ -634,6 +634,8 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid transparent;
     transition: all 0.2s ease;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px;
 }
 
 .transaction-item:hover {
@@ -683,6 +685,8 @@ input[type=number] {
     padding: 1rem;
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.15);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px;
 }
 
 .series-date {
@@ -2136,6 +2140,8 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 70px;
 }
 
 .subs-item.inactive {
