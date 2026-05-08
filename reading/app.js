@@ -1665,7 +1665,7 @@ const App = {
             'target': 'Meta',
             'ebook': 'Ebook',
             'audiobook': 'Audiobook',
-            'recommended': 'Recomendados para Mim'
+            'recommended': 'Recomendados'
         };
 
         const colors = {

@@ -2949,7 +2949,7 @@ input[type=number] {
         justify-content: flex-start;
         align-items: center;
         width: 100%;
-        padding: 5px 0;
+        padding: 0 0 0.4375rem 0;
     }
 
     .toolbar-left {
@@ -2960,7 +2960,6 @@ input[type=number] {
         width: 100%;
         max-width: 100%;
         overflow-x: auto;
-        padding-bottom: 5px;
         justify-content: flex-start;
         order: 2;
     }
