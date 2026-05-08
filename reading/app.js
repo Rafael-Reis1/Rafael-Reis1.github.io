@@ -3896,7 +3896,19 @@ const App = {
                     const globalIdx = i + batchIdx;
                     try {
                         let busca = await GoogleBooksAPI.search(`${sug.title} ${sug.author}`);
-                        if (!busca || busca.length === 0) busca = await GoogleBooksAPI.search(sug.title);
+                        
+                        if (!busca || busca.length === 0) {
+                            busca = await GoogleBooksAPI.search(sug.title);
+                        }
+
+                        if (!busca || busca.length === 0) {
+                            console.log(`Google Books falhou para "${sug.title}". Buscando no OpenLibrary...`);
+                            busca = await OpenLibraryAPI.search(`${sug.title} ${sug.author}`);
+                            
+                            if (!busca || busca.length === 0) {
+                                busca = await OpenLibraryAPI.search(sug.title);
+                            }
+                        }
 
                         if (busca && busca.length > 0) {
                             const realBook = { ...busca[0], geminiReason: sug.reason };
@@ -3904,11 +3916,13 @@ const App = {
                             localStorage.setItem('rm_recommendations', JSON.stringify(this.state.searchResults));
                             this.updateSingleRecCard(globalIdx, realBook);
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error(`Erro crítico ao buscar capa para: ${sug.title}`, e);
+                    }
                 });
 
                 await Promise.all(batchPromises);
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 2000));
             }
         } catch (error) {
             console.error(error);
