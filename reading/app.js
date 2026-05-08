@@ -3882,13 +3882,13 @@ const App = {
                 };
 
                 card.innerHTML = `
-                    <div class="book-cover-container ${isPlaceholder ? '' : 'skeleton'}" style="height: 100%; border-radius: 12px; overflow: hidden; transform: translateZ(0); ${isPlaceholder ? 'background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; align-items: center; justify-content: center;' : ''}">
+                    <div class="book-cover-container ${isPlaceholder ? '' : 'skeleton'}" style="height: 100%; border-radius: 12px; overflow: hidden; ${isPlaceholder ? 'background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; align-items: center; justify-content: center;' : ''}">
                         
                         ${isPlaceholder 
                             ? `<div class="placeholder-icon" style="display:flex; flex-direction:column; align-items:center; opacity:0.2; color:white;">
                                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                               </div>`
-                            : `<img src="${coverUrl}" class="book-cover" style="width: 100.5%; height: 100.5%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')">`
+                            </div>`
+                            : `<img src="${coverUrl}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')">`
                         }
 
                         <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
@@ -3980,7 +3980,7 @@ const App = {
         if (coverUrl) {
             const container = card.querySelector('.book-cover-container');
             container.innerHTML = `
-                <img src="${coverUrl}" class="book-cover" style="width: 100.5%; height: 100.5%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')">
+                <img src="${coverUrl}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')">
                 <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
                     <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: white; line-height: 1.2;">${escapeHTML(info.title)}</div>
                     <div style="font-size: 0.75rem; font-weight: normal; color: #fbbf24; font-style: italic; line-height: 1.3;">
