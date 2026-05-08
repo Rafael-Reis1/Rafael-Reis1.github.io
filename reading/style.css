@@ -819,8 +819,6 @@ body {
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
-    isolation: isolate;
 }
 
 .book-cover {
@@ -828,7 +826,9 @@ body {
     height: 100%;
     object-fit: cover;
     will-change: transform;
-    transform: scale(1.02);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    border-radius: inherit;
 }
 
 .bookmark-icon {
@@ -2093,11 +2093,6 @@ input[type=number] {
     100% {
         transform: translateX(100%);
     }
-}
-
-.book-cover {
-    opacity: 1;
-    transition: opacity 0.3s ease;
 }
 
 .book-cover-container.skeleton .book-cover {
