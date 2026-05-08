@@ -807,20 +807,15 @@ body {
     transition: transform 0.3s ease, z-index 0s linear;
 }
 
-.book-card:hover .book-cover-container {
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
-}
-
 .book-cover-container {
     position: relative;
     width: 100%;
     aspect-ratio: 2/3;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--glass-border);
-    background-color: #0f101e; 
-    transform: translateZ(0)
+    border: none;
+    background-color: #0f101e;
+    transform: translateZ(0);
 }
 
 .book-cover {
@@ -2070,12 +2065,6 @@ input[type=number] {
 
 .api-loading {
     padding: 5px 10px;
-}
-
-.book-cover-container {
-    background: #1e1f35;
-    position: relative;
-    overflow: hidden;
 }
 
 .book-cover-container.skeleton::before {
@@ -3366,6 +3355,7 @@ input[type=number] {
     justify-content: center;
     align-items: center;
     padding: 1rem;
+    border-radius: 8px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
     backdrop-filter: blur(10px);
     text-align: center;
