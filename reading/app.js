@@ -70,6 +70,72 @@ const OpenLibraryAPI = {
     }
 };
 
+const GeminiAPI = {
+    apiKey: "AIzaSyD0nUNk9p_kGF5br3AtOVAvQVawnzxvTfk",
+
+    async getRecomendacoes(livrosBase, todosOsTitulos) {
+        if (!livrosBase || livrosBase.length === 0) return [];
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${this.apiKey}`;
+        
+        const listaContexto = livrosBase.slice(0, 30).map(l => `- ${l.title} (${l.author})`).join('\n');
+        
+        const listaNegra = todosOsTitulos.join(', ');
+
+        const prompt = `O utilizador gosta destes livros:
+        ${listaContexto}
+
+        O utilizador JÁ POSSUI os seguintes livros (NÃO RECOMENDE ESTES):
+        ${listaNegra}
+
+        Gere 10 recomendações de livros que NÃO estejam na lista acima.`;
+
+        const jsonSchema = {
+            type: "object",
+            properties: {
+                recomendacoes: {
+                    type: "array",
+                    items: {
+                        type: "object",
+                        properties: {
+                            title: { type: "string" },
+                            author: { type: "string" },
+                            reason: { type: "string" }
+                        },
+                        required: ["title", "author", "reason"]
+                    }
+                }
+            },
+            required: ["recomendacoes"]
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    system_instruction: {
+                        parts: [{ 
+                            text: "Você é um especialista literário. Recomende 30 novos livros. É CRÍTICO que você não sugira nenhum livro que o usuário já possua (ver lista de exclusão no prompt). Retorne apenas o JSON." 
+                        }]
+                    },
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: jsonSchema
+                    }
+                })
+            });
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text ? JSON.parse(data.candidates[0].content.parts[0].text).recomendacoes : [];
+        } catch (error) {
+            console.error("Erro na API:", error);
+            return [];
+        }
+    }
+};
+
 const BookModel = {
     create(data) {
         return {
@@ -1116,6 +1182,14 @@ const App = {
             if (this.dom.loginOverlay) this.dom.loginOverlay.classList.remove('hidden');
 
             rm.clear();
+            localStorage.clear();
+
+            this.state.filter = 'all';
+            this.state.formatFilter = 'all';
+            this.state.searchQuery = '';
+            this.dom.bookSearch.value = '';
+            this.setFilter('all'); 
+            rm.clear();
             auth.signOut();
             this.dom.userDropdown.classList.remove('active');
             this.refresh();
@@ -1590,7 +1664,8 @@ const App = {
             'lent': 'Emprestei',
             'target': 'Meta',
             'ebook': 'Ebook',
-            'audiobook': 'Audiobook'
+            'audiobook': 'Audiobook',
+            'recommended': 'Recomendados para Mim'
         };
 
         const colors = {
@@ -1608,7 +1683,8 @@ const App = {
             'lent': '#3730a3',
             'target': '#3f6212',
             'ebook': '#075985',
-            'audiobook': '#86198f'
+            'audiobook': '#86198f',
+            'recommended': '#d97706'
         };
 
         const header = document.querySelector('.header');
@@ -1883,6 +1959,23 @@ const App = {
 
 
     render() {
+        if (this.state.filter === 'recommended') {
+            this.renderRecommendationsTab();
+            return;
+        }
+
+        const toolbarRight = document.querySelector('.toolbar-right');
+        if (toolbarRight) {
+            const searchWrapper = toolbarRight.querySelector('.search-wrapper');
+            const sortContainer = toolbarRight.querySelector('.sort-dropdown-container');
+            if (searchWrapper) searchWrapper.style.display = 'flex';
+            if (sortContainer) sortContainer.style.display = 'block';
+            this.dom.addBtn.style.display = 'flex';
+            
+            const btnGerar = document.getElementById('btnGerarRecomendacoes');
+            if (btnGerar) btnGerar.style.display = 'none';
+        }
+        
         const filtered = this.getFilteredBooks();
         const sorted = this.sortBooks(filtered);
 
@@ -2429,8 +2522,8 @@ const App = {
         const pages = this.dom.bookPages.value;
         const status = this.dom.statusHiddenInput.value;
 
-        if (!title || !author || !pages) {
-            this.showMessage('Campos Obrigatórios', 'Por favor, preencha o título, autor e número de páginas.', '⚠️');
+        if (!title || !author) {
+            this.showMessage('Campos Obrigatórios', 'Por favor, preencha o título e o autor.', '⚠️');
             return;
         }
 
@@ -3737,6 +3830,167 @@ const App = {
             this.showNotesFormView(note);
         }
     },
+
+    renderRecommendationsTab() {
+        this.dom.grid.innerHTML = '';
+        if (this.dom.paginationControls) this.dom.paginationControls.style.display = 'none';
+        
+        const toolbarRight = document.querySelector('.toolbar-right');
+        if (toolbarRight) {
+            const searchWrapper = toolbarRight.querySelector('.search-wrapper');
+            const sortContainer = toolbarRight.querySelector('.sort-dropdown-container');
+            if (searchWrapper) searchWrapper.style.display = 'none';
+            if (sortContainer) sortContainer.style.display = 'none';
+            this.dom.addBtn.style.display = 'none';
+            
+            let btnGerar = document.getElementById('btnGerarRecomendacoes');
+            if (!btnGerar) {
+                btnGerar = document.createElement('button');
+                btnGerar.id = 'btnGerarRecomendacoes';
+                btnGerar.className = 'btn btn-primary'; 
+                btnGerar.innerHTML = '✨ Gerar Novas Recomendações';
+                btnGerar.onclick = () => App.generateNewRecommendations();
+                toolbarRight.appendChild(btnGerar);
+            }
+            btnGerar.style.display = 'flex';
+        }
+
+        const cachedRecommendations = JSON.parse(localStorage.getItem('rm_recommendations') || '[]');
+
+        if (cachedRecommendations.length > 0) {
+            this.dom.resultsCount.textContent = `Encontramos ${cachedRecommendations.length} tesouros!`;
+            
+            cachedRecommendations.forEach((book, index) => {
+                const info = book.volumeInfo;
+                const coverUrl = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail).replace('http:', 'https:') : '';
+                const escTitle = escapeHTML(info.title || 'Título desconhecido');
+                const escAuthor = escapeHTML(info.authors ? info.authors[0] : 'Autor desconhecido');
+                const escReason = escapeHTML(book.geminiReason || 'Excelente adição à sua biblioteca.');
+                const isPlaceholder = !coverUrl;
+
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.style.cursor = 'pointer';
+                card.id = `rec-card-${index}`;
+                
+                card.onclick = () => {
+                    App.dom.addBtn.click();
+                    document.getElementById('bookTitle').value = info.title || '';
+                    document.getElementById('bookAuthor').value = escAuthor;
+                    document.getElementById('bookPages').value = info.pageCount || '';
+                    document.getElementById('bookCover').value = coverUrl || '';
+                };
+
+                card.innerHTML = `
+                    <div class="book-cover-container ${isPlaceholder ? '' : 'skeleton'}" style="height: 100%; border-radius: 12px; overflow: hidden; transform: translateZ(0); ${isPlaceholder ? 'background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; align-items: center; justify-content: center;' : ''}">
+                        
+                        ${isPlaceholder 
+                            ? `<div class="placeholder-icon" style="display:flex; flex-direction:column; align-items:center; opacity:0.2; color:white;">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                               </div>`
+                            : `<img src="${coverUrl}" class="book-cover" style="width: 100.5%; height: 100.5%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')">`
+                        }
+
+                        <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
+                            <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: white; line-height: 1.2;">${escTitle}</div>
+                            <div style="font-size: 0.75rem; font-weight: normal; color: #fbbf24; font-style: italic; line-height: 1.3;">
+                                💡 ${escReason}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                this.dom.grid.appendChild(card);
+            });
+            return;
+        }
+
+        this.dom.grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; padding-top: 4rem;"><div style="font-size: 3.5rem; margin-bottom: 1rem;">✨</div><h3 style="color: white; margin-bottom: 10px;">Descubra Novas Leituras</h3><p>Vamos analisar os seus livros favoritos para sugerir algo especial.</p></div>`;
+    },
+
+    async generateNewRecommendations() {
+        const bestBooks = this.state.books.filter(b => (b.status === 'read' && b.rating >= 4) || (b.tags && b.tags.includes('favorite')));
+        const todosOsTitulos = this.state.books.map(b => b.title.toLowerCase().trim());
+
+        if (bestBooks.length === 0) {
+            this.showMessage('Atenção', 'Adicione favoritos para a IA entender o seu gosto!', '⚠️');
+            return;
+        }
+
+        this.dom.grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin-bottom:20px;"></div><p>Procurando livros que combinem contigo...</p></div>';
+
+        try {
+            const sugestoesBrutas = await GeminiAPI.getRecomendacoes(bestBooks, todosOsTitulos);
+            const sugestoes = sugestoesBrutas.filter(s => !todosOsTitulos.includes(s.title.toLowerCase().trim()));
+
+            if (sugestoes.length === 0) throw new Error("Sem sugestões novas.");
+
+            const resultadosIniciais = sugestoes.map(sug => ({
+                id: `temp-${Math.random()}`,
+                volumeInfo: { title: sug.title, authors: [sug.author], imageLinks: null },
+                geminiReason: sug.reason
+            }));
+
+            this.state.searchResults = resultadosIniciais;
+            localStorage.setItem('rm_recommendations', JSON.stringify(resultadosIniciais));
+            this.renderRecommendationsTab();
+
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < sugestoes.length; i += BATCH_SIZE) {
+                const currentBatch = sugestoes.slice(i, i + BATCH_SIZE);
+                
+                const batchPromises = currentBatch.map(async (sug, batchIdx) => {
+                    const globalIdx = i + batchIdx;
+                    try {
+                        let busca = await GoogleBooksAPI.search(`${sug.title} ${sug.author}`);
+                        if (!busca || busca.length === 0) busca = await GoogleBooksAPI.search(sug.title);
+
+                        if (busca && busca.length > 0) {
+                            const realBook = { ...busca[0], geminiReason: sug.reason };
+                            this.state.searchResults[globalIdx] = realBook;
+                            localStorage.setItem('rm_recommendations', JSON.stringify(this.state.searchResults));
+                            this.updateSingleRecCard(globalIdx, realBook);
+                        }
+                    } catch (e) {}
+                });
+
+                await Promise.all(batchPromises);
+                await new Promise(r => setTimeout(r, 600));
+            }
+        } catch (error) {
+            console.error(error);
+            this.renderRecommendationsTab(); 
+        }
+    },
+
+    updateSingleRecCard(index, bookData) {
+        const card = document.getElementById(`rec-card-${index}`);
+        if (!card) return;
+
+        const info = bookData.volumeInfo;
+        const coverUrl = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail).replace('http:', 'https:') : '';
+        
+        card.onclick = () => {
+            App.dom.addBtn.click();
+            document.getElementById('bookTitle').value = info.title || '';
+            document.getElementById('bookAuthor').value = info.authors ? info.authors[0] : '';
+            document.getElementById('bookPages').value = info.pageCount || 0;
+            document.getElementById('bookCover').value = coverUrl || '';
+        };
+
+        if (coverUrl) {
+            const container = card.querySelector('.book-cover-container');
+            container.innerHTML = `
+                <img src="${coverUrl}" class="book-cover" style="width: 100.5%; height: 100.5%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')">
+                <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
+                    <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: white; line-height: 1.2;">${escapeHTML(info.title)}</div>
+                    <div style="font-size: 0.75rem; font-weight: normal; color: #fbbf24; font-style: italic; line-height: 1.3;">
+                        💡 ${escapeHTML(bookData.geminiReason)}
+                    </div>
+                </div>
+            `;
+            container.classList.add('skeleton');
+        }
+    }
 };
 
 

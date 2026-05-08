@@ -40,6 +40,7 @@
     --color-target: #84cc16;
     --color-ebook: #38bdf8;
     --color-audiobook: #d946ef;
+    --color-recommended: #d97706;
 }
 
 * {
@@ -112,7 +113,7 @@ body {
     height: calc(50px + env(safe-area-inset-top, 0px)); 
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-    padding-bottom: 0;
+    padding-bottom: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -348,6 +349,11 @@ body {
     border-color: var(--color-all);
 }
 
+.nav-item.active[data-filter="recommended"] {
+    background: var(--color-recommended);
+    border-color: var(--color-recommended);
+}
+
 .nav-item.active[data-filter="read"] {
     background: var(--color-read);
     border-color: var(--color-read);
@@ -446,7 +452,10 @@ body {
     transition: transform 0.2s ease;
 }
 
-
+.icon-recommended {
+    color: var(--color-recommended);
+    fill: currentColor;
+}
 
 .icon-all {
     color: var(--color-all);
@@ -644,7 +653,6 @@ body {
     justify-content: center;
     align-items: center;
     width: 100%;
-    padding: 5px 0;
 }
 
 .format-filters::-webkit-scrollbar {
