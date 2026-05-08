@@ -2281,7 +2281,11 @@ const App = {
         let html = '';
         books.forEach(book => {
             const info = book.volumeInfo;
-            const coverUrl = info.imageLinks ? info.imageLinks.thumbnail : null;
+            let coverUrl = '';
+            if (info.imageLinks) {
+                const thumb = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
+                if (thumb) coverUrl = thumb.replace('http:', 'https:');
+            }
             const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : '';
             
             const title = info.title || 'Título desconhecido';
@@ -3902,7 +3906,6 @@ const App = {
                         }
 
                         if (!busca || busca.length === 0) {
-                            console.log(`Google Books falhou para "${sug.title}". Buscando no OpenLibrary...`);
                             busca = await OpenLibraryAPI.search(`${sug.title} ${sug.author}`);
                             
                             if (!busca || busca.length === 0) {
@@ -3935,7 +3938,11 @@ const App = {
         if (!card) return;
 
         const info = bookData.volumeInfo;
-        const coverUrl = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail).replace('http:', 'https:') : '';
+        let coverUrl = '';
+        if (info.imageLinks) {
+            const thumb = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
+            if (thumb) coverUrl = thumb.replace('http:', 'https:');
+        }
         
         card.onclick = () => {
             App.dom.addBtn.click();
