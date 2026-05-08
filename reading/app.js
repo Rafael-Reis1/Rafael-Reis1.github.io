@@ -71,66 +71,20 @@ const OpenLibraryAPI = {
 };
 
 const GeminiAPI = {
-    apiKey: "AIzaSyD0nUNk9p_kGF5br3AtOVAvQVawnzxvTfk",
-
     async getRecomendacoes(livrosBase, todosOsTitulos) {
         if (!livrosBase || livrosBase.length === 0) return [];
         
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${this.apiKey}`;
-        
-        const listaContexto = livrosBase.slice(0, 30).map(l => `- ${l.title} (${l.author})`).join('\n');
-        
-        const listaNegra = todosOsTitulos.join(', ');
-
-        const prompt = `O utilizador gosta destes livros:
-        ${listaContexto}
-
-        O utilizador JÁ POSSUI os seguintes livros (NÃO RECOMENDE ESTES):
-        ${listaNegra}
-
-        Gere 10 recomendações de livros que NÃO estejam na lista acima.`;
-
-        const jsonSchema = {
-            type: "object",
-            properties: {
-                recomendacoes: {
-                    type: "array",
-                    items: {
-                        type: "object",
-                        properties: {
-                            title: { type: "string" },
-                            author: { type: "string" },
-                            reason: { type: "string" }
-                        },
-                        required: ["title", "author", "reason"]
-                    }
-                }
-            },
-            required: ["recomendacoes"]
-        };
-
         try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    system_instruction: {
-                        parts: [{ 
-                            text: "Você é um especialista literário. Recomende 30 novos livros. É CRÍTICO que você não sugira nenhum livro que o usuário já possua (ver lista de exclusão no prompt). Retorne apenas o JSON." 
-                        }]
-                    },
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: jsonSchema
-                    }
-                })
+            const gerarRecomendacoes = firebase.functions().httpsCallable('gerarRecomendacoesLivros');
+            
+            const response = await gerarRecomendacoes({
+                livrosBase: livrosBase,
+                todosOsTitulos: todosOsTitulos
             });
 
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text ? JSON.parse(data.candidates[0].content.parts[0].text).recomendacoes : [];
+            return response.data || [];
         } catch (error) {
-            console.error("Erro na API:", error);
+            console.error("Erro na Function do Firebase:", error);
             return [];
         }
     }
