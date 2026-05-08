@@ -807,7 +807,7 @@ body {
     transition: transform 0.3s ease, z-index 0s linear;
 }
 
-.book-card:hover .book-cover {
+.book-card:hover .book-cover-container {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
 }
 
@@ -819,6 +819,8 @@ body {
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    isolation: isolate;
 }
 
 .book-cover {
@@ -826,6 +828,7 @@ body {
     height: 100%;
     object-fit: cover;
     will-change: transform;
+    transform: scale(1.02);
 }
 
 .bookmark-icon {
