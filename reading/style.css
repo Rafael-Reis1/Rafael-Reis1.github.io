@@ -819,6 +819,8 @@ body {
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
+    background-color: #0f101e; 
+    transform: translateZ(0)
 }
 
 .book-cover {
