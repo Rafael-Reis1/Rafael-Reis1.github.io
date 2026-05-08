@@ -3820,7 +3820,8 @@ const App = {
             
             cachedRecommendations.forEach((book, index) => {
                 const info = book.volumeInfo;
-                const coverUrl = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail).replace('http:', 'https:') : '';
+                const thumb = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail) : null;
+                const coverUrl = thumb ? thumb.replace('http:', 'https:') : '';
                 const escTitle = escapeHTML(info.title || 'Título desconhecido');
                 const escAuthor = escapeHTML(info.authors ? info.authors[0] : 'Autor desconhecido');
                 const escReason = escapeHTML(book.geminiReason || 'Excelente adição à sua biblioteca.');
