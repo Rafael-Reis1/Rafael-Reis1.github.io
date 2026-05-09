@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
     let currentPdfBytes = null;
     let currentPdfDoc = null;
     let shouldCancel = false;
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!autoProcess) {
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                currentPdfBytes = arrayBuffer.slice(0);
+                currentPdfBytes = new Uint8Array(arrayBuffer);
 
                 showFileReadyState(file);
                 return;
@@ -264,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (!currentPdfBytes) {
                 const arrayBuffer = await file.arrayBuffer();
-                currentPdfBytes = arrayBuffer.slice(0);
+                currentPdfBytes = new Uint8Array(arrayBuffer);
             }
 
             const skipPreview = document.getElementById('skip-preview').checked;
@@ -647,9 +648,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { PDFDocument } = PDFLib;
             const newPdf = await PDFDocument.create();
-            const originalPdf = await PDFDocument.load(currentPdfBytes, { ignoreEncryption: true });
-
-            const embeddedPages = await newPdf.embedPages(originalPdf.getPages());
+            
+            let originalPdf;
+            let embeddedPages;
+            
+            const originalWarn = console.warn;
+            console.warn = () => {}; 
+            
+            try {
+                originalPdf = await PDFDocument.load(currentPdfBytes.slice(0), { ignoreEncryption: true });
+                embeddedPages = await newPdf.embedPages(originalPdf.getPages());
+            } catch (err) {
+                console.warn = originalWarn;
+                console.log("PDF problemático detectado. Iniciando reparo inteligente...");
+                
+                originalPdf = await repairPdfViaCanvas(currentPdfBytes);
+                embeddedPages = await newPdf.embedPages(originalPdf.getPages());
+            } finally {
+                console.warn = originalWarn; 
+            }
+            
             const totalOriginalPages = embeddedPages.length;
             const signatureSize = parseInt(document.getElementById('binding-type').value) || 0;
             const sheets = calculateImposition(totalOriginalPages, signatureSize);
@@ -863,5 +881,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         });
+    }
+
+    async function repairPdfViaCanvas(pdfBytes) {
+        const { PDFDocument } = PDFLib;
+        const flatPdf = await PDFDocument.create();
+        
+        const pdfJsDoc = await pdfjsLib.getDocument(pdfBytes.slice(0)).promise;
+        
+        const progressText = document.getElementById('progress-text');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const totalPages = pdfJsDoc.numPages;
+
+        for (let i = 1; i <= totalPages; i++) {
+            if (progressText) progressText.innerText = `Reparando página ${i} de ${totalPages}...`;
+            if (progressBar) progressBar.style.width = `${(i / totalPages) * 100}%`;
+            
+            await new Promise(r => setTimeout(r, 15));
+
+            const page = await pdfJsDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 }); 
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            
+            const imgData = canvas.toDataURL('image/jpeg', 0.8); 
+            const jpgImage = await flatPdf.embedJpg(imgData);
+            
+            const newPage = flatPdf.addPage([viewport.width, viewport.height]);
+            newPage.drawImage(jpgImage, {
+                x: 0, y: 0,
+                width: viewport.width, height: viewport.height,
+            });
+        }
+        
+        if (progressText) progressText.innerText = "Finalizando reparo...";
+        await new Promise(r => setTimeout(r, 15));
+
+        const flatBytes = await flatPdf.save();
+        return await PDFDocument.load(flatBytes, { ignoreEncryption: true });
     }
 });
