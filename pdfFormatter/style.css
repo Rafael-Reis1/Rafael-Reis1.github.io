@@ -301,7 +301,7 @@ h1 {
     padding-bottom: 0.625rem;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent-color) var(--base-color);
+    scrollbar-color: var(--accent-color) transparent;
 }
 
 .preview-container::-webkit-scrollbar {
@@ -309,7 +309,7 @@ h1 {
 }
 
 .preview-container::-webkit-scrollbar-track {
-    background: var(--base-color);
+    background: transparent;
     border-radius: 4px;
 }
 
