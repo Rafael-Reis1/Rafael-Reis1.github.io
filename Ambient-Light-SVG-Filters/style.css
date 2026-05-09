@@ -20,6 +20,8 @@
 html {
     scroll-snap-type: y mandatory;
     overflow-x: hidden;
+    scrollbar-color: var(--accent-color) var(--body-color);
+    scrollbar-gutter: stable;
 }
 
 body {
@@ -58,6 +60,7 @@ body {
     height: auto;
     border: none;
     display: block;
+    content-visibility: auto;
 }
 
 .btnVoltar {
