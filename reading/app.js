@@ -3867,18 +3867,22 @@ const App = {
     },
 
     async generateNewRecommendations() {
-        const bestBooks = this.state.books.filter(b => (b.status === 'read' && b.rating >= 4) || (b.tags && b.tags.includes('favorite')));
+        const livrosBase = this.state.books.filter(b => b.status !== 'abandoned');
         const todosOsTitulos = this.state.books.map(b => b.title.toLowerCase().trim());
 
-        if (bestBooks.length === 0) {
-            this.showMessage('Atenção', 'Adicione favoritos para a IA entender o seu gosto!', '⚠️');
+        if (livrosBase.length === 0) {
+            this.showMessage(
+                'Precisamos conhecer o seu gosto! 🕵️‍♂️', 
+                'Adicione alguns livros à sua biblioteca primeiro. Assim, a IA terá uma base para sugerir leituras que combinem com você.', 
+                '📚'
+            );
             return;
         }
 
         this.dom.grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin-bottom:20px;"></div><p>Procurando livros que combinem contigo...</p></div>';
 
         try {
-            const sugestoesBrutas = await GeminiAPI.getRecomendacoes(bestBooks, todosOsTitulos);
+            const sugestoesBrutas = await GeminiAPI.getRecomendacoes(livrosBase, todosOsTitulos);
             const sugestoes = sugestoesBrutas.filter(s => !todosOsTitulos.includes(s.title.toLowerCase().trim()));
 
             if (sugestoes.length === 0) throw new Error("Sem sugestões novas.");
