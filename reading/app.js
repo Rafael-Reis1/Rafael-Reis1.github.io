@@ -2216,7 +2216,7 @@ const App = {
 
             const defaultOption = this.dom.customOptions[0];
             if (defaultOption) defaultOption.click();
-}, 300);
+        }, 300);
     },
 
     async handleAPISearch(query) {
