@@ -1465,7 +1465,8 @@ const App = {
                 const year = isEpoch ? 'Desconhecido' : d.getFullYear();
                 const month = d.getMonth();
                 const ym = isEpoch ? 'Desconhecido' : `${year}-${String(month + 1).padStart(2, '0')}`;
-                const dKey = isEpoch ? '1970-01-01' : d.toISOString().split('T')[0];
+                const day = d.getDate();
+                const dKey = isEpoch ? '1970-01-01' : `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
                 if (diff > 0) {
                     ensureYear(year).pages += diff;
