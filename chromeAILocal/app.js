@@ -1511,50 +1511,32 @@ ${code}
         if (chat && prompt) {
             const persona = this.personas.getAll().find(p => p.name === chat.personaName);
 
-            const activePersonaName = persona ? persona.name : (chat.personaName || '');
-            const activePersonaColor = persona ? (persona.color || '#f2511b') : (chat.personaColor || '');
-            const shouldUsePersonaStyle = (persona && persona.id !== 'default') || (chat.personaName && chat.personaColor);
+            const activePersonaName = persona ? persona.name : (chat.personaName || 'Padrão');
+            const activeColor = persona ? (persona.color || '#f2511b') : (chat.personaColor || '#f2511b');
 
-            let activeColor = '';
-            let textColor = '';
-
-            if (shouldUsePersonaStyle) {
-                prompt.placeholder = `Conversando com ${activePersonaName}...`;
-                activeColor = activePersonaColor;
-
-                textColor = this.getContrastYIQ(activeColor);
-            } else {
+            if (activePersonaName === 'Padrão' || !activePersonaName) {
                 prompt.placeholder = 'Digite sua mensagem para a IA...';
-                prompt.style.borderColor = '';
-                prompt.style.boxShadow = '';
-                activeColor = '';
+            } else {
+                prompt.placeholder = `Conversando com ${activePersonaName}...`;
             }
 
             if (this.els.messages) {
-                if (activeColor) {
-                    let bubbleColor = activeColor;
-                    let textColor = 'white';
+                let bubbleColor = activeColor;
+                let textColor = 'white';
 
-                    if (this.getContrastYIQ(activeColor) === 'black') {
-                        bubbleColor = this.darkenColor(activeColor, 45);
-                    }
+                if (this.getContrastYIQ(activeColor) === 'black') {
+                    bubbleColor = this.darkenColor(activeColor, 45);
+                }
 
-                    prompt.style.borderColor = bubbleColor;
-                    prompt.style.boxShadow = `0 0 0 1px ${bubbleColor}`;
+                prompt.style.borderColor = bubbleColor;
+                
+                prompt.style.boxShadow = `0 0 0 1px ${bubbleColor}`;
 
-                    this.els.messages.style.setProperty('--current-chat-color', bubbleColor);
-                    this.els.messages.style.setProperty('--current-chat-text-color', textColor);
+                this.els.messages.style.setProperty('--current-chat-color', bubbleColor);
+                this.els.messages.style.setProperty('--current-chat-text-color', textColor);
 
-                    if (this.els.sendBtn) {
-                        this.els.sendBtn.style.setProperty('--current-chat-color', bubbleColor);
-                    }
-                } else {
-                    this.els.messages.style.removeProperty('--current-chat-color');
-                    this.els.messages.style.removeProperty('--current-chat-text-color');
-
-                    if (this.els.sendBtn) {
-                        this.els.sendBtn.style.removeProperty('--current-chat-color');
-                    }
+                if (this.els.sendBtn) {
+                    this.els.sendBtn.style.setProperty('--current-chat-color', bubbleColor);
                 }
             }
         }
