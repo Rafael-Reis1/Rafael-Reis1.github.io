@@ -347,12 +347,17 @@ class AIService {
                  initialPrompts.push(...formattedHistory);
             }
 
+            const modelStatus = await this.factory.availability();
+            const needsDownload = modelStatus !== 'readily';
+
             const options = {
                 initialPrompts,
                 monitor(m) {
-                    m.addEventListener('downloadprogress', e => {
-                        if (onDownloadProgress) onDownloadProgress(e);
-                    });
+                    if (needsDownload) {
+                        m.addEventListener('downloadprogress', e => {
+                            if (onDownloadProgress) onDownloadProgress(e);
+                        });
+                    }
                 }
             };
 
@@ -2298,6 +2303,10 @@ ${code}
     }
 
     handleDownloadProgress(e, msgId) {
+        if (e.total > 0 && e.loaded === e.total) return;
+
+        if (e.loaded === 0 && e.total === 0) return;
+
         let existing = document.getElementById(msgId);
 
         const total = e.total || 0;
@@ -2320,9 +2329,6 @@ ${code}
             }
         } else if (fraction >= 1 && existing) {
             existing.innerHTML = '<p><b>Quase lá!</b> Carregando modelo...</p>';
-        } else if (fraction === 0 && !existing) {
-            const html = `<p><b>Preparando IA:</b> Iniciando download do modelo...</p>`;
-            this.addMessageToDOM(`<div class="message" id="${msgId}">${html}</div>`, 'assistant');
         }
     }
 
