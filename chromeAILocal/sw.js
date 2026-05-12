@@ -1,19 +1,21 @@
-const CACHE_NAME = 'finance-app-?v=1205261055';
+const CACHE_NAME = 'chrome-ai-local-v1';
 const urlsToCache = [
-    '/finance/finance.html',
-    '/finance/style.css?v=1205261055',
-    '/finance/app.js?v=1205261055',
-    '/finance/icon-512.png',
-    '/finance/icon-maskable.png',
-    '/finance/manifest.json?v=1205261055',
-    '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
-    '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
-    '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
-    './lib/chart.js',
-    '../assets/libs_comuns/flatpickr/flatpickr.min.css',
-    '../assets/libs_comuns/flatpickr/flatpickr.js',
-    '../assets/libs_comuns/flatpickr/pt.js',
-    '../assets/libs_comuns/fonts.css'
+    './chromeAILocal.html',
+    './style.css',
+    './app.js',
+    '../favicon.svg',
+    './lib/axios.min.js',
+    '../assets/libs_comuns/fonts.css',
+    './lib/all.min.css',
+    './lib/marked.min.js',
+    './lib/purify.min.js',
+    './lib/atom-one-dark.min.css',
+    './lib/highlight.min.js',
+    './lib/katex.min.css',
+    './lib/katex.min.js',
+    './lib/auto-render.min.js',
+    './lib/mermaid.min.js',
+    './lib/panzoom.min.js'
 ];
 
 self.addEventListener('install', event => {
@@ -41,15 +43,13 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
-    if (event.request.url.startsWith('https://firestore.googleapis.com') ||
-        event.request.url.startsWith('https://www.googleapis.com') ||
-        (event.request.url.includes('firebase') && !event.request.url.includes(self.registration.scope.origin))) {
-        return;
-    }
-
     event.respondWith(
         fetch(event.request)
             .then(response => {
+                if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
+                    return response;
+                }
+
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME)
                     .then(cache => {

@@ -1,0 +1,25 @@
+{
+    "name": "NanoChat - IA Local",
+    "short_name": "NanoChat",
+    "description": "Assistente de Inteligência Artificial rodando 100% offline no seu dispositivo.",
+    "start_url": "./chromeAILocal.html",
+    "id": "/chromeAILocal/",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#1e1e1e",
+    "theme_color": "#1e1e1e",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

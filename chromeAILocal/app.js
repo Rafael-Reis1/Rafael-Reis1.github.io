@@ -618,6 +618,8 @@ class UIManager {
         this.currentCanvasCode = '';
         this.currentBlobUrl = null;
         this.codeState = { html: null, css: null, js: null };
+        this.els.installBtn = document.getElementById('btnInstallApp');
+        this.deferredPrompt = null;
         this.init();
     }
 
@@ -823,6 +825,35 @@ class UIManager {
                     }
                 }
             }
+        });
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            if (this.els.installBtn) {
+                this.els.installBtn.style.display = 'flex';
+            }
+        });
+
+        if (this.els.installBtn) {
+            this.els.installBtn.addEventListener('click', async () => {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    console.log(`Escolha de instalação: ${outcome}`);
+                    
+                    this.deferredPrompt = null;
+                    this.els.installBtn.style.display = 'none';
+                }
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            this.deferredPrompt = null;
+            if (this.els.installBtn) {
+                this.els.installBtn.style.display = 'none';
+            }
+            console.log('PWA instalado com sucesso!');
         });
     }
 

@@ -4,30 +4,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1105262154" as="image">
+    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1205261055" as="image">
 
-    <script src="lib/axios.min.js?v=1105262154"></script>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1105262154">
-    <link rel="stylesheet" href="style.css?v=1105262154">
-    <link rel="stylesheet" href="lib/all.min.css?v=1105262154">
-    <script src="lib/marked.min.js?v=1105262154"></script>
-    <script src="lib/purify.min.js?v=1105262154"></script>
-    <link rel="stylesheet" href="lib/atom-one-dark.min.css?v=1105262154">
-    <script src="lib/highlight.min.js?v=1105262154"></script>
+    <script src="lib/axios.min.js?v=1205261055"></script>
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1205261055">
+    <link rel="stylesheet" href="style.css?v=1205261055">
+    <link rel="stylesheet" href="lib/all.min.css?v=1205261055">
+    <script src="lib/marked.min.js?v=1205261055"></script>
+    <script src="lib/purify.min.js?v=1205261055"></script>
+    <link rel="stylesheet" href="lib/atom-one-dark.min.css?v=1205261055">
+    <script src="lib/highlight.min.js?v=1205261055"></script>
 
-    <link rel="stylesheet" href="lib/katex.min.css?v=1105262154">
-    <script src="lib/katex.min.js?v=1105262154"></script>
-    <script src="lib/auto-render.min.js?v=1105262154"></script>
+    <link rel="stylesheet" href="lib/katex.min.css?v=1205261055">
+    <script src="lib/katex.min.js?v=1205261055"></script>
+    <script src="lib/auto-render.min.js?v=1205261055"></script>
 
-    <script src="lib/mermaid.min.js?v=1105262154"></script>
-    <script src="lib/panzoom.min.js?v=1105262154"></script>
+    <script src="lib/mermaid.min.js?v=1205261055"></script>
+    <script src="lib/panzoom.min.js?v=1205261055"></script>
     <meta http-equiv="origin-trial"
         content="Aj03smeBgQEzFx/0w0w0+cJGrP6DIUwzXRkKe9/cL96CHKeyPsvsuAYPs8pHxrK6u2nnc7Y7BiJSyG1kszo06AkAAAB9eyJvcmlnaW4iOiJodHRwczovL3JhZmFlbC1yZWlzMS5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IkFJUHJvbXB0QVBJTXVsdGltb2RhbElucHV0IiwiZXhwaXJ5IjoxNzgxNTY4MDAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0=">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1105262154">
-    <title>Chrome AI Local</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1205261055">
+    <link rel="manifest" href="manifest.json">
+    <title>NanoChat - IA Local</title>
 </head>
 
 <body>
+    <div id="mobile-notice" class="mobile-notice-overlay">
+        <div class="notice-card">
+            <div class="notice-icon">🖥️</div>
+            <h2>Acesso apenas via Desktop</h2>
+            <p>No momento, o <strong>NanoChat</strong> e a tecnologia Gemini Nano são suportados apenas na versão para computador do Google Chrome.</p>
+            <button onclick="window.location.href='../'" class="btn-primary" style="width: 100%; justify-content: center;">
+                Voltar para a Home
+            </button>
+        </div>
+    </div>
+
     <button id="menuButton" class="menu-button" aria-label="Abrir Menu">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -51,17 +63,24 @@
         <div class="chat-list" id="chatList">
         </div>
         <div class="sidebar-footer">
+            <button class="btnVoltar" id="btnInstallApp" style="display: none; margin-bottom: 10px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Instalar App</span>
+            </button>
+
             <button class="btnVoltar" id="btnPersonas" style="margin-bottom: 10px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
                 <span>Personas</span>
             </button>
             <button class="btnVoltar" id="btnVoltar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
@@ -234,7 +253,14 @@
         </div>
     </div>
 
-    <script src="app.js?v=1105262154"></script>
+    <script src="app.js?v=1205261055"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
 </body>
 
 </html>
