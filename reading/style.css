@@ -2656,9 +2656,18 @@ input[type=number] {
     fill: url(#halfGradient);
 }
 
+.percentageDiv {
+    flex: 0 0 auto;
+    margin-top: 1.5rem;
+}
+
 @media (max-width: 768px) {
     :root {
         --sidebar-width: 280px;
+    }
+
+    .percentageDiv {
+        margin-top: 0;
     }
 
     .sidebar {
