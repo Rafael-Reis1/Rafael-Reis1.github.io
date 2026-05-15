@@ -570,7 +570,37 @@ class FinanceManager {
         if (transactionsToDelete.length === 0) return false;
 
         const idsToDelete = new Set(transactionsToDelete.map(t => t.id));
+
+        let remainingTransactions = [];
+        if (groupId && mode !== 'all') {
+            remainingTransactions = this.transactions
+                .filter(t => t.groupId === groupId && !idsToDelete.has(t.id))
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+
         this.transactions = this.transactions.filter(t => !idsToDelete.has(t.id));
+
+        const updatesToRemaining = [];
+        if (remainingTransactions.length > 0) {
+            const newTotal = remainingTransactions.length;
+            remainingTransactions.forEach((t, index) => {
+                const newCurrent = index + 1;
+                
+                const baseDescription = t.description.replace(/\s*\(\d+\/\d+\)$/, '');
+                const newDescription = `${baseDescription} (${newCurrent}/${newTotal})`;
+
+                t.description = newDescription;
+                t.installmentCurrent = newCurrent;
+                t.installmentTotal = newTotal;
+
+                updatesToRemaining.push({
+                    id: t.id,
+                    description: newDescription,
+                    installmentCurrent: newCurrent,
+                    installmentTotal: newTotal
+                });
+            });
+        }
 
         if (auth.currentUser) {
             const batch = db.batch();
@@ -579,6 +609,15 @@ class FinanceManager {
             transactionsToDelete.forEach(t => {
                 const ref = userRef.doc(t.id);
                 batch.delete(ref);
+            });
+
+            updatesToRemaining.forEach(updateData => {
+                const ref = userRef.doc(updateData.id);
+                batch.update(ref, {
+                    description: updateData.description,
+                    installmentCurrent: updateData.installmentCurrent,
+                    installmentTotal: updateData.installmentTotal
+                });
             });
 
             if (navigator.onLine) {
