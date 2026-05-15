@@ -571,6 +571,11 @@ function updateUIState(state) {
 function handleConnection() {
     updateUIState('connected');
     forceCloseModal();
+    transfersList.innerHTML = '';
+    activeDownloads.clear();
+    uploadQueue.length = 0;
+    activeUploads = 0;
+
     setTimeout(() => {
         const statusText = document.getElementById('status-text');
         if (statusText) statusText.innerText = 'Conectado! Preparando envio...';
