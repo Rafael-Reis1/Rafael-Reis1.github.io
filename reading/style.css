@@ -1582,11 +1582,6 @@ input[type=number] {
     .nav-item {
         position: relative;
     }
-
-    .books-grid {
-        padding: 1rem;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
 }
 
 .btn-options {
@@ -2997,9 +2992,9 @@ input[type=number] {
     }
 
     .books-grid {
-        padding: 1rem;
-        gap: 1rem;
         grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 0.75rem 0.75rem 5rem 0.75rem;
     }
 
     .book-card {
@@ -3094,12 +3089,6 @@ input[type=number] {
 }
 
 @media (max-width: 480px) {
-    .books-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-        padding: 0.75rem;
-    }
-
     .book-card .book-footer {
         padding: 0.4rem 0.5rem;
         font-size: 0.75rem;
