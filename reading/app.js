@@ -2382,7 +2382,10 @@ const App = {
         this.dom.bookCover.value = book.cover;
 
         if (this.datePicker) {
-            const displayDate = book.readDate === '1970-01-01' ? null : (book.readDate || null);
+            let displayDate = null;
+            if (book.readDate && book.readDate !== '1970-01-01') {
+                displayDate = book.readDate.includes('T') ? book.readDate : book.readDate + 'T12:00:00';
+            }
             this.datePicker.setDate(displayDate);
         }
 
@@ -3019,7 +3022,8 @@ const App = {
                 if (newPageCount === book.pages) {
                     entry.type = 'finish';
                     if (!book.readDate) {
-                        book.readDate = new Date().toISOString().split('T')[0];
+                        const now = new Date();
+                        book.readDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                     }
                 } else if (entry.type === 'finish') {
                     entry.type = 'progress';
@@ -3127,7 +3131,8 @@ const App = {
             wasFinished = true;
             entryType = 'finish';
             if (!book.readDate) {
-                book.readDate = new Date().toISOString().split('T')[0];
+                const now = new Date();
+                book.readDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             }
         }
 
