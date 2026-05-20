@@ -60,7 +60,6 @@
 
 html {
     background-color: var(--body-bg);
-    scrollbar-gutter: stable;
 }
 
 body {
@@ -245,12 +244,7 @@ body {
     width: 100%;
     overflow-y: auto;
     height: calc(100dvh - var(--header-height));
-    scrollbar-width: none; 
-    -ms-overflow-style: none;
-}
-
-.app-body-wrapper::-webkit-scrollbar {
-    display: none;
+    scrollbar-color: var(--accent-color) transparent;
 }
 
 .main-content {
@@ -258,10 +252,6 @@ body {
     max-width: 87.5rem;
     margin: 0 auto;
     width: 100%;
-}
-
-.main-content::-webkit-scrollbar {
-    display: none;
 }
 
 .dashboard {
@@ -634,8 +624,6 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid transparent;
     transition: all 0.2s ease;
-    content-visibility: auto;
-    contain-intrinsic-size: auto 80px;
 }
 
 .transaction-item:hover {
@@ -685,8 +673,6 @@ input[type=number] {
     padding: 1rem;
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.15);
-    content-visibility: auto;
-    contain-intrinsic-size: auto 80px;
 }
 
 .series-date {
@@ -2140,8 +2126,6 @@ input[type=number] {
     background: rgba(0, 0, 0, 0.15);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    content-visibility: auto;
-    contain-intrinsic-size: auto 70px;
 }
 
 .subs-item.inactive {
