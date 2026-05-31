@@ -59,6 +59,7 @@ const CATEGORIES = {
         cashback: '🔄',
         vendas: '🛍️',
         bonus: '🎉',
+        bolsa: '🎓',
         outros_receita: '📦'
     }
 };
@@ -86,6 +87,7 @@ const CATEGORY_NAMES = {
     cashback: 'Cashback',
     vendas: 'Vendas/Desapegos',
     bonus: 'Bônus/PLR',
+    bolsa: 'Bolsa de Estudo',
     outros_receita: 'Outros'
 };
 
@@ -120,6 +122,7 @@ const INCOME_COLORS = {
     cashback: '#009688',
     vendas: '#ffeb3b',
     bonus: '#cddc39',
+    bolsa: '#0284c7',
     outros_receita: '#9e9e9e'
 };
 
