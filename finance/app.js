@@ -1557,19 +1557,7 @@ class UIController {
             this.closeFilterModal.addEventListener('click', () => this.closeModal(this.filterModal));
         }
 
-        this.filterStartDate.addEventListener('change', () => {
-            this.filterEndDate.min = this.filterStartDate.value;
-            if (this.filterEndDate.value && this.filterEndDate.value < this.filterStartDate.value) {
-                this.filterEndDate.value = this.filterStartDate.value;
-            }
-        });
 
-        this.filterEndDate.addEventListener('change', () => {
-            this.filterStartDate.max = this.filterEndDate.value;
-            if (this.filterStartDate.value && this.filterStartDate.value > this.filterEndDate.value) {
-                this.filterStartDate.value = this.filterEndDate.value;
-            }
-        });
 
         this.btnClearFilters.addEventListener('click', () => {
             this.filterForm.reset();
@@ -1586,8 +1574,8 @@ class UIController {
             this.setDatePickerValue(this.filterStartDate, '');
             this.setDatePickerValue(this.filterEndDate, '');
 
-            if (this.filterStartDate._flatpickr) this.filterStartDate._flatpickr.set('maxDate', '');
-            if (this.filterEndDate._flatpickr) this.filterEndDate._flatpickr.set('minDate', '');
+            if (this.filterStartDate._flatpickr) this.filterStartDate._flatpickr.set('maxDate', null);
+            if (this.filterEndDate._flatpickr) this.filterEndDate._flatpickr.set('minDate', null);
 
             this.filterType.dispatchEvent(new Event('change', { bubbles: true }));
             this.filterCategory.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1978,13 +1966,13 @@ class UIController {
         if (key === 'startDate') {
             this.setDatePickerValue(this.filterStartDate, '');
             if (this.filterEndDate._flatpickr) {
-                this.filterEndDate._flatpickr.set('minDate', '');
+                this.filterEndDate._flatpickr.set('minDate', null);
             }
         }
         if (key === 'endDate') {
             this.setDatePickerValue(this.filterEndDate, '');
             if (this.filterStartDate._flatpickr) {
-                this.filterStartDate._flatpickr.set('maxDate', '');
+                this.filterStartDate._flatpickr.set('maxDate', null);
             }
         }
         if (key === 'type') {
@@ -3494,14 +3482,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDatePicker = flatpickr("#filterStartDate", {
             ...baseConfig,
             onChange: function (selectedDates, dateStr, instance) {
-                endDatePicker.set('minDate', dateStr);
+                endDatePicker.set('minDate', dateStr || null);
             }
         });
 
         const endDatePicker = flatpickr("#filterEndDate", {
             ...baseConfig,
             onChange: function (selectedDates, dateStr, instance) {
-                startDatePicker.set('maxDate', dateStr);
+                startDatePicker.set('maxDate', dateStr || null);
             }
         });
     }
