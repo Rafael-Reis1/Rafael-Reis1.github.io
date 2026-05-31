@@ -44,6 +44,9 @@ const CATEGORIES = {
         vestuario: '👕',
         compras: '🛒',
         servicos: '🔧',
+        pets: '🐾',
+        taxas: '🏛️',
+        doacoes: '🎁',
         outros: '📦'
     },
     income: {
@@ -51,6 +54,11 @@ const CATEGORIES = {
         freelance: '💼',
         investimentos: '📈',
         presente: '🎁',
+        vale_refeicao: '🍽️',
+        vale_alimentacao: '🛒',
+        cashback: '🔄',
+        vendas: '🛍️',
+        bonus: '🎉',
         outros_receita: '📦'
     }
 };
@@ -65,11 +73,19 @@ const CATEGORY_NAMES = {
     vestuario: 'Vestuário',
     compras: 'Compras',
     servicos: 'Serviços',
+    pets: 'Pets/Animais',
+    taxas: 'Taxas e Impostos',
+    doacoes: 'Doações/Presentes',
     outros: 'Outros',
     salario: 'Salário',
     freelance: 'Freelance',
     investimentos: 'Investimentos',
     presente: 'Presente',
+    vale_refeicao: 'Vale Refeição',
+    vale_alimentacao: 'Vale Alimentação',
+    cashback: 'Cashback',
+    vendas: 'Vendas/Desapegos',
+    bonus: 'Bônus/PLR',
     outros_receita: 'Outros'
 };
 
@@ -88,6 +104,9 @@ const EXPENSE_COLORS = {
     vestuario: '#00bcd4',
     compras: '#2962ff',
     servicos: '#26a69a',
+    pets: '#795548',
+    taxas: '#607d8b',
+    doacoes: '#e91e63',
     outros: '#9e9e9e'
 };
 
@@ -96,6 +115,11 @@ const INCOME_COLORS = {
     freelance: '#4f46e5',
     investimentos: '#9333ea',
     presente: '#fbc02d',
+    vale_refeicao: '#ff9800',
+    vale_alimentacao: '#8bc34a',
+    cashback: '#009688',
+    vendas: '#ffeb3b',
+    bonus: '#cddc39',
     outros_receita: '#9e9e9e'
 };
 
@@ -696,6 +720,39 @@ class FinanceManager {
             .reduce((acc, t) => acc + t.amount, 0);
     }
 
+    getFutureIncomes(filters = {}) {
+        if (filters.type && filters.type !== 'income') return 0;
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return this.transactions
+            .filter(t => {
+                if (t.date < dateStr) return false;
+                if (t.type !== 'income') return false;
+                if (t.isPaid === true) return false;
+
+                if (filters.status && filters.status !== 'pending') return false;
+                if (filters.startDate && t.date < filters.startDate) return false;
+                if (filters.endDate && t.date > filters.endDate) return false;
+                if (filters.category) {
+                    if (filters.category === 'outros') {
+                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+                    } else if (t.category !== filters.category) {
+                        return false;
+                    }
+                }
+                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+
+                return true;
+            })
+            .reduce((acc, t) => acc + t.amount, 0);
+    }
+
     getOverdueExpenses(filters = {}) {
         if (filters.type && filters.type !== 'expense') return 0;
 
@@ -709,6 +766,39 @@ class FinanceManager {
             .filter(t => {
                 if (t.date >= dateStr) return false;
                 if (t.type !== 'expense') return false;
+                if (t.isPaid === true) return false;
+
+                if (filters.status && filters.status !== 'overdue') return false;
+                if (filters.startDate && t.date < filters.startDate) return false;
+                if (filters.endDate && t.date > filters.endDate) return false;
+                if (filters.category) {
+                    if (filters.category === 'outros') {
+                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+                    } else if (t.category !== filters.category) {
+                        return false;
+                    }
+                }
+                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+
+                return true;
+            })
+            .reduce((acc, t) => acc + t.amount, 0);
+    }
+
+    getOverdueIncomes(filters = {}) {
+        if (filters.type && filters.type !== 'income') return 0;
+
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        return this.transactions
+            .filter(t => {
+                if (t.date >= dateStr) return false;
+                if (t.type !== 'income') return false;
                 if (t.isPaid === true) return false;
 
                 if (filters.status && filters.status !== 'overdue') return false;
@@ -874,11 +964,9 @@ class FinanceManager {
             if (filters.status) {
                 if (filters.status === 'paid' && !t.isPaid) return false;
                 if (filters.status === 'overdue') {
-                    if (t.type !== 'expense') return false;
                     if (t.isPaid || t.date >= todayStr) return false;
                 }
                 if (filters.status === 'pending') {
-                    if (t.type !== 'expense') return false;
                     if (t.isPaid) return false;
                     if (t.date < todayStr) return false;
                 }
@@ -1078,6 +1166,7 @@ class FinanceManager {
             amount: data.amount,
             category: data.category,
             day: data.day,
+            type: data.type || 'expense',
             active: true,
             lastGenerated: '',
             createdAt: new Date().toISOString()
@@ -1141,7 +1230,8 @@ class FinanceManager {
             name: data.name,
             amount: data.amount,
             day: data.day,
-            category: data.category
+            category: data.category,
+            type: data.type || 'expense'
         });
     }
 
@@ -1206,7 +1296,7 @@ class FinanceManager {
                     description: sub.name,
                     amount: sub.amount,
                     date: transactionDate,
-                    type: 'expense',
+                    type: sub.type || 'expense',
                     category: sub.category,
                     subscriptionId: sub.id,
                     createdAt: new Date().toISOString()
@@ -1511,14 +1601,7 @@ class UIController {
             this.currentFilters.endDate = this.filterEndDate.value;
             this.currentFilters.type = this.filterType.value;
             this.currentFilters.category = this.filterCategory.value;
-
-            if (this.filterType.value === 'income') {
-                this.filterStatus.value = '';
-                this.filterStatus.dispatchEvent(new Event('change', { bubbles: true }));
-                this.currentFilters.status = '';
-            } else {
-                this.currentFilters.status = this.filterStatus.value;
-            }
+            this.currentFilters.status = this.filterStatus.value;
 
             this.currentPage = 1;
             this.closeModal(this.filterModal, true);
@@ -1643,8 +1726,16 @@ class UIController {
 
         this.btnSubscriptions.addEventListener('click', () => {
             this.userDropdown.classList.remove('active');
-            this.openSubsModal();
+            this.openSubsModal('expense');
         });
+        
+        const btnFixedIncomes = document.getElementById('btnFixedIncomes');
+        if (btnFixedIncomes) {
+            btnFixedIncomes.addEventListener('click', () => {
+                this.userDropdown.classList.remove('active');
+                this.openSubsModal('income');
+            });
+        }
 
         document.getElementById('closeSubsModal').addEventListener('click', () => this.closeModal(this.subsModal));
         document.getElementById('cancelSubs').addEventListener('click', () => this.closeModal(this.subsModal));
@@ -1682,24 +1773,28 @@ class UIController {
                 name: document.getElementById('subsName').value.trim(),
                 amount: amount,
                 day: day,
-                category: document.getElementById('subsCategory').value
+                category: document.getElementById('subsCategory').value,
+                type: this.currentSubsType || 'expense'
             };
+
+            const isExpense = this.currentSubsType === 'expense';
+            const itemName = isExpense ? 'Despesa fixa' : 'Receita fixa';
 
             try {
                 if (editId) {
                     await this.fm.updateSubscription(editId, data);
-                    this.showToast('Despesa fixa atualizada!', 'success');
+                    this.showToast(`${itemName} atualizada!`, 'success');
                 } else {
                     await this.fm.addSubscription(data);
                     await this.fm.checkRecurringExpenses();
-                    this.showToast('Despesa fixa adicionada!', 'success');
+                    this.showToast(`${itemName} adicionada!`, 'success');
                 }
                 this.subsForm.reset();
                 document.getElementById('subsEditId').value = '';
                 this.showSubsListView();
                 this.renderSubscriptionsList();
             } catch (error) {
-                this.showToast('Erro ao salvar despesa fixa', 'error');
+                this.showToast(`Erro ao salvar ${itemName.toLowerCase()}`, 'error');
             }
         });
 
@@ -1839,9 +1934,21 @@ class UIController {
         }
         if (this.currentFilters.status) {
             let label = this.currentFilters.status;
-            if (label === 'overdue') label = '🚨 Vencidas';
-            else if (label === 'pending') label = '📅 A Vencer';
-            else if (label === 'paid') label = '✅ Pagas';
+            const type = this.currentFilters.type;
+            
+            if (label === 'overdue') {
+                if (type === 'income') label = '🚨 Atrasadas';
+                else if (type === 'expense') label = '🚨 Vencidas';
+                else label = '🚨 Atrasadas/Vencidas';
+            } else if (label === 'pending') {
+                if (type === 'income') label = '📅 A Receber';
+                else if (type === 'expense') label = '📅 A Vencer';
+                else label = '📅 Pendentes';
+            } else if (label === 'paid') {
+                if (type === 'income') label = '✅ Recebidas';
+                else if (type === 'expense') label = '✅ Pagas';
+                else label = '✅ Concluídas';
+            }
             filters.push({ key: 'status', label: label });
         }
 
@@ -1920,8 +2027,9 @@ class UIController {
         }
 
         const futureExpenses = this.fm.getFutureExpenses(filters);
-
         const overdueExpenses = this.fm.getOverdueExpenses(filters);
+        const futureIncomes = this.fm.getFutureIncomes(filters);
+        const overdueIncomes = this.fm.getOverdueIncomes(filters);
 
         this.balanceValue.textContent = this.formatCurrency(displayBalance);
         this.incomeValue.textContent = this.formatCurrency(totals.income);
@@ -1946,6 +2054,28 @@ class UIController {
                 overdueCard.style.display = 'none';
             } else {
                 overdueCard.style.display = 'flex';
+            }
+        }
+
+        const futureIncomeElement = document.getElementById('futureIncomeValue');
+        const futureIncomeCard = document.querySelector('.card.future-income');
+        if (futureIncomeElement && futureIncomeCard) {
+            futureIncomeElement.textContent = this.formatCurrency(futureIncomes);
+            if (futureIncomes === 0) {
+                futureIncomeCard.style.display = 'none';
+            } else {
+                futureIncomeCard.style.display = 'flex';
+            }
+        }
+
+        const overdueIncomeElement = document.getElementById('overdueIncomeValue');
+        const overdueIncomeCard = document.querySelector('.card.overdue-income');
+        if (overdueIncomeElement && overdueIncomeCard) {
+            overdueIncomeElement.textContent = this.formatCurrency(overdueIncomes);
+            if (overdueIncomes === 0) {
+                overdueIncomeCard.style.display = 'none';
+            } else {
+                overdueIncomeCard.style.display = 'flex';
             }
         }
     }
@@ -2203,11 +2333,31 @@ class UIController {
 
         const filterStatusContainer = this.filterStatus.closest('.form-group');
         if (filterStatusContainer) {
+            const currentStatus = this.filterStatus.value;
+            this.filterStatus.innerHTML = '<option value="">🔍 Todos os status</option>';
             if (selectedType === 'income') {
-                filterStatusContainer.style.display = 'none';
+                this.filterStatus.innerHTML += `
+                    <option value="overdue">🚨 Atrasadas</option>
+                    <option value="pending">📅 A Receber</option>
+                    <option value="paid">✅ Recebidas</option>
+                `;
+            } else if (selectedType === 'expense') {
+                this.filterStatus.innerHTML += `
+                    <option value="overdue">🚨 Vencidas</option>
+                    <option value="pending">📅 A Vencer</option>
+                    <option value="paid">✅ Pagas</option>
+                `;
             } else {
-                filterStatusContainer.style.display = 'block';
+                this.filterStatus.innerHTML += `
+                    <option value="overdue">🚨 Atrasadas/Vencidas</option>
+                    <option value="pending">📅 Pendentes</option>
+                    <option value="paid">✅ Concluídas</option>
+                `;
             }
+            if (currentStatus) {
+                this.filterStatus.value = currentStatus;
+            }
+            filterStatusContainer.style.display = 'block';
         }
 
         const categories = this.fm.getAvailableCategories();
@@ -2312,7 +2462,7 @@ class UIController {
             let statusClass = '';
             if (t.isPaid) {
                 statusClass = 'paid';
-            } else if (t.type === 'expense') {
+            } else {
                 if (t.date < todayStr) {
                     statusClass = 'overdue';
                 } else if (t.date === todayStr || t.date === tomorrowStr) {
@@ -2365,13 +2515,11 @@ class UIController {
                             </svg>
                         </button>
                         ` : ''}
-                        ${t.type === 'expense' ? `
-                        <button class="action-btn paid-btn ${paidClass}" onclick="app.togglePaid('${t.id}')" title="${isPaid ? 'Marcar como não pago' : 'Marcar como pago'}">
+                        <button class="action-btn paid-btn ${paidClass}" onclick="app.togglePaid('${t.id}')" title="${isPaid ? (t.type === 'income' ? 'Marcar como não recebido' : 'Marcar como não pago') : (t.type === 'income' ? 'Marcar como recebido' : 'Marcar como pago')}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </button>
-                        ` : ''}
                         <button class="action-btn edit" onclick="app.openEditModal('${t.id}')" title="Editar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -2397,7 +2545,6 @@ class UIController {
 
     togglePaid(id) {
         this.fm.togglePaid(id);
-        this.render();
 
         const seriesModal = document.getElementById('seriesModal');
         if (seriesModal && seriesModal.classList.contains('active')) {
@@ -2614,19 +2761,6 @@ class UIController {
     }
 
 
-    togglePaid(id) {
-        this.fm.togglePaid(id);
-        this.render();
-
-        const seriesModal = document.getElementById('seriesModal');
-        if (seriesModal && seriesModal.classList.contains('active')) {
-            const t = this.fm.get(id);
-            if (t && t.groupId) {
-                this.openSeriesModal(t.groupId);
-            }
-        }
-    }
-
     handleFormSubmit(e) {
         e.preventDefault();
 
@@ -2708,9 +2842,13 @@ class UIController {
         const isModalAlreadyOpen = this.seriesModal.classList.contains('active');
         const existingFill = isModalAlreadyOpen ? summaryContainer.querySelector('.series-progress-fill') : null;
 
+        const isIncome = transactions[0] && transactions[0].type === 'income';
+        const remainingLabel = isIncome ? 'Restante a Receber' : 'Restante a Pagar';
+        const progressLabel = isIncome ? 'parcelas recebidas' : 'parcelas pagas';
+
         if (existingFill) {
             summaryContainer.querySelectorAll('.series-stat strong')[1].textContent = this.formatCurrency(remainingAmount);
-            summaryContainer.querySelector('.series-progress-label').textContent = `${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)`;
+            summaryContainer.querySelector('.series-progress-label').textContent = `${paidCount} de ${totalCount} ${progressLabel} (${progressPercent}%)`;
             existingFill.style.width = `${progressPercent}%`;
         } else {
             summaryContainer.innerHTML = `
@@ -2719,11 +2857,11 @@ class UIController {
                     <strong>${this.formatCurrency(totalAmount)}</strong>
                 </div>
                 <div class="series-stat">
-                    <span>Restante a Pagar</span>
+                    <span>${remainingLabel}</span>
                     <strong>${this.formatCurrency(remainingAmount)}</strong>
                 </div>
                 <div class="series-progress">
-                    <span class="series-progress-label">${paidCount} de ${totalCount} parcelas pagas (${progressPercent}%)</span>
+                    <span class="series-progress-label">${paidCount} de ${totalCount} ${progressLabel} (${progressPercent}%)</span>
                     <div class="series-progress-bar">
                         <div class="series-progress-fill"></div>
                     </div>
@@ -2773,7 +2911,7 @@ class UIController {
             </div>
             
             <div class="series-item-actions">
-                <button class="series-action-btn btn-pay ${isPaid ? 'checked' : ''}" title="${isPaid ? 'Marcar como não pago' : 'Marcar como pago'}">
+                <button class="series-action-btn btn-pay ${isPaid ? 'checked' : ''}" title="${isPaid ? (t.type === 'income' ? 'Marcar como não recebido' : 'Marcar como não pago') : (t.type === 'income' ? 'Marcar como recebido' : 'Marcar como pago')}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
@@ -2808,7 +2946,8 @@ class UIController {
         this.openModal(this.seriesModal);
     }
 
-    async openSubsModal() {
+    async openSubsModal(type = 'expense') {
+        this.currentSubsType = type;
         this.showSubsListView();
         this.renderSubscriptionsList();
         this.openModal(this.subsModal);
@@ -2824,7 +2963,7 @@ class UIController {
         this.subsList.innerHTML = '';
 
         try {
-            const subscriptions = this.fm.getSubscriptions();
+            const subscriptions = this.fm.getSubscriptions().filter(s => (s.type || 'expense') === this.currentSubsType);
 
             if (subscriptions.length === 0) {
                 this.noSubs.style.display = 'block';
@@ -2845,7 +2984,7 @@ class UIController {
             }
 
             subscriptions.forEach(sub => {
-                const icon = CATEGORIES.expense[sub.category] || '📦';
+                const icon = CATEGORIES[this.currentSubsType || 'expense'][sub.category] || '📦';
                 const div = document.createElement('div');
                 const isActive = sub.active !== false;
                 div.className = `subs-item ${isActive ? '' : 'inactive'}`;
@@ -2900,7 +3039,7 @@ class UIController {
                         <div class="subs-action-buttons">
                             ${actionButtons}
                         </div>
-                        <span class="subs-amount">${this.formatCurrency(sub.amount)}</span>
+                        <span class="subs-amount ${this.currentSubsType === 'income' ? 'income' : ''}">${this.formatCurrency(sub.amount)}</span>
                     </div>
                 `;
 
@@ -2964,7 +3103,17 @@ class UIController {
         this.subsModal.classList.add('showing-list');
         document.getElementById('subsListView').style.display = 'flex';
         document.getElementById('subsFormView').style.display = 'none';
-        document.getElementById('subsModalTitle').textContent = 'Despesas Fixas';
+        
+        const isExpense = this.currentSubsType === 'expense';
+        document.getElementById('subsModalTitle').textContent = isExpense ? 'Despesas Fixas' : 'Receitas Fixas';
+        const noSubsText = isExpense ? 'Nenhuma despesa fixa cadastrada' : 'Nenhuma receita fixa cadastrada';
+        const noSubsDesc = isExpense ? 'Cadastre despesas recorrentes como Netflix, aluguel, internet...' : 'Cadastre seu salário, rendimentos ou aluguéis a receber...';
+        
+        const noSubsP = this.noSubs.querySelector('p');
+        const noSubsSpan = this.noSubs.querySelector('span');
+        if (noSubsP) noSubsP.textContent = noSubsText;
+        if (noSubsSpan) noSubsSpan.textContent = noSubsDesc;
+
         this.subsForm.reset();
         document.getElementById('subsEditId').value = '';
     }
@@ -2974,21 +3123,39 @@ class UIController {
         document.getElementById('subsListView').style.display = 'none';
         document.getElementById('subsFormView').style.display = 'block';
 
+        const isExpense = this.currentSubsType === 'expense';
+        const categorySelect = document.getElementById('subsCategory');
+        
+        categorySelect.innerHTML = '';
+        const cats = isExpense ? CATEGORIES.expense : CATEGORIES.income;
+        for (const [val, icon] of Object.entries(cats)) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = `${icon} ${CATEGORY_NAMES[val]}`;
+            categorySelect.appendChild(opt);
+        }
+
+        const subsNameInput = document.getElementById('subsName');
+        if (subsNameInput) {
+            subsNameInput.placeholder = isExpense ? 'Ex: Netflix, Aluguel, Academia' : 'Ex: Salário, Aluguel a receber, Investimentos';
+        }
+
         if (isEdit && sub) {
-            document.getElementById('subsModalTitle').textContent = 'Editar Despesa Fixa';
+            document.getElementById('subsModalTitle').textContent = isExpense ? 'Editar Despesa Fixa' : 'Editar Receita Fixa';
             document.getElementById('subsName').value = sub.name;
             document.getElementById('subsAmount').value = (sub.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             document.getElementById('subsDay').value = sub.day;
-            const categorySelect = document.getElementById('subsCategory');
             categorySelect.value = sub.category;
             categorySelect.dispatchEvent(new Event('change'));
             document.getElementById('subsEditId').value = sub.id;
             document.getElementById('subsSubmitBtn').textContent = 'Salvar';
         } else {
-            document.getElementById('subsModalTitle').textContent = 'Nova Despesa Fixa';
+            document.getElementById('subsModalTitle').textContent = isExpense ? 'Nova Despesa Fixa' : 'Nova Receita Fixa';
             this.subsForm.reset();
             document.getElementById('subsEditId').value = '';
             document.getElementById('subsSubmitBtn').textContent = 'Adicionar';
+            categorySelect.selectedIndex = 0;
+            categorySelect.dispatchEvent(new Event('change'));
         }
     }
 

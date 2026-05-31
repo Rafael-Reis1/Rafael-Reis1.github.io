@@ -6,25 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="App de gerenciamento de finanças pessoais - Controle suas receitas e despesas">
     <title>Financeiro Pessoal</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2505261018">
-    <link rel="stylesheet" href="style.css?v=2505261018">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2505261018">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=3105260008">
+    <link rel="stylesheet" href="style.css?v=3105260008">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=3105260008">
 
-    <link rel="manifest" href="manifest.json?v=2505261018">
+    <link rel="manifest" href="manifest.json?v=3105260008">
     <meta name="theme-color" content="#0d0b26">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=2505261018">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=3105260008">
     <meta name="mobile-web-app-capable" content="yes">
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2505261018"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2505261018"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2505261018"></script>
-    <script src="lib/chart.js?v=2505261018"></script>
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2505261018">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2505261018"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2505261018"></script>
-    <script src="app.js?v=2505261018" defer></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=3105260008"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=3105260008"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=3105260008"></script>
+    <script src="lib/chart.js?v=3105260008"></script>
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=3105260008">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=3105260008"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=3105260008"></script>
+    <script src="app.js?v=3105260008" defer></script>
 </head>
 
 <body>
@@ -113,6 +113,13 @@
                                 <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
                             </svg>
                             Despesas Fixas
+                        </button>
+                        <button id="btnFixedIncomes" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                            Receitas Fixas
                         </button>
                         <div class="dropdown-divider"></div>
                         <button id="btnLogout" class="dropdown-item danger">
@@ -216,6 +223,33 @@
                         <div class="card-content">
                             <span class="card-label">Contas Vencidas</span>
                             <span class="card-value" id="overdueValue">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="card summary-card future-income" style="display: none;">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <span class="card-label">A Receber</span>
+                            <span class="card-value" id="futureIncomeValue">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="card summary-card overdue-income" style="display: none;">
+                        <div class="card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="card-content">
+                            <span class="card-label">Recebimentos Atrasados</span>
+                            <span class="card-value" id="overdueIncomeValue">R$ 0,00</span>
                         </div>
                     </div>
                 </section>
@@ -397,6 +431,9 @@
                                 <option value="lazer">🎮 Lazer</option>
                                 <option value="compras">🛒 Compras</option>
                                 <option value="servicos">🔧 Serviços</option>
+                                <option value="pets">🐾 Pets/Animais</option>
+                                <option value="taxas">🏛️ Taxas e Impostos</option>
+                                <option value="doacoes">🎁 Doações/Presentes</option>
                                 <option value="outros_despesa">📦 Outros</option>
                             </optgroup>
                             <optgroup label="Receitas">
@@ -404,6 +441,11 @@
                                 <option value="freelance">💻 Freelance</option>
                                 <option value="investimentos">📈 Investimentos</option>
                                 <option value="presente">🎁 Presente</option>
+                                <option value="vale_refeicao">🍽️ Vale Refeição</option>
+                                <option value="vale_alimentacao">🛒 Vale Alimentação</option>
+                                <option value="cashback">🔄 Cashback</option>
+                                <option value="vendas">🛍️ Vendas/Desapegos</option>
+                                <option value="bonus">🎉 Bônus/PLR</option>
                                 <option value="outros_receita">💰 Outros</option>
                             </optgroup>
                         </select>
@@ -607,6 +649,9 @@
                             <option value="vestuario">👕 Vestuário</option>
                             <option value="compras">🛒 Compras</option>
                             <option value="servicos">🔧 Serviços</option>
+                            <option value="pets">🐾 Pets/Animais</option>
+                            <option value="taxas">🏛️ Taxas e Impostos</option>
+                            <option value="doacoes">🎁 Doações/Presentes</option>
                             <option value="outros">📦 Outros</option>
                         </select>
                     </div>
