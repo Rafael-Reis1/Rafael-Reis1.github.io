@@ -312,6 +312,11 @@ body {
     color: #fbbf24;
 }
 
+.future-income .card-icon {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(52, 211, 153, 0.1));
+    color: #34d399;
+}
+
 .checkbox-group {
     display: flex;
     flex-direction: row;
@@ -413,6 +418,10 @@ body {
 
 .future .card-value {
     color: #fbbf24;
+}
+
+.future-income .card-value {
+    color: #34d399;
 }
 
 .cards-container {
@@ -1819,17 +1828,9 @@ input[type=number] {
     background: rgba(239, 68, 68, 0.1);
 }
 
-.series-item.overdue .series-item-amount {
-    color: var(--danger-color);
-}
-
 .series-item.due-today {
     border-color: rgba(245, 158, 11, 0.4);
     background: rgba(245, 158, 11, 0.1);
-}
-
-.series-item.due-today .series-item-amount {
-    color: #f59e0b;
 }
 
 .series-item-info {
@@ -1888,7 +1889,7 @@ input[type=number] {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: var(--glass-bg);
+    background: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
@@ -2214,6 +2215,10 @@ input[type=number] {
     white-space: nowrap;
     order: 2;
     transition: filter 0.3s ease;
+}
+
+.subs-amount.income {
+    color: var(--income-color);
 }
 
 .subs-action-buttons {
@@ -2780,22 +2785,27 @@ input[type=number] {
     background: rgba(255, 255, 255, 0.3);
 }
 
-.card.overdue {
+.card.overdue, .card.overdue-income {
     background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(239, 68, 68, 0.1));
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.card.overdue .card-icon {
+.card.overdue .card-icon, .card.overdue-income .card-icon {
     background: rgba(239, 68, 68, 0.2);
     color: #ef4444;
 }
 
-.card.overdue .card-label {
+.card.overdue .card-label, .card.overdue-income .card-label {
     color: #fca5a5;
 }
 
-.card.overdue .card-value {
+.card.overdue .card-value, .card.overdue-income .card-value {
     color: #ef4444;
+}
+
+.transaction-item.income {
+    background: rgba(34, 197, 94, 0.12);
+    border-left: 3px solid #22c55e;
 }
 
 .transaction-item.overdue {
@@ -2831,8 +2841,8 @@ input[type=number] {
 }
 
 .transaction-item.paid {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border-left: 3px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
     opacity: 0.7;
 }
 
@@ -2840,11 +2850,6 @@ input[type=number] {
     color: var(--text-secondary) !important;
     text-decoration: line-through;
     opacity: 0.7;
-}
-
-.transaction-item.income {
-    background: rgba(34, 197, 94, 0.12) !important;
-    border-left: 3px solid #22c55e !important;
 }
 
 .firebase-emulator-warning {
