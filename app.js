@@ -203,7 +203,7 @@ function setupModal() {
 
     downloadBtnModal.addEventListener('click', () => {
         const link = document.createElement('a');
-        link.href = 'docs/Currículo.pdf';
+        link.href = 'docs/Curriculo.pdf';
         link.download = 'Currículo.pdf';
         document.body.appendChild(link);
         link.click();
@@ -307,6 +307,14 @@ function fetchAndDisplayRepos() {
             html_url: '/linksMD/linksMD.html',
             language: 'JavaScript',
             featured: true,
+            image: 'imgs/JavaScript.svg'
+        },
+        {
+            name: 'Agenda Inteligente',
+            description: "Calendário robusto no estilo Google Agenda, com suporte a eventos de múltiplos dias em barras contínuas, visualizações por semana/mês e design com Glassmorphism.",
+            html_url: '/weekAgenda/weekAgenda.html',
+            language: 'JavaScript',
+            featured: false,
             image: 'imgs/JavaScript.svg'
         },
         {
