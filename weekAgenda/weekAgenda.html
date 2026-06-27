@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda</title>
+    <link rel="stylesheet" href="style.css?v=3105260150">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=3105260150">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <a href="../index.html" class="btn-back" title="Voltar à Home">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                </a>
+                <h1>Agenda</h1>
+                <div class="view-toggle">
+                    <button id="view-month-btn" class="toggle-btn active">Mês</button>
+                    <button id="view-week-btn" class="toggle-btn">Semana</button>
+                </div>
+            </div>
+            <div class="header-center">
+                <button id="prev-btn" class="nav-btn">&lt;</button>
+                <h2 id="current-date-display">Mês Ano</h2>
+                <button id="next-btn" class="nav-btn">&gt;</button>
+                <button id="today-btn" class="secondary-btn btn-hoje">Hoje</button>
+            </div>
+            <div style="width: 80px;"></div>
+        </header>
+        
+        <div id="week-view" class="calendar-container hidden-view">
+            <div class="calendar-header">
+                <div class="time-col-header"></div>
+                <div class="day-header">Domingo</div>
+                <div class="day-header">Segunda</div>
+                <div class="day-header">Terça</div>
+                <div class="day-header">Quarta</div>
+                <div class="day-header">Quinta</div>
+                <div class="day-header">Sexta</div>
+                <div class="day-header">Sábado</div>
+            </div>
+            
+            <div class="all-day-section" id="all-day-container">
+                <div class="time-col-header" style="font-size: 11px; padding: 4px; text-align: center; color: var(--text-secondary);">Dia todo</div>
+                <div class="all-day-grid" id="all-day-grid">
+                </div>
+            </div>
+            
+            <div class="calendar-body">
+                <div class="time-labels">
+                </div>
+                <div class="days-grid">
+                </div>
+            </div>
+        </div>
+
+        <div id="month-view" class="calendar-container view-active">
+            <div class="month-header">
+                <div class="day-header">Dom</div>
+                <div class="day-header">Seg</div>
+                <div class="day-header">Ter</div>
+                <div class="day-header">Qua</div>
+                <div class="day-header">Qui</div>
+                <div class="day-header">Sex</div>
+                <div class="day-header">Sáb</div>
+            </div>
+            <div class="month-grid" id="month-grid">
+            </div>
+        </div>
+    </div>
+
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Novo Compromisso</h2>
+            <form id="event-form">
+                <input type="hidden" id="event-id">
+                
+                <div class="form-group">
+                    <label for="event-title">Título</label>
+                    <input type="text" id="event-title" required placeholder="Ex: Reunião de Projeto">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-date">Data Inicial</label>
+                        <input type="date" id="event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-end-date">Data Final</label>
+                        <input type="date" id="event-end-date" required>
+                    </div>
+                </div>
+
+                <div class="form-group toggle-group">
+                    <label for="event-all-day">Dia inteiro</label>
+                    <label class="switch">
+                        <input type="checkbox" id="event-all-day" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="form-row time-inputs-row hidden" id="time-inputs-container">
+                    <div class="form-group">
+                        <label for="event-start">Início</label>
+                        <input type="time" id="event-start">
+                    </div>
+                    <div class="form-group">
+                        <label for="event-end">Fim</label>
+                        <input type="time" id="event-end">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Cor</label>
+                    <div class="color-picker">
+                        <input type="radio" name="event-color" value="blue" id="color-blue" checked>
+                        <label for="color-blue" class="color-swatch" style="--swatch-color: #3b82f6;"></label>
+                        
+                        <input type="radio" name="event-color" value="red" id="color-red">
+                        <label for="color-red" class="color-swatch" style="--swatch-color: #ef4444;"></label>
+                        
+                        <input type="radio" name="event-color" value="green" id="color-green">
+                        <label for="color-green" class="color-swatch" style="--swatch-color: #22c55e;"></label>
+                        
+                        <input type="radio" name="event-color" value="yellow" id="color-yellow">
+                        <label for="color-yellow" class="color-swatch" style="--swatch-color: #f59e0b;"></label>
+                        
+                        <input type="radio" name="event-color" value="purple" id="color-purple">
+                        <label for="color-purple" class="color-swatch" style="--swatch-color: #a855f7;"></label>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" id="delete-event-btn" class="danger-btn hidden">Excluir</button>
+                    <div class="right-actions">
+                        <button type="button" id="cancel-modal-btn" class="secondary-btn">Cancelar</button>
+                        <button type="submit" class="primary-btn">Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="day-list-modal" class="modal hidden" style="z-index: 105;">
+        <div class="modal-content" style="max-width: 320px; padding: 16px;">
+            <button id="close-day-list" style="position:absolute; top:12px; right:12px; background:transparent; border:none; color:var(--text-secondary); cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; width:24px; height:24px;">&times;</button>
+            <div id="day-list-header" style="text-align:center; margin-bottom:12px;">
+                <div id="day-list-weekday" style="font-size:12px; color:var(--text-secondary); text-transform:uppercase; font-weight:500;"></div>
+                <div id="day-list-date" style="font-size:28px; font-weight:500; font-family:var(--font-heading); color:var(--text-primary);"></div>
+            </div>
+            <div id="day-list-body" style="display:flex; flex-direction:column; gap:4px; max-height:350px; overflow-y:auto; padding-right:4px;">
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal hidden" style="z-index: 110;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h2>Excluir Compromisso</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 14px;">Tem certeza que deseja excluir este compromisso? Esta ação não pode ser desfeita.</p>
+            <div class="modal-actions" style="justify-content: center; gap: 16px;">
+                <button type="button" id="cancel-confirm-btn" class="secondary-btn">Cancelar</button>
+                <button type="button" id="confirm-delete-btn" class="danger-btn">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=3105260150"></script>
+</body>
+</html>
