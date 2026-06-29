@@ -1,3 +1,37 @@
+let bgWorker = null;
+let bgWorkerCallbacks = {};
+let bgWorkerMsgId = 0;
+
+function getBgWorker() {
+    if (!bgWorker) {
+        bgWorker = new Worker('bg-worker.js', { type: 'module' });
+        bgWorker.onmessage = (e) => {
+            const { id, type, resultBlob, error, key, current, total } = e.data;
+            if (bgWorkerCallbacks[id]) {
+                if (type === 'success') {
+                    bgWorkerCallbacks[id].resolve(resultBlob);
+                    delete bgWorkerCallbacks[id];
+                } else if (type === 'error') {
+                    bgWorkerCallbacks[id].reject(new Error(error));
+                    delete bgWorkerCallbacks[id];
+                } else if (type === 'progress' && bgWorkerCallbacks[id].onProgress) {
+                    bgWorkerCallbacks[id].onProgress(key, current, total);
+                }
+            }
+        };
+    }
+    return bgWorker;
+}
+
+function removeBackgroundWorker(blob, onProgress) {
+    return new Promise((resolve, reject) => {
+        const worker = getBgWorker();
+        const id = ++bgWorkerMsgId;
+        bgWorkerCallbacks[id] = { resolve, reject, onProgress };
+        worker.postMessage({ id, blob });
+    });
+}
+
 async function buildRemoveBgControls(container) {
     container.innerHTML = `
         <div class="control-group">
@@ -35,27 +69,15 @@ async function processRemoveBackground() {
 
         const blob = await new Promise(resolve => canvas.toBlob(resolve));
 
-        let simulatedProgress = 10;
-        progressText.textContent = 'Carregando modelo de IA...';
-
-        const progressInterval = setInterval(() => {
-            if (simulatedProgress < 90) {
-                simulatedProgress += 2;
-                progressBar.style.width = `${simulatedProgress}%`;
-
-                if (simulatedProgress < 30) {
-                    progressText.textContent = `Carregando modelo: ${simulatedProgress}%`;
-                } else if (simulatedProgress < 70) {
-                    progressText.textContent = `Processando: ${simulatedProgress}%`;
-                } else {
-                    progressText.textContent = `Removendo fundo: ${simulatedProgress}%`;
-                }
+        const resultBlob = await removeBackgroundWorker(blob, (key, current, total) => {
+            const pct = Math.round((current / total) * 100);
+            progressBar.style.width = `${pct}%`;
+            if (key.includes('fetch')) {
+                progressText.textContent = `Carregando modelo: ${pct}%`;
+            } else {
+                progressText.textContent = `Processando IA: ${pct}%`;
             }
-        }, 200);
-
-        const resultBlob = await window.removeBackground(blob);
-
-        clearInterval(progressInterval);
+        });
         progressBar.style.width = '100%';
         progressText.textContent = 'Concluído! ✓';
 
@@ -130,27 +152,15 @@ async function processBlurBackground() {
 
         const blob = await new Promise(resolve => canvas.toBlob(resolve));
 
-        let simulatedProgress = 10;
-        progressText.textContent = 'Carregando modelo de IA...';
-
-        const progressInterval = setInterval(() => {
-            if (simulatedProgress < 85) {
-                simulatedProgress += 2;
-                progressBar.style.width = `${simulatedProgress}%`;
-
-                if (simulatedProgress < 30) {
-                    progressText.textContent = `Carregando modelo: ${simulatedProgress}%`;
-                } else if (simulatedProgress < 60) {
-                    progressText.textContent = `Detectando objeto: ${simulatedProgress}%`;
-                } else {
-                    progressText.textContent = `Aplicando desfoque: ${simulatedProgress}%`;
-                }
+        const foregroundBlob = await removeBackgroundWorker(blob, (key, current, total) => {
+            const pct = Math.round((current / total) * 100);
+            progressBar.style.width = `${pct}%`;
+            if (key.includes('fetch')) {
+                progressText.textContent = `Carregando modelo: ${pct}%`;
+            } else {
+                progressText.textContent = `Detectando objeto: ${pct}%`;
             }
-        }, 250);
-
-        const foregroundBlob = await window.removeBackground(blob);
-
-        clearInterval(progressInterval);
+        });
         progressBar.style.width = '90%';
         progressText.textContent = 'Compondo imagem...';
 
@@ -290,27 +300,15 @@ async function processReplaceBackground() {
 
         const blob = await new Promise(resolve => canvas.toBlob(resolve));
 
-        let simulatedProgress = 10;
-        progressText.textContent = 'Carregando modelo de IA...';
-
-        const progressInterval = setInterval(() => {
-            if (simulatedProgress < 85) {
-                simulatedProgress += 2;
-                progressBar.style.width = `${simulatedProgress}%`;
-
-                if (simulatedProgress < 30) {
-                    progressText.textContent = `Carregando modelo: ${simulatedProgress}%`;
-                } else if (simulatedProgress < 60) {
-                    progressText.textContent = `Removendo fundo: ${simulatedProgress}%`;
-                } else {
-                    progressText.textContent = `Compondo imagem: ${simulatedProgress}%`;
-                }
+        const foregroundBlob = await removeBackgroundWorker(blob, (key, current, total) => {
+            const pct = Math.round((current / total) * 100);
+            progressBar.style.width = `${pct}%`;
+            if (key.includes('fetch')) {
+                progressText.textContent = `Carregando modelo: ${pct}%`;
+            } else {
+                progressText.textContent = `Processando IA: ${pct}%`;
             }
-        }, 250);
-
-        const foregroundBlob = await window.removeBackground(blob);
-
-        clearInterval(progressInterval);
+        });
         progressBar.style.width = '90%';
         progressText.textContent = 'Finalizando...';
 

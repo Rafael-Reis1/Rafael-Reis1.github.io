@@ -299,10 +299,6 @@ function buildControls() {
 
     cropRect = null;
 
-    toolEntrySnapshot = canvas.toDataURL();
-    compareMode = false;
-    const btnCompare = document.getElementById('btnCompare');
-    if (btnCompare) btnCompare.innerHTML = '👁️ Ver Original';
 
     switch (currentTool) {
         case 'compress':
