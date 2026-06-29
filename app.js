@@ -101,10 +101,10 @@ function setupTabs() {
 
     document.getElementById('github')?.addEventListener('click', () => window.open('https://github.com/Rafael-Reis1', 'github'));
     document.getElementById('LinkedIn')?.addEventListener('click', () => window.open('https://www.LinkedIn.com/in/rafael-reis-00331b85/', 'LinkedIn'));
-    document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
+    document.getElementById('mail')?.addEventListener('click', () => window.location.href = 'mailto:rafael.reis1776@gmail.com?subject=Sobre desenvolvimento web.&body=Quero te contratar para criar meu site!');
 
     document.getElementById('btnVerPortfolio')?.addEventListener('click', () => activateTab('btnPortfolio'));
-    document.getElementById('btnContato')?.addEventListener('click', () => window.location.href = 'mailto:reisr5941@gmail.com?subject=Contato via Portfólio');
+    document.getElementById('btnContato')?.addEventListener('click', () => window.location.href = 'mailto:rafael.reis1776@gmail.com?subject=Contato via Portfólio');
 }
 
 function setupDragScroll() {

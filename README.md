@@ -93,7 +93,7 @@ Além dos projetos principais, desenvolvi diversas ferramentas para automação 
 ## 📫 Contato
 
 * **LinkedIn:** [Rafael Reis](https://www.linkedin.com/in/rafael-reis-00331b85/)
-* **Email:** reisr5941@gmail.com
+* **Email:** rafael.reis1776@gmail.com
 
 ---
 *Este portfólio é mantido por Rafael Reis. Sinta-se à vontade para explorar o código!*
