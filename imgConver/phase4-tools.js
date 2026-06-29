@@ -123,14 +123,17 @@ function buildTechnicalControls(container) {
             <!-- Base64 Area -->
             <div id="base64Section">
                 <p style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 0.5rem;">Base64 da imagem (Copie ou Cole aqui):</p>
-                <textarea id="base64Output" style="width: 100%; height: 100px; background: #0f0f13; border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 0.5rem; font-family: monospace; font-size: 0.8rem; resize: vertical;"></textarea>
+                <textarea id="base64Output" placeholder="Clique em 'Gerar Base64' para converter a imagem..." style="width: 100%; height: 100px; background: #0f0f13; border: 1px solid var(--border-color); color: var(--text-color); border-radius: 4px; padding: 0.5rem; font-family: monospace; font-size: 0.8rem; resize: vertical;"></textarea>
                 
                 <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button class="btn-primary" onclick="generateBase64(this)" style="flex: 1; background: var(--accent-color);">
+                        🔄 Gerar Base64
+                    </button>
                     <button class="btn-secondary" onclick="copyBase64()" style="flex: 1;">
                         📋 Copiar
                     </button>
-                    <button class="btn-primary" onclick="loadBase64Image()" style="flex: 1; background: var(--accent-color);">
-                        🖼️ Carregar Imagem
+                    <button class="btn-secondary" onclick="loadBase64Image()" style="flex: 1;">
+                        🖼️ Carregar
                     </button>
                 </div>
             </div>
@@ -154,10 +157,26 @@ function buildTechnicalControls(container) {
         </div>
     `;
 
-    const dataURL = canvas.toDataURL('image/png');
-    document.getElementById('base64Output').value = dataURL;
-
     setupColorPickerEvents();
+}
+
+function generateBase64(btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Gerando...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        try {
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('base64Output').value = dataURL;
+        } catch (e) {
+            console.error("Erro ao gerar base64", e);
+            alert("Erro ao gerar a imagem.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }, 50);
 }
 
 function toggleTechTool(mode) {
