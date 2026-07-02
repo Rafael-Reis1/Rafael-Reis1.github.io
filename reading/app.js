@@ -2879,32 +2879,32 @@ const App = {
         };
 
         const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        let monthsHtml = '<div class="heatmap-months" style="display: flex; margin-left: 35px; gap: 4px; margin-bottom: 5px;">';
-        for(let i=0; i<12; i++) {
-            const mIdx = (startDate.getMonth() + i) % 12;
-            monthsHtml += `<div style="flex: 1; font-size: 0.65rem; color: var(--text-muted);">${monthNames[mIdx]}</div>`;
-        }
-        monthsHtml += '</div>';
-
-        let html = '<div class="heatmap-wrapper">' + monthsHtml + '<div class="heatmap-grid">';
-        
         const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-        html += '<div class="heatmap-labels-days">';
-        weekDays.forEach((day, i) => {
-            if (i % 2 !== 0) html += `<div class="day-label">${day}</div>`;
-            else html += `<div class="day-label"></div>`;
-        });
-        html += '</div>';
 
         let currentDate = new Date(startDate);
         let weeksHtml = '<div class="heatmap-weeks">';
         let currentWeekHtml = '';
         let dayCount = 0;
         let activeDaysCount = 0;
+        
+        let monthColCounts = [];
+        let currentMonth = startDate.getMonth();
+        let colsInCurrentMonth = 0;
 
         while (currentDate <= endDate || currentDate.getDay() !== 0) {
             if (dayCount > 400) break; 
             
+            if (currentDate.getDay() === 0) {
+                let m = currentDate.getMonth();
+                if (m !== currentMonth) {
+                    monthColCounts.push({ month: currentMonth, cols: colsInCurrentMonth });
+                    currentMonth = m;
+                    colsInCurrentMonth = 1;
+                } else {
+                    colsInCurrentMonth++;
+                }
+            }
+
             const dateKey = formatDate(currentDate);
             const pages = dailyPages[dateKey] || 0;
             let level = 0;
@@ -2934,6 +2934,25 @@ const App = {
             }
         }
         weeksHtml += '</div>';
+
+        if (colsInCurrentMonth > 0) {
+            monthColCounts.push({ month: currentMonth, cols: colsInCurrentMonth });
+        }
+
+        let monthsHtml = '<div class="heatmap-months" style="display: flex; margin-left: 35px; gap: 0; margin-bottom: 5px;">';
+        for (let mc of monthColCounts) {
+            monthsHtml += `<div style="width: ${mc.cols * 16}px; font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0;">${monthNames[mc.month]}</div>`;
+        }
+        monthsHtml += '</div>';
+
+        let html = '<div class="heatmap-wrapper">' + monthsHtml + '<div class="heatmap-grid">';
+        
+        html += '<div class="heatmap-labels-days">';
+        weekDays.forEach((day, i) => {
+            if (i % 2 !== 0) html += `<div class="day-label">${day}</div>`;
+            else html += `<div class="day-label"></div>`;
+        });
+        html += '</div>';
         
         html += weeksHtml;
         html += '</div></div>';
