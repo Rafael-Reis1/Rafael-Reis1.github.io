@@ -2497,12 +2497,23 @@ const App = {
 
         const readDateVal = this.dom.bookReadDate.value;
 
+        let processedCover = this.dom.bookCover.value.trim();
+        if (processedCover.includes('drive.google.com')) {
+            const fileIdMatch = processedCover.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            const ucIdMatch = processedCover.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            const id = fileIdMatch ? fileIdMatch[1] : (ucIdMatch ? ucIdMatch[1] : null);
+            
+            if (id && !processedCover.includes('thumbnail?id=')) {
+                processedCover = `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+            }
+        }
+
         const formData = {
             title: title,
             author: author,
             pages: pages,
             status: status,
-            cover: this.dom.bookCover.value,
+            cover: processedCover,
             readDate: readDateVal || null,
             rating: this.dom.bookRating.value || 0,
             goalYear: this.dom.bookGoalYear.value || null,

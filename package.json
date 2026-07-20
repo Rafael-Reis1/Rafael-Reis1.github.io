@@ -1,0 +1,8 @@
+{
+  "name": "rafael-reis1.github.io",
+  "version": "1.0.0",
+  "description": "Portfólio e projetos locais",
+  "scripts": {
+    "cache": "node updateCache.js"
+  }
+}
