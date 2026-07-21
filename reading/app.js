@@ -2867,8 +2867,9 @@ const App = {
             const isEmpty = !isCurrentYear || isFuture;
 
             const tooltip = `${currentDate.toLocaleDateString('pt-BR')} - ${pages} Pág.`;
+            const onclick = isEmpty ? '' : `onclick="App.showMessage('Atividade de Leitura', '${tooltip}', '🔥')"`;
 
-            currentWeekHtml += `<div class="heatmap-cell level-${level} ${isEmpty ? 'empty' : ''}" title="${isEmpty ? '' : tooltip}"></div>`;
+            currentWeekHtml += `<div class="heatmap-cell level-${level} ${isEmpty ? 'empty' : ''}" title="${isEmpty ? '' : tooltip}" ${onclick}></div>`;
             
             currentDate.setDate(currentDate.getDate() + 1);
             dayCount++;
@@ -2886,7 +2887,8 @@ const App = {
 
         let monthsHtml = '<div class="heatmap-months" style="display: flex; margin-left: 35px; gap: 0; margin-bottom: 5px;">';
         for (let mc of monthColCounts) {
-            monthsHtml += `<div style="width: ${mc.cols * 16}px; font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0;">${monthNames[mc.month]}</div>`;
+            const labelName = mc.cols >= 2 ? monthNames[mc.month] : '';
+            monthsHtml += `<div style="width: ${mc.cols * 16}px; font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0; overflow: hidden;">${labelName}</div>`;
         }
         monthsHtml += '</div>';
 
@@ -3496,7 +3498,7 @@ const App = {
             ySorted.forEach(y => {
                 const c = data.years[y].booksCount;
                 const h = Math.max((c / maxY) * 100, 4);
-                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}', 'finishes')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('year', '${y}', 'finishes')"><div class="bar-value">${c > 0 ? c : ''}</div><div class="bar" style="height:${h}%"></div><div class="bar-label">${y}</div></div>`;
             });
             html += `</div>`;
             html += `</div>`;
@@ -3513,7 +3515,7 @@ const App = {
 
             current.monthlyPagesDist.forEach((pVal, i) => {
                 const h = Math.max((pVal / Math.max(maxP, 1)) * 100, 4);
-                html += `<div class="bar-group" title="${pVal.toLocaleString()} páginas" onclick="App.openPeriodDetails('month', '${i}', 'pages')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+                html += `<div class="bar-group" title="${pVal.toLocaleString()} páginas" onclick="App.openPeriodDetails('month', '${i}', 'pages')"><div class="bar-value">${pVal > 0 ? pVal : ''}</div><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
             });
             html += `</div>`;
 
@@ -3525,7 +3527,7 @@ const App = {
 
             current.monthlyDist.forEach((c, i) => {
                 const h = Math.max((c / maxM) * 100, 4);
-                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('month', '${i}', 'finishes')"><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
+                html += `<div class="bar-group" title="${c} livros" onclick="App.openPeriodDetails('month', '${i}', 'finishes')"><div class="bar-value">${c > 0 ? c : ''}</div><div class="bar" style="height:${h}%"></div><div class="bar-label">${mNames[i]}</div></div>`;
             });
             html += `</div>`;
         }
