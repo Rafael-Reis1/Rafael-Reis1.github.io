@@ -797,7 +797,7 @@ body {
 .book-cover-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 2/3;
+    aspect-ratio: 5/8;
     border-radius: 8px;
     overflow: hidden;
     border: none;
