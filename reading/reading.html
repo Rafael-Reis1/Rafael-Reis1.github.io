@@ -722,19 +722,31 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelBook">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Salvar Livro</button>
+                <div class="modal-footer" style="justify-content: space-between;">
+                    <button type="button" class="btn btn-danger" id="deleteBookBtn" style="display: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Excluir
+                    </button>
+                    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+                        <button type="button" class="btn btn-secondary" id="cancelBook">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Livro</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="historyModal" class="modal">
+    <div id="quickActionModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="historyModalTitle">Histórico de Leitura</h3>
-                <button class="modal-close" id="closeHistoryModal">
+            <div class="modal-header quick-action-header" style="border-bottom: 1px solid var(--border); padding-bottom: 0;">
+                <div class="quick-action-tabs">
+                    <button class="tab-btn active" data-tab="history">Progresso</button>
+                    <button class="tab-btn" data-tab="notes">Anotações</button>
+                </div>
+                <button class="modal-close" id="closeQuickActionModal" style="margin-bottom: 10px;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -743,124 +755,114 @@
                 </button>
             </div>
 
-            <div id="historyListView">
-                <div class="modal-body">
-                    <div class="book-progress-summary">
-                        <div class="progress-info">
-                            <span id="historyBookTitle" class="history-title">Título do Livro</span>
-                            <span id="historyProgressText" class="history-percent">0%</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill" id="historyProgressBar"></div>
-                        </div>
-                    </div>
-
-                    <div class="history-log">
-                        <div id="historyList" class="history-list">
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeHistoryModal').click()">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="btnAddHistory">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Novo Registro
-                    </button>
-                </div>
-            </div>
-
-            <div id="historyFormView" style="display: none;">
-                <form id="historyForm" autocomplete="off">
-                    <div class="modal-body">
-                        <input type="hidden" id="historyBookId">
-                        <input type="hidden" id="historyTotalPages">
-                        <input type="hidden" id="historyEntryId">
-
-                        <div class="form-row" style="align-items: center;">
-                            <div class="form-group">
-                                <label id="lblHistoryInput">Página Atual</label>
-                                <input type="number" id="newCurrentPage" class="form-input" min="0" placeholder="Número da página">
+            <!-- Tab Histórico -->
+            <div id="tab-history" class="quick-action-tab-content active">
+                <div id="historyListView">
+                    <div class="modal-body" style="padding-top: 1rem;">
+                        <div class="book-progress-summary">
+                            <div class="progress-info">
+                                <span id="historyBookTitle" class="history-title">Título do Livro</span>
+                                <span id="historyProgressText" class="history-percent">0%</span>
                             </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="historyProgressBar"></div>
+                            </div>
+                        </div>
 
-                            <div class="form-group percentageDiv">
-                                <label class="tag-checkbox">
-                                    <input type="checkbox" id="isPercentage">
-                                    <span>Usar %</span>
-                                </label>
+                        <div class="history-log">
+                            <div id="historyList" class="history-list">
                             </div>
                         </div>
                     </div>
-
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="backToHistoryList">Voltar</button>
-                        <button type="submit" class="btn btn-primary">Salvar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div id="notesModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="notesModalTitle">Anotações do Livro</h3>
-                <button class="modal-close" id="closeNotesModal">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-
-            <div id="notesListView">
-                <div class="modal-body">
-                    <div class="notes-log">
-                        <div id="notesList" class="history-list">
-                        </div>
+                        <button type="button" class="btn btn-secondary" id="closeHistoryModal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="btnAddHistory">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Novo Registro
+                        </button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeNotesModal').click()">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="btnAddNote">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"></line>
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                        </svg>
-                        Nova Anotação
-                    </button>
-                </div>
-            </div>
 
-            <div id="notesFormView" style="display: none;">
-                <form id="notesForm" autocomplete="off">
-                    <div class="modal-body">
-                        <input type="hidden" id="notesBookId">
-                        <input type="hidden" id="noteId">
-                        
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="noteContent">Sua Anotação</label>
-                                <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="min-height: 31.25rem; resize: vertical;"></textarea>
+                <div id="historyFormView" style="display: none;">
+                    <form id="historyForm" autocomplete="off">
+                        <div class="modal-body">
+                            <input type="hidden" id="historyBookId">
+                            <input type="hidden" id="historyTotalPages">
+                            <input type="hidden" id="historyEntryId">
+
+                            <div class="form-row" style="align-items: center;">
+                                <div class="form-group">
+                                    <label id="lblHistoryInput">Página Atual</label>
+                                    <input type="number" id="newCurrentPage" class="form-input" min="0" placeholder="Número da página">
+                                </div>
+
+                                <div class="form-group percentageDiv">
+                                    <label class="tag-checkbox">
+                                        <input type="checkbox" id="isPercentage">
+                                        <span>Usar %</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group full-width">
-                                <label for="noteLocation">Contexto / Referência</label>
-                                <input type="text" id="noteLocation" class="form-input" placeholder="Página, capítulo, tema ou título da nota...">
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" id="backToHistoryList">Voltar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="tab-notes" class="quick-action-tab-content" style="display: none;">
+                <div id="notesListView">
+                    <div class="modal-body" style="padding-top: 1rem;">
+                        <div class="notes-log">
+                            <div id="notesList" class="history-list">
                             </div>
                         </div>
                     </div>
-
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="backToNotesList">Voltar</button>
-                        <button type="submit" class="btn btn-primary">Salvar Anotação</button>
+                        <button type="button" class="btn btn-secondary" id="closeNotesModal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="btnAddNote">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Nova Anotação
+                        </button>
                     </div>
-                </form>
+                </div>
+
+                <div id="notesFormView" style="display: none;">
+                    <form id="notesForm" autocomplete="off">
+                        <div class="modal-body">
+                            <input type="hidden" id="notesBookId">
+                            <input type="hidden" id="noteId">
+                            
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label for="noteContent">Sua Anotação</label>
+                                    <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="min-height: 15rem; resize: vertical;"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label for="noteLocation">Contexto / Referência</label>
+                                    <input type="text" id="noteLocation" class="form-input" placeholder="Página, capítulo, tema ou título da nota...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" id="backToNotesList">Voltar</button>
+                            <button type="submit" class="btn btn-primary">Salvar Anotação</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
