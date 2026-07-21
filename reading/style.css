@@ -25,6 +25,9 @@
     --header-height: 3.125rem;
     --sidebar-width: 16.25rem;
 
+    --heatmap-cell-size: 12px;
+    --heatmap-col-width: 16px;
+
     --color-all: #8b5cf6;
     --color-read: #10b981;
     --color-reading: #f59e0b;
@@ -2611,6 +2614,8 @@ input[type=number] {
 @media (max-width: 768px) {
     :root {
         --sidebar-width: 280px;
+        --heatmap-cell-size: 20px;
+        --heatmap-col-width: 24px;
     }
 
     .percentageDiv {
@@ -3768,7 +3773,7 @@ input[type=number] {
 
 .heatmap-labels-days {
     display: grid;
-    grid-template-rows: repeat(7, 12px);
+    grid-template-rows: repeat(7, var(--heatmap-cell-size));
     gap: 4px;
     padding-right: 8px;
 }
@@ -3776,8 +3781,8 @@ input[type=number] {
 .day-label {
     font-size: 0.65rem;
     color: var(--text-muted);
-    height: 12px;
-    line-height: 12px;
+    height: var(--heatmap-cell-size);
+    line-height: var(--heatmap-cell-size);
 }
 
 .heatmap-weeks {
@@ -3787,13 +3792,13 @@ input[type=number] {
 
 .heatmap-week {
     display: grid;
-    grid-template-rows: repeat(7, 12px);
+    grid-template-rows: repeat(7, var(--heatmap-cell-size));
     gap: 4px;
 }
 
 .heatmap-cell {
-    width: 12px;
-    height: 12px;
+    width: var(--heatmap-cell-size);
+    height: var(--heatmap-cell-size);
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
