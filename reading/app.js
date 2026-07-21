@@ -597,9 +597,9 @@ const App = {
             sortDropdown: getById('sortDropdown'),
             sortOptions: document.querySelectorAll('.dropdown-item[data-sort]'),
 
-            historyModal: getById('historyModal'),
-            historyModalTitle: getById('historyModalTitle'),
-            closeHistoryModalBtn: getById('closeHistoryModal'),
+            quickActionModal: getById('quickActionModal'),
+            closeQuickActionModalBtn: getById('closeQuickActionModal'),
+                        closeHistoryModalBtn: getById('closeHistoryModal'),
             historyForm: getById('historyForm'),
             historyList: getById('historyList'),
             historyProgressBar: getById('historyProgressBar'),
@@ -613,8 +613,7 @@ const App = {
             isPercentage: getById('isPercentage'),
             lblHistoryInput: getById('lblHistoryInput'),
 
-            notesModal: getById('notesModal'),
-            closeNotesModalBtn: getById('closeNotesModal'),
+                        closeNotesModalBtn: getById('closeNotesModal'),
             notesForm: getById('notesForm'),
             notesList: getById('notesList'),
             notesBookId: getById('notesBookId'),
@@ -786,6 +785,7 @@ const App = {
             inputTimesRead.disabled = false;
 
             document.getElementById('modalTitle').textContent = 'Adicionar Livro';
+            document.getElementById('deleteBookBtn').style.display = 'none';
 
             if (this.dom.btnOpenHistoryFromModal) {
                 this.dom.btnOpenHistoryFromModal.style.display = 'none';
@@ -961,6 +961,20 @@ const App = {
             this.handleBookSubmit();
         });
 
+        const deleteBookBtn = document.getElementById('deleteBookBtn');
+        if(deleteBookBtn) {
+            deleteBookBtn.addEventListener('click', () => {
+                const bookId = this.dom.bookId.value;
+                if (bookId) {
+                    this.closeModal();
+                    this.openDeleteModal('Tem certeza que deseja excluir este livro?', () => {
+                        rm.delete(bookId);
+                        this.refresh();
+                    });
+                }
+            });
+        }
+
         this.dom.historyForm.addEventListener('submit', (e) => this.handleHistorySubmit(e));
 
         document.getElementById('btnAddHistory').addEventListener('click', () => this.showHistoryFormView());
@@ -999,15 +1013,11 @@ const App = {
         });
 
         this.setupModalCloseAttributes(this.dom.modal, () => this.closeModal());
-        this.setupModalCloseAttributes(this.dom.historyModal, () => {
-            this.dom.historyModal.classList.remove('active');
+        this.setupModalCloseAttributes(this.dom.quickActionModal, () => {
+            this.dom.quickActionModal.classList.remove('active');
             this.toggleBodyScroll(false);
         });
         this.setupModalCloseAttributes(this.dom.deleteModal, () => this.closeDeleteModal());
-        this.setupModalCloseAttributes(this.dom.notesModal, () => {
-            this.dom.notesModal.classList.remove('active');
-            this.toggleBodyScroll(false);
-        });
         this.setupModalCloseAttributes(this.dom.messageModal, () => {
             this.dom.messageOkBtn.click();
         });
@@ -1024,13 +1034,33 @@ const App = {
         }
 
         this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
+        if (this.dom.closeQuickActionModalBtn) {
+            this.dom.closeQuickActionModalBtn.addEventListener('click', () => {
+                this.dom.quickActionModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            });
+        }
+        
+        // Tab switching logic for quickActionModal
+        const tabBtns = this.dom.quickActionModal.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-history').style.display = tab === 'history' ? 'flex' : 'none';
+                document.getElementById('tab-notes').style.display = tab === 'notes' ? 'flex' : 'none';
+                this.showHistoryListView();
+                this.showNotesListView();
+            });
+        });
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
         this.dom.closeHistoryModalBtn.addEventListener('click', () => {
-            this.dom.historyModal.classList.remove('active');
+            this.dom.quickActionModal.classList.remove('active');
             this.toggleBodyScroll(false);
         });
         this.dom.closeNotesModalBtn.addEventListener('click', () => {
-            this.dom.notesModal.classList.remove('active');
+            this.dom.quickActionModal.classList.remove('active');
             this.toggleBodyScroll(false);
         });
 
@@ -1045,7 +1075,7 @@ const App = {
             this.dom.btnOpenHistoryFromModal.addEventListener('click', () => {
                 const bookId = document.getElementById('bookId').value;
                 if (bookId) {
-                    this.openHistoryModal(bookId);
+                    this.openQuickActionModal(bookId, 'history');
                 }
             });
         }
@@ -1987,48 +2017,13 @@ const App = {
                     <path d="M0 0h24v32l-12-8-12 8z"/>
                 </svg>
                 <div class="title-overlay">${escTitle}</div>
-            </div>
 
-            <button class="btn-options" data-id="${book.id}" title="Opções">
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="19" cy="12" r="1"></circle>
-                    <circle cx="5" cy="12" r="1"></circle>
-                </svg>
-            </button>
-            <div class="options-menu" id="menu-${book.id}">
-                <ul>
-                    <li>
-                        <button class="menu-item notes-btn" data-id="${book.id}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                            Anotações
-                        </button>
-                    </li>
-                    <li>
-                        <button class="menu-item edit-btn" data-id="${book.id}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                            Editar
-                        </button>
-                    </li>
-                    <li>
-                        <button class="menu-item delete-btn" data-id="${book.id}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                            Excluir
-                        </button>
-                    </li>
-                </ul>
+                <button class="quick-add-btn" data-id="${book.id}" title="Ações Rápidas (Progresso/Anotações)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
             </div>
             
             <div class="book-footer">
@@ -2041,22 +2036,6 @@ const App = {
             </div>
         `;
 
-            if (['reading', 'rereading', 're-reading'].includes(book.status)) {
-                const menuList = card.querySelector('.options-menu ul');
-                const updateItem = document.createElement('li');
-                updateItem.innerHTML = `
-                <button class="menu-item history-btn" data-id="${book.id}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    Atualizar Progresso
-                </button>
-            `;
-                if (menuList) {
-                    menuList.insertBefore(updateItem, menuList.firstChild);
-                }
-            }
             this.dom.grid.appendChild(card);
         });
     },
@@ -2079,62 +2058,25 @@ const App = {
         });
     },
 
-    toggleMenu(id) {
-        document.querySelectorAll('.options-menu.active').forEach(m => {
-            if (m.id !== `menu-${id}`) m.classList.remove('active');
-        });
-        const menu = document.getElementById(`menu-${id}`);
-        if (menu) menu.classList.toggle('active');
-    },
-
     handleGridClick(e) {
         const target = e.target;
 
-        const btnOptions = target.closest('.btn-options');
-        if (btnOptions) {
+        const btnQuickAdd = target.closest('.quick-add-btn');
+        if (btnQuickAdd) {
             e.stopPropagation();
-            this.toggleMenu(btnOptions.dataset.id);
+            this.openQuickActionModal(btnQuickAdd.dataset.id, 'history');
             return;
         }
 
-        const btnNotes = target.closest('.notes-btn');
-        if (btnNotes) {
+        const bookCard = target.closest('.book-card');
+        if (bookCard) {
             e.stopPropagation();
-            this.openNotesModal(btnNotes.dataset.id);
-            const menu = btnNotes.closest('.options-menu');
-            if (menu) menu.classList.remove('active');
+            const btn = bookCard.querySelector('.quick-add-btn');
+            if (btn) {
+                this.editBook(btn.dataset.id);
+            }
             return;
         }
-
-        const btnHistory = target.closest('.history-btn');
-        if (btnHistory) {
-            e.stopPropagation();
-            this.openHistoryModal(btnHistory.dataset.id);
-            const menu = btnHistory.closest('.options-menu');
-            if (menu) menu.classList.remove('active');
-            return;
-        }
-
-        const btnEdit = target.closest('.edit-btn');
-        if (btnEdit) {
-            e.stopPropagation();
-            this.editBook(btnEdit.dataset.id);
-            const menu = btnEdit.closest('.options-menu');
-            if (menu) menu.classList.remove('active');
-            return;
-        }
-
-        const btnDelete = target.closest('.delete-btn');
-        if (btnDelete) {
-            e.stopPropagation();
-            this.openDeleteModal('Tem certeza que deseja excluir este livro?', () => {
-                rm.delete(btnDelete.dataset.id);
-                this.refresh();
-            });
-            return;
-        }
-
-        document.querySelectorAll('.options-menu.active').forEach(m => m.classList.remove('active'));
     },
 
 
@@ -2203,6 +2145,7 @@ const App = {
             this.dom.apiResults.innerHTML = '';
             this.dom.apiSearch.value = '';
             document.getElementById('modalTitle').textContent = 'Adicionar Livro';
+            document.getElementById('deleteBookBtn').style.display = 'none';
             document.getElementById('bookId').value = '';
             if (this.dom.searchRow) this.dom.searchRow.style.display = 'flex';
             if (this.dom.formDivider) this.dom.formDivider.style.display = 'flex';
@@ -2474,6 +2417,12 @@ const App = {
             this.dom.btnOpenHistoryFromModal.style.display = 'flex';
         }
 
+        const deleteBookBtn = document.getElementById('deleteBookBtn');
+        if (deleteBookBtn) {
+            deleteBookBtn.style.display = 'inline-flex';
+            deleteBookBtn.dataset.id = book.id;
+        }
+
         this.openModal();
     },
 
@@ -2654,95 +2603,80 @@ const App = {
         this.closeModal();
     },
 
-    async openNotesModal(bookId) {
-        const book = this.state.books.find(b => b.id === bookId);
-        if (!book) return;
-
-        this.state.currentBookTitle = book.title;
-        this.dom.notesBookId.value = bookId;
-        this.showNotesListView();
-        this.renderNotesList(book.notes || []);
-        this.openModal(this.dom.notesModal);
-    },
-
     showNotesListView() {
-        const modalTitle = document.getElementById('notesModalTitle');
-        document.getElementById('notesListView').style.display = 'block';
+        document.getElementById('notesListView').style.display = 'flex';
         document.getElementById('notesFormView').style.display = 'none';
-        modalTitle.innerHTML = `
-            <span style="display: block; line-height: 1.2;">Anotações</span>
-            <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
-        `;
-        modalTitle.title = this.state.currentBookTitle;
         this.dom.notesForm.reset();
         document.getElementById('noteId').value = '';
     },
 
     showNotesFormView(note = null) {
         document.getElementById('notesListView').style.display = 'none';
-        document.getElementById('notesFormView').style.display = 'block';
+        document.getElementById('notesFormView').style.display = 'flex';
 
         if (note) {
-            document.getElementById('notesModalTitle').innerHTML = `
-                <span style="display: block; line-height: 1.2;">Editar Anotação</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
-            `;
             document.getElementById('noteId').value = note.id;
             document.getElementById('noteContent').value = note.content;
             document.getElementById('noteLocation').value = note.location || '';
         } else {
-            document.getElementById('notesModalTitle').innerHTML = `
-                <span style="display: block; line-height: 1.2;">Nova Anotação</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${this.state.currentBookTitle}</span>
-            `;
             document.getElementById('noteId').value = '';
             this.dom.notesForm.reset();
         }
     },
 
-    async openHistoryModal(bookId) {
+    async openQuickActionModal(bookId, tab = 'history') {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
         this.state.currentBookTitle = book.title;
+        
         this.dom.historyBookId.value = bookId;
         this.dom.historyTotalPages.value = book.pages;
         this.dom.historyBookTitle.textContent = book.title;
-
         this.showHistoryListView();
         this.renderHistoryList(book);
         this.updateModalProgressHeader(book);
-        this.openModal(this.dom.historyModal);
+
+        this.dom.notesBookId.value = bookId;
+        this.showNotesListView();
+        this.renderNotesList(book.notes || []);
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const tabBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+        if(tabBtn) tabBtn.classList.add('active');
+        
+        document.querySelectorAll('.quick-action-tab-content').forEach(content => content.style.display = 'none');
+        const tabContent = document.getElementById(`tab-${tab}`);
+        if(tabContent) tabContent.style.display = 'block';
+
+        this.dom.quickActionModal.style.zIndex = '1050';
+        this.openModal(this.dom.quickActionModal);
+        
+        const tabBtns = this.dom.quickActionModal.querySelectorAll('.tab-btn');
+        tabBtns.forEach(btn => {
+            if (btn.dataset.tab === tab) {
+                btn.click();
+            }
+        });
     },
 
     showHistoryListView() {
-        document.getElementById('historyListView').style.display = 'block';
+        document.getElementById('historyListView').style.display = 'flex';
         document.getElementById('historyFormView').style.display = 'none';
-        document.getElementById('historyModalTitle').innerHTML = `
-            <span style="display: block; line-height: 1.2;">Histórico de Leitura</span>
-        `;
         this.dom.historyForm.reset();
         document.getElementById('historyEntryId').value = '';
     },
 
     showHistoryFormView(entry = null) {
         document.getElementById('historyListView').style.display = 'none';
-        document.getElementById('historyFormView').style.display = 'block';
+        document.getElementById('historyFormView').style.display = 'flex';
 
         if (entry) {
-            this.dom.historyModalTitle.innerHTML = `
-                <span style="display: block; line-height: 1.2;">Editar Registro</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${escapeHTML(this.state.currentBookTitle)}</span>
-            `;
             this.dom.historyEntryId.value = entry.date;
             this.dom.newCurrentPage.value = entry.page;
             this.dom.isPercentage.checked = false;
             this.dom.lblHistoryInput.textContent = 'Página Atual';
         } else {
-            this.dom.historyModalTitle.innerHTML = `
-                <span style="display: block; line-height: 1.2;">Novo Registro</span>
-                <span style="display: block; font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; margin-top: -2px;">${escapeHTML(this.state.currentBookTitle)}</span>
-            `;
             this.dom.historyEntryId.value = '';
             this.dom.historyForm.reset();
             this.dom.isPercentage.checked = false;
@@ -3189,6 +3123,7 @@ const App = {
     openDeleteModal(message, callback) {
         this.dom.deleteModalMessage.textContent = message;
         this.deleteCallback = callback;
+        this.dom.deleteModal.style.zIndex = '1100';
         this.dom.deleteModal.classList.add('active');
         this.toggleBodyScroll(true);
     },
@@ -3212,6 +3147,7 @@ const App = {
         this.dom.messageTitle.textContent = title;
         this.dom.messageText.textContent = text;
         this.dom.messageIcon.innerHTML = icon;
+        this.dom.messageModal.style.zIndex = '1200';
         this.dom.messageModal.classList.add('active');
         this.toggleBodyScroll(true);
         
