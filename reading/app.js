@@ -2068,10 +2068,10 @@ const App = {
             return;
         }
 
-        const bookCard = target.closest('.book-card');
-        if (bookCard) {
+        const bookCoverContainer = target.closest('.book-cover-container');
+        if (bookCoverContainer) {
             e.stopPropagation();
-            const btn = bookCard.querySelector('.quick-add-btn');
+            const btn = bookCoverContainer.querySelector('.quick-add-btn');
             if (btn) {
                 this.editBook(btn.dataset.id);
             }
