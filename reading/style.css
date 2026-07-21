@@ -2328,6 +2328,13 @@ input[type=number] {
     cursor: pointer;
 }
 
+.bar-value {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
 .bar {
     width: 100%;
     max-width: 24px;
@@ -3795,6 +3802,10 @@ input[type=number] {
 .heatmap-cell.empty {
     opacity: 0.1;
     pointer-events: none;
+}
+
+.heatmap-cell:not(.empty) {
+    cursor: pointer;
 }
 
 .heatmap-cell:not(.empty):hover {
