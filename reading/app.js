@@ -2888,7 +2888,7 @@ const App = {
         let monthsHtml = '<div class="heatmap-months" style="display: flex; margin-left: 35px; gap: 0; margin-bottom: 5px;">';
         for (let mc of monthColCounts) {
             const labelName = mc.cols >= 2 ? monthNames[mc.month] : '';
-            monthsHtml += `<div style="width: ${mc.cols * 16}px; font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0; overflow: hidden;">${labelName}</div>`;
+            monthsHtml += `<div style="width: calc(${mc.cols} * var(--heatmap-col-width)); font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0; overflow: hidden;">${labelName}</div>`;
         }
         monthsHtml += '</div>';
 
