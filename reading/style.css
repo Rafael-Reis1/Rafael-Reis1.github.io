@@ -1607,6 +1607,16 @@ input[type=number] {
     transform: scale(1.1) !important;
 }
 
+@media (max-width: 768px) {
+    .quick-add-btn {
+        opacity: 1;
+        transform: scale(1);
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
+}
+
 .sidebar-footer-mobile {
     display: none;
 }
