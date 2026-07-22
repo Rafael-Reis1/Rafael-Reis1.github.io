@@ -1091,6 +1091,10 @@ body {
     z-index: 10100;
 }
 
+#quickActionModal .modal-content {
+    height: 700px;
+}
+
 .flatpickr-calendar {
     z-index: 10200 !important;
 }
