@@ -3921,10 +3921,15 @@ input[type=number] {
 }
 
 .quick-action-tab-content {
-    display: flex;
+    display: none;
+    flex: 1;
     flex-direction: column;
     max-height: calc(90vh - 120px);
     overflow: hidden;
+}
+
+.quick-action-tab-content.active {
+    display: flex;
 }
 
 #historyListView, #historyFormView, #notesListView, #notesFormView {
