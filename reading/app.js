@@ -1610,7 +1610,7 @@ const App = {
         this.render();
     },
 
-    setSort(sortType) {
+    setSort(sortType, shouldRender = true) {
         this.state.sortBy = sortType;
         localStorage.setItem('rm_sortBy', sortType);
         
@@ -1620,13 +1620,22 @@ const App = {
             });
         }
 
-        this.render();
+        if (shouldRender) this.render();
     },
 
     setFilter(filter) {
         this.state.filter = filter;
         localStorage.setItem('rm_filter', filter);
         this.state.currentPage = 1;
+
+        let defaultSort = 'recent';
+        if (['read', 'reading', 're-reading'].includes(filter)) {
+            defaultSort = 'read-date';
+        } else if (['favorite'].includes(filter)) {
+            defaultSort = 'rating';
+        }
+        
+        this.setSort(defaultSort, false);
 
         if (this.dom.sidebarLinks) {
             this.dom.sidebarLinks.forEach(link => {
