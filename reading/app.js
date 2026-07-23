@@ -2656,7 +2656,7 @@ const App = {
         
         document.querySelectorAll('.quick-action-tab-content').forEach(content => content.style.display = 'none');
         const tabContent = document.getElementById(`tab-${tab}`);
-        if(tabContent) tabContent.style.display = 'block';
+        if(tabContent) tabContent.style.display = 'flex';
 
         this.dom.quickActionModal.style.zIndex = '1050';
         this.openModal(this.dom.quickActionModal);

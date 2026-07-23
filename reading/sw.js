@@ -1,11 +1,11 @@
-const CACHE_NAME = 'reading-app-?v=2207262113';
+const CACHE_NAME = 'reading-app-?v=2207262206';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css?v=2207262113',
-    '/reading/app.js?v=2207262113',
+    '/reading/style.css?v=2207262206',
+    '/reading/app.js?v=2207262206',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json?v=2207262113',
+    '/reading/manifest.json?v=2207262206',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
