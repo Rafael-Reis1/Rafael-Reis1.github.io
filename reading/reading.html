@@ -6,24 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2207262206">
-    <link rel="stylesheet" href="style.css?v=2207262206">
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2207262206">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2207262206"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2207262206"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2207262206">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2307260723">
+    <link rel="stylesheet" href="style.css?v=2307260723">
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2307260723">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2307260723"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2307260723"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2307260723">
 
-    <link rel="manifest" href="manifest.json?v=2207262206">
+    <link rel="manifest" href="manifest.json?v=2307260723">
     <meta name="theme-color" content="#0f0c28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=2207262206">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=2307260723">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2207262206"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2207262206"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2207262206"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2307260723"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2307260723"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2307260723"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     <script>
         window.onerror = function (msg, url, line, col, error) {
@@ -31,7 +31,7 @@
             return false;
         };
     </script>
-    <script src="app.js?v=2207262206" defer></script>
+    <script src="app.js?v=2307260723" defer></script>
 </head>
 
 <body>
@@ -788,14 +788,14 @@
 
                 <div id="historyFormView" style="display: none;">
                     <form id="historyForm" autocomplete="off">
-                        <div class="modal-body">
+                        <div class="modal-body" style="display: flex; flex-direction: column;">
                             <input type="hidden" id="historyBookId">
                             <input type="hidden" id="historyTotalPages">
                             <input type="hidden" id="historyEntryId">
 
                             <div class="form-row" style="align-items: center;">
                                 <div class="form-group">
-                                    <label id="lblHistoryInput">Página Atual</label>
+                                    <label id="lblHistoryInput" for="newCurrentPage">Página Atual</label>
                                     <input type="number" id="newCurrentPage" class="form-input" min="0" placeholder="Número da página">
                                 </div>
 
@@ -804,6 +804,13 @@
                                         <input type="checkbox" id="isPercentage">
                                         <span>Usar %</span>
                                     </label>
+                                </div>
+                            </div>
+
+                            <div class="form-row" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="form-group full-width" style="flex: 1; display: flex; flex-direction: column;">
+                                    <label for="historyNoteContent">Comentário (Opcional)</label>
+                                    <textarea id="historyNoteContent" class="form-input" placeholder="Algum pensamento sobre o que você acabou de ler?" style="flex: 1; min-height: 5rem; resize: none;"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -819,7 +826,7 @@
             <div id="tab-notes" class="quick-action-tab-content" style="display: none;">
                 <div id="notesListView">
                     <div class="modal-body" style="padding-top: 1rem;">
-                        <div class="notes-log">
+                        <div class="history-log">
                             <div id="notesList" class="history-list">
                             </div>
                         </div>
@@ -838,14 +845,14 @@
 
                 <div id="notesFormView" style="display: none;">
                     <form id="notesForm" autocomplete="off">
-                        <div class="modal-body">
+                        <div class="modal-body" style="display: flex; flex-direction: column;">
                             <input type="hidden" id="notesBookId">
                             <input type="hidden" id="noteId">
                             
-                            <div class="form-row">
-                                <div class="form-group full-width">
+                            <div class="form-row" style="flex: 1; display: flex; flex-direction: column;">
+                                <div class="form-group full-width" style="flex: 1; display: flex; flex-direction: column;">
                                     <label for="noteContent">Sua Anotação</label>
-                                    <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="min-height: 15rem; resize: vertical;"></textarea>
+                                    <textarea id="noteContent" class="form-input" placeholder="Escreva aqui sua reflexão ou trecho importante..." required style="flex: 1; min-height: 15rem; resize: none;"></textarea>
                                 </div>
                             </div>
 
