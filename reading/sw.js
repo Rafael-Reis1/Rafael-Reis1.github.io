@@ -1,11 +1,11 @@
-const CACHE_NAME = 'reading-app-?v=2207262106';
+const CACHE_NAME = 'reading-app-?v=2207262113';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css?v=2207262106',
-    '/reading/app.js?v=2207262106',
+    '/reading/style.css?v=2207262113',
+    '/reading/app.js?v=2207262113',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json?v=2207262106',
+    '/reading/manifest.json?v=2207262113',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
@@ -40,24 +40,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     
-    if (event.request.url.includes('drive.google.com/thumbnail')) {
-        event.respondWith(
-            caches.match(event.request).then(cachedResponse => {
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-                
-                return fetch(event.request, { mode: 'no-cors' }).then(response => {
-                    const responseToCache = response.clone();
-                    caches.open('drive-covers-cache').then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
-                    return response;
-                });
-            })
-        );
-        return;
-    }
+
 
     if (!event.request.url.startsWith(self.location.origin)) {
         return; 
