@@ -2118,6 +2118,7 @@ input[type=number] {
     color: var(--text-muted);
     font-size: 0.85rem;
     padding: 1rem;
+    margin: auto;
 }
 
 .delete-modal,
@@ -3556,7 +3557,7 @@ input[type=number] {
     display: flex !important;
 }
 
-#notesList, #historyList, .notes-log, .history-log {
+#notesList, #historyList, .history-log {
     flex: 1;
     max-height: none !important;
     display: flex;
@@ -3572,7 +3573,7 @@ input[type=number] {
     margin-bottom: 10px;
 }
 
-#noteContent {
+#noteContent, #historyNoteContent {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
@@ -3585,7 +3586,7 @@ input[type=number] {
     width: 100%;
 }
 
-#noteContent:focus {
+#noteContent:focus, #historyNoteContent:focus {
     outline: none;
     border-color: var(--accent-color);
     background: rgba(0, 0, 0, 0.3);
@@ -3600,13 +3601,17 @@ input[type=number] {
     padding: 0.5rem 0.75rem;
     width: 100%;
     font-size: 0.9rem;
+    transition: all 0.3s ease;
 }
 
-.notes-log {
-    max-height: 100%;
-    overflow-y: auto;
-    scrollbar-width: thin;
+#noteLocation:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 4px rgba(242, 81, 27, 0.1);
 }
+
+
 
 .notes-log h4 {
     margin: 16px 0 10px 0;
@@ -3617,13 +3622,7 @@ input[type=number] {
     font-weight: 600;
 }
 
-.note-item {
-    padding: 1rem !important;
-    margin-bottom: 0.75rem;
-    border-radius: 12px !important;
-    background: #0f101e !important;
-    border: 1px solid var(--glass-border) !important;
-}
+
 
 
 .note-content-wrapper {
@@ -3644,6 +3643,7 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    align-items: flex-start;
 }
 
 .note-location-tag {
@@ -3651,10 +3651,13 @@ input[type=number] {
     font-weight: 600;
     color: var(--accent-color);
     background: rgba(242, 81, 27, 0.1);
-    padding: 0.2rem 0.5rem;
+    padding: 0.25rem 0.5rem;
     border-radius: 6px;
     border: 1px solid rgba(242, 81, 27, 0.2);
-    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .note-text {
@@ -3668,9 +3671,6 @@ input[type=number] {
     border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
-.note-item:hover .action-btn {
-    opacity: 1;
-}
 
 #deleteModal {
     z-index: 1020;
@@ -3688,14 +3688,7 @@ input[type=number] {
     display: none !important;
 }
 
-.note-location-tag {
-    background: var(--accent-color);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
+
 
 @media (max-width: 768px) {
     #notesModal .modal-content,
@@ -3939,8 +3932,18 @@ input[type=number] {
     overflow: hidden;
 }
 
+#historyForm, #notesForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
 .quick-action-tab-content .modal-body {
     flex: 1;
     overflow-y: auto;
     padding-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }

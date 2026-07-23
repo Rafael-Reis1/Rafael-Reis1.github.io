@@ -612,6 +612,7 @@ const App = {
             newCurrentPage: getById('newCurrentPage'),
             isPercentage: getById('isPercentage'),
             lblHistoryInput: getById('lblHistoryInput'),
+            historyNoteContent: getById('historyNoteContent'),
 
                         closeNotesModalBtn: getById('closeNotesModal'),
             notesForm: getById('notesForm'),
@@ -976,6 +977,20 @@ const App = {
         }
 
         this.dom.historyForm.addEventListener('submit', (e) => this.handleHistorySubmit(e));
+
+        this.dom.newCurrentPage.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                this.dom.historyNoteContent.focus();
+            }
+        });
+
+        this.dom.historyNoteContent.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && e.shiftKey) {
+                e.preventDefault();
+                this.dom.newCurrentPage.focus();
+            }
+        });
 
         document.getElementById('btnAddHistory').addEventListener('click', () => this.showHistoryFormView());
         document.getElementById('backToHistoryList').addEventListener('click', () => this.showHistoryListView());
@@ -2631,6 +2646,7 @@ const App = {
             document.getElementById('noteId').value = '';
             this.dom.notesForm.reset();
         }
+        setTimeout(() => document.getElementById('noteContent').focus(), 50);
     },
 
     async openQuickActionModal(bookId, tab = 'history') {
@@ -2683,6 +2699,7 @@ const App = {
         if (entry) {
             this.dom.historyEntryId.value = entry.date;
             this.dom.newCurrentPage.value = entry.page;
+            this.dom.historyNoteContent.value = entry.note || '';
             this.dom.isPercentage.checked = false;
             this.dom.lblHistoryInput.textContent = 'Página Atual';
         } else {
@@ -2691,11 +2708,12 @@ const App = {
             this.dom.isPercentage.checked = false;
             this.dom.lblHistoryInput.textContent = 'Página Atual';
         }
+        setTimeout(() => this.dom.newCurrentPage.focus(), 50);
     },
 
     renderHistoryList(book) {
         if (!book.history || book.history.length === 0) {
-            this.dom.historyList.innerHTML = '<p class="empty-msg">Nenhum registro ainda.</p>';
+            this.dom.historyList.innerHTML = '<div class="empty-msg" style="margin: auto; padding-bottom: 2rem;">Nenhum registro ainda.<br>Que tal registrar sua primeira leitura?</div>';
             return;
         }
 
@@ -2724,14 +2742,17 @@ const App = {
             }
 
             return `
-                <div class="history-item ${entry.type || 'progress'}">
-                    <div class="history-info">
-                        <span class="history-icon">${icon}</span>
-                        <div class="history-details">
-                            <span class="history-date">${dateDisplay}</span>
-                            <span class="history-val">${label}</span>
+                <div class="history-item ${entry.type || 'progress'}" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                        <div class="history-info">
+                            <span class="history-icon">${icon}</span>
+                            <div class="history-details">
+                                <span class="history-date">${dateDisplay}</span>
+                                <div class="history-val">
+                                    <span class="note-location-tag" style="margin-top: 0;">${label}</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
                     <div class="history-actions">
                         <div class="action-buttons">
                             <button type="button" class="action-btn edit" onclick="App.editHistoryItem('${book.id}', '${entry.date}')" title="Editar">
@@ -2748,9 +2769,34 @@ const App = {
                             </button>
                         </div>
                     </div>
+                    </div>
+                    ${entry.note ? `
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 4px; padding-right: 4px;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Comentário</span>
+                            <button type="button" class="action-btn" onclick="App.copyHistoryNoteToClipboard('${book.id}', '${entry.date}')" title="Copiar comentário" style="opacity: 0.7;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="note-text" style="margin-top: 0;">${escapeHTML(entry.note)}</div>
+                    </div>` : ''}
                 </div>
             `;
         }).join('');
+    },
+
+    copyHistoryNoteToClipboard(bookId, dateStr) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+        const entry = book.history.find(h => h.date === dateStr);
+        if (entry && entry.note) {
+            navigator.clipboard.writeText(entry.note).then(() => {
+                this.showToast('Comentário copiado!', 'success');
+            });
+        }
     },
 
     deleteHistoryItem(bookId, dateStr) {
@@ -2963,6 +3009,7 @@ const App = {
         const bookId = document.getElementById('historyBookId').value;
         const entryId = document.getElementById('historyEntryId').value;
         const inputVal = document.getElementById('newCurrentPage').value;
+        const noteVal = document.getElementById('historyNoteContent').value.trim();
         const isPercentage = document.getElementById('isPercentage').checked;
 
         if (inputVal === '') {
@@ -2993,6 +3040,7 @@ const App = {
             if (entryIndex !== -1) {
                 const entry = book.history[entryIndex];
                 entry.page = newPageCount;
+                entry.note = noteVal;
                 
                 if (newPageCount === book.pages) {
                     entry.type = 'finish';
@@ -3022,7 +3070,7 @@ const App = {
                 this.showMessage('Atenção', 'O progresso informado é igual ao último registro.', '⚠️');
                 return;
             }
-            await this.updateProgress(bookId, newPageCount);
+            await this.updateProgress(bookId, newPageCount, noteVal);
             if (newPageCount === book.pages) return;
         }
         
@@ -3091,7 +3139,7 @@ const App = {
         }
     },
 
-    async updateProgress(bookId, newPage) {
+    async updateProgress(bookId, newPage, note = '') {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
@@ -3117,7 +3165,8 @@ const App = {
         book.history.push({
             date: new Date().toISOString(),
             page: newPage,
-            type: entryType
+            type: entryType,
+            note: note
         });
 
         await rm.update(book.id, book);
@@ -3696,7 +3745,7 @@ const App = {
         if (!list) return;
 
         if (!notes || notes.length === 0) {
-            list.innerHTML = '<div class="empty-msg">Nenhuma anotação ainda.<br>Que tal registrar sua primeira reflexão?</div>';
+            list.innerHTML = '<div class="empty-msg" style="margin: auto; padding-bottom: 2rem;">Nenhuma anotação ainda.<br>Que tal registrar sua primeira reflexão?</div>';
             return;
         }
 
