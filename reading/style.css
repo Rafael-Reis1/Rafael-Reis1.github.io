@@ -1661,7 +1661,6 @@ input[type=number] {
     background: var(--accent-color);
     border-radius: 2px 2px 0 0;
 }
-}
 
 .options-menu ul {
     list-style: none;
