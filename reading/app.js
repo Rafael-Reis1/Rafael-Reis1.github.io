@@ -813,7 +813,7 @@ const App = {
                 closeRenameModal();
                 this.renderCustomLists();
                 if (this.state.filter === listId) {
-                    this.updateData(rm.library);
+                    this.setFilter(listId);
                 }
                 this.showToast('Lista renomeada com sucesso!');
             }

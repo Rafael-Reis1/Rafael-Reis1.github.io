@@ -3865,7 +3865,9 @@ input[type=number] {
 
 .heatmap-cell.level-0 { background: rgba(255, 255, 255, 0.1); }
 
-#bookForm {
+#bookForm,
+#createListForm,
+#renameListForm {
     padding: 0;
     gap: 0;
 }
