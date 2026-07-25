@@ -110,6 +110,12 @@ function renderBooks(books) {
         </div>
         `;
 
+        card.addEventListener('click', () => {
+            const searchQuery = encodeURIComponent(`${book.title} ${book.author}`);
+            const amazonUrl = `https://www.amazon.com.br/s?k=${searchQuery}&tag=rafaelreis0f-20`;
+            window.open(amazonUrl, '_blank');
+        });
+
         grid.appendChild(card);
     });
 }
