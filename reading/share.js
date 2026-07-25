@@ -61,26 +61,32 @@ async function init() {
         document.getElementById('listTitle').textContent = listData.name || 'Lista Compartilhada';
         document.title = (listData.name || 'Lista') + " - Compartilhada";
 
-        const snapshot = await db.collection('library_data').doc(userId).collection('books')
+        db.collection('library_data').doc(userId).collection('books')
             .where('customLists', 'array-contains', listId)
-            .get();
+            .onSnapshot((snapshot) => {
+                const books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                document.getElementById('loadingMsg').style.display = 'none';
+                
+                if (books.length === 0) {
+                    showError("Esta lista está vazia.");
+                    document.getElementById('booksGrid').style.display = 'none';
+                    return;
+                } else {
+                    document.getElementById('errorMsg').style.display = 'none';
+                }
 
-        document.getElementById('loadingMsg').style.display = 'none';
-        
-        if (books.length === 0) {
-            showError("Esta lista está vazia.");
-            return;
-        }
-
-        renderBooks(books);
+                renderBooks(books);
+            }, (error) => {
+                console.error(error);
+                showError("Ocorreu um erro ao carregar os livros. Verifique se as permissões do Firebase (Rules) foram configuradas para permitir leitura.");
+            });
 
     } catch (e) {
         console.error(e);
-        showError("Ocorreu um erro ao carregar os livros. Verifique se as permissões do Firebase (Rules) foram configuradas para permitir leitura.");
+        showError("Ocorreu um erro ao conectar com o banco de dados.");
     }
 }
 
