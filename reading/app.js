@@ -743,8 +743,6 @@ const App = {
 
     deleteCallback: null,
 
-
-
     bindEvents() {
         this.dom.sidebarLinks.forEach(link => {
             link.addEventListener('click', (e) => {
@@ -771,6 +769,11 @@ const App = {
         this.dom.btnCreateList.addEventListener('click', () => {
             this.dom.createListModal.classList.add('active');
             setTimeout(() => document.getElementById('listName').focus(), 100);
+            
+            if (window.innerWidth <= 768) {
+                this.dom.sidebar.classList.remove('active');
+                this.dom.sidebarOverlay.classList.remove('active');
+            }
         });
 
         const closeCreateModal = () => {
@@ -1190,7 +1193,6 @@ const App = {
             });
         }
         
-        // Tab switching logic for quickActionModal
         const tabBtns = this.dom.quickActionModal.querySelectorAll('.tab-btn');
         tabBtns.forEach(btn => {
             btn.addEventListener('click', () => {
