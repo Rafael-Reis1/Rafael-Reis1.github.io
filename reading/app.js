@@ -155,7 +155,9 @@ const starSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentCo
 class ReadingManager {
     constructor() {
         this.books = [];
+        this.lists = [];
         this.unsubscribeListener = null;
+        this.unsubscribeListsListener = null;
     }
 
     async initListener(user, onUpdateCallback) {
@@ -163,7 +165,9 @@ class ReadingManager {
 
         this.stopListener();
 
-        const booksRef = db.collection('library_data').doc(user.uid).collection('books');
+        const libraryRef = db.collection('library_data').doc(user.uid);
+        const booksRef = libraryRef.collection('books');
+        const listsRef = libraryRef.collection('lists');
 
         this.unsubscribeListener = booksRef.onSnapshot((snapshot) => {
             this.books = snapshot.docs.map(doc => ({
@@ -175,6 +179,17 @@ class ReadingManager {
         }, (error) => {
             console.error('Erro no Listener de Livros:', error);
         });
+
+        this.unsubscribeListsListener = listsRef.onSnapshot((snapshot) => {
+            this.lists = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            if (onUpdateCallback) onUpdateCallback();
+        }, (error) => {
+            console.error('Erro no Listener de Listas:', error);
+        });
     }
 
     stopListener() {
@@ -182,10 +197,15 @@ class ReadingManager {
             this.unsubscribeListener();
             this.unsubscribeListener = null;
         }
+        if (this.unsubscribeListsListener) {
+            this.unsubscribeListsListener();
+            this.unsubscribeListsListener = null;
+        }
     }
 
     clear() {
         this.books = [];
+        this.lists = [];
     }
 
     getAll() {
@@ -232,6 +252,30 @@ class ReadingManager {
             return this.books[index];
         }
         return null;
+    }
+
+    addList(listData) {
+        const newList = {
+            ...listData,
+            id: 'list_' + this.generateId(),
+            createdAt: new Date().toISOString()
+        };
+        this.lists.push(newList);
+        if (auth.currentUser) {
+            const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                .collection('lists').doc(newList.id);
+            ref.set(newList).catch(e => console.error('Sync error:', e));
+        }
+        return newList;
+    }
+
+    deleteList(id) {
+        this.lists = this.lists.filter(l => l.id !== id);
+        if (auth.currentUser) {
+            const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                .collection('lists').doc(id);
+            ref.delete().catch(e => console.error('Sync error:', e));
+        }
     }
 
     async updateMultiple(updates) {
@@ -555,6 +599,10 @@ const App = {
             totalPagesRead: getById('total-pages-read'),
             resultsCount: getById('resultsCount'),
             currentSectionLabel: getById('currentSectionLabel'),
+            btnCreateList: getById('btnCreateList'),
+            createListModal: getById('createListModal'),
+            closeCreateListModal: getById('closeCreateListModal'),
+            createListForm: getById('createListForm'),
 
             addBtn: getById('btnAddBook'),
             modal: getById('bookModal'),
@@ -687,6 +735,12 @@ const App = {
                 this.setFilter(filter);
 
                 this.dom.sidebarLinks.forEach(l => l.classList.remove('active'));
+                
+                const customLists = document.querySelectorAll('#customListsContainer .nav-item');
+                if (customLists) {
+                    customLists.forEach(l => l.classList.remove('active'));
+                }
+                
                 e.currentTarget.classList.add('active');
 
                 if (window.innerWidth <= 768) {
@@ -694,6 +748,27 @@ const App = {
                     this.dom.sidebarOverlay.classList.remove('active');
                 }
             });
+        });
+
+        this.dom.btnCreateList.addEventListener('click', () => {
+            this.dom.createListModal.classList.add('active');
+            setTimeout(() => document.getElementById('listName').focus(), 100);
+        });
+
+        this.dom.closeCreateListModal.addEventListener('click', () => {
+            this.dom.createListModal.classList.remove('active');
+            this.dom.createListForm.reset();
+        });
+
+        this.dom.createListForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('listName').value.trim();
+            if (name) {
+                rm.addList({ name });
+                this.dom.createListModal.classList.remove('active');
+                e.target.reset();
+                this.renderCustomLists();
+            }
         });
 
         const handleTagChanges = (e) => {
@@ -773,6 +848,8 @@ const App = {
             if (this.dom.groupReadFormat) {
                 document.querySelectorAll('input[name="readFormat"]').forEach(cb => cb.checked = false);
             }
+
+            this.renderCustomListsCheckboxes([]);
 
             const groupRating = document.getElementById('groupRating');
             if (groupRating) groupRating.style.display = 'none';
@@ -1616,13 +1693,13 @@ const App = {
             this.dom.totalPagesRead.textContent = totalPagesRead.toLocaleString('pt-BR');
         }
 
-        this.renderFormatFilters();
+        this.renderCustomLists();
         this.renderHeatMap(dailyPages, 'all');
 
         const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
         if (isNotesModalOpen) return;
 
-        this.render();
+        this.setFilter(this.state.filter);
     },
 
     setSort(sortType, shouldRender = true) {
@@ -1710,21 +1787,58 @@ const App = {
                 header.style.borderBottom = '';
                 header.classList.remove('header-active-filter');
             } else {
-                const color = colors[filter]; 
+                const color = colors[filter] || ''; 
                 const themeMeta = document.querySelector('meta[name="theme-color"]');
                 if (themeMeta) {
                     themeMeta.setAttribute('content', color || '#0f0c29');
                 }
                 
                 header.style.background = color;
-                header.style.borderBottom = 'none';
-                header.classList.add('header-active-filter');
+                header.style.borderBottom = color ? 'none' : '';
+                
+                if (color) {
+                    header.classList.add('header-active-filter');
+                } else {
+                    header.classList.remove('header-active-filter');
+                }
 
                 let labelText = labels[filter] || filter;
+                let extraAction = '';
+
+                if (filter.startsWith('list_')) {
+                    const listObj = rm.lists.find(l => l.id === filter);
+                    if (listObj) {
+                        labelText = listObj.name;
+                        extraAction = `
+                            <div style="margin-left: auto; display: flex; gap: 0.5rem;">
+                                <button onclick="App.shareList('${filter}')" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="18" cy="5" r="3"></circle>
+                                        <circle cx="6" cy="12" r="3"></circle>
+                                        <circle cx="18" cy="19" r="3"></circle>
+                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                    </svg>
+                                    Compartilhar
+                                </button>
+                                <button onclick="App.deleteCustomList('${filter}')" style="display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; border-radius: 8px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.25)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'" title="Excluir Lista">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        labelText = 'Carregando lista...';
+                    }
+                }
 
                 h1.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
                         <span>${labelText}</span>
+                        ${extraAction}
                     </div>
                 `;
             }
@@ -1811,6 +1925,9 @@ const App = {
 
         if (this.state.filter !== 'all') {
             filtered = filtered.filter(book => {
+                if (this.state.filter.startsWith('list_')) {
+                    return book.customLists && book.customLists.includes(this.state.filter);
+                }
                 return book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter));
             });
         }
@@ -1962,6 +2079,134 @@ const App = {
             this.state.formatFilter = 'all'; 
             container.innerHTML = '';
         }
+    },
+
+    renderCustomLists() {
+        const container = document.getElementById('customListsContainer');
+        if (!container) return;
+
+        if (!rm.lists || rm.lists.length === 0) {
+            container.innerHTML = '<div style="padding: 0.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">Nenhuma lista criada.</div>';
+            return;
+        }
+
+        const listsHTML = rm.lists.map(list => {
+            const count = this.state.books.filter(b => b.customLists && b.customLists.includes(list.id)).length;
+            const isActive = this.state.filter === list.id ? 'active' : '';
+            return `
+                <a href="#" class="nav-item ${isActive}" data-filter="${list.id}">
+                    <div class="nav-icon" style="color: var(--text-muted);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <span class="nav-label">${list.name}</span>
+                    <span class="nav-count">${count}</span>
+                </a>
+            `;
+        }).join('');
+
+        container.innerHTML = listsHTML;
+
+        const listItems = container.querySelectorAll('.nav-item');
+        listItems.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const filter = e.currentTarget.dataset.filter;
+                this.setFilter(filter);
+
+                this.dom.sidebarLinks.forEach(l => l.classList.remove('active'));
+                listItems.forEach(l => l.classList.remove('active'));
+                
+                e.currentTarget.classList.add('active');
+
+                if (window.innerWidth <= 768) {
+                    this.dom.sidebar.classList.remove('active');
+                    this.dom.sidebarOverlay.classList.remove('active');
+                }
+            });
+        });
+    },
+
+    renderCustomListsCheckboxes(selectedLists = []) {
+        const container = document.getElementById('customListsCheckboxes');
+        const row = document.getElementById('rowCustomLists');
+        if (!container || !row) return;
+
+        if (!rm.lists || rm.lists.length === 0) {
+            row.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
+
+        row.style.display = 'flex';
+        const html = rm.lists.map(list => {
+            const isChecked = selectedLists.includes(list.id) ? 'checked' : '';
+            return `
+                <label class="tag-checkbox">
+                    <input type="checkbox" name="customLists" value="${list.id}" hidden ${isChecked}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                    <span>${list.name}</span>
+                </label>
+            `;
+        }).join('');
+        container.innerHTML = html;
+    },
+
+    shareList(listId) {
+        if (!auth.currentUser) return;
+        
+        let path = window.location.pathname;
+        if (!path.includes('.html') && !path.endsWith('/')) {
+            path += '/share.html';
+        } else if (!path.includes('.html')) {
+            path += 'share.html';
+        } else {
+            path = path.replace(/[^/]*\.html$/, 'share.html');
+        }
+        
+        const url = window.location.origin + path + '?u=' + auth.currentUser.uid + '&list=' + listId;
+        
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => {
+                this.showMessage('Link Copiado!', 'O link para sua lista foi copiado para a área de transferência. Agora é só enviar para os amigos!', '🔗');
+            }).catch(() => {
+                this.showMessage('Link para Compartilhar', `Copie o link abaixo para compartilhar:\n\n${url}`, '🔗');
+            });
+        } else {
+            this.showMessage('Link para Compartilhar', `Copie o link abaixo para compartilhar:\n\n${url}`, '🔗');
+        }
+    },
+
+    deleteCustomList(listId) {
+        const listObj = rm.lists.find(l => l.id === listId);
+        if (!listObj) return;
+
+        this.openDeleteModal(`Tem certeza que deseja excluir a lista "${listObj.name}"? Isso não apagará os livros, apenas removerá eles desta lista.`, () => {
+            rm.deleteList(listId);
+            
+            this.state.books.forEach(book => {
+                if (book.customLists && book.customLists.includes(listId)) {
+                    book.customLists = book.customLists.filter(id => id !== listId);
+                    rm.update(book.id, { customLists: book.customLists });
+                }
+            });
+
+            this.setFilter('all');
+            this.refresh();
+        });
     },
 
     handleEscKey(e) {
@@ -2442,6 +2687,8 @@ const App = {
             checkbox.checked = book.tags.includes(checkbox.value);
         });
 
+        this.renderCustomListsCheckboxes(book.customLists || []);
+
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
         document.getElementById('bookGoalYear').value = book.goalYear || '';
@@ -2531,6 +2778,11 @@ const App = {
             readFormat: [],
             tags: []
         };
+
+        formData.customLists = [];
+        document.querySelectorAll('input[name="customLists"]:checked').forEach(checkbox => {
+            formData.customLists.push(checkbox.value);
+        });
 
         const isReadOrReread = ['read', 're-reading', 'rereading'].includes(formData.status);
         if (isReadOrReread && !formData.readDate) {
@@ -3240,7 +3492,7 @@ const App = {
 
     showMessage(title, text, icon = '✨') {
         this.dom.messageTitle.textContent = title;
-        this.dom.messageText.textContent = text;
+        this.dom.messageText.innerHTML = text.replace(/\n/g, '<br>');
         this.dom.messageIcon.innerHTML = icon;
         this.dom.messageModal.style.zIndex = '1200';
         this.dom.messageModal.classList.add('active');
