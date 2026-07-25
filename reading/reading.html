@@ -6,24 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2507260844">
-    <link rel="stylesheet" href="style.css?v=2507260844">
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2507260844">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2507260844"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2507260844"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2507260844">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2507261126">
+    <link rel="stylesheet" href="style.css?v=2507261126">
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2507261126">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2507261126"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2507261126"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2507261126">
 
-    <link rel="manifest" href="manifest.json?v=2507260844">
+    <link rel="manifest" href="manifest.json?v=2507261126">
     <meta name="theme-color" content="#0f0c28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=2507260844">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=2507261126">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2507260844"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2507260844"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2507260844"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2507261126"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2507261126"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2507261126"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     <script>
         window.onerror = function (msg, url, line, col, error) {
@@ -31,7 +31,7 @@
             return false;
         };
     </script>
-    <script src="app.js?v=2507260844" defer></script>
+    <script src="app.js?v=2507261126" defer></script>
 </head>
 
 <body>
@@ -990,10 +990,107 @@
                         <input type="text" id="listName" name="listName" required placeholder="Ex: Presentes de Aniversário" maxlength="40">
                     </div>
                     <div class="modal-actions" style="margin-top: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('closeCreateListModal').click()">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" id="closeCreateListModalAction">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Criar Lista</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="renameListModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="renameListTitle">Renomear Lista</h3>
+                <div class="modal-header-actions">
+                    <button id="closeRenameListModal" class="modal-close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <form id="renameListForm">
+                    <input type="hidden" id="renameListId" name="renameListId">
+                    <div class="form-group">
+                        <label for="renameListName">Novo Nome da Lista</label>
+                        <input type="text" id="renameListName" name="renameListName" required placeholder="Novo nome da lista" maxlength="40">
+                    </div>
+                    <div class="modal-actions" style="margin-top: 1.5rem;">
+                        <button type="button" class="btn btn-secondary" id="closeRenameListModalAction">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div id="listBooksModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; width: 90%; height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h2 id="listBooksModalTitle">Adicionar Livros à Lista</h2>
+                <button type="button" class="modal-close" id="btnCloseListBooksTop">&times;</button>
+            </div>
+            
+            <div class="modal-toolbar" style="padding: 1rem; flex-shrink: 0; display: flex; gap: 1rem; background: var(--glass-bg); border-bottom: 1px solid var(--border);">
+                <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                    <input type="text" id="listBooksSearch" placeholder="Pesquisar por título ou autor..." style="width: 100%;">
+                </div>
+                <div class="form-group" style="width: 200px; margin-bottom: 0;">
+                    <div class="custom-select-container" id="listBooksFilterContainer">
+                        <input type="hidden" id="listBooksFilter" value="all">
+                        <button type="button" class="select-trigger" id="listBooksFilterTrigger">
+                            <div style="display: flex; align-items: center;">
+                                <span class="status-indicator status-all" id="listBooksFilterIndicator"></span>
+                                <span id="listBooksFilterText">Todos os Livros</span>
+                            </div>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        <div class="custom-options" id="listBooksFilterOptions">
+                            <div class="custom-option selected" data-value="all" data-label="Todos os Livros" data-class="status-all">
+                                <span class="status-indicator status-all"></span> Todos os Livros
+                            </div>
+                            <div class="custom-option" data-value="read" data-label="Lido" data-class="status-read">
+                                <span class="status-indicator status-read"></span> Lido
+                            </div>
+                            <div class="custom-option" data-value="reading" data-label="Lendo" data-class="status-reading">
+                                <span class="status-indicator status-reading"></span> Lendo
+                            </div>
+                            <div class="custom-option" data-value="want-to-read" data-label="Quero Ler" data-class="status-want">
+                                <span class="status-indicator status-want"></span> Quero Ler
+                            </div>
+                            <div class="custom-option" data-value="re-reading" data-label="Relendo" data-class="status-reread">
+                                <span class="status-indicator status-reread"></span> Relendo
+                            </div>
+                            <div class="custom-option" data-value="abandoned" data-label="Abandonei" data-class="status-abandoned">
+                                <span class="status-indicator status-abandoned"></span> Abandonei
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1rem;">
+                <div id="listBooksGrid" class="list-selection-grid">
+                </div>
+                <div id="listBooksEmpty" class="empty-state" style="display: none;">
+                    <p>Nenhum livro encontrado.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="flex-shrink: 0;">
+                <button type="button" class="btn btn-secondary" id="btnCloseListBooksBottom">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveListBooks">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Salvar Alterações
+                </button>
             </div>
         </div>
     </div>
