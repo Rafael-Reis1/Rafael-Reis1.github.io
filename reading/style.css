@@ -1318,8 +1318,8 @@ body {
 }
 
 .api-result-cover-container {
-    width: 45px;
     height: 65px;
+    aspect-ratio: 5/8;
     border-radius: 4px;
     background: #000;
     overflow: hidden;
