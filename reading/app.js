@@ -1734,6 +1734,66 @@ const App = {
         this.renderFormatFilters();
     },
 
+    checkFormatFilter(book, f, currentTab) {
+        if (f === 'all') return true;
+
+        if (['physical', 'ebook', 'audiobook'].includes(f)) {
+            if (['read', 'reading', 're-reading', 'rereading'].includes(currentTab)) {
+                if (book.readFormat) {
+                    const readFormats = Array.isArray(book.readFormat) ? book.readFormat : [book.readFormat];
+                    const validReadFormats = readFormats.filter(fmt => fmt);
+                    if (validReadFormats.length > 0) {
+                        return validReadFormats.includes(f);
+                    }
+                }
+            }
+            return book.tags && book.tags.includes(f);
+        }
+
+        if (f === 'no-format') {
+            if (['read', 'reading', 're-reading', 'rereading'].includes(currentTab)) {
+                const readFormats = book.readFormat ? (Array.isArray(book.readFormat) ? book.readFormat : [book.readFormat]) : [];
+                const validReadFormats = readFormats.filter(fmt => fmt && ['physical', 'ebook', 'audiobook'].includes(fmt));
+                return validReadFormats.length === 0;
+            }
+            
+            const hasGeneralFormat = book.tags && book.tags.some(tag => ['physical', 'ebook', 'audiobook'].includes(tag));
+            return !hasGeneralFormat;
+        }
+
+        if (['read', 'reading', 'want-to-read', 're-reading', 'abandoned'].includes(f)) {
+            return book.status === f;
+        }
+        
+        if (['owned', 'favorite', 'desired'].includes(f)) {
+            return book.tags && book.tags.includes(f);
+        }
+
+        if (f === '5-stars') return book.rating === 5;
+        if (f === '4-stars') return book.rating >= 4;
+
+        if (['started', 'halfway', 'final-stretch', 'early', 'late'].includes(f)) {
+            const prog = this.calculateProgress(book);
+            if (f === 'started') return prog > 0 && prog < 25;
+            if (f === 'halfway') return prog >= 25 && prog <= 75;
+            if (f === 'final-stretch') return prog > 75 && prog < 100;
+            if (f === 'early') return prog < 20;
+            if (f === 'late') return prog > 50;
+            return false;
+        }
+
+        if (!isNaN(f) && f.length === 4) {
+            return book.goalYear && book.goalYear.toString() === f;
+        }
+        if (f === 'completed') return book.status === 'read';
+        if (f === 'pending') return book.status !== 'read';
+
+        if (f === 'short') return book.pages > 0 && book.pages < 200;
+        if (f === 'long') return book.pages > 500;
+
+        return true;
+    },
+
     getFilteredBooks() {
         let filtered = this.state.books;
 
@@ -1757,52 +1817,7 @@ const App = {
 
         if (this.state.formatFilter !== 'all') {
             const f = this.state.formatFilter;
-            filtered = filtered.filter(book => {
-                if (['physical', 'ebook', 'audiobook'].includes(f)) {
-                    if (['read', 'reading', 're-reading', 'rereading'].includes(this.state.filter)) {
-                        if (book.readFormat) {
-                            const readFormats = Array.isArray(book.readFormat) ? book.readFormat : [book.readFormat];
-                            const validReadFormats = readFormats.filter(fmt => fmt);
-                            if (validReadFormats.length > 0) {
-                                return validReadFormats.includes(f);
-                            }
-                        }
-                    }
-                    return book.tags && book.tags.includes(f);
-                }
-
-                if (['read', 'reading', 'want-to-read', 're-reading', 'abandoned'].includes(f)) {
-                    return book.status === f;
-                }
-                
-                if (['owned', 'favorite', 'desired'].includes(f)) {
-                    return book.tags && book.tags.includes(f);
-                }
-
-                if (f === '5-stars') return book.rating === 5;
-                if (f === '4-stars') return book.rating >= 4;
-
-                if (['started', 'halfway', 'final-stretch', 'early', 'late'].includes(f)) {
-                    const prog = this.calculateProgress(book);
-                    if (f === 'started') return prog > 0 && prog < 25;
-                    if (f === 'halfway') return prog >= 25 && prog <= 75;
-                    if (f === 'final-stretch') return prog > 75 && prog < 100;
-                    if (f === 'early') return prog < 20;
-                    if (f === 'late') return prog > 50;
-                    return false;
-                }
-
-                if (!isNaN(f) && f.length === 4) {
-                    return book.goalYear && book.goalYear.toString() === f;
-                }
-                if (f === 'completed') return book.status === 'read';
-                if (f === 'pending') return book.status !== 'read';
-
-                if (f === 'short') return book.pages > 0 && book.pages < 200;
-                if (f === 'long') return book.pages > 500;
-
-                return true;
-            });
+            filtered = filtered.filter(book => this.checkFormatFilter(book, f, this.state.filter));
         }
 
         return filtered;
@@ -1821,6 +1836,7 @@ const App = {
                     { id: 'physical', label: 'Físicos' },
                     { id: 'ebook', label: 'Ebooks' },
                     { id: 'audiobook', label: 'Audiobooks' },
+                    { id: 'no-format', label: 'Sem formato' },
                     { id: '5-stars', label: `Favoritos (5 ${starSvg})` },
                     { id: '4-stars', label: `Recomendados (4 ${starSvg}+)` }
                 ];
@@ -1848,7 +1864,8 @@ const App = {
                     { id: 'all', label: 'Todos' },
                     { id: 'physical', label: 'Físico' },
                     { id: 'ebook', label: 'Ebook' },
-                    { id: 'audiobook', label: 'Audiobook' }
+                    { id: 'audiobook', label: 'Audiobook' },
+                    { id: 'no-format', label: 'Sem formato' }
                 ];
                 break;
             case 'lent':
@@ -1877,7 +1894,8 @@ const App = {
                     { id: 'late', label: 'Quase lá (>50%)' },
                     { id: 'physical', label: 'Físicos' },
                     { id: 'ebook', label: 'Ebooks' },
-                    { id: 'audiobook', label: 'Audiobook' }
+                    { id: 'audiobook', label: 'Audiobook' },
+                    { id: 'no-format', label: 'Sem formato' }
                 ];
                 break;
             case 'desired':
@@ -1885,6 +1903,7 @@ const App = {
                     { id: 'all', label: 'Todos' },
                     { id: 'physical', label: 'Físicos' },
                     { id: 'ebook', label: 'Ebooks' },
+                    { id: 'no-format', label: 'Sem formato' },
                     { id: 'short', label: 'Curtos (<200p)' },
                     { id: 'long', label: 'Tijolaços (>500p)' }
                 ];
@@ -1907,12 +1926,28 @@ const App = {
                     { id: 'all', label: 'Todos os Formatos' },
                     { id: 'physical', label: 'Físicos' },
                     { id: 'ebook', label: 'Ebooks' },
-                    { id: 'audiobook', label: 'Audiobooks' }
+                    { id: 'audiobook', label: 'Audiobooks' },
+                    { id: 'no-format', label: 'Sem formato' }
                 ];
                 break;
         }
 
         if (formats.length > 0) {
+            let booksInTab = [...this.state.books];
+            if (this.state.filter !== 'all') {
+                booksInTab = booksInTab.filter(book => book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter)));
+            }
+
+            formats = formats.filter(f => {
+                if (f.id === 'all') return true;
+                return booksInTab.some(book => this.checkFormatFilter(book, f.id, this.state.filter));
+            });
+
+            if (formats.length <= 1) {
+                container.style.display = 'none';
+                return;
+            }
+
             container.style.display = 'flex';
             
             if (!formats.find(f => f.id === this.state.formatFilter)) {
