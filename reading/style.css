@@ -193,6 +193,8 @@ body {
     border: 2px solid var(--glass-border);
     transition: all 0.2s ease;
     display: block;
+    -webkit-user-drag: none;
+    user-drag: none;
 }
 
 .user-avatar:hover {

@@ -786,9 +786,12 @@ const App = {
             e.preventDefault();
             const name = document.getElementById('listName').value.trim();
             if (name) {
-                rm.addList({ name });
+                const newList = rm.addList({ name });
                 closeCreateModal();
                 this.renderCustomLists();
+                if (newList && newList.id) {
+                    this.setFilter(newList.id);
+                }
             }
         });
 
