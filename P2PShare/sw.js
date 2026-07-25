@@ -1,9 +1,9 @@
-const CACHE_NAME = 'p2pshare-?v=2507260756';
+const CACHE_NAME = 'p2pshare-?v=2507260807';
 const urlsToCache = [
     './P2PShare.html',
-    './style.css?v=2507260756',
-    './app.js?v=2507260756',
-    './manifest.json?v=2507260756',
+    './style.css?v=2507260807',
+    './app.js?v=2507260807',
+    './manifest.json?v=2507260807',
     './assets/icon-512.png',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',

@@ -106,19 +106,7 @@ function renderBooks(books) {
                 <div class="placeholder-author">${escAuthor}</div>
             </div>
 
-            <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
-                <path d="M0 0h24v32l-12-8-12 8z"/>
-            </svg>
             <div class="title-overlay">${escTitle}</div>
-        </div>
-        
-        <div class="book-footer" style="padding-top: 0.5rem;">
-            <div class="reading-progress">
-                ${calculateProgress(book)}%
-            </div>
-            <div class="book-rating">
-                ${starSvg} ${book.rating > 0 ? parseFloat(book.rating).toFixed(1) : '-'}
-            </div>
         </div>
         `;
 
