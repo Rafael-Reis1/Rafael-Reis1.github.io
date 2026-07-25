@@ -61,6 +61,15 @@ async function init() {
         document.getElementById('listTitle').textContent = listData.name || 'Lista Compartilhada';
         document.title = (listData.name || 'Lista') + " - Compartilhada";
 
+        db.collection('library_data').doc(userId).collection('lists').doc(listId)
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('listTitle').textContent = data.name || 'Lista Compartilhada';
+                    document.title = (data.name || 'Lista') + " - Compartilhada";
+                }
+            });
+
         db.collection('library_data').doc(userId).collection('books')
             .where('customLists', 'array-contains', listId)
             .onSnapshot((snapshot) => {

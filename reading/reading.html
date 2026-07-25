@@ -6,24 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2507261126">
-    <link rel="stylesheet" href="style.css?v=2507261126">
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2507261126">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2507261126"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2507261126"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2507261126">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2507261137">
+    <link rel="stylesheet" href="style.css?v=2507261137">
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2507261137">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2507261137"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2507261137"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2507261137">
 
-    <link rel="manifest" href="manifest.json?v=2507261126">
+    <link rel="manifest" href="manifest.json?v=2507261137">
     <meta name="theme-color" content="#0f0c28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=2507261126">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=2507261137">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2507261126"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2507261126"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2507261126"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2507261137"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2507261137"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2507261137"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
     <script>
         window.onerror = function (msg, url, line, col, error) {
@@ -31,7 +31,7 @@
             return false;
         };
     </script>
-    <script src="app.js?v=2507261126" defer></script>
+    <script src="app.js?v=2507261137" defer></script>
 </head>
 
 <body>
@@ -983,18 +983,18 @@
                     </button>
                 </div>
             </div>
-            <div class="modal-body">
-                <form id="createListForm">
+            <form id="createListForm">
+                <div class="modal-body" style="padding: 1.25rem;">
                     <div class="form-group">
                         <label for="listName">Nome da Lista</label>
                         <input type="text" id="listName" name="listName" required placeholder="Ex: Presentes de Aniversário" maxlength="40">
                     </div>
-                    <div class="modal-actions" style="margin-top: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" id="closeCreateListModalAction">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Criar Lista</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeCreateListModalAction">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Lista</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1011,19 +1011,19 @@
                     </button>
                 </div>
             </div>
-            <div class="modal-body">
-                <form id="renameListForm">
+            <form id="renameListForm">
+                <div class="modal-body" style="padding: 1.25rem;">
                     <input type="hidden" id="renameListId" name="renameListId">
                     <div class="form-group">
                         <label for="renameListName">Novo Nome da Lista</label>
                         <input type="text" id="renameListName" name="renameListName" required placeholder="Novo nome da lista" maxlength="40">
                     </div>
-                    <div class="modal-actions" style="margin-top: 1.5rem;">
-                        <button type="button" class="btn btn-secondary" id="closeRenameListModalAction">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Salvar</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeRenameListModalAction">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
         </div>
     </div>
     <div id="listBooksModal" class="modal">
