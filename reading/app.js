@@ -269,6 +269,18 @@ class ReadingManager {
         return newList;
     }
 
+    updateList(id, data) {
+        const index = this.lists.findIndex(l => l.id === id);
+        if (index !== -1) {
+            this.lists[index] = { ...this.lists[index], ...data };
+            if (auth.currentUser) {
+                const ref = db.collection('library_data').doc(auth.currentUser.uid)
+                    .collection('lists').doc(id);
+                ref.update(data).catch(e => console.error('Sync error:', e));
+            }
+        }
+    }
+
     deleteList(id) {
         this.lists = this.lists.filter(l => l.id !== id);
         if (auth.currentUser) {
@@ -602,7 +614,13 @@ const App = {
             btnCreateList: getById('btnCreateList'),
             createListModal: getById('createListModal'),
             closeCreateListModal: getById('closeCreateListModal'),
+            closeCreateListModalAction: getById('closeCreateListModalAction'),
             createListForm: getById('createListForm'),
+
+            renameListModal: getById('renameListModal'),
+            closeRenameListModal: getById('closeRenameListModal'),
+            closeRenameListModalAction: getById('closeRenameListModalAction'),
+            renameListForm: getById('renameListForm'),
 
             addBtn: getById('btnAddBook'),
             modal: getById('bookModal'),
@@ -755,19 +773,49 @@ const App = {
             setTimeout(() => document.getElementById('listName').focus(), 100);
         });
 
-        this.dom.closeCreateListModal.addEventListener('click', () => {
+        const closeCreateModal = () => {
             this.dom.createListModal.classList.remove('active');
             this.dom.createListForm.reset();
-        });
+        };
+
+        this.dom.closeCreateListModal.addEventListener('click', closeCreateModal);
+        this.dom.closeCreateListModalAction.addEventListener('click', closeCreateModal);
+        this.setupModalCloseAttributes(this.dom.createListModal, closeCreateModal);
 
         this.dom.createListForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = document.getElementById('listName').value.trim();
             if (name) {
                 rm.addList({ name });
-                this.dom.createListModal.classList.remove('active');
-                e.target.reset();
+                closeCreateModal();
                 this.renderCustomLists();
+            }
+        });
+
+        const closeRenameModal = () => {
+            this.dom.renameListModal.classList.remove('active');
+            this.dom.renameListForm.reset();
+        };
+
+        this.dom.closeRenameListModal.addEventListener('click', closeRenameModal);
+        this.dom.closeRenameListModalAction.addEventListener('click', closeRenameModal);
+        this.setupModalCloseAttributes(this.dom.renameListModal, closeRenameModal);
+
+        this.dom.renameListForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const listId = document.getElementById('renameListId').value;
+            const newName = document.getElementById('renameListName').value.trim();
+            if (newName && listId) {
+                rm.updateList(listId, {
+                    name: newName,
+                    updatedAt: new Date().toISOString()
+                });
+                closeRenameModal();
+                this.renderCustomLists();
+                if (this.state.filter === listId) {
+                    this.updateData(rm.library);
+                }
+                this.showToast('Lista renomeada com sucesso!');
             }
         });
 
@@ -828,6 +876,12 @@ const App = {
         });
 
         this.dom.addBtn.addEventListener('click', () => {
+            if (this.state.filter.startsWith('list_')) {
+                const listId = this.state.filter;
+                openListBooksModal(listId);
+                return;
+            }
+
             this.dom.bookForm.reset();
             const groupGoalYear = document.getElementById('groupGoalYear');
             if (groupGoalYear) groupGoalYear.style.display = 'none';
@@ -1777,6 +1831,14 @@ const App = {
         const h1 = header ? header.querySelector('h1') : null;
 
         if (header && h1) {
+            const headerLeft = h1.closest('.header-left');
+            if (headerLeft) {
+                const existingActions = headerLeft.querySelector('.list-actions-dropdown');
+                if (existingActions) {
+                    existingActions.remove();
+                }
+            }
+
             if (filter === 'all') {
                 h1.innerHTML = 'Minha Biblioteca <span id="currentSectionLabel"></span>';
 
@@ -1810,24 +1872,29 @@ const App = {
                     if (listObj) {
                         labelText = listObj.name;
                         extraAction = `
-                            <div style="margin-left: auto; display: flex; gap: 0.5rem;">
-                                <button onclick="App.shareList('${filter}')" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="18" cy="5" r="3"></circle>
-                                        <circle cx="6" cy="12" r="3"></circle>
-                                        <circle cx="18" cy="19" r="3"></circle>
-                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                                    </svg>
-                                    Compartilhar
-                                </button>
-                                <button onclick="App.deleteCustomList('${filter}')" style="display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; border-radius: 8px; padding: 0.4rem 0.6rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.25)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'" title="Excluir Lista">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 6h18"></path>
-                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <div class="list-actions-dropdown" style="position: relative; margin-left: 0.5rem; flex-shrink: 0;">
+                                <button class="btn-icon" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('show');" style="display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 10px; border: 1px solid var(--glass-border); color: var(--text-primary); background: transparent; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(6, 7, 26, 0.3)'; this.style.borderColor='var(--accent-color)';" onmouseout="this.style.background='transparent'; this.style.borderColor='var(--glass-border)';">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="1.5"></circle>
+                                        <circle cx="12" cy="6" r="1.5"></circle>
+                                        <circle cx="12" cy="18" r="1.5"></circle>
                                     </svg>
                                 </button>
+                                <div class="dropdown-menu" style="width: 160px; left: 0; right: auto;">
+                                    <button onclick="App.renameCustomList('${filter}')" class="dropdown-item">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                        Renomear
+                                    </button>
+                                    <button onclick="App.shareList('${filter}')" class="dropdown-item">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                                        Compartilhar
+                                    </button>
+                                    <div class="dropdown-divider"></div>
+                                    <button onclick="App.deleteCustomList('${filter}')" class="dropdown-item danger">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                        Excluir Lista
+                                    </button>
+                                </div>
                             </div>
                         `;
                     } else {
@@ -1835,12 +1902,18 @@ const App = {
                     }
                 }
 
-                h1.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-                        <span>${labelText}</span>
-                        ${extraAction}
-                    </div>
-                `;
+                h1.textContent = labelText;
+                
+                const headerLeft = h1.closest('.header-left');
+                if (headerLeft) {
+                    const existingActions = headerLeft.querySelector('.list-actions-dropdown');
+                    if (existingActions) {
+                        existingActions.remove();
+                    }
+                    if (extraAction) {
+                        h1.insertAdjacentHTML('afterend', extraAction);
+                    }
+                }
             }
         }
 
@@ -1926,7 +1999,8 @@ const App = {
         if (this.state.filter !== 'all') {
             filtered = filtered.filter(book => {
                 if (this.state.filter.startsWith('list_')) {
-                    return book.customLists && book.customLists.includes(this.state.filter);
+                    const listId = this.state.filter;
+                    return book.customLists && book.customLists.includes(listId);
                 }
                 return book.status === this.state.filter || (book.tags && book.tags.includes(this.state.filter));
             });
@@ -2146,10 +2220,9 @@ const App = {
 
         row.style.display = 'flex';
         const html = rm.lists.map(list => {
-            const isChecked = selectedLists.includes(list.id) ? 'checked' : '';
             return `
                 <label class="tag-checkbox">
-                    <input type="checkbox" name="customLists" value="${list.id}" hidden ${isChecked}>
+                    <input type="checkbox" name="customLists" value="${list.id}" hidden>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="8" y1="6" x2="21" y2="6"></line>
                         <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -2161,8 +2234,13 @@ const App = {
                     <span>${list.name}</span>
                 </label>
             `;
-        }).join('');
-        container.innerHTML = html;
+        });
+        
+        container.innerHTML = html.join('');
+        
+        document.querySelectorAll('input[name="customLists"]').forEach(cb => {
+            cb.checked = selectedLists.includes(cb.value);
+        });
     },
 
     shareList(listId) {
@@ -2187,6 +2265,20 @@ const App = {
             });
         } else {
             this.showMessage('Link para Compartilhar', `Copie o link abaixo para compartilhar:\n\n${url}`, '🔗');
+        }
+    },
+    renameCustomList(listId) {
+        const listObj = rm.lists.find(l => l.id === listId);
+        if (!listObj) return;
+
+        const renameInput = document.getElementById('renameListName');
+        const renameIdInput = document.getElementById('renameListId');
+        
+        if (renameInput && renameIdInput && this.dom.renameListModal) {
+            renameIdInput.value = listId;
+            renameInput.value = listObj.name;
+            this.dom.renameListModal.classList.add('active');
+            setTimeout(() => renameInput.focus(), 100);
         }
     },
 
@@ -4292,6 +4384,234 @@ const App = {
     }
 };
 
+let listBooksCurrentListId = null;
+let listBooksSelection = new Set();
+let listBooksAll = [];
+
+function openListBooksModal(listId) {
+    if (!listId) return;
+    listBooksCurrentListId = listId;
+    listBooksSelection.clear();
+    const listObj = rm.lists.find(l => l.id === listId);
+    document.getElementById('listBooksModalTitle').textContent = `Adicionar à: ${listObj ? listObj.name : 'Lista'}`;
+    
+    listBooksAll = [...App.state.books];
+    
+    listBooksAll.forEach(book => {
+        if (book.customLists && book.customLists.includes(listId)) {
+            listBooksSelection.add(book.id);
+        }
+    });
+    
+    document.getElementById('listBooksSearch').value = '';
+    document.getElementById('listBooksFilter').value = 'all';
+    
+    renderListBooksModal();
+    document.getElementById('listBooksModal').classList.add('active');
+    App.toggleBodyScroll(true);
+}
+
+function renderListBooksModal() {
+    const grid = document.getElementById('listBooksGrid');
+    const emptyState = document.getElementById('listBooksEmpty');
+    const searchTerm = document.getElementById('listBooksSearch').value.toLowerCase();
+    const filterStatus = document.getElementById('listBooksFilter').value;
+    
+    grid.innerHTML = '';
+    
+    let filtered = listBooksAll.filter(book => {
+        if (filterStatus !== 'all' && book.status !== filterStatus) return false;
+        if (searchTerm) {
+            const titleMatch = book.title.toLowerCase().includes(searchTerm);
+            const authorMatch = book.author && book.author.toLowerCase().includes(searchTerm);
+            if (!titleMatch && !authorMatch) return false;
+        }
+        return true;
+    });
+    
+    if (filtered.length === 0) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+    } else {
+        grid.style.display = 'grid';
+        emptyState.style.display = 'none';
+        
+        filtered.forEach(book => {
+            const isSelected = listBooksSelection.has(book.id);
+            
+            const item = document.createElement('div');
+            item.className = `list-selection-item status-${book.status} ${isSelected ? 'selected' : ''}`;
+            item.onclick = () => {
+                if (listBooksSelection.has(book.id)) {
+                    listBooksSelection.delete(book.id);
+                    item.classList.remove('selected');
+                } else {
+                    listBooksSelection.add(book.id);
+                    item.classList.add('selected');
+                }
+            };
+            
+            const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+            const escTitle = escapeHTML(book.title);
+            const escAuthor = escapeHTML(book.author || '');
+            
+            const coverHtml = `
+            <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}" style="height: 100%; border-radius: 8px;">
+                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}; height: 100%; width: 100%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
+                
+                <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
+                    <div class="placeholder-title">${escTitle}</div>
+                    <div class="placeholder-author">${escAuthor}</div>
+                </div>
+
+                <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
+                    <path d="M0 0h24v32l-12-8-12 8z"/>
+                </svg>
+            </div>
+            `;
+            
+            item.innerHTML = `
+                ${coverHtml}
+                <svg class="list-selection-check" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            
+            grid.appendChild(item);
+        });
+    }
+}
+
+document.getElementById('listBooksSearch').addEventListener('input', renderListBooksModal);
+
+const listBooksFilterTrigger = document.getElementById('listBooksFilterTrigger');
+const listBooksFilterOptions = document.getElementById('listBooksFilterOptions');
+const listBooksFilterInput = document.getElementById('listBooksFilter');
+const listBooksFilterText = document.getElementById('listBooksFilterText');
+const listBooksFilterIndicator = document.getElementById('listBooksFilterIndicator');
+
+if (listBooksFilterOptions) {
+    document.body.appendChild(listBooksFilterOptions);
+}
+
+if (listBooksFilterTrigger) {
+    listBooksFilterTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const rect = listBooksFilterTrigger.getBoundingClientRect();
+        listBooksFilterOptions.style.top = `${rect.bottom + 8}px`;
+        listBooksFilterOptions.style.left = `${rect.left}px`;
+        listBooksFilterOptions.style.width = `${rect.width}px`;
+        
+        listBooksFilterOptions.classList.toggle('open');
+    });
+}
+
+if (listBooksFilterOptions) {
+    listBooksFilterOptions.querySelectorAll('.custom-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const value = option.dataset.value;
+            const label = option.dataset.label;
+            const statusClass = option.dataset.class;
+            
+            listBooksFilterOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            
+            listBooksFilterInput.value = value;
+            listBooksFilterText.textContent = label;
+            
+            listBooksFilterIndicator.className = 'status-indicator';
+            if (statusClass) {
+                listBooksFilterIndicator.classList.add(statusClass);
+                listBooksFilterIndicator.style.background = '';
+            } else {
+                listBooksFilterIndicator.style.background = 'transparent';
+            }
+            
+            listBooksFilterOptions.classList.remove('open');
+            renderListBooksModal();
+        });
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (listBooksFilterOptions && listBooksFilterOptions.classList.contains('open') && !e.target.closest('#listBooksFilterContainer')) {
+        listBooksFilterOptions.classList.remove('open');
+    }
+    
+    if (!e.target.closest('.list-actions-dropdown')) {
+        document.querySelectorAll('.list-actions-dropdown .dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+});
+
+document.getElementById('btnSaveListBooks').addEventListener('click', async () => {
+    if (!listBooksCurrentListId || !auth.currentUser) return;
+    
+    const btn = document.getElementById('btnSaveListBooks');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div> Salvando...';
+    btn.disabled = true;
+    const grid = document.getElementById('listBooksGrid');
+    grid.style.pointerEvents = 'none';
+    grid.style.opacity = '0.6';
+    
+    try {
+        const batch = db.batch();
+        let operations = 0;
+        
+        listBooksAll.forEach(book => {
+            const hasList = !!(book.customLists && book.customLists.includes(listBooksCurrentListId));
+            const shouldHaveList = listBooksSelection.has(book.id);
+            
+            if (hasList !== shouldHaveList) {
+                const bookRef = db.collection('library_data').doc(auth.currentUser.uid).collection('books').doc(book.id);
+                
+                let newLists = book.customLists ? [...book.customLists] : [];
+                if (shouldHaveList) {
+                    if (!newLists.includes(listBooksCurrentListId)) {
+                        newLists.push(listBooksCurrentListId);
+                    }
+                } else {
+                    newLists = newLists.filter(id => id !== listBooksCurrentListId);
+                }
+                
+                batch.update(bookRef, {
+                    customLists: newLists,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                operations++;
+            }
+        });
+        
+        if (operations > 0) {
+            await batch.commit();
+            App.showToast(`${operations} livro(s) atualizados com sucesso!`);
+        } else {
+            App.showToast('Nenhuma alteração foi feita.');
+        }
+        
+        document.getElementById('listBooksModal').classList.remove('active');
+        App.toggleBodyScroll(false);
+        
+    } catch (e) {
+        console.error("Erro ao salvar lista:", e);
+        App.showToast('Erro ao atualizar a lista', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        grid.style.pointerEvents = '';
+        grid.style.opacity = '1';
+    }
+});
+
+document.getElementById('btnCloseListBooksTop').addEventListener('click', () => {
+    document.getElementById('listBooksModal').classList.remove('active');
+    App.toggleBodyScroll(false);
+});
+document.getElementById('btnCloseListBooksBottom').addEventListener('click', () => {
+    document.getElementById('listBooksModal').classList.remove('active');
+    App.toggleBodyScroll(false);
+});
 
 window.App = App;
 
@@ -4307,6 +4627,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtnFooter) closeBtnFooter.addEventListener('click', closePeriod);
     if (modal) {
         App.setupModalCloseAttributes(modal, closePeriod);
+    }
+    
+    const listBooksModal = document.getElementById('listBooksModal');
+    if (listBooksModal) {
+        App.setupModalCloseAttributes(listBooksModal, () => {
+            listBooksModal.classList.remove('active');
+            App.toggleBodyScroll(false);
+        });
     }
 
     let deferredPrompt;
