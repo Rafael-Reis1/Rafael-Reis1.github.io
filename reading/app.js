@@ -327,6 +327,7 @@ class ReadingManager {
     export() {
         return {
             books: this.books,
+            lists: this.lists,
             exportedAt: new Date().toISOString(),
             version: '1.0'
         };
@@ -342,6 +343,7 @@ class ReadingManager {
         }
 
         const userRef = db.collection('library_data').doc(auth.currentUser.uid).collection('books');
+        const listsRef = db.collection('library_data').doc(auth.currentUser.uid).collection('lists');
 
         if (replace) {
             if (onProgress) onProgress('Limpando biblioteca atual...');
@@ -357,6 +359,18 @@ class ReadingManager {
                     chunk.forEach(doc => batch.delete(doc.ref));
                     await batch.commit();
                 }
+
+                const existingLists = await Promise.race([
+                    listsRef.get(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+                ]);
+                
+                for (let i = 0; i < existingLists.docs.length; i += 400) {
+                    const batch = db.batch();
+                    const chunk = existingLists.docs.slice(i, i + 400);
+                    chunk.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
             } catch (e) {
                 const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                 if (isDev) console.warn('Limpeza via nuvem lenta ou offline. Continuando...');
@@ -365,7 +379,7 @@ class ReadingManager {
 
         const total = data.books.length;
         for (let i = 0; i < total; i += 400) {
-            if (onProgress) onProgress(`Importando (${Math.min(i + 400, total)} de ${total})...`);
+            if (onProgress) onProgress(`Importando livros (${Math.min(i + 400, total)} de ${total})...`);
             const batch = db.batch();
             const chunk = data.books.slice(i, i + 400);
             chunk.forEach(book => {
@@ -383,6 +397,31 @@ class ReadingManager {
                 const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                 if (isDev) console.warn('Commit demorado ou offline. Continuando em background...');
                 break;
+            }
+        }
+
+        if (data.lists && Array.isArray(data.lists)) {
+            const totalLists = data.lists.length;
+            for (let i = 0; i < totalLists; i += 400) {
+                if (onProgress) onProgress(`Importando listas (${Math.min(i + 400, totalLists)} de ${totalLists})...`);
+                const batch = db.batch();
+                const chunk = data.lists.slice(i, i + 400);
+                chunk.forEach(list => {
+                    const id = list.id || ('list_' + this.generateId());
+                    const ref = listsRef.doc(id);
+                    batch.set(ref, { ...list, id });
+                });
+                
+                try {
+                    await Promise.race([
+                        batch.commit(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                    ]);
+                } catch (e) {
+                    const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+                    if (isDev) console.warn('Commit listas demorado ou offline. Continuando em background...');
+                    break;
+                }
             }
         }
 
