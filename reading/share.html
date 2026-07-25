@@ -33,30 +33,27 @@
         }
         .header {
             width: 100%;
-            left: 0;
-            justify-content: center;
-            border-bottom: 1px solid var(--border);
-            padding: 0 1rem;
-        }
-        .header h1 {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding: 0 1rem;
+            gap: 1rem;
+        }
+        .header h1 {
+            flex: 1;
             margin: 0;
             white-space: nowrap;
-        }
-        .header-left {
-            width: 100%;
-            justify-content: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 1.2rem;
+            color: var(--accent-color);
         }
         .header-actions {
-            position: absolute;
-            right: 1rem;
+            flex-shrink: 0;
+        }
+        .header-left {
+            display: contents;
         }
         #loadingMsg, #errorMsg {
             text-align: center;
@@ -81,6 +78,11 @@
         }
         .book-status, .book-favorite, .book-menu-btn, .book-rating-badge {
             display: none !important; 
+        }
+        
+        .book-card .title-overlay {
+            border-bottom: 3px solid var(--accent-color) !important;
+            background: linear-gradient(to top, rgba(242, 81, 27, 0.95) 0%, rgba(242, 81, 27, 0.4) 60%, transparent) !important;
         }
     </style>
 </head>
