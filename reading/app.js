@@ -3624,11 +3624,7 @@ const App = {
 
     closeAllModals() {
         if (this.closeModal) this.closeModal();
-        if (this.dom.historyModal) this.dom.historyModal.classList.remove('active');
-        if (this.dom.notesModal) this.dom.notesModal.classList.remove('active');
-        if (this.dom.statsModal) this.dom.statsModal.classList.remove('active');
-        if (this.dom.periodDetailsModal) this.dom.periodDetailsModal.classList.remove('active');
-        if (this.dom.messageModal) this.dom.messageModal.classList.remove('active');
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
     },
 
     showMessage(title, text, icon = '✨') {
