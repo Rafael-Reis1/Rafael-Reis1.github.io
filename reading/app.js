@@ -2333,12 +2333,17 @@ const App = {
         this.openDeleteModal(`Tem certeza que deseja excluir a lista "${listObj.name}"? Isso não apagará os livros, apenas removerá eles desta lista.`, () => {
             rm.deleteList(listId);
             
+            const updates = {};
             this.state.books.forEach(book => {
                 if (book.customLists && book.customLists.includes(listId)) {
                     book.customLists = book.customLists.filter(id => id !== listId);
-                    rm.update(book.id, { customLists: book.customLists });
+                    updates[book.id] = { customLists: book.customLists };
                 }
             });
+
+            if (Object.keys(updates).length > 0) {
+                rm.updateMultiple(updates);
+            }
 
             this.setFilter('all');
             this.refresh();
@@ -4439,6 +4444,28 @@ function openListBooksModal(listId) {
     const listObj = rm.lists.find(l => l.id === listId);
     document.getElementById('listBooksModalTitle').textContent = `Adicionar à: ${listObj ? listObj.name : 'Lista'}`;
     
+    document.getElementById('listBooksSearch').value = '';
+    document.getElementById('listBooksFilter').value = 'all';
+    document.getElementById('listBooksFilterText').textContent = 'Todos os Livros';
+    document.getElementById('listBooksFilterIndicator').className = 'status-indicator status-all';
+    document.getElementById('listBooksFilterIndicator').style.background = '';
+    document.querySelectorAll('#listBooksFilterOptions .custom-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.value === 'all');
+    });
+
+    if (document.getElementById('listBooksTagFilter')) {
+        document.getElementById('listBooksTagFilter').value = 'all';
+        document.getElementById('listBooksTagFilterText').textContent = 'Todas as Tags';
+        if (document.getElementById('listBooksTagFilterIcon')) {
+            document.getElementById('listBooksTagFilterIcon').style.display = 'flex';
+            document.getElementById('listBooksTagFilterIcon').className = 'nav-icon icon-all';
+            document.getElementById('listBooksTagFilterIcon').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" /></svg>`;
+        }
+        document.querySelectorAll('#listBooksTagFilterOptions .custom-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === 'all');
+        });
+    }
+
     listBooksAll = [...App.state.books];
     
     listBooksAll.forEach(book => {
@@ -4447,7 +4474,6 @@ function openListBooksModal(listId) {
         }
     });
     
-    document.getElementById('listBooksSearch').value = '';
     document.getElementById('listBooksFilter').value = 'all';
     
     renderListBooksModal();
@@ -4460,11 +4486,15 @@ function renderListBooksModal() {
     const emptyState = document.getElementById('listBooksEmpty');
     const searchTerm = document.getElementById('listBooksSearch').value.toLowerCase();
     const filterStatus = document.getElementById('listBooksFilter').value;
+    const filterTag = document.getElementById('listBooksTagFilter') ? document.getElementById('listBooksTagFilter').value : 'all';
     
     grid.innerHTML = '';
     
     let filtered = listBooksAll.filter(book => {
         if (filterStatus !== 'all' && book.status !== filterStatus) return false;
+        if (filterTag !== 'all') {
+            if (!book.tags || !book.tags.includes(filterTag)) return false;
+        }
         if (searchTerm) {
             const titleMatch = book.title.toLowerCase().includes(searchTerm);
             const authorMatch = book.author && book.author.toLowerCase().includes(searchTerm);
@@ -4542,6 +4572,10 @@ if (listBooksFilterTrigger) {
     listBooksFilterTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         
+        if (document.getElementById('listBooksTagFilterOptions')) {
+            document.getElementById('listBooksTagFilterOptions').classList.remove('open');
+        }
+        
         const rect = listBooksFilterTrigger.getBoundingClientRect();
         listBooksFilterOptions.style.top = `${rect.bottom + 8}px`;
         listBooksFilterOptions.style.left = `${rect.left}px`;
@@ -4578,9 +4612,69 @@ if (listBooksFilterOptions) {
     });
 }
 
+const listBooksTagFilterTrigger = document.getElementById('listBooksTagFilterTrigger');
+const listBooksTagFilterOptions = document.getElementById('listBooksTagFilterOptions');
+const listBooksTagFilterInput = document.getElementById('listBooksTagFilter');
+const listBooksTagFilterText = document.getElementById('listBooksTagFilterText');
+
+if (listBooksTagFilterOptions) {
+    document.body.appendChild(listBooksTagFilterOptions);
+}
+
+if (listBooksTagFilterTrigger) {
+    listBooksTagFilterTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        if (listBooksFilterOptions) listBooksFilterOptions.classList.remove('open');
+        
+        const rect = listBooksTagFilterTrigger.getBoundingClientRect();
+        listBooksTagFilterOptions.style.top = `${rect.bottom + 8}px`;
+        listBooksTagFilterOptions.style.left = `${rect.left}px`;
+        listBooksTagFilterOptions.style.width = `${rect.width}px`;
+        
+        listBooksTagFilterOptions.classList.toggle('open');
+    });
+}
+
+if (listBooksTagFilterOptions) {
+    listBooksTagFilterOptions.querySelectorAll('.custom-option').forEach(option => {
+        option.addEventListener('click', () => {
+            const value = option.dataset.value;
+            const label = option.dataset.label;
+            
+            listBooksTagFilterOptions.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            option.classList.add('selected');
+            
+            listBooksTagFilterInput.value = value;
+            listBooksTagFilterText.textContent = label;
+            
+            const iconDiv = option.querySelector('.nav-icon');
+            const targetIconDiv = document.getElementById('listBooksTagFilterIcon');
+            if (targetIconDiv) {
+                if (iconDiv) {
+                    targetIconDiv.innerHTML = iconDiv.innerHTML;
+                    targetIconDiv.className = iconDiv.className;
+                    targetIconDiv.style.display = 'flex';
+                } else {
+                    targetIconDiv.innerHTML = '';
+                    targetIconDiv.className = '';
+                    targetIconDiv.style.display = 'none';
+                }
+            }
+            
+            listBooksTagFilterOptions.classList.remove('open');
+            renderListBooksModal();
+        });
+    });
+}
+
 document.addEventListener('click', (e) => {
     if (listBooksFilterOptions && listBooksFilterOptions.classList.contains('open') && !e.target.closest('#listBooksFilterContainer')) {
         listBooksFilterOptions.classList.remove('open');
+    }
+    
+    if (listBooksTagFilterOptions && listBooksTagFilterOptions.classList.contains('open') && !e.target.closest('#listBooksTagFilterContainer')) {
+        listBooksTagFilterOptions.classList.remove('open');
     }
     
     if (!e.target.closest('.list-actions-dropdown')) {
