@@ -941,7 +941,11 @@ const App = {
             if (defaultOp) defaultOp.classList.add('selected');
 
             if (this.dom.groupReadDate) this.dom.groupReadDate.style.display = 'none';
-            if (this.datePicker) this.datePicker.clear();
+            if (this.datePicker) {
+                this.datePicker.clear();
+            } else if (this.dom.bookReadDate) {
+                this.dom.bookReadDate.value = '';
+            }
 
             if (this.dom.rowReadFormat) this.dom.rowReadFormat.style.display = 'none';
             if (this.dom.groupReadFormat) {
@@ -1022,8 +1026,12 @@ const App = {
 
                 if (this.dom.groupReadDate) {
                     this.dom.groupReadDate.style.display = (value === 'read') ? '' : 'none';
-                    if (value === 'read' && this.datePicker && !this.datePicker.input.value) {
-                        this.datePicker.setDate(new Date());
+                    if (value === 'read') {
+                        if (this.datePicker) {
+                            this.datePicker.setDate(new Date());
+                        } else if (this.dom.bookReadDate) {
+                            this.dom.bookReadDate.value = new Date().toISOString().split('T')[0];
+                        }
                     }
                 }
 
@@ -2775,6 +2783,8 @@ const App = {
                 displayDate = book.readDate.includes('T') ? book.readDate : book.readDate + 'T12:00:00';
             }
             this.datePicker.setDate(displayDate);
+        } else if (this.dom.bookReadDate) {
+            this.dom.bookReadDate.value = (book.readDate && book.readDate !== '1970-01-01') ? book.readDate.split('T')[0] : '';
         }
 
         this.dom.statusHiddenInput.value = book.status;
@@ -3581,10 +3591,8 @@ const App = {
             book.status = 'read';
             wasFinished = true;
             entryType = 'finish';
-            if (!book.readDate) {
-                const now = new Date();
-                book.readDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            }
+            const now = new Date();
+            book.readDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         book.readPages = newPage;
