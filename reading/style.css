@@ -4144,3 +4144,8 @@ body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !i
 .sortable-chosen .quick-add-btn { opacity: 0 !important; }
 
 .sortable-ghost .book-cover-container { transform: none !important; box-shadow: none !important; }
+
+body.is-dragging,
+body.is-dragging * {
+    cursor: grabbing !important;
+}
