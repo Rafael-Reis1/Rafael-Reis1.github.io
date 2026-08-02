@@ -4112,18 +4112,27 @@ input[type=number] {
         font-size: 0.85rem;
     }
 }
-
 .sortable-ghost { opacity: 0.4; border: 2px dashed var(--accent-color) !important; background: var(--glass-bg); }
 
 .sortable-fallback { opacity: 1 !important; transform: scale(1.05); cursor: grabbing !important;  z-index: 9999 !important; }
 .sortable-drag { opacity: 1 !important; }
+@media (min-width: 769px) {
+    .sortable-fallback .book-cover-container:hover .title-overlay { transform: translateY(100%) !important; }
+    body.is-dragging .title-overlay { transform: translateY(100%) !important; }
+    .sortable-chosen .title-overlay { transform: translateY(100%) !important; }
+}
+
+@media (max-width: 768px) {
+    .sortable-chosen .title-overlay,
+    .sortable-fallback .title-overlay {
+        transform: translateY(0) !important;
+    }
+}
 
 .sortable-fallback .book-cover-container:hover { transform: none !important; z-index: initial; }
-.sortable-fallback .book-cover-container:hover .title-overlay { transform: translateY(100%) !important; }
 .sortable-fallback .book-cover-container:hover .quick-add-btn { opacity: 0 !important; pointer-events: none !important; transform: translate(-50%, 10px) !important; }
 
 body.is-dragging .book-cover-container:hover { transform: none !important; z-index: initial !important; }
-body.is-dragging .title-overlay { transform: translateY(100%) !important; }
 body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !important; }
 
 .sortable-fallback .book-cover-container { box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; }
@@ -4132,5 +4141,6 @@ body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !i
 .book-cover { pointer-events: none; -webkit-touch-callout: none; }
 
 .sortable-chosen .book-cover-container { transform: scale(1.05) !important; box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; transition: all 0.2s ease; }
-.sortable-chosen .title-overlay { transform: translateY(100%) !important; }
 .sortable-chosen .quick-add-btn { opacity: 0 !important; }
+
+.sortable-ghost .book-cover-container { transform: none !important; box-shadow: none !important; }

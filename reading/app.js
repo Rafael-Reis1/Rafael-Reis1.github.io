@@ -2537,7 +2537,7 @@ const App = {
                     document.body.classList.add('is-dragging');
                 },
                 onEnd: (evt) => {
-                    document.body.classList.remove('is-dragging');
+                    setTimeout(() => document.body.classList.remove('is-dragging'), 50);
                     if (evt.oldIndex === evt.newIndex) return;
 
                     const listId = this.state.filter === 'want-to-read' ? 'sys_want_to_read' : this.state.filter;
@@ -2605,6 +2605,12 @@ const App = {
     },
 
     handleGridClick(e) {
+        if (document.body.classList.contains('is-dragging')) {
+            e.stopPropagation();
+            e.preventDefault();
+            return;
+        }
+
         const target = e.target;
 
         const btnQuickAdd = target.closest('.quick-add-btn');
