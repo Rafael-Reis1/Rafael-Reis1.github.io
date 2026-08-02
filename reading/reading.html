@@ -6,32 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gerenciador de Leitura - Organize seus livros e acompanhe seu progresso">
     <title>Gerenciador de Leitura</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=2707261701">
-    <link rel="stylesheet" href="style.css?v=2707261701">
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=2707261701">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=2707261701"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=2707261701"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=2707261701">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0208260226">
+    <link rel="stylesheet" href="style.css?v=0208260226">
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=0208260226">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=0208260226"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=0208260226"></script>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0208260226">
 
-    <link rel="manifest" href="manifest.json?v=2707261701">
+    <link rel="manifest" href="manifest.json?v=0208260226">
     <meta name="theme-color" content="#0f0c28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Leitura">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=2707261701">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=0208260226">
     <meta name="mobile-web-app-capable" content="yes">
 
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=2707261701"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=2707261701"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=2707261701"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=0208260226"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=0208260226"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=0208260226"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
         window.onerror = function (msg, url, line, col, error) {
             alert("Error: " + msg + "\nurl: " + url + "\nline: " + line + "\ncol: " + col + "\nerror: " + error);
             return false;
         };
     </script>
-    <script src="app.js?v=2707261701" defer></script>
+    <script src="app.js?v=0208260226" defer></script>
 </head>
 
 <body>
@@ -379,24 +380,21 @@
                                     Recentes
                                 </button>
                                 <button class="dropdown-item" data-sort="title">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="15 14 20 9 15 4"></polyline>
                                         <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
                                     </svg>
                                     Título
                                 </button>
                                 <button class="dropdown-item" data-sort="author">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                         <circle cx="12" cy="7" r="4"></circle>
                                     </svg>
                                     Autor
                                 </button>
                                 <button class="dropdown-item" data-sort="read-date">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                         <line x1="16" y1="2" x2="16" y2="6"></line>
                                         <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -405,14 +403,23 @@
                                     Data de Leitura
                                 </button>
                                 <button class="dropdown-item" data-sort="rating">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polygon
-                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
-                                        </polygon>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                                     </svg>
                                     Avaliação
                                 </button>
+                                <button class="dropdown-item" id="sortCustomOption" data-sort="custom" style="display: none;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                    </svg>
+                                    Personalizada
+                                </button>
+
                             </div>
                         </div>
                         <button id="btnAddBook" class="btn btn-primary" title="Adicionar Livro">
