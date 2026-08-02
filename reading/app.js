@@ -2523,6 +2523,12 @@ const App = {
             this.sortableInstance = null;
         }
 
+        if (canDrag) {
+            this.dom.grid.classList.add('is-sortable');
+        } else {
+            this.dom.grid.classList.remove('is-sortable');
+        }
+
         if (canDrag && window.Sortable) {
             this.sortableInstance = Sortable.create(this.dom.grid, {
                 animation: 150,
