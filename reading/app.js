@@ -278,8 +278,11 @@ class ReadingManager {
                     .collection('lists').doc(id);
                 ref.update(data).catch(e => console.error('Sync error:', e));
             }
+            return this.lists[index];
         }
+        return null;
     }
+
 
     deleteList(id) {
         this.lists = this.lists.filter(l => l.id !== id);
@@ -1827,10 +1830,20 @@ const App = {
         this.state.currentPage = 1;
 
         let defaultSort = 'recent';
+        let isCustomList = false;
+
         if (['read', 'reading', 're-reading'].includes(filter)) {
             defaultSort = 'read-date';
         } else if (['favorite'].includes(filter)) {
             defaultSort = 'rating';
+        } else if (filter === 'want-to-read' || (filter && filter.startsWith('list_'))) {
+            defaultSort = 'custom';
+            isCustomList = true;
+        }
+
+        const sortCustomOption = document.getElementById('sortCustomOption');
+        if (sortCustomOption) {
+            sortCustomOption.style.display = isCustomList ? 'flex' : 'none';
         }
         
         this.setSort(defaultSort, false);
@@ -2211,12 +2224,14 @@ const App = {
         const container = document.getElementById('customListsContainer');
         if (!container) return;
 
-        if (!rm.lists || rm.lists.length === 0) {
+        const displayLists = rm.lists.filter(l => !l.id.startsWith('sys_'));
+        
+        if (!displayLists || displayLists.length === 0) {
             container.innerHTML = '<div style="padding: 0.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">Nenhuma lista criada.</div>';
             return;
         }
 
-        const listsHTML = rm.lists.map(list => {
+        const listsHTML = displayLists.map(list => {
             const count = this.state.books.filter(b => b.customLists && b.customLists.includes(list.id)).length;
             const isActive = this.state.filter === list.id ? 'active' : '';
             return `
@@ -2430,14 +2445,25 @@ const App = {
             return;
         }
 
+        const isCustomizable = this.state.filter === 'want-to-read' || (this.state.filter && this.state.filter.startsWith('list_'));
+        const canDrag = this.state.sortBy === 'custom' && 
+                        isCustomizable && 
+                        !this.state.searchQuery && 
+                        this.state.formatFilter === 'all';
+
+        let effectiveItemsPerPage = this.state.itemsPerPage;
+        if (canDrag) {
+            effectiveItemsPerPage = 999999;
+        }
+
         const totalItems = sorted.length;
-        const totalPages = Math.ceil(totalItems / this.state.itemsPerPage);
+        const totalPages = Math.ceil(totalItems / effectiveItemsPerPage);
 
         if (this.state.currentPage > totalPages) this.state.currentPage = totalPages || 1;
         if (this.state.currentPage < 1) this.state.currentPage = 1;
 
-        const start = (this.state.currentPage - 1) * this.state.itemsPerPage;
-        const end = start + this.state.itemsPerPage;
+        const start = (this.state.currentPage - 1) * effectiveItemsPerPage;
+        const end = start + effectiveItemsPerPage;
         const pageBooks = sorted.slice(start, end);
 
         if (totalPages <= 1) {
@@ -2491,9 +2517,76 @@ const App = {
 
             this.dom.grid.appendChild(card);
         });
+
+        if (this.sortableInstance) {
+            this.sortableInstance.destroy();
+            this.sortableInstance = null;
+        }
+
+        if (canDrag && window.Sortable) {
+            this.sortableInstance = Sortable.create(this.dom.grid, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                forceFallback: true,
+                fallbackClass: 'sortable-fallback',
+                fallbackOnBody: true,
+                delay: window.innerWidth <= 768 ? 200 : 0,
+                delayOnTouchOnly: true,
+                onStart: () => {
+                    document.body.classList.add('is-dragging');
+                },
+                onEnd: (evt) => {
+                    document.body.classList.remove('is-dragging');
+                    if (evt.oldIndex === evt.newIndex) return;
+
+                    const listId = this.state.filter === 'want-to-read' ? 'sys_want_to_read' : this.state.filter;
+                    const absoluteOldIndex = (this.state.currentPage - 1) * effectiveItemsPerPage + evt.oldIndex;
+                    const absoluteNewIndex = (this.state.currentPage - 1) * effectiveItemsPerPage + evt.newIndex;
+                    
+                    const newSortedIds = sorted.map(b => b.id);
+                    const [moved] = newSortedIds.splice(absoluteOldIndex, 1);
+                    newSortedIds.splice(absoluteNewIndex, 0, moved);
+                    
+                    const existingList = rm.lists.find(l => l.id === listId);
+                    if (existingList) {
+                        rm.updateList(listId, { bookOrder: newSortedIds });
+                    } else {
+                        const newList = {
+                            id: listId,
+                            name: 'System Order',
+                            createdAt: new Date().toISOString(),
+                            bookOrder: newSortedIds
+                        };
+                        rm.lists.push(newList);
+                        if (auth.currentUser) {
+                            db.collection('library_data').doc(auth.currentUser.uid)
+                                .collection('lists').doc(listId)
+                                .set(newList).catch(e => console.error('Sync error:', e));
+                        }
+                    }
+                }
+            });
+        }
     },
 
     sortBooks(books) {
+        const isCustomizable = this.state.filter === 'want-to-read' || (this.state.filter && this.state.filter.startsWith('list_'));
+        if (this.state.sortBy === 'custom' && isCustomizable) {
+            const listId = this.state.filter === 'want-to-read' ? 'sys_want_to_read' : this.state.filter;
+            const list = rm.lists.find(l => l.id === listId);
+            if (list && list.bookOrder) {
+                return [...books].sort((a, b) => {
+                    const indexA = list.bookOrder.indexOf(a.id);
+                    const indexB = list.bookOrder.indexOf(b.id);
+                    const posA = indexA !== -1 ? indexA : 999999;
+                    const posB = indexB !== -1 ? indexB : 999999;
+                    if (posA !== posB) return posA - posB;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                });
+            }
+        }
+
         return [...books].sort((a, b) => {
             switch (this.state.sortBy) {
                 case 'title':
@@ -4488,7 +4581,9 @@ function openListBooksModal(listId) {
 function renderListBooksModal() {
     const grid = document.getElementById('listBooksGrid');
     const emptyState = document.getElementById('listBooksEmpty');
-    const searchTerm = document.getElementById('listBooksSearch').value.toLowerCase();
+    const normalize = (str) => str ? str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
+    const rawSearch = document.getElementById('listBooksSearch').value;
+    const searchTerm = normalize(rawSearch);
     const filterStatus = document.getElementById('listBooksFilter').value;
     const filterTag = document.getElementById('listBooksTagFilter') ? document.getElementById('listBooksTagFilter').value : 'all';
     
@@ -4500,9 +4595,12 @@ function renderListBooksModal() {
             if (!book.tags || !book.tags.includes(filterTag)) return false;
         }
         if (searchTerm) {
-            const titleMatch = book.title.toLowerCase().includes(searchTerm);
-            const authorMatch = book.author && book.author.toLowerCase().includes(searchTerm);
-            if (!titleMatch && !authorMatch) return false;
+            const terms = searchTerm.split(/\s+/).filter(t => t);
+            const titleNorm = normalize(book.title);
+            const authorNorm = normalize(book.author);
+            
+            const match = terms.every(term => titleNorm.includes(term) || authorNorm.includes(term));
+            if (!match) return false;
         }
         return true;
     });
