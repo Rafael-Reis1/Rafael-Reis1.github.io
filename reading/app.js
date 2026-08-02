@@ -2531,6 +2531,10 @@ const App = {
                 forceFallback: true,
                 fallbackClass: 'sortable-fallback',
                 fallbackOnBody: true,
+                scroll: true,
+                scrollSensitivity: 120,
+                scrollSpeed: 30,
+                bubbleScroll: true,
                 delay: window.innerWidth <= 768 ? 200 : 0,
                 delayOnTouchOnly: true,
                 onStart: () => {
