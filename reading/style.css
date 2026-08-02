@@ -4130,3 +4130,7 @@ body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !i
 
 .book-card { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .book-cover { pointer-events: none; -webkit-touch-callout: none; }
+
+.sortable-chosen .book-cover-container { transform: scale(1.05) !important; box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; transition: all 0.2s ease; }
+.sortable-chosen .title-overlay { transform: translateY(100%) !important; }
+.sortable-chosen .quick-add-btn { opacity: 0 !important; }
