@@ -4127,3 +4127,6 @@ body.is-dragging .title-overlay { transform: translateY(100%) !important; }
 body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !important; }
 
 .sortable-fallback .book-cover-container { box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; }
+
+.book-card { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.book-cover { pointer-events: none; -webkit-touch-callout: none; }
