@@ -57,37 +57,60 @@ async function init() {
             return;
         }
 
-        const listData = listDoc.data();
-        document.getElementById('listTitle').textContent = listData.name || 'Lista Compartilhada';
-        document.title = (listData.name || 'Lista') + " - Compartilhada";
+        let currentListData = listDoc.data();
+        let currentBooks = [];
+
+        document.getElementById('listTitle').textContent = currentListData.name || 'Lista Compartilhada';
+        document.title = (currentListData.name || 'Lista') + " - Compartilhada";
+
+        const updateDisplay = () => {
+            if (currentBooks.length === 0) {
+                showError("Esta lista está vazia.");
+                document.getElementById('booksGrid').style.display = 'none';
+                return;
+            } else {
+                document.getElementById('errorMsg').style.display = 'none';
+            }
+
+            const books = [...currentBooks];
+
+            if (currentListData.bookOrder && Array.isArray(currentListData.bookOrder) && currentListData.bookOrder.length > 0) {
+                const orderMap = new Map();
+                currentListData.bookOrder.forEach((id, index) => {
+                    orderMap.set(id, index);
+                });
+
+                books.sort((a, b) => {
+                    const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+                    const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+                    if (idxA !== idxB) {
+                        return idxA - idxB;
+                    }
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                });
+            } else {
+                books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
+            renderBooks(books);
+        };
 
         db.collection('library_data').doc(userId).collection('lists').doc(listId)
             .onSnapshot((doc) => {
                 if (doc.exists) {
-                    const data = doc.data();
-                    document.getElementById('listTitle').textContent = data.name || 'Lista Compartilhada';
-                    document.title = (data.name || 'Lista') + " - Compartilhada";
+                    currentListData = doc.data();
+                    document.getElementById('listTitle').textContent = currentListData.name || 'Lista Compartilhada';
+                    document.title = (currentListData.name || 'Lista') + " - Compartilhada";
+                    updateDisplay();
                 }
             });
 
         db.collection('library_data').doc(userId).collection('books')
             .where('customLists', 'array-contains', listId)
             .onSnapshot((snapshot) => {
-                const books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+                currentBooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 document.getElementById('loadingMsg').style.display = 'none';
-                
-                if (books.length === 0) {
-                    showError("Esta lista está vazia.");
-                    document.getElementById('booksGrid').style.display = 'none';
-                    return;
-                } else {
-                    document.getElementById('errorMsg').style.display = 'none';
-                }
-
-                renderBooks(books);
+                updateDisplay();
             }, (error) => {
                 console.error(error);
                 showError("Ocorreu um erro ao carregar os livros. Verifique se as permissões do Firebase (Rules) foram configuradas para permitir leitura.");
