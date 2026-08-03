@@ -3886,8 +3886,9 @@ const App = {
                 }
 
                 target.books.push(book);
-                
-                target.booksCount += yearStats.finishes; 
+                if (yearStats.finishes > 0) {
+                    target.booksCount++;
+                }
                 
                 target.pages += yearStats.pages;
 
@@ -3948,13 +3949,6 @@ const App = {
                 processForYear(statsData.years[y], y);
             });
             processForYear(statsData.all, 'all');
-        });
-
-        statsData.all.booksCount = 0;
-        this.state.books.forEach(book => {
-            Object.values(book.computed.activityByYear).forEach(y => {
-                statsData.all.booksCount += y.finishes;
-            });
         });
 
         this.statsState = { data: statsData, selectedYear: 'all' };
