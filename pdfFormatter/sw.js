@@ -1,10 +1,10 @@
-const CACHE_NAME = 'pdf-booklet-?v=0908260024';
+const CACHE_NAME = 'pdf-booklet-?v=0908260028';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=0908260024',
-    './app.js?v=0908260024',
-    '../style.css?v=0908260024',
-    './manifest.json?v=0908260024',
+    './style.css?v=0908260028',
+    './app.js?v=0908260028',
+    '../style.css?v=0908260028',
+    './manifest.json?v=0908260028',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
