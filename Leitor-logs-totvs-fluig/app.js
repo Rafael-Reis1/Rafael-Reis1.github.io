@@ -44,7 +44,7 @@ let allGroupedLogs = [];
 let filteredGroupedLogs = [];
 let logHeaderElement = null;
 let currentPage = 1;
-const logsPerPage = 500;
+let logsPerPage = 500;
 let searchInput = document.getElementById('searchInput');
 let timeStartInput = document.getElementById('timeStart');
 let timeEndInput = document.getElementById('timeEnd');
@@ -127,7 +127,8 @@ function saveSettings() {
             levels: Array.from(document.querySelectorAll('input[name="filterLevel"]:checked')).map(cb => cb.value),
             search: document.getElementById('searchInput')?.value || '',
             timeStart: document.getElementById('timeStart')?.value || '',
-            timeEnd: document.getElementById('timeEnd')?.value || ''
+            timeEnd: document.getElementById('timeEnd')?.value || '',
+            limit: logsPerPage
         }
     };
 
@@ -182,6 +183,12 @@ function loadSettings(fileId) {
             if (timeStart) timeStart.value = settings.filters.timeStart || '';
             if (timeEnd) timeEnd.value = settings.filters.timeEnd || '';
 
+            if (settings.filters.limit) {
+                logsPerPage = settings.filters.limit;
+            } else {
+                logsPerPage = 500;
+            }
+
             if (settings.filters.levels && Array.isArray(settings.filters.levels)) {
                 document.querySelectorAll('input[name="filterLevel"]').forEach(cb => {
                     cb.checked = settings.filters.levels.includes(cb.value);
@@ -193,493 +200,360 @@ function loadSettings(fileId) {
     }
 }
 
+function createStackTraceBlock(buffer, level, customLabel = null, isConfigMode = false) {
+    const container = document.createElement('div');
+    container.className = 'stack-trace-container';
+    if (level) container.dataset.level = level;
+
+    const labelText = customLabel || 'Show Details';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'stack-trace-toggle';
+    toggleBtn.textContent = `▶ ${labelText} (${buffer.length} lines)`;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'stack-trace-content';
+    contentDiv.style.display = globalExpandState ? 'block' : 'none';
+
+    if (globalExpandState) {
+        toggleBtn.classList.add('rotated');
+    }
+
+    [...buffer].reverse().forEach(traceLine => {
+        const lineDiv = document.createElement('div');
+        const isStackLine = traceLine.trim().startsWith('at ') || traceLine.trim().startsWith('...');
+
+        if (isConfigMode) {
+            lineDiv.className = 'log-line';
+            const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
+            const match = traceLine.match(regex);
+
+            if (match) {
+                const [fullMatch, date, rawLevel, className, thread, message] = match;
+                const matchLevel = rawLevel.replace(/x\d+$/, '').trim();
+                let cleanClass = className.replace(/^\[|\]$/g, '');
+                let cleanThread = thread.replace(/^\(|\)$/g, '');
+                let cleanMessage = message.replace(/^-\s+/, '');
+
+                lineDiv.innerHTML = `
+                    <span class="log-pin-placeholder"></span>
+                    <span class="log-date">${date}</span>
+                    <span class="log-level log-level-${matchLevel.toLowerCase()}">${matchLevel}</span>
+                    <span class="log-class"><span class="clickable-text" data-type="class">${cleanClass}</span></span>
+                    <span class="log-thread"><span class="clickable-text" data-type="thread">${cleanThread}</span></span>
+                    <span class="log-message">${cleanMessage}</span>
+                `;
+                lineDiv.querySelector('.log-message').dataset.originalText = cleanMessage;
+            } else {
+                lineDiv.className = 'log-line log-config-content';
+                lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
+                lineDiv.dataset.originalText = traceLine;
+            }
+        } else if (isStackLine) {
+            lineDiv.className = 'log-line log-stacktrace';
+            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
+        } else {
+            lineDiv.className = 'log-line log-detail';
+            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
+            lineDiv.dataset.originalText = traceLine;
+        }
+
+        contentDiv.appendChild(lineDiv);
+    });
+
+    toggleBtn.onclick = () => {
+        const isHidden = contentDiv.style.display === 'none';
+        contentDiv.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.textContent = isHidden
+            ? `▼ Hide ${labelText.replace('Show ', '')} (${buffer.length} lines)`
+            : `▶ ${labelText} (${buffer.length} lines)`;
+    };
+
+    container.appendChild(toggleBtn);
+    container.appendChild(contentDiv);
+    return container;
+}
+
+function createDOMElementFromLog(logObj) {
+    if (logObj.type === 'raw') {
+        const div = document.createElement('div');
+        div.textContent = logObj.content;
+        div.className = 'log-line log-raw';
+        if (logObj.isBold) div.style.fontWeight = 'bold';
+        return div;
+    }
+    
+    if (logObj.type === 'stacktrace_only') {
+        return createStackTraceBlock(logObj.stacktrace, '', logObj.label, logObj.isConfigMode);
+    }
+    
+    const frag = document.createDocumentFragment();
+    
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.dataset.signature = logObj.signature;
+    div.classList.add(`log-type-${logObj.level.toLowerCase()}`);
+    
+    if (pinnedLogs.has(logObj.signature)) {
+        div.classList.add('pinned');
+    }
+    
+    let deltaHtml = '';
+    if (logObj.deltaMs > 0) {
+        let deltaText = '';
+        if (logObj.deltaMs < 1000) {
+            deltaText = `+${logObj.deltaMs}ms`;
+        } else if (logObj.deltaMs < 60000) {
+            deltaText = `+${(logObj.deltaMs / 1000).toFixed(2)}s`;
+        } else {
+            deltaText = `+${(logObj.deltaMs / 60000).toFixed(1)}m`;
+        }
+        deltaHtml = `<span class="log-delta">${deltaText}</span>`;
+    }
+    
+    div.innerHTML = `
+        <span class="log-pin" title="Fixar linha">📌</span>
+        <span class="log-date">${logObj.date} ${deltaHtml}</span>
+        <span class="log-level log-level-${logObj.level.toLowerCase()}">${logObj.level}</span>
+        <span class="log-class"><span class="clickable-text" data-type="class">${logObj.className}</span></span>
+        <span class="log-thread"><span class="clickable-text" data-type="thread">${logObj.thread}</span></span>
+        <span class="log-message">${logObj.message}</span>
+    `;
+    div.querySelector('.log-message').dataset.originalText = logObj.message;
+    
+    if (logObj.count > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'log-count';
+        badge.textContent = `x${logObj.count}`;
+        div.querySelector('.log-level').appendChild(badge);
+    }
+    
+    frag.appendChild(div);
+    
+    if (logObj.stacktrace && logObj.stacktrace.length > 0) {
+        const label = logObj.isConfigMode ? 'Show Configs' : null;
+        frag.appendChild(createStackTraceBlock(logObj.stacktrace, logObj.level.toLowerCase(), label, logObj.isConfigMode));
+    }
+    
+    return frag;
+}
+
+function openExportModal() {
+    if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
+        alert("Não há logs filtrados para exportar.");
+        return;
+    }
+    const modal = document.getElementById('exportModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function closeExportModal() {
+    const modal = document.getElementById('exportModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function executeExport() {
+    const format = document.querySelector('input[name="exportFormat"]:checked')?.value || 'txt';
+    let content = '';
+    
+    if (format === 'csv') {
+        content = 'Data;Hora;Level;Classe;Thread;Mensagem\n';
+        for (let i = filteredGroupedLogs.length - 1; i >= 0; i--) {
+            const log = filteredGroupedLogs[i];
+            if (log.type === 'raw' || log.type === 'stacktrace_only') continue;
+
+            const date = log.date ? log.date.split(' ')[0] : '';
+            const time = log.date ? log.date.split(' ')[1] || '' : '';
+            const level = log.level || '';
+            const className = (log.className || '').replace(/"/g, '""');
+            const thread = (log.thread || '').replace(/"/g, '""');
+            const message = (log.message || '').replace(/\r?\n|\r/g, ' ').replace(/"/g, '""');
+            
+            content += `"${date}";"${time}";"${level}";"${className}";"${thread}";"${message}"\n`;
+        }
+    } else if (format === 'json') {
+        const exportArray = [];
+        for (let i = filteredGroupedLogs.length - 1; i >= 0; i--) {
+            exportArray.push(filteredGroupedLogs[i]);
+        }
+        content = JSON.stringify(exportArray, null, 2);
+    } else {
+        for (let i = filteredGroupedLogs.length - 1; i >= 0; i--) {
+            const log = filteredGroupedLogs[i];
+            if (log.type === 'raw') {
+                content += log.content + '\n';
+            } else if (log.type === 'stacktrace_only') {
+                log.stacktrace.forEach(line => content += line + '\n');
+            } else {
+                content += `${log.date} ${log.level} [${log.className}] (${log.thread}) - ${log.message}\n`;
+                if (log.stacktrace && log.stacktrace.length > 0) {
+                    log.stacktrace.forEach(line => content += line + '\n');
+                }
+            }
+        }
+    }
+
+    let mimeType = 'text/plain;charset=utf-8;';
+    if (format === 'csv') mimeType = 'text/csv;charset=utf-8;';
+    else if (format === 'json') mimeType = 'application/json;charset=utf-8;';
+
+    const blob = new Blob([format === 'csv' ? '\uFEFF' + content : content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `logs-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${format}`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    closeExportModal();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('closeExportModal')?.addEventListener('click', closeExportModal);
+    document.getElementById('cancelExportBtn')?.addEventListener('click', closeExportModal);
+    document.getElementById('confirmExportBtn')?.addEventListener('click', executeExport);
+});
+
+
+document.addEventListener('click', (e) => {
+    const exportModal = document.getElementById('exportModal');
+    if (exportModal && exportModal.style.display === 'flex' && e.target === exportModal) {
+        closeExportModal();
+    }
+});
+
 function addFileToList(file) {
     if (!file) return;
 
     if (file.name.toLowerCase().endsWith('.log') || file.name.toLowerCase().endsWith('.txt') || file.type.startsWith('text/')) {
         currentFileId = getFileId(file);
         pinnedLogs.clear();
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const content = e.target.result;
-            const popup = document.getElementById('arquivoLogPopup');
-            const popupCard = popup.querySelector('.popupCard');
-            const containerArquivoLog = document.querySelector('.containerArquivoLog');
+        
+        const popup = document.getElementById('arquivoLogPopup');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        
+        setTimeout(() => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const content = e.target.result;
+                const popupCard = popup.querySelector('.popupCard');
+                const containerArquivoLog = document.querySelector('.containerArquivoLog');
 
-            if (conteudoArquivoLog && popup) {
-                conteudoArquivoLog.innerHTML = '';
-                allGroupedLogs = [];
-                filteredGroupedLogs = [];
-                currentPage = 1;
-                searchInput.value = '';
-                timeStartInput.value = '';
-                timeEndInput.value = '';
-                checkboxes.forEach(cb => cb.checked = false);
+                if (conteudoArquivoLog && popup) {
+                    conteudoArquivoLog.innerHTML = '';
+                    allGroupedLogs = [];
+                    filteredGroupedLogs = [];
+                    currentPage = 1;
+                    if(searchInput) searchInput.value = '';
+                    if(timeStartInput) timeStartInput.value = '';
+                    if(timeEndInput) timeEndInput.value = '';
+                    checkboxes.forEach(cb => cb.checked = false);
 
-                loadSettings(currentFileId);
+                    loadSettings(currentFileId);
 
-                const lines = content.split('\n');
-                const fragment = document.createDocumentFragment();
+                    const worker = new Worker('logWorker.js');
+                    worker.postMessage({ content: content });
+                    
+                    worker.onmessage = function(msgEvent) {
+                        if (msgEvent.data.status === 'done') {
+                            const data = msgEvent.data.data;
+                            allGroupedLogs = data.logs;
+                            filteredGroupedLogs = [...allGroupedLogs];
+                            
+                            const statTotal = document.getElementById('statTotal');
+                            const statErrors = document.getElementById('statErrors');
+                            const statWarnings = document.getElementById('statWarnings');
+                            const statDuration = document.getElementById('statDuration');
+                            const logDashboard = document.getElementById('logDashboard');
 
-                function createStackTraceBlock(buffer, level, customLabel = null, isConfigMode = false) {
-                    const container = document.createElement('div');
-                    container.className = 'stack-trace-container';
-                    if (level) {
-                        container.dataset.level = level;
-                    }
+                            if (statTotal) statTotal.textContent = data.stats.total;
+                            if (statErrors) statErrors.textContent = data.stats.errors;
+                            if (statWarnings) statWarnings.textContent = data.stats.warnings;
 
-                    const labelText = customLabel || 'Show Details';
-
-                    const toggleBtn = document.createElement('button');
-                    toggleBtn.className = 'stack-trace-toggle';
-                    toggleBtn.textContent = `▶ ${labelText} (${buffer.length} lines)`;
-
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'stack-trace-content';
-                    contentDiv.style.display = globalExpandState ? 'block' : 'none';
-
-                    if (globalExpandState) {
-                        toggleBtn.classList.add('rotated');
-                    }
-
-                    [...buffer].reverse().forEach(traceLine => {
-                        const lineDiv = document.createElement('div');
-                        const isStackLine = traceLine.trim().startsWith('at ') || traceLine.trim().startsWith('...');
-
-                        if (isConfigMode) {
-                            lineDiv.className = 'log-line';
-
-                            const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
-                            const match = traceLine.match(regex);
-
-
-                            if (match) {
-                                const [fullMatch, date, rawLevel, className, thread, message] = match;
-
-                                const level = rawLevel.replace(/x\d+$/, '').trim();
-                                let cleanClass = className.replace(/^\[|\]$/g, '');
-                                let cleanThread = thread.replace(/^\(|\)$/g, '');
-                                let cleanMessage = message.replace(/^-\s+/, '');
-
-                                lineDiv.innerHTML = `
-                                    <span class="log-pin-placeholder"></span>
-                                    <span class="log-date">${date}</span>
-                                    <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                                    <span class="log-class"><span class="clickable-text" data-type="class">${cleanClass}</span></span>
-                                    <span class="log-thread"><span class="clickable-text" data-type="thread">${cleanThread}</span></span>
-                                    <span class="log-message">${cleanMessage}</span>
-                                `;
-                                lineDiv.querySelector('.log-message').dataset.originalText = cleanMessage;
-                            } else {
-                                lineDiv.className = 'log-line log-config-content';
-                                lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
-                                lineDiv.dataset.originalText = traceLine;
+                            let durationStr = '--';
+                            if (data.stats.durationMs > 0) {
+                                const diffSec = Math.floor(data.stats.durationMs / 1000);
+                                const hours = Math.floor(diffSec / 3600);
+                                const mins = Math.floor((diffSec % 3600) / 60);
+                                const secs = diffSec % 60;
+                                durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                             }
-
-                        } else if (isStackLine) {
-                            lineDiv.className = 'log-line log-stacktrace';
-                            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
-                        } else {
-                            lineDiv.className = 'log-line log-detail';
-                            lineDiv.innerHTML = `<span class="log-pin-placeholder"></span><span style="grid-column: 2 / -1; word-break: break-all;">${traceLine}</span>`;
-                            lineDiv.dataset.originalText = traceLine;
-                        }
-
-                        contentDiv.appendChild(lineDiv);
-                    });
-
-                    toggleBtn.onclick = () => {
-                        const isHidden = contentDiv.style.display === 'none';
-                        contentDiv.style.display = isHidden ? 'block' : 'none';
-                        toggleBtn.textContent = isHidden
-                            ? `▼ Hide ${labelText.replace('Show ', '')} (${buffer.length} lines)`
-                            : `▶ ${labelText} (${buffer.length} lines)`;
-                    };
-
-                    container.appendChild(toggleBtn);
-                    container.appendChild(contentDiv);
-                    return container;
-                }
-
-                let lastLog = null;
-                let pendingHeader = null;
-                let pendingBuffer = [];
-                let countTotal = 0;
-                let countError = 0;
-                let countWarn = 0;
-                let oldestDate = null;
-                let newestDate = null;
-
-                let previousUniqueLogDate = null;
-
-                function processPendingLog() {
-                    if (!pendingHeader) return;
-
-                    countTotal++;
-                    let { date, level, className, thread, message } = pendingHeader;
-
-                    className = className.replace(/^\[|\]$/g, '');
-                    thread = thread.replace(/^\(|\)$/g, '');
-                    message = message.replace(/^-\s+/, '');
-
-                    if (level === 'ERROR') countError++;
-                    if (level === 'WARN') countWarn++;
-
-                    if (!oldestDate) oldestDate = parseLogDate(date);
-                    newestDate = parseLogDate(date);
-
-                    const bufferContent = pendingBuffer.join('\n');
-                    const signature = `${date}|${level}|${className}|${thread}|${message}|${bufferContent}`;
-
-                    if (lastLog && lastLog.signature === signature) {
-                        lastLog.count++;
-                        if (!lastLog.countBadge) {
-                            const badge = document.createElement('span');
-                            badge.className = 'log-count';
-                            badge.textContent = `x${lastLog.count}`;
-                            const levelSpan = lastLog.element.querySelector('.log-level');
-                            if (levelSpan) {
-                                levelSpan.appendChild(badge);
-                            }
-                            lastLog.countBadge = badge;
-                        } else {
-                            lastLog.countBadge.textContent = `x${lastLog.count}`;
-                        }
-                    } else {
-                        let deltaHtml = '';
-                        const currentObjDate = parseLogDate(date);
-
-                        if (previousUniqueLogDate) {
-                            const diff = currentObjDate - previousUniqueLogDate;
-                            if (diff > 0) {
-                                let deltaText = '';
-                                if (diff < 1000) {
-                                    deltaText = `+${diff}ms`;
-                                } else if (diff < 60000) {
-                                    deltaText = `+${(diff / 1000).toFixed(2)}s`;
-                                } else {
-                                    deltaText = `+${(diff / 60000).toFixed(1)}m`;
+                            if (statDuration) statDuration.textContent = durationStr;
+                            if (logDashboard) logDashboard.style.display = 'flex';
+                            
+                            conteudoArquivoLog.onclick = function (ev) {
+                                const line = ev.target.closest('.log-line');
+                                if (line) {
+                                    setActiveLine(line);
                                 }
-                                deltaHtml = `<span class="log-delta">${deltaText}</span>`;
-                            }
-                        }
-
-                        previousUniqueLogDate = currentObjDate;
-
-                        const div = document.createElement('div');
-                        div.className = 'log-line';
-                        const isConfig = message.includes('=============LOG CONFIGS=========');
-
-                        div.innerHTML = `
-                            <span class="log-pin" title="Fixar linha">📌</span>
-                            <span class="log-date">${date} ${deltaHtml}</span>
-                            <span class="log-level log-level-${level.toLowerCase()}">${level}</span>
-                            <span class="log-class"><span class="clickable-text" data-type="class">${className}</span></span>
-                            <span class="log-thread"><span class="clickable-text" data-type="thread">${thread}</span></span>
-                            <span class="log-message">${message}</span>
-                        `;
-                        div.querySelector('.log-message').dataset.originalText = message;
-                        div.dataset.signature = signature;
-                        div.classList.add(`log-type-${level.toLowerCase()}`);
-
-                        if (pinnedLogs.has(signature)) {
-                            div.classList.add('pinned');
-                        }
-
-                        fragment.appendChild(div);
-
-                        if (pendingBuffer.length > 0) {
-                            const label = isConfig ? 'Show Configs' : null;
-                            fragment.appendChild(createStackTraceBlock(pendingBuffer, level.toLowerCase(), label, isConfig));
-                        }
-
-                        lastLog = {
-                            signature: signature,
-                            count: 1,
-                            element: div,
-                            countBadge: null
-                        };
-                    }
-
-                    pendingBuffer = [];
-                }
-
-                const headerRow = document.createElement('div');
-                headerRow.className = 'log-header';
-                headerRow.innerHTML = `
-                    <div class="header-cell" style="position: relative;">
-                        <button id="clearPins" title="Limpar todos os fixados" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.9em; padding: 1px 4px; cursor: pointer; background: var(--error-color); color: white; border: none; border-radius: 3px;">✕</button>
-                    </div>
-                    <div class="header-cell">Date</div>
-                    <div class="header-cell">Level</div>
-                    <div class="header-cell">Class</div>
-                    <div class="header-cell">Thread</div>
-                    <div class="header-cell">Message</div>
-                `;
-                fragment.appendChild(headerRow);
-
-                let configBuffer = [];
-                let inConfigBlock = false;
-
-                lines.forEach(line => {
-                    line = line.replace('\r', '');
-
-                    const regex = /^(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3})\s+((?:INFO|WARN|ERROR|DEBUG|FATAL)(?:x\d+)?)\s+(\[.*?\])\s+(\(.*?\))\s+(.*)$/;
-                    const match = line.match(regex);
-
-                    if (match) {
-                        const [fullMatch, date, rawLevel, className, thread, message] = match;
-                        const level = rawLevel.replace(/x\d+$/, '').trim();
-
-                        if (message.includes('=============LOG CONFIGS=========')) {
-                            if (inConfigBlock && configBuffer.length > 0) {
-                                fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
-                                configBuffer = [];
-                            }
-                            inConfigBlock = true;
-                            processPendingLog();
-
-                            pendingHeader = { date, level, className, thread, message };
-                            pendingBuffer = [];
-
-                            processPendingLog();
-                            pendingHeader = null;
-
-                            return;
-                        }
-
-                        if (inConfigBlock && message.match(/^={10,}$/)) {
-                            configBuffer.push(line);
-                            fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
-                            configBuffer = [];
-                            inConfigBlock = false;
-                            return;
-                        }
-
-                        if (inConfigBlock) {
-                            configBuffer.push(line);
-                        } else {
-                            processPendingLog();
-                            pendingHeader = { date, level, className, thread, message };
-                            pendingBuffer = [];
-                        }
-                    } else {
-                        if (line.includes('=============LOG CONFIGS=========')) {
-                            if (inConfigBlock && configBuffer.length > 0) {
-                                fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
-                                configBuffer = [];
-                            }
-                            inConfigBlock = true;
-                            const div = document.createElement('div');
-                            div.textContent = line;
-                            div.classList.add('log-line', 'log-raw');
-                            div.style.fontWeight = 'bold';
-                            fragment.appendChild(div);
-                            return;
-                        }
-
-                        if (inConfigBlock && line.trim() === '============') {
-                            configBuffer.push(line);
-                            fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
-                            configBuffer = [];
-                            inConfigBlock = false;
-                            return;
-                        }
-
-                        if (inConfigBlock) {
-                            configBuffer.push(line);
-                        } else {
-                            if (pendingHeader) {
-                                if (line.trim().length > 0) {
-                                    pendingBuffer.push(line);
-                                }
-                            } else {
-                                if (line.trim().length > 0) {
-                                    const div = document.createElement('div');
-                                    div.textContent = line;
-                                    div.classList.add('log-line', 'log-raw');
-                                    fragment.appendChild(div);
-                                    lastLog = null;
-                                }
-                            }
-                        }
-                    }
-                });
-
-                if (inConfigBlock && configBuffer.length > 0) {
-                    fragment.appendChild(createStackTraceBlock(configBuffer, '', 'Show Configs', true));
-                }
-                processPendingLog();
-
-                const statTotal = document.getElementById('statTotal');
-                const statErrors = document.getElementById('statErrors');
-                const statWarnings = document.getElementById('statWarnings');
-                const statDuration = document.getElementById('statDuration');
-                const logDashboard = document.getElementById('logDashboard');
-
-                if (statTotal) statTotal.textContent = countTotal;
-                if (statErrors) statErrors.textContent = countError;
-                if (statWarnings) statWarnings.textContent = countWarn;
-
-                let durationStr = '--';
-                if (oldestDate && newestDate) {
-                    const diffMs = newestDate - oldestDate;
-                    const diffSec = Math.floor(diffMs / 1000);
-                    const hours = Math.floor(diffSec / 3600);
-                    const mins = Math.floor((diffSec % 3600) / 60);
-                    const secs = diffSec % 60;
-                    durationStr = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                }
-                if (statDuration) statDuration.textContent = durationStr;
-                if (logDashboard) logDashboard.style.display = 'flex';
-
-                conteudoArquivoLog.onclick = function (e) {
-                    const line = e.target.closest('.log-line');
-                    if (line) {
-                        setActiveLine(line);
-                    }
-                };
-
-                const elements = Array.from(fragment.children);
-                const header = elements.find(el => el.classList.contains('log-header'));
-
-                const groupedLogs = [];
-                let currentGroup = [];
-
-                elements.forEach(el => {
-                    if (el.classList.contains('log-header')) return;
-
-                    if (el.classList.contains('log-line') && !el.classList.contains('log-stacktrace') && !el.classList.contains('log-detail') && !el.classList.contains('log-config-content')) {
-                        if (currentGroup.length > 0) groupedLogs.push(currentGroup);
-                        currentGroup = [el];
-                    } else {
-                        currentGroup.push(el);
-                    }
-                });
-                if (currentGroup.length > 0) groupedLogs.push(currentGroup);
-
-                if (header) {
-                    logHeaderElement = header;
-                }
-
-                allGroupedLogs = groupedLogs.reverse().map(group => group.reverse());
-                filteredGroupedLogs = [...allGroupedLogs];
-
-                filterLogs();
-
-                renderPage(1);
-                updateClearPinsButton();
-
-
-                popup.style.display = 'flex';
-                requestAnimationFrame(() => {
-                    if (popupCard) popupCard.classList.add('show');
-                    const container = document.querySelector('.containerArquivoLog');
-                    if (container) container.scrollTop = 0;
-                });
-
-                function exportFilteredLogs() {
-                    if (!filteredGroupedLogs || filteredGroupedLogs.length === 0) {
-                        alert("Não há logs filtrados para exportar.");
-                        return;
-                    }
-
-                    let content = '';
-                    for (let g = filteredGroupedLogs.length - 1; g >= 0; g--) {
-                        const group = filteredGroupedLogs[g];
-                        for (let i = group.length - 1; i >= 0; i--) {
-                            const el = group[i];
-
-                            if (el.classList.contains('stack-trace-container')) {
-                                const innerLines = Array.from(el.querySelectorAll('.stack-trace-content .log-line')).reverse();
-
-                                innerLines.forEach(inner => {
-                                    let innerText = '';
-                                    if (inner.querySelector('.log-date')) {
-                                        const date = inner.querySelector('.log-date').textContent.split('+')[0].trim();
-                                        const level = inner.querySelector('.log-level').textContent;
-                                        const className = inner.querySelector('.log-class').textContent;
-                                        const thread = inner.querySelector('.log-thread').textContent;
-                                        const message = inner.querySelector('.log-message').dataset.originalText || inner.querySelector('.log-message').textContent;
-                                        innerText = `${date} ${level} [${className}] (${thread}) - ${message}`;
-                                    } else {
-                                        innerText = inner.dataset.originalText || inner.textContent;
+                            };
+                            
+                            const headerRow = document.createElement('div');
+                            headerRow.className = 'log-header';
+                            headerRow.innerHTML = `
+                                <div class="header-cell" style="position: relative;">
+                                    <button id="clearPins" title="Limpar todos os fixados" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.9em; padding: 1px 4px; cursor: pointer; background: var(--error-color); color: white; border: none; border-radius: 3px;">✕</button>
+                                </div>
+                                <div class="header-cell">Date</div>
+                                <div class="header-cell">Level</div>
+                                <div class="header-cell">Class</div>
+                                <div class="header-cell">Thread</div>
+                                <div class="header-cell">Message</div>
+                            `;
+                            logHeaderElement = headerRow;
+                            
+                            filterLogs();
+                            
+                            updateClearPinsButton();
+                            
+                            if (loadingOverlay) loadingOverlay.style.display = 'none';
+                            popup.style.display = 'flex';
+                            requestAnimationFrame(() => {
+                                if (popupCard) popupCard.classList.add('show');
+                                if (containerArquivoLog) containerArquivoLog.scrollTop = 0;
+                            });
+                            
+                            const closeBtn = document.getElementById('fechar');
+                            if (closeBtn) closeBtn.onclick = closeModal;
+                            const exportBtn = document.getElementById('exportar');
+                            if (exportBtn) exportBtn.onclick = openExportModal;
+                            
+                            const clearPinsBtn = document.getElementById('clearPins');
+                            if (clearPinsBtn) {
+                                clearPinsBtn.onclick = () => {
+                                    if (pinnedLogs.size === 0) return;
+                                    if (confirm(`Desmarcar todos os ${pinnedLogs.size} logs fixados?`)) {
+                                        pinnedLogs.clear();
+                                        const allPinnedElements = document.querySelectorAll('.log-line.pinned');
+                                        allPinnedElements.forEach(el => el.classList.remove('pinned'));
+                                        const pinnedCheckbox = document.getElementById('pinnedOnly');
+                                        if (pinnedCheckbox && pinnedCheckbox.checked) {
+                                            pinnedCheckbox.checked = false;
+                                            filterLogs();
+                                        }
+                                        clearPinsBtn.style.display = 'none';
+                                        debouncedSaveSettings();
                                     }
-                                    content += innerText + '\n';
-                                });
-                                continue;
+                                };
                             }
-
-                            let lineText = '';
-
-                            if (el.classList.contains('log-line') && !el.classList.contains('log-detail') && !el.classList.contains('log-stacktrace') && !el.classList.contains('log-config-content') && !el.classList.contains('log-raw')) {
-                                const date = el.querySelector('.log-date').textContent.split('+')[0].trim();
-                                const level = el.querySelector('.log-level').textContent;
-                                const className = el.querySelector('.log-class').textContent;
-                                const thread = el.querySelector('.log-thread').textContent;
-                                const message = el.querySelector('.log-message').dataset.originalText || el.querySelector('.log-message').textContent;
-
-                                lineText = `${date} ${level} [${className}] (${thread}) - ${message}`;
-                            } else {
-                                lineText = el.dataset.originalText || el.textContent;
-                            }
-
-                            content += lineText + '\n';
-                        }
-                    }
-
-                    const blob = new Blob([content], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `logs-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.log`;
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                }
-
-                const closeBtn = document.getElementById('fechar');
-                if (closeBtn) {
-                    closeBtn.onclick = closeModal;
-                }
-
-                const exportBtn = document.getElementById('exportar');
-                if (exportBtn) {
-                    exportBtn.onclick = exportFilteredLogs;
-                }
-
-                const clearPinsBtn = document.getElementById('clearPins');
-                if (clearPinsBtn) {
-                    clearPinsBtn.onclick = () => {
-                        if (pinnedLogs.size === 0) return;
-
-                        if (confirm(`Desmarcar todos os ${pinnedLogs.size} logs fixados?`)) {
-                            pinnedLogs.clear();
-
-                            const allPinnedElements = document.querySelectorAll('.log-line.pinned');
-                            allPinnedElements.forEach(el => el.classList.remove('pinned'));
-
-                            const pinnedCheckbox = document.getElementById('pinnedOnly');
-                            if (pinnedCheckbox && pinnedCheckbox.checked) {
-                                pinnedCheckbox.checked = false;
-                                filterLogs();
-                            }
-
-                            clearPinsBtn.style.display = 'none';
-                            debouncedSaveSettings();
+                            const background = document.getElementById('listaBackgroud');
+                            if (background) background.onclick = closeModal;
                         }
                     };
+                    worker.onerror = function(err) {
+                        alert("Erro no processamento do arquivo: " + err.message);
+                        if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    };
                 }
-
-                const background = document.getElementById('listaBackgroud');
-                if (background) {
-                    background.onclick = closeModal;
-                }
-            }
-        };
-        reader.onerror = function () {
-            alert("Erro ao ler o arquivo");
-        };
-        reader.readAsText(file);
+            };
+            reader.onerror = function () {
+                alert("Erro ao ler o arquivo");
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+            };
+            reader.readAsText(file);
+        }, 100);
     } else {
         alert("Por favor, envie um arquivo .log ou de texto.");
     }
@@ -801,8 +675,10 @@ function renderPage(page) {
     const searchInput = document.getElementById('searchInput');
     const searchTerm = searchInput ? searchInput.value.trim() : '';
 
-    pageItems.forEach(group => {
-        group.forEach(el => {
+    pageItems.forEach(logObj => {
+        const elFrag = createDOMElementFromLog(logObj);
+        const children = Array.from(elFrag.children);
+        children.forEach(el => {
             highlightSearchTerm(el, searchTerm);
             fragment.appendChild(el);
         });
@@ -831,12 +707,38 @@ function updatePaginationControls() {
 
     const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
 
-    if (totalPages <= 1) {
-        controls.style.display = 'none';
-        return;
-    }
     controls.innerHTML = '';
     controls.style.display = 'flex';
+
+    const limitSelect = document.createElement('select');
+    limitSelect.innerHTML = `
+        <option value="500">500 itens</option>
+        <option value="1000">1000 itens</option>
+        <option value="2000">2000 itens</option>
+        <option value="9999999">Sem limite</option>
+    `;
+    limitSelect.value = logsPerPage;
+    limitSelect.onchange = (e) => {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        
+        setTimeout(() => {
+            logsPerPage = parseInt(e.target.value, 10);
+            currentPage = 1;
+            debouncedSaveSettings();
+            renderPage(1);
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+        }, 50);
+    };
+
+    controls.appendChild(limitSelect);
+
+    if (totalPages <= 1 && logsPerPage !== 9999999 && filteredGroupedLogs.length <= 500) {
+        if (filteredGroupedLogs.length === 0) {
+            controls.style.display = 'none';
+        }
+        return;
+    }
 
     const prevBtn = document.createElement('button');
     prevBtn.textContent = '◀ Anterior';
@@ -849,11 +751,11 @@ function updatePaginationControls() {
     };
 
     const info = document.createElement('span');
-    info.textContent = `Página ${currentPage} de ${totalPages} (${filteredGroupedLogs.length} logs)`;
+    info.textContent = `Página ${currentPage} de ${Math.max(1, totalPages)} (${filteredGroupedLogs.length} logs)`;
 
     const nextBtn = document.createElement('button');
     nextBtn.textContent = 'Próximo ▶';
-    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.disabled = currentPage >= totalPages;
     nextBtn.onclick = () => {
         if (currentPage < totalPages) {
             currentPage++;
@@ -919,23 +821,15 @@ function filterLogs() {
     let oldestVisibleDate = null;
     let lastVisibleDate = null;
 
-    allGroupedLogs.forEach(group => {
-        const logLine = group[group.length - 1];
-        if (!logLine || !logLine.classList.contains('log-line')) return;
-
+    allGroupedLogs.forEach(logObj => {
         if (pinnedOnlyFilter) {
-            const hasPinned = logLine.dataset.signature && pinnedLogs.has(logLine.dataset.signature);
-            if (!hasPinned) return;
+            if (!logObj.signature || !pinnedLogs.has(logObj.signature)) return;
         }
-
-        const text = logLine.textContent;
-        const lowerText = text.toLowerCase();
-        const levelSpan = logLine.querySelector('.log-level');
 
         let levelMatch = true;
         if (selectedLevels.length > 0) {
-            if (levelSpan) {
-                const levelText = levelSpan.textContent.toLowerCase().trim();
+            if (logObj.level) {
+                const levelText = logObj.level.toLowerCase().trim();
                 levelMatch = selectedLevels.some(selected => levelText.startsWith(selected));
             } else {
                 levelMatch = false;
@@ -943,48 +837,46 @@ function filterLogs() {
         }
 
         let textMatch = true;
+        let searchableText = "";
+        if (logObj.type === 'raw') searchableText = logObj.content.toLowerCase();
+        else if (logObj.type === 'stacktrace_only') searchableText = logObj.stacktrace.join(' ').toLowerCase();
+        else searchableText = `${logObj.date} ${logObj.level} ${logObj.className} ${logObj.thread} ${logObj.message} ${logObj.stacktrace ? logObj.stacktrace.join(' ') : ''}`.toLowerCase();
+        
         if (useRegex) {
             if (regex) {
-                textMatch = regex.test(text);
+                textMatch = regex.test(searchableText);
             }
         } else {
             textMatch = searchTokens.length === 0 || searchTokens.every(token => {
                 if (token.startsWith('-') && token.length > 1) {
-                    return !lowerText.includes(token.substring(1));
+                    return !searchableText.includes(token.substring(1));
                 }
-                return lowerText.includes(token);
+                return searchableText.includes(token);
             });
         }
 
         let timeMatch = true;
-        const dateSpan = logLine.querySelector('.log-date');
-        if (dateSpan) {
-            const dateText = dateSpan.textContent.trim().split(' ').slice(0, 2).join(' ');
-            const timePart = dateText.split(' ')[1].split(',')[0];
-
+        if (logObj.date) {
+            const timePart = logObj.date.split(' ')[1].split(',')[0];
             let startTime = timeStartInput ? timeStartInput.value : '';
             let endTime = timeEndInput ? timeEndInput.value : '';
-
             if (startTime && startTime.length === 5) startTime += ':00';
             if (endTime && endTime.length === 5) endTime += ':59';
-
             if (startTime && timePart < startTime) timeMatch = false;
             if (endTime && timePart > endTime) timeMatch = false;
         }
 
         if (levelMatch && textMatch && timeMatch) {
-            if (logLine.querySelector('.log-date')) {
-                const dateText = logLine.querySelector('.log-date').textContent.trim().split(' ').slice(0, 2).join(' ');
-                const logDate = parseLogDate(dateText);
-                if (!oldestVisibleDate || logDate < oldestVisibleDate) oldestVisibleDate = logDate;
-                if (!lastVisibleDate || logDate > lastVisibleDate) lastVisibleDate = logDate;
+            if (logObj.timestamp) {
+                if (!oldestVisibleDate || logObj.timestamp < oldestVisibleDate) oldestVisibleDate = logObj.timestamp;
+                if (!lastVisibleDate || logObj.timestamp > lastVisibleDate) lastVisibleDate = logObj.timestamp;
             }
 
-            filteredGroupedLogs.push(group);
+            filteredGroupedLogs.push(logObj);
             visibleCount++;
 
-            if (levelSpan) {
-                const levelText = levelSpan.textContent.toLowerCase().trim();
+            if (logObj.level) {
+                const levelText = logObj.level.toLowerCase().trim();
                 if (levelText.startsWith('error')) visibleErrors++;
                 if (levelText.startsWith('warn')) visibleWarnings++;
             }
@@ -1064,7 +956,12 @@ document.addEventListener('keydown', function (e) {
             renderPage(currentPage);
         }
     } else if (e.key === 'Escape') {
-        closeModal();
+        const exportModal = document.getElementById('exportModal');
+        if (exportModal && exportModal.style.display === 'flex') {
+            closeExportModal();
+        } else {
+            closeModal();
+        }
     } else if (e.key === 'ArrowRight' || e.key === 'PageDown') {
         if (document.activeElement.tagName === 'INPUT') return;
         const totalPages = Math.ceil(filteredGroupedLogs.length / logsPerPage);
