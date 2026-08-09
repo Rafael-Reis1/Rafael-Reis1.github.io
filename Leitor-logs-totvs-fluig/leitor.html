@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=0408260238" as="image">
-    <link rel="stylesheet" href="style.css?v=0408260238">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0408260238">
+    <link rel="preload" href="/imgs/arrow_back_white.webp?v=0908260024" as="image">
+    <link rel="stylesheet" href="style.css?v=0908260024">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0908260024">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#06071A">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0408260238">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0908260024">
     <title>Leitor de Logs TOTVS/Fluig</title>
 </head>
 
@@ -34,13 +34,17 @@
         <div class="opcoes">
             <div id="file-upload" class="file-upload">
                 <label for="file-input" class="file-upload-label">
-                    <img id="imageUpload" src="assets/upload.webp?v=0408260238 alt="upload">
+                    <img id="imageUpload" src="assets/upload.webp?v=0908260024 alt="upload">
                     Arraste e solte o arquivo de log aqui ou clique para selecionar
                 </label>
                 <input type="file" id="file-input" class="custom-file-input" accept="*/*" capture="environment"
                     multiple>
             </div>
         </div>
+    </div>
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <div class="loading-text">Analisando arquivo de log, aguarde...</div>
     </div>
     <div id="arquivoLogPopup" style="display: none;">
         <div id="listaBackgroud">
@@ -130,8 +134,51 @@
                 <button id="fechar">Fechar</button>
             </div>
         </div>
+    <div id="exportModal" class="export-modal" style="display: none;">
+        <div class="export-modal-content">
+            <div class="export-modal-header">
+                <h3>Exportar Logs</h3>
+                <button class="export-modal-close" id="closeExportModal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="export-modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-muted, #ccc);">Selecione o formato desejado:</p>
+                <div style="display: flex; gap: 1rem; flex-direction: column;">
+                    <label class="export-option-label">
+                        <input type="radio" name="exportFormat" value="txt" checked>
+                        <div class="export-option-text">
+                            <strong>Texto (.log)</strong>
+                            <span>Formato original, ideal para leitura em editores de texto.</span>
+                        </div>
+                    </label>
+                    <label class="export-option-label">
+                        <input type="radio" name="exportFormat" value="csv">
+                        <div class="export-option-text">
+                            <strong>Planilha (.csv)</strong>
+                            <span>Formato tabular com colunas separadas. Ideal para Power BI e Excel. (Stacktraces serão ignorados para manter a integridade da tabela).</span>
+                        </div>
+                    </label>
+                    <label class="export-option-label">
+                        <input type="radio" name="exportFormat" value="json">
+                        <div class="export-option-text">
+                            <strong>Dados (.json)</strong>
+                            <span>Formato estruturado, ideal para ingestão em bancos de dados, ElasticSearch e ferramentas modernas de Big Data.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="export-modal-footer">
+                <button class="btn-cancel" id="cancelExportBtn">Cancelar</button>
+                <button class="btn-confirm" id="confirmExportBtn">Exportar</button>
+            </div>
+        </div>
     </div>
-    <script src="app.js?v=0408260238"></script>
+    <script src="app.js?v=0908260024"></script>
 </body>
 
 </html>
