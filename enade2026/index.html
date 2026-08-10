@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enade - Exame Nacional de Desempenho dos Estudantes</title>
+    <link rel="icon" type="image/svg+xml" href="favicon_rr.svg">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            background-color: #224455;
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .govbr-topbar {
+            background-color: #222222;
+            color: #ffffff;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .govbr-logo {
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+            font-weight: 900;
+        }
+        .govbr-logo .gov { color: #ffffff; }
+        .govbr-logo .dot { color: #f3c000; }
+        .govbr-logo .br { color: #ffffff; }
+        .govbr-links a {
+            color: #ffffff;
+            text-decoration: none;
+            margin-left: 15px;
+            text-transform: uppercase;
+        }
+        .inep-header {
+            background-color: #4d86ad;
+            color: #ffffff;
+            padding: 8px 5%;
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+        }
+        .inep-logo strong { font-weight: 900; font-family: 'Arial Black', sans-serif; font-size: 20px; letter-spacing: -1px; }
+        .inep-logo .separator { margin: 0 8px; font-weight: normal; font-size: 20px;}
+        .inep-logo .enade-title { font-weight: bold; }
+        .white-banner {
+            background-color: #ffffff;
+            text-align: center;
+            padding: 15px 0;
+            margin-bottom: 30px;
+        }
+        .white-banner img {
+            max-height: 65px;
+            vertical-align: middle;
+        }
+        .content-container {
+            max-width: 1050px;
+            margin: 0 auto;
+        }
+        .btn-enade {
+            background-color: #4d86ad;
+            color: #ffffff;
+            border: 1px solid #4d86ad;
+            font-weight: bold;
+            padding: 8px 0; 
+            margin-bottom: 4px;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+        .btn-enade:hover {
+            background-color: transparent;
+            color: #ffffff;
+            border: 1px solid #4d86ad;
+        }
+        .warning-box {
+            background-color: #4d86ad;
+            color: #ffffff;
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        .warning-box strong {
+            font-weight: bold;
+        }
+        .footer-mec {
+            background-color: #4d86ad;
+            color: #ffffff;
+            text-align: center;
+            padding: 6px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="govbr-topbar">
+        <div class="govbr-logo">
+            <span class="gov">gov</span><span class="dot">.</span><span class="br">br</span>
+        </div>
+        <div class="govbr-links hidden-xs">
+            <a href="#">ACESSO À INFORMAÇÃO</a>
+            <a href="#">PARTICIPE</a>
+            <a href="#">SERVIÇOS</a>
+            <a href="#">LEGISLAÇÃO</a>
+            <a href="#">ÓRGÃOS DO GOVERNO </a>
+        </div>
+    </div>
+
+    <header class="inep-header" style="justify-content: space-between;">
+        <div class="inep-logo">
+            <img src="images/logo_inep.svg" alt="INEP" style="height: 24px; margin-top: -3px;"> <span class="separator">|</span> <span class="enade-title">Enade</span>
+        </div>
+        <div class="contrast-icon">
+            <i class="fa fa-adjust" style="font-size: 16px;"></i>
+        </div>
+    </header>
+
+    <div class="white-banner">
+        <img src="images/logo.png" alt="Enade">
+    </div>
+
+    <div class="container content-container">
+        
+        <button type="button" onclick="window.location.href='login.html'" class="btn btn-enade btn-block">
+            Entrar no Sistema Enade
+        </button>
+        <button type="button" class="btn btn-enade btn-block">
+            Editais e Portarias
+        </button>
+        <button type="button" class="btn btn-enade btn-block">
+            Relatórios de IES / Cursos
+        </button>
+        <button type="button" class="btn btn-enade btn-block">
+            Relatórios de Síntese de Área
+        </button>
+        <button type="button" class="btn btn-enade btn-block">
+            Informações Gerais
+        </button>
+
+        <div class="warning-box">
+            <strong>Atenção:</strong> Para fins de navegação pelo Sistema Enade, deve ser usado um dos seguintes navegadores: <i>Google Chrome</i> ou <i>Mozilla Firefox</i>.
+        </div>
+
+    </div>
+
+    <footer class="footer-mec">
+        © MEC - Ministério da Educação | INEP - Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira
+    </footer>
+
+</body>
+</html>

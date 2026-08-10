@@ -1,0 +1,232 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Rawline', sans-serif;
+}
+
+body {
+    background-color: #ffffff;
+    color: #333;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 3px 6px #00000029;
+    margin-bottom: 6px;
+    width: 100%;
+    background-color: #fff;
+    height: 60px;
+    padding: 0 20px;
+}
+
+header img {
+    width: 100px;
+    margin: 10px;
+}
+
+#acessibilidade {
+    display: flex;
+}
+
+#acessibilidade a,
+#acessibilidade span {
+    margin: 10px 10px 0 10px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+#acessibilidade i {
+    margin: 0 0.2em 0 0;
+    color: #1351B4;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 1440px;
+    width: 100%;
+    padding-right: 8px;
+    padding-left: 8px;
+    min-height: calc(100vh - 80px);
+}
+
+aside {
+    display: flex;
+    flex: 1 0 50%;
+    flex-direction: column;
+}
+
+#aside-signin {
+    flex: 1 0 60% !important;
+}
+
+#identidade-govbr {
+    margin-top: 20px;
+    width: 100%;
+}
+
+main {
+    display: flex;
+    flex: 1 0 50%;
+    flex-direction: column;
+}
+
+#main-signin {
+    flex: 1 0 38% !important;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #ffffff;
+    box-shadow: 0 2px 4px #00000033;
+    padding: 30px;
+    margin: 20px auto auto auto;
+    border-radius: 4px;
+}
+
+#login-cpf {
+    align-items: flex-start;
+    max-width: 384px;
+    min-height: 393px;
+}
+
+#login-cpf h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: #333;
+}
+
+#login-cpf p {
+    font-size: 0.8rem;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+label {
+    margin: 0 0 5px 0;
+    font-size: 1em;
+    font-weight: 600;
+    display: block;
+}
+
+input {
+    width: 100%;
+    height: 40px;
+    padding: 0 20px;
+    background: #FFFFFF;
+    border: 1px solid #888888;
+    border-radius: 4px;
+    font-size: 1em;
+    outline: none;
+    margin-bottom: 20px;
+}
+
+input:focus {
+    background-color: rgba(242, 227, 23, 0.3);
+    border-color: #1351B4;
+}
+
+.button-panel {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: 100%;
+    margin: 10px 0 25px 0;
+}
+
+.button-continuar {
+    width: 145px;
+    height: 40px;
+    background: #1351B4;
+    border: none;
+    box-shadow: 0 2px 3px #00000029;
+    border-radius: 24px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #FFFFFF;
+    cursor: pointer;
+}
+
+.button-continuar:hover {
+    background: #0c3678;
+}
+
+hr {
+    width: 100%;
+    margin: 20px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+
+.item-login-signup-ways {
+    display: flex;
+    align-items: center;
+    margin: 15px 0 0 0;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.item-login-signup-ways a {
+    color: #333;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.button-href-mimic2 {
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-size: 1em;
+    font-weight: 500;
+    font-family: 'Rawline', sans-serif;
+    color: #333;
+    cursor: pointer;
+}
+
+.badge-prata {
+    font-size: 7px;
+    background-color: #008C32;
+    color: white;
+    padding: 3px;
+    position: relative;
+    top: -3px;
+    margin-left: 8px;
+    border-radius: 2px;
+}
+
+.entenda-id-govbr {
+    display: flex;
+    text-align: center;
+    margin: 40px 0 0 0;
+    width: 100%;
+    justify-content: center;
+}
+
+.entenda-id-govbr span {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#entenda-id-govbr-a, #termo-de-uso {
+    color: #1351B4;
+    text-decoration: none;
+    font-size: 0.85em;
+}
+
+#entenda-id-govbr-a:hover, #termo-de-uso:hover {
+    text-decoration: underline;
+}
