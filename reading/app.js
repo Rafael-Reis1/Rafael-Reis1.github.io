@@ -72,6 +72,9 @@ const OpenLibraryAPI = {
 
 const GeminiAPI = {
     async getRecomendacoes(livrosBase, todosOsTitulos) {
+        // TRAVA DE SEGURANÇA: Retorna imediatamente para evitar consumo da API Gemini
+        return [];
+
         if (!livrosBase || livrosBase.length === 0) return [];
         
         try {
