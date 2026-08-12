@@ -258,15 +258,39 @@ class AIService {
 
     get factory() {
         if (typeof LanguageModel !== 'undefined') return LanguageModel;
-        if (window.ai && window.ai.languageModel) return window.ai.languageModel;
+        if (typeof window !== 'undefined') {
+            if (window.LanguageModel) return window.LanguageModel;
+            if (window.ai && window.ai.languageModel) return window.ai.languageModel;
+            if (window.ai && window.ai.assistant) return window.ai.assistant;
+        }
         return null;
     }
 
     async isAvailable() {
-        if (!this.factory) return false;
+        const factory = this.factory;
+        if (!factory) return false;
         try {
-            return (await this.factory.availability()) === 'available';
-        } catch {
+            let status;
+            if (typeof factory.availability === 'function') {
+                status = await factory.availability();
+            } else if (typeof factory.capabilities === 'function') {
+                const caps = await factory.capabilities();
+                status = typeof caps === 'string' ? caps : caps?.available;
+            } else if (typeof factory.canCreate === 'function') {
+                status = await factory.canCreate();
+            }
+
+            if (typeof status === 'object' && status !== null) {
+                status = status.available || status.status;
+            }
+
+            if (typeof status === 'string') {
+                const s = status.toLowerCase();
+                return s === 'available' || s === 'readily' || s === 'after-download' || s === 'downloadable' || s === 'downloading';
+            }
+            return false;
+        } catch (e) {
+            console.warn('Erro ao verificar disponibilidade do Chrome AI:', e);
             return false;
         }
     }
@@ -278,11 +302,11 @@ class AIService {
 
         try {
             if (this.session) {
-                this.session.destroy();
+                try { this.session.destroy(); } catch (_) {}
                 this.session = null;
             }
 
-            if (!this.factory) throw new Error('Model factory not found');
+            if (!this.factory) throw new Error('API do Chrome AI não encontrada no seu navegador.');
 
             const currentPromptText = messages[messages.length - 1].content;
             
@@ -340,20 +364,22 @@ class AIService {
                 content: msg.content
             }));
 
-            const initialPrompts = [];
-            initialPrompts.push({ role: 'system', content: fullSystemPrompt });
-            
-            if (formattedHistory.length > 0) {
-                 initialPrompts.push(...formattedHistory);
-            }
+            let modelStatus = 'readily';
+            try {
+                if (typeof this.factory.availability === 'function') {
+                    modelStatus = await this.factory.availability();
+                } else if (typeof this.factory.capabilities === 'function') {
+                    const caps = await this.factory.capabilities();
+                    modelStatus = typeof caps === 'string' ? caps : (caps?.available || 'readily');
+                }
+            } catch (_) {}
 
-            const modelStatus = await this.factory.availability();
-            const needsDownload = modelStatus !== 'readily';
+            const statusStr = typeof modelStatus === 'string' ? modelStatus.toLowerCase() : '';
+            const needsDownload = statusStr === 'downloadable' || statusStr === 'after-download' || statusStr === 'downloading';
 
-            const options = {
-                initialPrompts,
+            const baseOptions = {
                 monitor(m) {
-                    if (needsDownload) {
+                    if (needsDownload && m) {
                         m.addEventListener('downloadprogress', e => {
                             if (onDownloadProgress) onDownloadProgress(e);
                         });
@@ -361,19 +387,53 @@ class AIService {
                 }
             };
 
-            this.session = await this.factory.create(options);
+            try {
+                const options = {
+                    ...baseOptions,
+                    systemPrompt: fullSystemPrompt,
+                    initialPrompts: formattedHistory
+                };
+                this.session = await this.factory.create(options);
+            } catch (err) {
+                console.warn('Falha ao criar sessão com nova especificação, tentando formato legado...', err);
+                const legacyInitialPrompts = [
+                    { role: 'system', content: fullSystemPrompt },
+                    ...formattedHistory
+                ];
+                const legacyOptions = {
+                    ...baseOptions,
+                    initialPrompts: legacyInitialPrompts
+                };
+                this.session = await this.factory.create(legacyOptions);
+            }
 
             const stream = await this.session.promptStreaming(currentPromptText, { signal });
-            const reader = stream.getReader();
             let firstTokenTime = null;
 
-            while (true) {
-                if (signal?.aborted) break;
-                const { done, value } = await reader.read();
-                if (done) break;
+            const handleChunk = (val) => {
                 if (!firstTokenTime) firstTokenTime = Date.now();
-                fullResponse += value;
+                const chunkStr = typeof val === 'string' ? val : (val?.text || '');
+                if (chunkStr.startsWith(fullResponse)) {
+                    fullResponse = chunkStr;
+                } else {
+                    fullResponse += chunkStr;
+                }
                 onChunk(fullResponse);
+            };
+
+            if (stream[Symbol.asyncIterator]) {
+                for await (const chunk of stream) {
+                    if (signal?.aborted) break;
+                    handleChunk(chunk);
+                }
+            } else if (stream.getReader) {
+                const reader = stream.getReader();
+                while (true) {
+                    if (signal?.aborted) break;
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    handleChunk(value);
+                }
             }
 
             if (onStats && fullResponse) {
