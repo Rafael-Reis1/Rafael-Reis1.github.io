@@ -90,15 +90,27 @@ function setupAmbilightPair(container, fgIframe) {
                 if (event.data === YT.PlayerState.PLAYING) {
                     bgPlayer.playVideo();
                     
-                    const fgTime = fgPlayer.getCurrentTime();
-                    const bgTime = bgPlayer.getCurrentTime();
-                    if (Math.abs(fgTime - bgTime) > 0.3) {
-                        bgPlayer.seekTo(fgTime, true);
+                    if (container.syncLoop) cancelAnimationFrame(container.syncLoop);
+                    function checkSync() {
+                        const fgTime = fgPlayer.getCurrentTime();
+                        const bgTime = bgPlayer.getCurrentTime();
+                        if (Math.abs(fgTime - bgTime) > 0.2) {
+                            bgPlayer.seekTo(fgTime, true);
+                        }
+                        container.syncLoop = requestAnimationFrame(checkSync);
                     }
+                    container.syncLoop = requestAnimationFrame(checkSync);
+                    
                 } else if (event.data === YT.PlayerState.PAUSED) {
                     bgPlayer.pauseVideo();
+                    if (container.syncLoop) cancelAnimationFrame(container.syncLoop);
+                    bgPlayer.seekTo(fgPlayer.getCurrentTime(), true);
                 } else if (event.data === YT.PlayerState.ENDED) {
                     bgPlayer.stopVideo();
+                    if (container.syncLoop) cancelAnimationFrame(container.syncLoop);
+                } else if (event.data === YT.PlayerState.BUFFERING) {
+                    bgPlayer.pauseVideo();
+                    if (container.syncLoop) cancelAnimationFrame(container.syncLoop);
                 }
             }
         }
