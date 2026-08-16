@@ -288,7 +288,7 @@ function fetchAndDisplayRepos() {
         {
             name: 'Ambilight Web Player',
             description: "Crie uma experiência de visualização mais imersiva com um brilho ambiente dinâmico e reativo para seus vídeos.",
-            html_url: '/Ambient-Light-SVG-Filters/Ambient-Light-SVG-Filters.html',
+            html_url: '/Ambient-Light-Effect/Ambient-Light-Effect.html',
             language: 'HTML',
             featured: true,
             image: 'imgs/CSS3.svg'
