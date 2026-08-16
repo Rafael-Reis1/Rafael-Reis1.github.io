@@ -68,7 +68,7 @@ Ferramenta especializada para análise de arquivos de log extensos, focado no ec
 
 Além dos projetos principais, desenvolvi diversas ferramentas para automação de tarefas diárias:
 
-* **Ambient Light Effect:** ([`Ambient-Light-SVG-Filters`](./Ambient-Light-SVG-Filters/))
+* **Ambient Light Effect:** ([`Ambient-Light-Effect`](./Ambient-Light-Effect/))
     * Recria o efeito "Ambilight" em vídeos do YouTube usando filtros SVG avançados e iframes.
 * **Comparador de Listas:** ([`Comparador de Listas`](./Compara%202%20listas%20de%20nomes/))
     * Identifica itens ausentes, adicionais e duplicados entre duas listas de texto.
