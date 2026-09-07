@@ -2227,8 +2227,15 @@ const App = {
         const container = document.getElementById('customListsContainer');
         if (!container) return;
 
-        const displayLists = rm.lists.filter(l => !l.id.startsWith('sys_'));
+        let displayLists = rm.lists.filter(l => !l.id.startsWith('sys_'));
         
+        displayLists.sort((a, b) => {
+            const orderA = a.order !== undefined ? a.order : 999999;
+            const orderB = b.order !== undefined ? b.order : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
         if (!displayLists || displayLists.length === 0) {
             container.innerHTML = '<div style="padding: 0.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">Nenhuma lista criada.</div>';
             return;
@@ -2238,8 +2245,8 @@ const App = {
             const count = this.state.books.filter(b => b.customLists && b.customLists.includes(list.id)).length;
             const isActive = this.state.filter === list.id ? 'active' : '';
             return `
-                <a href="#" class="nav-item ${isActive}" data-filter="${list.id}">
-                    <div class="nav-icon" style="color: var(--text-muted);">
+                <a href="javascript:void(0)" class="nav-item ${isActive}" data-filter="${list.id}" draggable="false" ondragstart="return false;">
+                    <div class="nav-icon drag-handle" style="color: var(--text-muted); cursor: grab;" title="Arraste para reordenar">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="8" y1="6" x2="21" y2="6"></line>
                             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -2275,6 +2282,36 @@ const App = {
                 }
             });
         });
+
+        if (typeof Sortable !== 'undefined') {
+            if (this.customListsSortable) {
+                this.customListsSortable.destroy();
+            }
+            this.customListsSortable = Sortable.create(container, {
+                animation: 150,
+                handle: '.nav-icon',
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                forceFallback: true,
+                fallbackClass: 'sortable-fallback',
+                fallbackOnBody: true,
+                onStart: () => {
+                    document.body.classList.add('is-dragging');
+                },
+                onEnd: (evt) => {
+                    setTimeout(() => document.body.classList.remove('is-dragging'), 50);
+                    const items = container.querySelectorAll('.nav-item');
+                    items.forEach((item, index) => {
+                        const listId = item.dataset.filter;
+                        const listObj = rm.lists.find(l => l.id === listId);
+                        if (listObj && listObj.order !== index) {
+                            listObj.order = index;
+                            rm.updateList(listId, { order: index });
+                        }
+                    });
+                }
+            });
+        }
     },
 
     renderCustomListsCheckboxes(selectedLists = []) {
@@ -2288,8 +2325,16 @@ const App = {
             return;
         }
 
+        let sortedLists = [...rm.lists];
+        sortedLists.sort((a, b) => {
+            const orderA = a.order !== undefined ? a.order : 999999;
+            const orderB = b.order !== undefined ? b.order : 999999;
+            if (orderA !== orderB) return orderA - orderB;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
         row.style.display = 'flex';
-        const html = rm.lists.map(list => {
+        const html = sortedLists.map(list => {
             return `
                 <label class="tag-checkbox">
                     <input type="checkbox" name="customLists" value="${list.id}" hidden>
