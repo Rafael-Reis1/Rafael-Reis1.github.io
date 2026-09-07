@@ -2256,7 +2256,7 @@ const App = {
                             <line x1="3" y1="18" x2="3.01" y2="18"></line>
                         </svg>
                     </div>
-                    <span class="nav-label">${list.name}</span>
+                    <span class="nav-label" title="${list.name}">${list.name}</span>
                     <span class="nav-count">${count}</span>
                 </a>
             `;
