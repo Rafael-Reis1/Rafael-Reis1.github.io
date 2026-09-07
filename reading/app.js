@@ -2295,6 +2295,8 @@ const App = {
                 forceFallback: true,
                 fallbackClass: 'sortable-fallback',
                 fallbackOnBody: true,
+                delay: window.innerWidth <= 768 ? 200 : 0,
+                delayOnTouchOnly: true,
                 onStart: () => {
                     document.body.classList.add('is-dragging');
                 },
