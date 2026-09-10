@@ -37,6 +37,19 @@ window.onYouTubeIframeAPIReady = function() {
     });
 };
 
+const playObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        const container = entry.target;
+        if (!container.fgPlayer || typeof container.fgPlayer.playVideo !== 'function') return;
+
+        if (entry.isIntersecting) {
+            container.fgPlayer.playVideo();
+        } else {
+            container.fgPlayer.pauseVideo();
+        }
+    });
+}, { threshold: 0.6 });
+
 function setupAmbilightPair(container, fgIframe) {
     globalVideoCounter++;
     const fgId = 'fg-video-' + globalVideoCounter;
@@ -76,6 +89,9 @@ function setupAmbilightPair(container, fgIframe) {
     let fgPlayer = new YT.Player(fgId, {
         events: {
             'onReady': function() {
+                container.fgPlayer = fgPlayer;
+                playObserver.observe(container);
+
                 bgPlayer = new YT.Player(bgId, {
                     events: {
                         'onReady': function() {
