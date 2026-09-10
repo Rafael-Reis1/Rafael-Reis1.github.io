@@ -214,17 +214,17 @@ function setupModal() {
 function fetchAndDisplayRepos() {
     const extraRepos = [
         {
-            name: 'Financeiro Pessoal',
-            description: "Gerencie suas finanças com dashboard interativo, gráficos por categoria, filtros avançados e backup em JSON.",
-            html_url: '/finance/finance.html',
+            name: 'Minha Biblioteca',
+            description: "Gerencie seus livros e leituras com listas customizadas, heatmap de atividades, sincronização em tempo real com Firebase e uma interface moderna.",
+            html_url: '/reading/reading.html',
             language: 'JavaScript',
             featured: true,
             image: 'imgs/JavaScript.svg'
         },
         {
-            name: 'Minha Biblioteca',
-            description: "Organize seus livros e leituras. Sincronização em tempo real com Firebase e interface moderna.",
-            html_url: '/reading/reading.html',
+            name: 'Financeiro Pessoal',
+            description: "Gerencie suas finanças com dashboard interativo, gráficos por categoria, filtros avançados e backup em JSON.",
+            html_url: '/finance/finance.html',
             language: 'JavaScript',
             featured: true,
             image: 'imgs/JavaScript.svg'
