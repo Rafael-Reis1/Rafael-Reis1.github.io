@@ -3987,7 +3987,7 @@ input[type=number] {
     display: none;
     flex: 1;
     flex-direction: column;
-    max-height: calc(90vh - 120px);
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -4144,4 +4144,18 @@ body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !i
 body.is-dragging,
 body.is-dragging * {
     cursor: grabbing !important;
+}
+
+.nav-item.sortable-fallback,
+.nav-item.sortable-drag {
+    background: var(--glass-bg-hover) !important;
+    border: 1px solid var(--accent-color) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    z-index: 9999 !important;
+}
+
+.nav-item.sortable-fallback {
+    transition: none !important;
+    pointer-events: none !important;
+    z-index: 100000 !important;
 }
