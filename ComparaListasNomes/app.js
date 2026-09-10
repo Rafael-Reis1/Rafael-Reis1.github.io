@@ -82,17 +82,26 @@ window.onload = function() {
         const textoVerificar = document.getElementById('listaDois').value;
         const listaBase = textoBase.split('\n').map(nome => nome.trim()).filter(nome => nome !== '');
         const listaVerificar = textoVerificar.split('\n').map(nome => nome.trim()).filter(nome => nome !== '');
-        const setBase = new Set(listaBase);
-        const setVerificar = new Set(listaVerificar);
-        const nomesCorrespondentes = Array.from(new Set(listaBase.filter(nome => setVerificar.has(nome)))).sort();
-        const nomesAusentes = Array.from(new Set(listaBase.filter(nome => !setVerificar.has(nome)))).sort();
-        const nomesAdicionais = Array.from(new Set(listaVerificar.filter(nome => !setBase.has(nome)))).sort();
+        const setBaseLower = new Set(listaBase.map(nome => nome.toLowerCase()));
+        const setVerificarLower = new Set(listaVerificar.map(nome => nome.toLowerCase()));
+
+        const uniqueCaseInsensitive = (arr) => Array.from(new Map(arr.map(nome => [nome.toLowerCase(), nome])).values());
+
+        const nomesCorrespondentes = uniqueCaseInsensitive(listaBase.filter(nome => setVerificarLower.has(nome.toLowerCase()))).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        const nomesAusentes = uniqueCaseInsensitive(listaBase.filter(nome => !setVerificarLower.has(nome.toLowerCase()))).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        const nomesAdicionais = uniqueCaseInsensitive(listaVerificar.filter(nome => !setBaseLower.has(nome.toLowerCase()))).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        
         const vistos = new Set();
-        const duplicadosSet = new Set();
+        const duplicadosMap = new Map();
         listaVerificar.forEach(nome => {
-            vistos.has(nome) ? duplicadosSet.add(nome) : vistos.add(nome);
+            const nomeLower = nome.toLowerCase();
+            if (vistos.has(nomeLower)) {
+                duplicadosMap.set(nomeLower, nome);
+            } else {
+                vistos.add(nomeLower);
+            }
         });
-        const nomesRepetidos = Array.from(duplicadosSet).sort();
+        const nomesRepetidos = Array.from(duplicadosMap.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
         const titulos = [
             "Original",
