@@ -1,0 +1,30 @@
+/* Base: Variáveis globais (:root), paleta de cores de receitas/despesas e tema escuro */
+
+:root {
+    --body-bg: #06071A;
+    --body-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+
+    --glass-bg: #131426;
+    --glass-bg-hover: #26284c;
+    --glass-border: rgba(255, 255, 255, 0.07);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glass-blur: blur(12px);
+
+    --accent-color: #f2511b;
+    --accent-gradient: linear-gradient(135deg, #f2511b, #e0400b);
+    --accent-glow: 0 0 15px rgba(242, 81, 27, 0.5);
+    --income-color: #22c55e;
+    --income-glow: 0 0 15px rgba(34, 197, 94, 0.3);
+    --expense-color: #ef4444;
+    --expense-glow: 0 0 15px rgba(239, 68, 68, 0.3);
+    --danger-color: #dc3545;
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue';
+
+    --header-height: 3.125rem;
+}

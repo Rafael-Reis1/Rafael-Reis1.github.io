@@ -1,0 +1,56 @@
+/* Componentes: Notificações toast e indicador de status offline */
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1a1b2e, #252640);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    font-weight: 500;
+    box-shadow: var(--glass-shadow);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-color);
+    object-fit: cover;
+}
+
+.offline-badge {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background-color: var(--error-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.offline-badge.visible {
+    transform: translateX(-50%) translateY(0);
+}

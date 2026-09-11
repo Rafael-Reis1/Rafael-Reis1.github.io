@@ -1,28 +1,28 @@
-const CACHE_NAME = 'reading-app-?v=1109261133';
+const CACHE_NAME = 'reading-app-?v=1109261159';
 const urlsToCache = [
     '/reading/reading.html',
-    '/reading/style.css?v=1109261133',
-    '/reading/css/base/variables.css?v=1109261133',
-    '/reading/css/base/reset.css?v=1109261133',
-    '/reading/css/layout/layout.css?v=1109261133',
-    '/reading/css/layout/header.css?v=1109261133',
-    '/reading/css/layout/sidebar.css?v=1109261133',
-    '/reading/css/components/buttons.css?v=1109261133',
-    '/reading/css/components/forms.css?v=1109261133',
-    '/reading/css/components/toolbar.css?v=1109261133',
-    '/reading/css/components/books.css?v=1109261133',
-    '/reading/css/components/modals.css?v=1109261133',
-    '/reading/css/components/history.css?v=1109261133',
-    '/reading/css/components/stats.css?v=1109261133',
-    '/reading/css/components/heatmap.css?v=1109261133',
-    '/reading/css/components/lists.css?v=1109261133',
-    '/reading/css/components/auth.css?v=1109261133',
-    '/reading/css/components/toast.css?v=1109261133',
-    '/reading/css/components/flatpickr.css?v=1109261133',
-    '/reading/css/utils/animations.css?v=1109261133',
-    '/reading/css/utils/drag-drop.css?v=1109261133',
-    '/reading/css/utils/responsive.css?v=1109261133',
-    '/reading/app.js?v=1109261133',
+    '/reading/style.css?v=1109261159',
+    '/reading/css/base/variables.css?v=1109261159',
+    '/reading/css/base/reset.css?v=1109261159',
+    '/reading/css/layout/layout.css?v=1109261159',
+    '/reading/css/layout/header.css?v=1109261159',
+    '/reading/css/layout/sidebar.css?v=1109261159',
+    '/reading/css/components/buttons.css?v=1109261159',
+    '/reading/css/components/forms.css?v=1109261159',
+    '/reading/css/components/toolbar.css?v=1109261159',
+    '/reading/css/components/books.css?v=1109261159',
+    '/reading/css/components/modals.css?v=1109261159',
+    '/reading/css/components/history.css?v=1109261159',
+    '/reading/css/components/stats.css?v=1109261159',
+    '/reading/css/components/heatmap.css?v=1109261159',
+    '/reading/css/components/lists.css?v=1109261159',
+    '/reading/css/components/auth.css?v=1109261159',
+    '/reading/css/components/toast.css?v=1109261159',
+    '/reading/css/components/flatpickr.css?v=1109261159',
+    '/reading/css/utils/animations.css?v=1109261159',
+    '/reading/css/utils/drag-drop.css?v=1109261159',
+    '/reading/css/utils/responsive.css?v=1109261159',
+    '/reading/app.js?v=1109261159',
     '/reading/js/utils/helpers.js',
     '/reading/js/models/Book.js',
     '/reading/js/services/firebase.js',
@@ -34,7 +34,7 @@ const urlsToCache = [
     '/reading/js/ui/listBooksModal.js',
     '/reading/icon-512.png',
     '/reading/icon-maskable.png',
-    '/reading/manifest.json?v=1109261133',
+    '/reading/manifest.json?v=1109261159',
     '../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js',
     '../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js',
@@ -68,8 +68,10 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
-    
 
+    if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+        return;
+    }
 
     if (!event.request.url.startsWith(self.location.origin)) {
         return; 
@@ -78,6 +80,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
+                if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
+                    return response;
+                }
+
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME)
                     .then(cache => {

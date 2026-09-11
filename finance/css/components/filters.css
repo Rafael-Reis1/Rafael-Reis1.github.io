@@ -1,0 +1,108 @@
+/* Componentes: Filtros por período, botões de alternância e badges de filtros ativos */
+
+.filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 0 0.875rem;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-input {
+    padding: 0 0.875rem;
+    height: 36px;
+    min-width: 140px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.filter-select option {
+    background: #1a1b2e;
+}
+
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: auto;
+    overflow: visible;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(242, 81, 27, 0.1);
+    border: 1px solid rgba(242, 81, 27, 0.2);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+    background: rgba(242, 81, 27, 0.2);
+}
+
+.filter-chip button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.filter-chip button:hover {
+    color: var(--expense-color);
+}
+
+.filter-chip button:hover {
+    color: var(--expense-color);
+}

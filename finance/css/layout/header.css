@@ -1,0 +1,58 @@
+/* Layout: Barra superior (.header), botão voltar, título e ações */
+
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: calc(60px + env(safe-area-inset-top, 0px));
+    padding: calc(env(safe-area-inset-top, 0px) + 0.75rem) 0.75rem 0 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 12, 41, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header h1 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 600;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.btn-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--accent-color);
+    transform: translateX(-2px);
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}

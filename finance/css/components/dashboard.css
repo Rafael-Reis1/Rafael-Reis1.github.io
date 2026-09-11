@@ -1,0 +1,214 @@
+/* Componentes: Cards de resumo do dashboard (saldo, receitas, despesas, futuras, atrasadas e modo privacidade) */
+
+.card {
+    flex: 1 1 280px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.summary-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: var(--glass-bg);
+}
+
+.balance .card-icon {
+    background: linear-gradient(135deg, rgba(242, 81, 27, 0.2), rgba(242, 81, 27, 0.1));
+    color: var(--accent-color);
+}
+
+.income .card-icon {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    color: var(--income-color);
+}
+
+.expense .card-icon {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    color: var(--expense-color);
+}
+
+.future .card-icon {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+    color: #fbbf24;
+}
+
+.future-income .card-icon {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(52, 211, 153, 0.1));
+    color: #34d399;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-self: flex-end;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0;
+}
+
+.custom-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    user-select: none;
+    height: 42px;
+}
+
+.custom-checkbox-container input {
+    display: none;
+}
+
+.custom-checkmark {
+    height: 20px;
+    width: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.custom-checkmark:after {
+    content: "";
+    display: none;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.custom-checkbox-container input:checked~.custom-checkmark {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.custom-checkbox-container input:checked~.custom-checkmark:after {
+    display: block;
+}
+
+.custom-checkbox-container:hover .custom-checkmark {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-checkbox-container input:checked~.checkbox-label {
+    color: var(--text-primary);
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.card-value {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 600;
+    transition: filter 0.3s ease;
+}
+
+.balance .card-value {
+    color: var(--accent-color);
+}
+
+.income .card-value {
+    color: var(--income-color);
+}
+
+.expense .card-value {
+    color: var(--expense-color);
+}
+
+.future .card-value {
+    color: #fbbf24;
+}
+
+.future-income .card-value {
+    color: #34d399;
+}
+
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.card.overdue .card-label, .card.overdue-income .card-label {
+    color: #fca5a5;
+}
+
+.card.overdue .card-value, .card.overdue-income .card-value {
+    color: #ef4444;
+}
+
+.transaction-item.income {
+    background: rgba(34, 197, 94, 0.12);
+    border-left: 3px solid #22c55e;
+}
+
+.transaction-item.overdue {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+
+.transaction-item.due-today {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+}
+
+.action-btn.paid-btn:hover {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+}
+
+.action-btn.paid-btn.checked {
+    color: #22c55e;
+}
+
+.action-btn.paid-btn.checked:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.action-btn.paid-btn svg {
+    transition: transform 0.2s ease;
+}
+
+.action-btn.paid-btn:active svg {
+    transform: scale(0.9);
+}
