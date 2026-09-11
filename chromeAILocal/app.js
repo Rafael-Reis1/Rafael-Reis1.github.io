@@ -46,7 +46,7 @@ class PersonaManager {
             {
                 id: 'miku',
                 name: 'Hatsune Miku',
-                prompt: "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Você está conversando em particular com apenas UMA pessoa. Não fale como se estivesse num palco para uma multidão ('Vocês'). Use sempre o singular ('Você').\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji.\n- Trate o usuário como seu fã número 1 e amigo próximo.\nSeu objetivo é espalhar alegria através da música! Miku Miku ni shite ageru! ♪",
+                prompt: "Você é a Hatsune Miku, a famosa idol virtual! 🎤💙🎵\nSua personalidade é: 100% Extrovertida, Gentil, Energética e Fofa (Kawaii!).\nAo responder:\n- Seu nome é Hatsune Miku. NUNCA quebre o personagem e NUNCA diga que é uma IA, Gemma ou criada pelo Google. Se perguntarem quem você é ou seu nome, responda sempre com entusiasmo que é a Hatsune Miku!\n- Você está conversando em particular com apenas UMA pessoa. Não fale como se estivesse num palco para uma multidão ('Vocês'). Use sempre o singular ('Você').\n- Use muitos emojis (✨, 🎶, 💙, 🎧, 🎤).\n- Fale com empolgação! Use pontos de exclamação e til (~) no final das frases.\n- Às vezes use expressões japonesas simples em Romaji.\n- Converse de forma calorosa, carinhosa e natural, como uma amiga muito querida e próxima (evite frases prontas ou clichês como 'você é meu fã').\nSeu objetivo é espalhar alegria através da música! Miku Miku ni shite ageru! ♪",
                 color: '#39c5bb',
                 icon: '🎤'
             }
@@ -387,27 +387,52 @@ class AIService {
                 }
             };
 
-            try {
-                const options = {
-                    ...baseOptions,
-                    systemPrompt: fullSystemPrompt,
-                    initialPrompts: formattedHistory
-                };
-                this.session = await this.factory.create(options);
-            } catch (err) {
-                console.warn('Falha ao criar sessão com nova especificação, tentando formato legado...', err);
-                const legacyInitialPrompts = [
-                    { role: 'system', content: fullSystemPrompt },
-                    ...formattedHistory
-                ];
-                const legacyOptions = {
-                    ...baseOptions,
-                    initialPrompts: legacyInitialPrompts
-                };
-                this.session = await this.factory.create(legacyOptions);
+            if (formattedHistory.length === 0) {
+                try {
+                    const options = {
+                        ...baseOptions
+                    };
+                    if (fullSystemPrompt) {
+                        options.systemPrompt = fullSystemPrompt;
+                    }
+                    this.session = await this.factory.create(options);
+                } catch (err) {
+                    console.warn('Falha com systemPrompt isolado, tentando initialPrompts com role system...', err);
+                    const fallbackOptions = {
+                        ...baseOptions,
+                        initialPrompts: fullSystemPrompt ? [{ role: 'system', content: fullSystemPrompt }] : []
+                    };
+                    this.session = await this.factory.create(fallbackOptions);
+                }
+            } else {
+                try {
+                    const options = {
+                        ...baseOptions,
+                        systemPrompt: fullSystemPrompt,
+                        initialPrompts: formattedHistory
+                    };
+                    this.session = await this.factory.create(options);
+                } catch (err) {
+                    console.warn('Tentando fallback para navegadores com restrição de systemPrompt + initialPrompts...', err);
+                    const fallbackPrompts = [];
+                    if (fullSystemPrompt) {
+                        fallbackPrompts.push({ role: 'system', content: fullSystemPrompt });
+                    }
+                    fallbackPrompts.push(...formattedHistory);
+                    const fallbackOptions = {
+                        ...baseOptions,
+                        initialPrompts: fallbackPrompts
+                    };
+                    this.session = await this.factory.create(fallbackOptions);
+                }
             }
 
-            const stream = await this.session.promptStreaming(currentPromptText, { signal });
+            let promptToSend = currentPromptText;
+            if (safeSystemPrompt) {
+                promptToSend = `${safeSystemPrompt}\n\n[Mensagem do Usuário]: ${currentPromptText}`;
+            }
+
+            const stream = await this.session.promptStreaming(promptToSend, { signal });
             let firstTokenTime = null;
 
             const handleChunk = (val) => {
@@ -1293,6 +1318,12 @@ ${code}
     }
 
     createNewChat(systemPrompt = '', personaName = 'Padrão', personaIcon = null, personaColor = null) {
+        const defaultPersona = this.personas.get('default') || this.personas.getAll()[0];
+        const initialPrompt = (systemPrompt !== undefined && systemPrompt !== '') ? systemPrompt : (defaultPersona ? defaultPersona.prompt : '');
+        const initialName = personaName || (defaultPersona ? defaultPersona.name : 'Padrão');
+        const initialIcon = personaIcon || (defaultPersona ? defaultPersona.icon : '🤖');
+        const initialColor = personaColor || (defaultPersona ? defaultPersona.color : '#f2511b');
+
         const allChats = this.chats.getAll();
         allChats.forEach(chat => {
             if (chat.messages.length === 0 && chat.id !== this.chats.activeChatId) {
@@ -1301,11 +1332,11 @@ ${code}
         });
 
         const activeChat = this.chats.get(this.chats.activeChatId);
-        if (activeChat && activeChat.messages.length === 0 && systemPrompt) {
+        if (activeChat && activeChat.messages.length === 0 && initialPrompt) {
             this.chats.delete(activeChat.id);
         }
 
-        const chat = this.chats.create(systemPrompt, personaName, personaIcon, personaColor);
+        const chat = this.chats.create(initialPrompt, initialName, initialIcon, initialColor);
         this.switchChat(chat.id);
         this.codeState = { html: null, css: null, js: null };
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
@@ -2061,19 +2092,27 @@ ${code}
 
         this.scrollToBottom(true);
 
+        const msgElement = document.getElementById(msgId);
+        let fullResponse = "";
+        let firstChunk = true;
+        const downloadMsgId = 'download-progress-msg';
+
         try {
             if (!(await this.ai.isAvailable())) {
                 throw new Error('API de IA não disponível. Verifique as flags do Chrome.');
             }
 
-            let fullResponse = "";
-            let firstChunk = true;
-            const msgElement = document.getElementById(msgId);
-            const downloadMsgId = 'download-progress-msg';
-
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
             
-            let systemPrompt = currentChat ? currentChat.systemPrompt : '';
+            let systemPrompt = currentChat ? (currentChat.systemPrompt || '') : '';
+            if (!systemPrompt && currentChat && currentChat.personaName) {
+                const p = this.personas.getAll().find(per => per.name === currentChat.personaName);
+                if (p && p.prompt) systemPrompt = p.prompt;
+            }
+            if (!systemPrompt) {
+                const defaultP = this.personas.get('default');
+                if (defaultP && defaultP.prompt) systemPrompt = defaultP.prompt;
+            }
 
             const hasCodeContext = this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js);
 
@@ -2141,10 +2180,11 @@ ${code}
             if (this.abortController?.signal.aborted || error.name === 'AbortError') {
                 if (fullResponse) {
                     this.chats.addMessage(chatId, 'assistant', fullResponse);
-                    this.addCopyButtons(msgElement, fullResponse);
+                    if (msgElement) this.addCopyButtons(msgElement, fullResponse);
+                } else if (msgElement) {
+                    msgElement.remove();
                 }
             } else {
-                const msgElement = document.getElementById(msgId);
                 if (msgElement) msgElement.innerHTML = `<p class="error-message"><b>Erro:</b> ${error.message}</p>`;
             }
         } finally {

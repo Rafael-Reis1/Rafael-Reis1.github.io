@@ -1,0 +1,49 @@
+/* Base: Variáveis globais (:root), paleta de cores e métricas */
+
+:root {
+    --body-bg: #06071A;
+    --body-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+
+    --glass-bg: #131426;
+    --glass-bg-hover: #26284c;
+    --glass-border: rgba(255, 255, 255, 0.07);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --glass-blur: blur(12px);
+
+    --accent-color: #f2511b;
+    --accent-gradient: linear-gradient(135deg, #f2511b, #e0400b);
+    --accent-glow: 0 0 15px rgba(242, 81, 27, 0.5);
+
+    --success-color: #22c55e;
+    --danger-color: #ef4444;
+
+    --text-primary: #fafafa;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.5);
+
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif, system-ui, -apple-system, sans-serif;
+
+    --header-height: 3.125rem;
+    --sidebar-width: 16.25rem;
+
+    --heatmap-cell-size: 12px;
+    --heatmap-col-width: 16px;
+
+    --color-all: #8b5cf6;
+    --color-read: #10b981;
+    --color-reading: #f59e0b;
+    --color-want: #3b82f6;
+    --color-reread: #ef4444;
+    --color-abandoned: #475569;
+    --color-favorite: #db2777;
+    --color-desired: #9333ea;
+    --color-borrowed: #0891b2;
+    --color-physical: #854d0e;
+    --color-owned: #2dd4bf;
+    --color-lent: #4f46e5;
+    --color-target: #84cc16;
+    --color-ebook: #38bdf8;
+    --color-audiobook: #d946ef;
+    --color-recommended: #d97706;
+}

@@ -1,0 +1,127 @@
+/* Componentes: Gerenciamento e seleção de livros para listas personalizadas */
+
+.quick-action-tab-content {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.quick-action-tab-content.active {
+    display: flex;
+}
+
+#historyListView, #historyFormView, #notesListView, #notesFormView {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+#historyForm, #notesForm {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+.quick-action-tab-content .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.list-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 15px;
+}
+
+.list-selection-item {
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    transition: all 0.2s;
+    aspect-ratio: 5/8;
+    background: var(--glass-bg);
+}
+
+.list-selection-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.list-selection-item:hover {
+    border-color: var(--border-hover);
+}
+
+.list-selection-item .book-cover-container:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.list-selection-item.selected {
+    border-color: var(--accent-color);
+}
+
+.list-selection-item.selected::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+}
+
+.list-selection-check {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    color: var(--accent-color);
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2;
+    pointer-events: none;
+    background: var(--bg);
+    border-radius: 50%;
+    padding: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.list-selection-item.selected .list-selection-check {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .select-trigger {
+        height: 38px;
+        padding: 0 0.5rem;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    
+    .select-trigger > div {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .select-trigger span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .custom-option {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+}
