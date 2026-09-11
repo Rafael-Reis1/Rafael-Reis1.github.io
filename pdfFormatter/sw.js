@@ -1,10 +1,10 @@
-const CACHE_NAME = 'pdf-booklet-?v=1109261133';
+const CACHE_NAME = 'pdf-booklet-?v=1109261159';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=1109261133',
-    './app.js?v=1109261133',
-    '../style.css?v=1109261133',
-    './manifest.json?v=1109261133',
+    './style.css?v=1109261159',
+    './app.js?v=1109261159',
+    '../style.css?v=1109261159',
+    './manifest.json?v=1109261159',
     '/imgs/arrow_back_white.webp',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
@@ -64,6 +64,10 @@ self.addEventListener('fetch', event => {
     }
 
     if (event.request.method !== 'GET') return;
+
+    if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+        return;
+    }
 
     event.respondWith(
         fetch(event.request)

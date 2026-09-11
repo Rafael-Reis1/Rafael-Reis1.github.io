@@ -1,0 +1,118 @@
+/* Componentes: Botões (.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-install, etc.) */
+
+.user-info {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    cursor: pointer;
+    object-fit: cover;
+    border: 1px solid var(--glass-border);
+    transition: all 0.2s ease;
+    display: block;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.user-avatar:hover {
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 0.875rem;
+    height: 36px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--accent-gradient);
+    color: white;
+    box-shadow: var(--accent-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(242, 81, 27, 0.6);
+}
+
+.btn-secondary {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--text-secondary);
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-install svg {
+    width: 20px;
+    height: 20px;
+    margin: 0 7px;
+    flex-shrink: 0;
+}
+
+.btn-install span {
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    padding-right: 1rem;
+}
+
+@media (hover: hover) {
+    .btn-install:hover {
+        width: 140px;
+        background: var(--glass-bg-hover);
+        border-color: var(--accent-color);
+    }
+
+    .btn-install:hover span {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        display: inline-block;
+    }
+}
+
+@media (display-mode: standalone) {
+    .btn-back,
+    a[href*="index.html"],
+    #installAppBtn {
+        display: none !important;
+    }
+
+    html,
+    body {
+        overscroll-behavior-y: none;
+    }
+}
