@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Portfólio e projetos locais",
   "scripts": {
+    "test": "node validate.js",
     "cache": "node updateCache.js"
   }
 }
