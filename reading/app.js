@@ -1251,7 +1251,7 @@ const App = {
                         labelText = listObj.name;
                         extraAction = `
                             <div class="list-actions-dropdown" style="position: relative; margin-left: 0.5rem; flex-shrink: 0;">
-                                <button class="btn-icon" onclick="event.stopPropagation(); this.nextElementSibling.classList.toggle('show');" style="display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 10px; border: 1px solid var(--glass-border); color: var(--text-primary); background: transparent; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(6, 7, 26, 0.3)'; this.style.borderColor='var(--accent-color)';" onmouseout="this.style.background='transparent'; this.style.borderColor='var(--glass-border)';">
+                                <button class="btn-icon" onclick="event.stopPropagation(); this.nextElementSibling?.classList?.toggle('show');" style="display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 10px; border: 1px solid var(--glass-border); color: var(--text-primary); background: transparent; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(6, 7, 26, 0.3)'; this.style.borderColor='var(--accent-color)';" onmouseout="this.style.background='transparent'; this.style.borderColor='var(--glass-border)';">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="1.5"></circle>
                                         <circle cx="12" cy="6" r="1.5"></circle>
@@ -1845,8 +1845,9 @@ const App = {
 
             card.innerHTML = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
-                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
-                
+                ${!isPlaceholder ? `
+                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                ` : ''}
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${escTitle}</div>
                     <div class="placeholder-author">${escAuthor}</div>
@@ -2165,9 +2166,10 @@ const App = {
             html += `
                 <div class="api-result-item" onclick="App.selectBookFromAPI('${book.id}')">
                     <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
+                         ${!isPlaceholder && finalCover ? `
                          <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${escTitle}" 
-                              style="${isPlaceholder ? 'display:none' : ''}" 
-                              onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                              onerror="this.style.display='none'; const p = this.closest('.api-result-cover-container'); if (p) { p.classList.add('is-placeholder'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                         ` : ''}
                          
                          <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}" style="border-radius: 4px;">
                             <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
@@ -3394,7 +3396,7 @@ const App = {
                                 ? `<div class="placeholder-icon" style="display:flex; flex-direction:column; align-items:center; opacity:0.2; color:white;">
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                                 </div>`
-                                : `<img src="${coverUrl}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')">`
+                                 : `<img src="${coverUrl}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">`
                             }
 
                             <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
@@ -3507,7 +3509,7 @@ const App = {
         if (coverUrl) {
             const container = card.querySelector('.book-cover-container');
             container.innerHTML = `
-                <img src="${coverUrl}" class="book-cover" onload="this.parentElement.classList.remove('skeleton')">
+                <img src="${coverUrl}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">
                 <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
                     <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: white; line-height: 1.2;">${escapeHTML(info.title)}</div>
                     <div style="font-size: 0.75rem; font-weight: normal; color: #fbbf24; font-style: italic; line-height: 1.3;">
