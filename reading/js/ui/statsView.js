@@ -367,9 +367,10 @@ export const StatsView = {
                 html += `
                     <div class="api-result-item" onclick="App.editBook('${book.id}')">
                         <div class="api-result-cover-container ${isPlaceholder ? 'is-placeholder' : ''}">
+                             ${!isPlaceholder && finalCover ? `
                              <img src="${finalCover}" class="api-result-cover" loading="lazy" alt="${escTitle}"
-                                  style="${isPlaceholder ? 'display:none' : ''}"
-                                  onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder');">
+                                  onerror="this.style.display='none'; const p = this.closest('.api-result-cover-container'); if (p) { p.classList.add('is-placeholder'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                             ` : ''}
                              
                              <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}" style="border-radius: 4px;">
                                 <div style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center;">
