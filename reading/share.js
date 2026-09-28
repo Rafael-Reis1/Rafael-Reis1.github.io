@@ -137,7 +137,9 @@ function renderBooks(books) {
 
         card.innerHTML = `
         <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
-            <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
+            ${!isPlaceholder ? `
+            <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+            ` : ''}
             
             <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                 <div class="placeholder-title">${escTitle}</div>
