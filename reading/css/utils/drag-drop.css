@@ -57,3 +57,27 @@ body.is-dragging * {
     pointer-events: none !important;
     z-index: 100000 !important;
 }
+
+.nav-item {
+    cursor: pointer;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+#customListsContainer,
+#customListsContainer .nav-item,
+#customListsContainer .nav-label,
+#customListsContainer .nav-icon,
+#customListsContainer .nav-count {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+.nav-item.sortable-chosen {
+    background: var(--glass-bg-hover) !important;
+    border-color: var(--accent-color) !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
