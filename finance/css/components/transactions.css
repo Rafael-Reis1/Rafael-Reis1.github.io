@@ -1,5 +1,34 @@
 /* Componentes: Lista de transações, itens, valores coloridos e estados pago/não pago */
 
+.transactions-header-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(19, 20, 38, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    margin: -1.25rem -1.25rem 0 -1.25rem;
+    padding: 1.25rem 1.25rem;
+    border-radius: 16px 16px 0 0;
+}
+
+.transactions-header-sticky .section-header {
+    margin-bottom: 0;
+}
+
+.transactions-header-sticky .active-filters {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    padding: 0;
+}
+
+.transactions-header-sticky .active-filters:empty {
+    display: none;
+    margin: 0;
+    padding: 0;
+}
+
 .transaction-item {
     display: flex;
     align-items: center;

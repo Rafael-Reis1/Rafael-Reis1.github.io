@@ -126,8 +126,9 @@ export function renderListBooksModal() {
             
             const coverHtml = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}" style="height: 100%; border-radius: 8px;">
-                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="${isPlaceholder ? 'display:none' : ''}; height: 100%; width: 100%; object-fit: cover;" onload="this.parentElement.classList.remove('skeleton')" onerror="this.style.display='none'; this.nextElementSibling.classList.add('visible'); this.parentElement.classList.add('is-placeholder'); this.parentElement.classList.remove('skeleton')">
-                
+                ${!isPlaceholder ? `
+                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="height: 100%; width: 100%; object-fit: cover;" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                ` : ''}
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${escTitle}</div>
                     <div class="placeholder-author">${escAuthor}</div>
