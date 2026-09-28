@@ -1555,9 +1555,9 @@ const App = {
             const count = this.state.books.filter(b => b.customLists && b.customLists.includes(list.id)).length;
             const isActive = this.state.filter === list.id ? 'active' : '';
             return `
-                <a href="javascript:void(0)" class="nav-item ${isActive}" data-filter="${list.id}" draggable="false" ondragstart="return false;">
+                <div class="nav-item ${isActive}" data-filter="${list.id}" role="button" tabindex="0" oncontextmenu="return false;">
                     <div class="nav-icon drag-handle" style="color: var(--text-muted); cursor: grab;" title="Arraste para reordenar">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
                             <line x1="8" y1="6" x2="21" y2="6"></line>
                             <line x1="8" y1="12" x2="21" y2="12"></line>
                             <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -1568,15 +1568,25 @@ const App = {
                     </div>
                     <span class="nav-label" title="${list.name}">${list.name}</span>
                     <span class="nav-count">${count}</span>
-                </a>
+                </div>
             `;
         }).join('');
 
         container.innerHTML = listsHTML;
 
+        if (!container.dataset.hasContextMenu) {
+            container.addEventListener('contextmenu', (e) => e.preventDefault());
+            container.dataset.hasContextMenu = 'true';
+        }
+
         const listItems = container.querySelectorAll('.nav-item');
         listItems.forEach(link => {
             link.addEventListener('click', (e) => {
+                if (document.body.classList.contains('is-dragging')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
                 e.preventDefault();
                 const filter = e.currentTarget.dataset.filter;
                 this.setFilter(filter);
@@ -1591,6 +1601,13 @@ const App = {
                     this.dom.sidebarOverlay.classList.remove('active');
                 }
             });
+
+            link.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    link.click();
+                }
+            });
         });
 
         if (typeof Sortable !== 'undefined') {
@@ -1599,14 +1616,20 @@ const App = {
             }
             this.customListsSortable = Sortable.create(container, {
                 animation: 150,
-                handle: '.nav-icon',
+                handle: window.innerWidth <= 768 ? null : '.nav-icon',
                 ghostClass: 'sortable-ghost',
                 dragClass: 'sortable-drag',
+                chosenClass: 'sortable-chosen',
                 forceFallback: true,
                 fallbackClass: 'sortable-fallback',
                 fallbackOnBody: true,
                 delay: window.innerWidth <= 768 ? 200 : 0,
                 delayOnTouchOnly: true,
+                touchStartThreshold: 5,
+                scroll: true,
+                scrollSensitivity: 50,
+                scrollSpeed: 15,
+                bubbleScroll: true,
                 onStart: () => {
                     document.body.classList.add('is-dragging');
                 },
