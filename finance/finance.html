@@ -6,25 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="App de gerenciamento de finanças pessoais - Controle suas receitas e despesas">
     <title>Financeiro Pessoal</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=0710260742">
-    <link rel="stylesheet" href="style.css?v=0710260742">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=0710260742">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1710260300">
+    <link rel="stylesheet" href="style.css?v=1710260300">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1710260300">
 
-    <link rel="manifest" href="manifest.json?v=0710260742">
+    <link rel="manifest" href="manifest.json?v=1710260300">
     <meta name="theme-color" content="#0d0b26">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=0710260742">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=1710260300">
     <meta name="mobile-web-app-capable" content="yes">
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=0710260742"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=0710260742"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=0710260742"></script>
-    <script src="lib/chart.js?v=0710260742"></script>
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=0710260742">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=0710260742"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=0710260742"></script>
-    <script type="module" src="app.js?v=0710260742"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=1710260300"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=1710260300"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=1710260300"></script>
+    <script src="lib/chart.js?v=1710260300"></script>
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=1710260300">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=1710260300"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=1710260300"></script>
+    <script type="module" src="app.js?v=1710260300"></script>
 </head>
 
 <body>
@@ -47,6 +47,13 @@
                             d="M7.646 15.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 14.293V5.5a.5.5 0 0 0-1 0v8.793l-2.146-2.147a.5.5 0 0 0-.708.708l3 3z" />
                     </svg>
                     <span>Instalar App</span>
+                </button>
+                <button id="btnOpenStats" class="btn btn-icon" title="Estatísticas & Análises">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
                 </button>
                 <button id="btnPrivacy" class="btn btn-icon" title="Modo Privacidade">
                     <svg id="privacyIconShow" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -120,6 +127,15 @@
                                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                             </svg>
                             Receitas Fixas
+                        </button>
+                        <button id="btnStatsMenu" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                            </svg>
+                            Estatísticas & Insights
                         </button>
                         <div class="dropdown-divider"></div>
                         <button id="btnLogout" class="dropdown-item danger">
@@ -381,9 +397,10 @@
             </div>
             <form id="editForm" autocomplete="off">
                 <input type="hidden" id="editId">
-                <div class="form-group">
+                <div class="form-group desc-autocomplete-group">
                     <label for="editDescription">Descrição</label>
-                    <input type="text" id="editDescription" placeholder="Ex: Mercado, Aluguel, Salário..." required>
+                    <input type="text" id="editDescription" placeholder="Ex: Mercado, Aluguel, Salário..." autocomplete="off" required>
+                    <div id="descAutocompleteList" class="desc-autocomplete-list"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -701,12 +718,24 @@
         </div>
     </div>
 
+    <div id="statsModal" class="modal">
+        <div class="modal-content stats-modal-content">
+            <div class="modal-header">
+                <h3>Estatísticas & Análises</h3>
+                <button class="modal-close" id="closeStatsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="statsContent" class="stats-container"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=0710260742');
+                navigator.serviceWorker.register('sw.js?v=1710260300');
             });
         }
     </script>

@@ -1,5 +1,6 @@
 import { auth, googleProvider } from '../services/firebase.js';
 import { CATEGORIES, CATEGORY_NAMES, EXPENSE_COLORS, INCOME_COLORS } from '../utils/constants.js';
+import { StatsView } from './statsView.js';
 
 export class UIController {
     constructor(financeManager) {
@@ -120,6 +121,14 @@ export class UIController {
 
         this.isEditing = false;
         this.editingId = null;
+        this.editDescription = document.getElementById('editDescription');
+        this.descAutocompleteList = document.getElementById('descAutocompleteList');
+        this.autocompleteActiveIndex = -1;
+        this.currentAutocompleteItems = [];
+        this.btnOpenStats = document.getElementById('btnOpenStats');
+        this.btnStatsMenu = document.getElementById('btnStatsMenu');
+        this.statsModal = document.getElementById('statsModal');
+        this.statsView = new StatsView(this.fm);
     }
 
     handleAnonymousLogin() {
@@ -178,6 +187,12 @@ export class UIController {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                if (this.descAutocompleteList && this.descAutocompleteList.classList.contains('open')) {
+                    this.closeDescAutocomplete();
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                    return;
+                }
                 const activeModals = Array.from(document.querySelectorAll('.modal.active'));
                 if (activeModals.length > 0) {
                     activeModals.sort((a, b) => {
@@ -298,6 +313,17 @@ export class UIController {
             this.userDropdown.classList.remove('active');
         });
 
+        if (this.btnOpenStats) {
+            this.btnOpenStats.addEventListener('click', () => this.statsView.open());
+        }
+
+        if (this.btnStatsMenu) {
+            this.btnStatsMenu.addEventListener('click', () => {
+                this.userDropdown.classList.remove('active');
+                this.statsView.open();
+            });
+        }
+
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
 
         document.getElementById('closeEditModal').addEventListener('click', () => this.closeModal(this.editModal));
@@ -344,7 +370,8 @@ export class UIController {
             seriesModal,
             this.subsModal,
             this.cancelSubModal,
-            this.deleteSubModal
+            this.deleteSubModal,
+            this.statsModal
         ];
 
         allModals.forEach(modal => {
@@ -361,18 +388,7 @@ export class UIController {
             }
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.closeModal(this.editModal);
-                this.closeModal(this.deleteModal);
-                this.closeModal(this.importModal);
-                this.closeModal(this.filterModal);
-                this.closeModal(seriesModal);
-                this.closeModal(this.subsModal);
-                this.closeModal(this.cancelSubModal);
-                this.closeModal(this.deleteSubModal);
-            }
-        });
+        this.initDescriptionAutocomplete();
 
         const btnPrivacy = document.getElementById('btnPrivacy');
         const privacyIconShow = document.getElementById('privacyIconShow');
@@ -580,6 +596,10 @@ export class UIController {
 
         this.updateFilterOptions();
         this.renderTransactionsList();
+
+        if (this.statsModal && this.statsModal.classList.contains('active') && this.statsView) {
+            this.statsView.render();
+        }
     }
 
     renderActiveFilters() {
@@ -1266,6 +1286,7 @@ export class UIController {
 
         this.updateEditCategoryOptions();
         this.setDefaultDate();
+        this.closeDescAutocomplete();
 
         this.openModal(this.editModal);
     }
@@ -1296,9 +1317,239 @@ export class UIController {
 
         this.updateEditCategoryOptions(t.category);
         document.getElementById('editCategory').dispatchEvent(new Event('change', { bubbles: true }));
+        this.closeDescAutocomplete();
 
         this.editModal.style.zIndex = '1010';
         this.openModal(this.editModal);
+    }
+
+    normalizeSearchText(str) {
+        return String(str || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    getUniqueDescriptions(query = '') {
+        const allTx = [...(this.fm.transactions || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const map = new Map();
+
+        allTx.forEach(t => {
+            if (!t.description) return;
+            const cleanDesc = t.description.replace(/\s*\(\d+\/\d+\)$/, '').trim();
+            if (!cleanDesc) return;
+            const key = this.normalizeSearchText(cleanDesc);
+            if (!key) return;
+
+            if (!map.has(key)) {
+                map.set(key, {
+                    description: cleanDesc,
+                    norm: key,
+                    type: t.type || 'expense',
+                    category: t.category || 'outros',
+                    lastAmount: Number(t.amount) || 0,
+                    lastDate: t.date || '',
+                    count: 1
+                });
+            } else {
+                const entry = map.get(key);
+                entry.count += 1;
+            }
+        });
+
+        const items = Array.from(map.values());
+        const normQuery = this.normalizeSearchText(query);
+
+        if (!normQuery) {
+            return items
+                .sort((a, b) => {
+                    if (b.count !== a.count) return b.count - a.count;
+                    return (b.lastDate || '').localeCompare(a.lastDate || '');
+                })
+                .slice(0, 8);
+        }
+
+        return items
+            .filter(item => item.norm.includes(normQuery))
+            .sort((a, b) => {
+                const aStarts = a.norm.startsWith(normQuery) ? 1 : 0;
+                const bStarts = b.norm.startsWith(normQuery) ? 1 : 0;
+                if (bStarts !== aStarts) return bStarts - aStarts;
+                if (b.count !== a.count) return b.count - a.count;
+                return (b.lastDate || '').localeCompare(a.lastDate || '');
+            })
+            .slice(0, 8);
+    }
+
+    highlightAutocompleteMatch(text, query) {
+        const safeText = String(text || '');
+        const normQuery = this.normalizeSearchText(query);
+        if (!normQuery) return this.escapeHtml(safeText);
+
+        const normText = safeText
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+
+        const idx = normText.indexOf(normQuery);
+        if (idx === -1) return this.escapeHtml(safeText);
+
+        const before = safeText.slice(0, idx);
+        const match = safeText.slice(idx, idx + normQuery.length);
+        const after = safeText.slice(idx + normQuery.length);
+
+        return `${this.escapeHtml(before)}<span class="desc-autocomplete-match">${this.escapeHtml(match)}</span>${this.escapeHtml(after)}`;
+    }
+
+    renderDescAutocomplete(query = '') {
+        if (!this.descAutocompleteList || !this.editDescription) return;
+
+        const suggestions = this.getUniqueDescriptions(query);
+        this.currentAutocompleteItems = suggestions;
+        this.autocompleteActiveIndex = -1;
+
+        if (suggestions.length === 0) {
+            this.closeDescAutocomplete();
+            return;
+        }
+
+        const isQueryEmpty = !this.normalizeSearchText(query);
+        const headerLabel = isQueryEmpty ? '⏱️ Mais usados / recentes' : `✨ Sugestões encontradas (${suggestions.length})`;
+
+        this.descAutocompleteList.innerHTML = `
+            <div class="desc-autocomplete-header">
+                <span>${headerLabel}</span>
+                <span>↑↓ Enter</span>
+            </div>
+            ${suggestions.map((item, idx) => {
+                const icon = CATEGORIES[item.type]?.[item.category] || CATEGORIES.expense[item.category] || CATEGORIES.income[item.category] || (item.type === 'income' ? '💰' : '💸');
+                const catName = CATEGORY_NAMES[item.category] || item.category;
+                return `
+                    <div class="desc-autocomplete-item" data-index="${idx}">
+                        <div class="desc-autocomplete-left">
+                            <span class="desc-autocomplete-icon">${icon}</span>
+                            <span class="desc-autocomplete-text">${this.highlightAutocompleteMatch(item.description, query)}</span>
+                            ${item.count > 1 ? `<span class="desc-autocomplete-freq" title="Usado ${item.count} vezes">${item.count}x</span>` : ''}
+                        </div>
+                        <div class="desc-autocomplete-right">
+                            <span class="desc-autocomplete-cat">${catName}</span>
+                            <span class="desc-autocomplete-amount">${this.formatCurrency(item.lastAmount)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        `;
+
+        this.descAutocompleteList.querySelectorAll('.desc-autocomplete-item').forEach(el => {
+            el.addEventListener('mousedown', (e) => {
+                // mousedown prevents input blur from firing before selection
+                e.preventDefault();
+                const idx = parseInt(el.getAttribute('data-index'), 10);
+                if (!isNaN(idx) && this.currentAutocompleteItems[idx]) {
+                    this.selectAutocompleteItem(this.currentAutocompleteItems[idx]);
+                }
+            });
+        });
+
+        this.descAutocompleteList.classList.add('open');
+    }
+
+    updateAutocompleteActiveItem() {
+        if (!this.descAutocompleteList) return;
+        const items = this.descAutocompleteList.querySelectorAll('.desc-autocomplete-item');
+        items.forEach((el, idx) => {
+            if (idx === this.autocompleteActiveIndex) {
+                el.classList.add('active');
+                el.scrollIntoView({ block: 'nearest' });
+            } else {
+                el.classList.remove('active');
+            }
+        });
+    }
+
+    selectAutocompleteItem(item) {
+        if (!item || !this.editDescription) return;
+
+        this.editDescription.value = item.description;
+
+        const typeSelect = document.getElementById('editType');
+        const catSelect = document.getElementById('editCategory');
+
+        if (typeSelect && item.type) {
+            typeSelect.value = item.type;
+            typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        this.updateEditCategoryOptions(item.category);
+        if (catSelect && item.category) {
+            catSelect.value = item.category;
+            catSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        this.closeDescAutocomplete();
+
+        const amountInput = document.getElementById('editAmount');
+        if (amountInput && !amountInput.value) {
+            amountInput.focus();
+        }
+    }
+
+    closeDescAutocomplete() {
+        if (!this.descAutocompleteList) return;
+        this.descAutocompleteList.classList.remove('open');
+        this.descAutocompleteList.innerHTML = '';
+        this.autocompleteActiveIndex = -1;
+        this.currentAutocompleteItems = [];
+    }
+
+    initDescriptionAutocomplete() {
+        if (!this.editDescription || !this.descAutocompleteList) return;
+
+        this.editDescription.addEventListener('input', () => {
+            this.renderDescAutocomplete(this.editDescription.value);
+        });
+
+        this.editDescription.addEventListener('click', () => {
+            if (!this.descAutocompleteList.classList.contains('open')) {
+                this.renderDescAutocomplete(this.editDescription.value);
+            }
+        });
+
+        this.editDescription.addEventListener('keydown', (e) => {
+            const isOpen = this.descAutocompleteList.classList.contains('open');
+            const count = this.currentAutocompleteItems.length;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!isOpen) {
+                    this.renderDescAutocomplete(this.editDescription.value);
+                } else if (count > 0) {
+                    this.autocompleteActiveIndex = (this.autocompleteActiveIndex + 1) % count;
+                    this.updateAutocompleteActiveItem();
+                }
+            } else if (e.key === 'ArrowUp' && isOpen && count > 0) {
+                e.preventDefault();
+                this.autocompleteActiveIndex = (this.autocompleteActiveIndex - 1 + count) % count;
+                this.updateAutocompleteActiveItem();
+            } else if (e.key === 'Enter' && isOpen && this.autocompleteActiveIndex >= 0) {
+                e.preventDefault();
+                this.selectAutocompleteItem(this.currentAutocompleteItems[this.autocompleteActiveIndex]);
+            } else if (e.key === 'Tab' && isOpen && this.autocompleteActiveIndex >= 0) {
+                this.selectAutocompleteItem(this.currentAutocompleteItems[this.autocompleteActiveIndex]);
+            } else if (e.key === 'Escape' && isOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeDescAutocomplete();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const group = this.editDescription.closest('.desc-autocomplete-group');
+            if (group && !group.contains(e.target)) {
+                this.closeDescAutocomplete();
+            }
+        });
     }
 
     handleFormSubmit(e) {
@@ -1967,6 +2218,7 @@ export class UIController {
         }
 
         if (modal === this.editModal) {
+            this.closeDescAutocomplete();
             this.editForm.reset();
             this.setDefaultDate();
             document.getElementById('editType').dispatchEvent(new Event('change', { bubbles: true }));
@@ -1977,6 +2229,8 @@ export class UIController {
             if (!isSubmit) {
                 this.filterForm.reset();
             }
+        } else if (modal === this.statsModal && this.statsView) {
+            this.statsView.close();
         }
     }
 
