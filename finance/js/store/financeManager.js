@@ -11,7 +11,7 @@ export class FinanceManager {
         this.onSubsUpdateCallback = null;
         this.excludedCategories = new Set();
         this.excludedIncomeCategories = new Set();
-        this.settings = { emailNotifications: true };
+        this.settings = { emailNotifications: true, budgetTargetPct: 80 };
     }
 
     async fetchSettings(uid) {
@@ -19,6 +19,11 @@ export class FinanceManager {
             const doc = await db.collection('finance_data').doc(uid).get();
             if (doc.exists && doc.data().settings) {
                 this.settings = { ...this.settings, ...doc.data().settings };
+                if (this.settings.budgetTargetPct) {
+                    try {
+                        localStorage.setItem('finance_budget_target_pct', String(this.settings.budgetTargetPct));
+                    } catch (e) {}
+                }
             }
         } catch (e) {
             console.error('Error fetching settings:', e);
@@ -27,6 +32,35 @@ export class FinanceManager {
 
     getSettings() {
         return this.settings;
+    }
+
+    getBudgetTargetPct() {
+        const fromSettings = Number(this.settings?.budgetTargetPct);
+        if (fromSettings >= 10 && fromSettings <= 100) return fromSettings;
+        try {
+            const fromLocal = Number(localStorage.getItem('finance_budget_target_pct'));
+            if (fromLocal >= 10 && fromLocal <= 100) return fromLocal;
+        } catch (e) {}
+        return 80;
+    }
+
+    async setBudgetTargetPct(pct) {
+        const cleanPct = Math.max(10, Math.min(100, Math.round(Number(pct) || 80)));
+        this.settings = { ...this.settings, budgetTargetPct: cleanPct };
+        try {
+            localStorage.setItem('finance_budget_target_pct', String(cleanPct));
+        } catch (e) {}
+
+        if (auth.currentUser) {
+            try {
+                await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                    settings: { budgetTargetPct: cleanPct }
+                }, { merge: true });
+            } catch (e) {
+                console.error('Erro ao salvar meta de orçamento no Firebase:', e);
+            }
+        }
+        return cleanPct;
     }
 
     async toggleEmailNotifications() {
