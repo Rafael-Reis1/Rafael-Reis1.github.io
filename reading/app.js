@@ -1,4 +1,4 @@
-import { debounce, escapeHTML, starSvg } from './js/utils/helpers.js';
+import { debounce, escapeHTML, starSvg, cleanCoverUrl, generateEntryId, formatDaysAgo } from './js/utils/helpers.js';
 import { BookModel } from './js/models/Book.js';
 import { auth, db, googleProvider } from './js/services/firebase.js';
 import { GoogleBooksAPI, OpenLibraryAPI, GeminiAPI } from './js/services/api.js';
@@ -6,6 +6,8 @@ import { rm } from './js/store/readingManager.js';
 import { processBookStats, migrateLegacyHistory } from './js/services/statsService.js';
 import { StatsView } from './js/ui/statsView.js';
 import { openListBooksModal, initListBooksEvents } from './js/ui/listBooksModal.js';
+import { shareOrDownloadCard } from './js/ui/shareCardGenerator.js';
+import { ISBNScanner } from './js/ui/isbnScanner.js';
 
 const App = {
     state: {
@@ -14,11 +16,15 @@ const App = {
         books: [],
         searchResults: [],
         sortBy: 'recent',
+        viewMode: 'grid',
         currentPage: 1,
         itemsPerPage: window.innerWidth > 768 ? 200 : 30,
         searchQuery: '',
         currentBookTitle: '',
-        migrated: false
+        migrated: false,
+        timerRunning: false,
+        timerSeconds: 0,
+        timerInterval: null
     },
 
     init() {
@@ -27,13 +33,15 @@ const App = {
         this.state.filter = localStorage.getItem('rm_filter') || 'all';
         this.state.formatFilter = localStorage.getItem('rm_formatFilter') || 'all';
         this.state.sortBy = localStorage.getItem('rm_sortBy') || 'recent';
+        this.state.viewMode = localStorage.getItem('rm_viewMode') || 'grid';
 
-        document.body.appendChild(this.dom.statusOptions)
+        document.body.appendChild(this.dom.statusOptions);
         this.bindEvents();
         this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
 
+        this.applyViewMode(this.state.viewMode);
         this.setFilter(this.state.filter);
         this.setSort(this.state.sortBy);
         this.refresh();
@@ -106,6 +114,7 @@ const App = {
                 target: getById('count-target'),
                 ebook: getById('count-ebook'),
                 audiobook: getById('count-audiobook'),
+                notes: getById('count-notes'),
             },
             totalPagesRead: getById('total-pages-read'),
             resultsCount: getById('resultsCount'),
@@ -144,6 +153,13 @@ const App = {
             bookTimesRead: getById('bookTimesRead'),
             groupRating: getById('groupRating'),
             lblLoanDetails: getById('lblLoanDetails'),
+            bookSeries: getById('bookSeries'),
+            bookSeriesNumber: getById('bookSeriesNumber'),
+            bookGenre: getById('bookGenre'),
+            bookPublisher: getById('bookPublisher'),
+            bookDescription: getById('bookDescription'),
+            bookIsbn: getById('bookIsbn'),
+            bookPublishedYear: getById('bookPublishedYear'),
 
             statusTrigger: getById('statusTrigger'),
             statusOptions: getById('statusOptions'),
@@ -157,14 +173,32 @@ const App = {
             searchRow: document.querySelector('.search-row'),
             formDivider: document.querySelector('.form-divider'),
             searchLoader: getById('searchLoader'),
+            btnScanISBN: getById('btnScanISBN'),
+            isbnScannerModal: getById('isbnScannerModal'),
+            closeIsbnScannerModal: getById('closeIsbnScannerModal'),
+            manualIsbnInput: getById('manualIsbnInput'),
+            btnManualIsbnSubmit: getById('btnManualIsbnSubmit'),
 
+            btnViewMode: getById('btnViewMode'),
+            viewModeIcon: getById('viewModeIcon'),
             btnSort: getById('btnSort'),
             sortDropdown: getById('sortDropdown'),
             sortOptions: document.querySelectorAll('.dropdown-item[data-sort]'),
 
+            bookDetailsModal: getById('bookDetailsModal'),
+            closeBookDetailsModal: getById('closeBookDetailsModal'),
+            bookDetailsBody: getById('bookDetailsBody'),
+
+            yearlyGoalModal: getById('yearlyGoalModal'),
+            closeYearlyGoalModal: getById('closeYearlyGoalModal'),
+            cancelYearlyGoalBtn: getById('cancelYearlyGoalBtn'),
+            yearlyGoalForm: getById('yearlyGoalForm'),
+            yearlyGoalYear: getById('yearlyGoalYear'),
+            yearlyGoalCount: getById('yearlyGoalCount'),
+
             quickActionModal: getById('quickActionModal'),
             closeQuickActionModalBtn: getById('closeQuickActionModal'),
-                        closeHistoryModalBtn: getById('closeHistoryModal'),
+            closeHistoryModalBtn: getById('closeHistoryModal'),
             historyForm: getById('historyForm'),
             historyList: getById('historyList'),
             historyProgressBar: getById('historyProgressBar'),
@@ -178,8 +212,12 @@ const App = {
             isPercentage: getById('isPercentage'),
             lblHistoryInput: getById('lblHistoryInput'),
             historyNoteContent: getById('historyNoteContent'),
+            btnToggleTimer: getById('btnToggleTimer'),
+            btnResetTimer: getById('btnResetTimer'),
+            timerDisplay: getById('timerDisplay'),
+            readingDurationMinutes: getById('readingDurationMinutes'),
 
-                        closeNotesModalBtn: getById('closeNotesModal'),
+            closeNotesModalBtn: getById('closeNotesModal'),
             notesForm: getById('notesForm'),
             notesList: getById('notesList'),
             notesBookId: getById('notesBookId'),
@@ -229,14 +267,8 @@ const App = {
             loginOverlay: getById('loginOverlay'),
             authLoading: document.getElementById('authLoading'),
             authContent: document.getElementById('authContent'),
-            btnLoginOverlay: document.getElementById('btnLoginOverlay'),
-            btnAnonymousLogin: document.getElementById('btnAnonymousLogin'),
-
-            messageModal: document.getElementById('messageModal'),
-            messageTitle: document.getElementById('messageTitle'),
-            messageText: document.getElementById('messageText'),
-            messageIcon: document.getElementById('messageIcon'),
-            messageOkBtn: document.getElementById('messageOkBtn')
+            btnLoginOverlay: getById('btnLoginOverlay'),
+            btnAnonymousLogin: document.getElementById('btnAnonymousLogin')
         };
     },
 
@@ -412,8 +444,6 @@ const App = {
                 document.querySelectorAll('input[name="readFormat"]').forEach(cb => cb.checked = false);
             }
 
-            this.renderCustomListsCheckboxes([]);
-
             const groupRating = document.getElementById('groupRating');
             if (groupRating) groupRating.style.display = 'none';
             document.getElementById('bookRating').value = 0;
@@ -445,6 +475,9 @@ const App = {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.sort-dropdown-container')) {
                 this.dom.sortDropdown.classList.remove('show');
+            }
+            if (!e.target.closest('.bd-add-list-wrapper') && !e.target.closest('.bd-floating-list-menu')) {
+                this.closeAddListDropdown();
             }
         });
 
@@ -611,8 +644,9 @@ const App = {
             deleteBookBtn.addEventListener('click', () => {
                 const bookId = this.dom.bookId.value;
                 if (bookId) {
-                    this.closeModal();
+                    this.closeModal(true);
                     this.openDeleteModal('Tem certeza que deseja excluir este livro?', () => {
+                        this.state.returnToDetailsBookId = null;
                         rm.delete(bookId);
                         this.refresh();
                     });
@@ -672,10 +706,7 @@ const App = {
         });
 
         this.setupModalCloseAttributes(this.dom.modal, () => this.closeModal());
-        this.setupModalCloseAttributes(this.dom.quickActionModal, () => {
-            this.dom.quickActionModal.classList.remove('active');
-            this.toggleBodyScroll(false);
-        });
+        this.setupModalCloseAttributes(this.dom.quickActionModal, () => this.closeQuickActionModal());
         this.setupModalCloseAttributes(this.dom.deleteModal, () => this.closeDeleteModal());
         this.setupModalCloseAttributes(this.dom.messageModal, () => {
             this.dom.messageOkBtn.click();
@@ -694,10 +725,7 @@ const App = {
 
         this.dom.closeModalBtn.addEventListener('click', () => this.closeModal());
         if (this.dom.closeQuickActionModalBtn) {
-            this.dom.closeQuickActionModalBtn.addEventListener('click', () => {
-                this.dom.quickActionModal.classList.remove('active');
-                this.toggleBodyScroll(false);
-            });
+            this.dom.closeQuickActionModalBtn.addEventListener('click', () => this.closeQuickActionModal());
         }
         
         const tabBtns = this.dom.quickActionModal.querySelectorAll('.tab-btn');
@@ -713,14 +741,8 @@ const App = {
             });
         });
         this.dom.cancelModalBtn.addEventListener('click', () => this.closeModal());
-        this.dom.closeHistoryModalBtn.addEventListener('click', () => {
-            this.dom.quickActionModal.classList.remove('active');
-            this.toggleBodyScroll(false);
-        });
-        this.dom.closeNotesModalBtn.addEventListener('click', () => {
-            this.dom.quickActionModal.classList.remove('active');
-            this.toggleBodyScroll(false);
-        });
+        this.dom.closeHistoryModalBtn.addEventListener('click', () => this.closeQuickActionModal());
+        this.dom.closeNotesModalBtn.addEventListener('click', () => this.closeQuickActionModal());
 
         if (this.dom.messageOkBtn) {
             this.dom.messageOkBtn.addEventListener('click', () => {
@@ -954,6 +976,109 @@ const App = {
             });
         }
 
+        if (this.dom.btnViewMode) {
+            this.dom.btnViewMode.addEventListener('click', () => {
+                this.cycleViewMode();
+            });
+        }
+
+        if (this.dom.btnScanISBN) {
+            this.dom.btnScanISBN.addEventListener('click', () => {
+                this.openISBNScanner();
+            });
+        }
+
+        if (this.dom.closeIsbnScannerModal) {
+            this.dom.closeIsbnScannerModal.addEventListener('click', () => {
+                this.closeISBNScanner();
+            });
+        }
+
+        if (this.dom.isbnScannerModal) {
+            this.setupModalCloseAttributes(this.dom.isbnScannerModal, () => {
+                this.closeISBNScanner();
+            });
+        }
+
+        if (this.dom.btnManualIsbnSubmit) {
+            this.dom.btnManualIsbnSubmit.addEventListener('click', () => {
+                const rawIsbn = (this.dom.manualIsbnInput?.value || '').replace(/[\s-]/g, '');
+                if (rawIsbn.length >= 10) {
+                    this.closeISBNScanner();
+                    this.dom.apiSearch.value = rawIsbn;
+                    this.handleAPISearch(rawIsbn);
+                } else {
+                    this.showToast('Informe um ISBN válido (10 ou 13 dígitos).', 'error');
+                }
+            });
+        }
+
+        if (this.dom.manualIsbnInput) {
+            this.dom.manualIsbnInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.dom.btnManualIsbnSubmit?.click();
+                }
+            });
+        }
+
+        const closeDetailsModal = () => {
+            this.closeAddListDropdown();
+            this.state.returnToDetailsBookId = null;
+            if (this.dom.bookDetailsModal) {
+                this.dom.bookDetailsModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            }
+        };
+        if (this.dom.closeBookDetailsModal) {
+            this.dom.closeBookDetailsModal.addEventListener('click', closeDetailsModal);
+        }
+        const cancelDetailsBtn = document.getElementById('cancelBookDetailsBtn');
+        if (cancelDetailsBtn) {
+            cancelDetailsBtn.addEventListener('click', closeDetailsModal);
+        }
+        if (this.dom.bookDetailsModal) {
+            this.setupModalCloseAttributes(this.dom.bookDetailsModal, closeDetailsModal);
+        }
+
+        const closeYearlyGoal = () => {
+            if (this.dom.yearlyGoalModal) {
+                this.dom.yearlyGoalModal.classList.remove('active');
+                this.toggleBodyScroll(false);
+            }
+        };
+        if (this.dom.closeYearlyGoalModal) this.dom.closeYearlyGoalModal.addEventListener('click', closeYearlyGoal);
+        if (this.dom.cancelYearlyGoalBtn) this.dom.cancelYearlyGoalBtn.addEventListener('click', closeYearlyGoal);
+        if (this.dom.yearlyGoalModal) this.setupModalCloseAttributes(this.dom.yearlyGoalModal, closeYearlyGoal);
+        if (this.dom.yearlyGoalForm) {
+            this.dom.yearlyGoalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const year = this.dom.yearlyGoalYear.value;
+                const count = Math.max(0, parseInt(this.dom.yearlyGoalCount.value) || 0);
+                if (year) {
+                    const goals = JSON.parse(localStorage.getItem('rm_yearly_goals') || '{}');
+                    if (count > 0) {
+                        goals[year] = count;
+                        localStorage.setItem(`rm_yearly_goal_books_${year}`, String(count));
+                    } else {
+                        delete goals[year];
+                        localStorage.removeItem(`rm_yearly_goal_books_${year}`);
+                    }
+                    localStorage.setItem('rm_yearly_goals', JSON.stringify(goals));
+                    closeYearlyGoal();
+                    this.renderStatsDashboard();
+                    this.showToast(count > 0 ? `Meta de ${count} livros definida para ${year}!` : `Meta de ${year} removida.`);
+                }
+            });
+        }
+
+        if (this.dom.btnToggleTimer) {
+            this.dom.btnToggleTimer.addEventListener('click', () => this.toggleReadingTimer());
+        }
+        if (this.dom.btnResetTimer) {
+            this.dom.btnResetTimer.addEventListener('click', () => this.resetReadingTimer());
+        }
+
         document.querySelector('#bookForm .modal-body').addEventListener('scroll', () => {
             if (this.dom.statusOptions.classList.contains('open')) {
                 this.dom.statusOptions.classList.remove('open');
@@ -1118,10 +1243,60 @@ const App = {
         this.renderCustomLists();
         this.renderHeatMap(dailyPages, 'all');
 
-        const isNotesModalOpen = this.dom.notesModal && this.dom.notesModal.classList.contains('active');
-        if (isNotesModalOpen) return;
+        const isQuickActionOpen = this.dom.quickActionModal && this.dom.quickActionModal.classList.contains('active');
+        if (isQuickActionOpen) return;
 
         this.setFilter(this.state.filter);
+    },
+
+    cycleViewMode() {
+        const modes = ['grid', 'compact', 'list'];
+        const currentIndex = modes.indexOf(this.state.viewMode);
+        const nextMode = modes[(currentIndex + 1) % modes.length];
+        this.applyViewMode(nextMode);
+        const modeNames = { 'grid': 'Grade Padrão', 'compact': 'Grade Compacta', 'list': 'Visualização em Lista' };
+        this.showToast(`Visualização: ${modeNames[nextMode]}`);
+    },
+
+    applyViewMode(mode) {
+        this.state.viewMode = mode;
+        localStorage.setItem('rm_viewMode', mode);
+        if (this.dom.grid) {
+            this.dom.grid.classList.remove('view-compact', 'view-list');
+            if (mode === 'compact') this.dom.grid.classList.add('view-compact');
+            else if (mode === 'list') this.dom.grid.classList.add('view-list');
+        }
+        if (this.dom.viewModeIcon) {
+            if (mode === 'list') {
+                this.dom.viewModeIcon.innerHTML = `
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                `;
+            } else if (mode === 'compact') {
+                this.dom.viewModeIcon.innerHTML = `
+                    <rect x="3" y="3" width="4" height="4"></rect>
+                    <rect x="10" y="3" width="4" height="4"></rect>
+                    <rect x="17" y="3" width="4" height="4"></rect>
+                    <rect x="3" y="10" width="4" height="4"></rect>
+                    <rect x="10" y="10" width="4" height="4"></rect>
+                    <rect x="17" y="10" width="4" height="4"></rect>
+                    <rect x="3" y="17" width="4" height="4"></rect>
+                    <rect x="10" y="17" width="4" height="4"></rect>
+                    <rect x="17" y="17" width="4" height="4"></rect>
+                `;
+            } else {
+                this.dom.viewModeIcon.innerHTML = `
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                `;
+            }
+        }
     },
 
     setSort(sortType, shouldRender = true) {
@@ -1183,6 +1358,7 @@ const App = {
             'target': 'Meta',
             'ebook': 'Ebook',
             'audiobook': 'Audiobook',
+            'all-notes': 'Todas as Anotações',
             'recommended': 'Recomendados'
         };
 
@@ -1202,6 +1378,7 @@ const App = {
             'target': '#3f6212',
             'ebook': '#075985',
             'audiobook': '#86198f',
+            'all-notes': '#6d28d9',
             'recommended': '#d97706'
         };
 
@@ -1363,13 +1540,20 @@ const App = {
         let filtered = this.state.books;
 
         if (this.state.searchQuery) {
-            const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const normalize = (str) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             const terms = normalize(this.state.searchQuery).split(/\s+/).filter(t => t);
             filtered = filtered.filter(book => {
                 const titleNorm = normalize(book.title);
                 const authorNorm = normalize(book.author);
+                const seriesNorm = normalize(book.series);
+                const genreNorm = normalize(book.genre);
+                const notesText = (book.notes || []).map(n => normalize(`${n.content || ''} ${n.location || ''}`)).join(' ');
                 return terms.every(term =>
-                    titleNorm.includes(term) || authorNorm.includes(term)
+                    titleNorm.includes(term) ||
+                    authorNorm.includes(term) ||
+                    seriesNorm.includes(term) ||
+                    genreNorm.includes(term) ||
+                    notesText.includes(term)
                 );
             });
         }
@@ -1554,6 +1738,7 @@ const App = {
         const listsHTML = displayLists.map(list => {
             const count = this.state.books.filter(b => b.customLists && b.customLists.includes(list.id)).length;
             const isActive = this.state.filter === list.id ? 'active' : '';
+            const safeName = escapeHTML(list.name);
             return `
                 <div class="nav-item ${isActive}" data-filter="${list.id}" role="button" tabindex="0" oncontextmenu="return false;">
                     <div class="nav-icon drag-handle" style="color: var(--text-muted); cursor: grab;" title="Arraste para reordenar">
@@ -1566,7 +1751,7 @@ const App = {
                             <line x1="3" y1="18" x2="3.01" y2="18"></line>
                         </svg>
                     </div>
-                    <span class="nav-label" title="${list.name}">${list.name}</span>
+                    <span class="nav-label" title="${safeName}">${safeName}</span>
                     <span class="nav-count">${count}</span>
                 </div>
             `;
@@ -1649,48 +1834,64 @@ const App = {
         }
     },
 
-    renderCustomListsCheckboxes(selectedLists = []) {
-        const container = document.getElementById('customListsCheckboxes');
-        const row = document.getElementById('rowCustomLists');
-        if (!container || !row) return;
+    async removeBookFromList(bookId, listId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
 
-        if (!rm.lists || rm.lists.length === 0) {
-            row.style.display = 'none';
-            container.innerHTML = '';
-            return;
+        const currentLists = book.customLists || [];
+        if (!currentLists.includes(listId)) return;
+
+        const updatedLists = currentLists.filter(id => id !== listId);
+        book.customLists = updatedLists;
+
+        const listObj = (rm.lists || []).find(l => l.id === listId);
+        const listName = listObj ? listObj.name : 'lista';
+
+        if (listObj && listObj.bookOrder && listObj.bookOrder.includes(bookId)) {
+            listObj.bookOrder = listObj.bookOrder.filter(id => id !== bookId);
+            rm.updateList(listId, { bookOrder: listObj.bookOrder });
         }
 
-        let sortedLists = [...rm.lists];
-        sortedLists.sort((a, b) => {
-            const orderA = a.order !== undefined ? a.order : 999999;
-            const orderB = b.order !== undefined ? b.order : 999999;
-            if (orderA !== orderB) return orderA - orderB;
-            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-        });
+        await rm.update(book.id, { customLists: updatedLists });
 
-        row.style.display = 'flex';
-        const html = sortedLists.map(list => {
-            return `
-                <label class="tag-checkbox">
-                    <input type="checkbox" name="customLists" value="${list.id}" hidden>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                    <span>${list.name}</span>
-                </label>
-            `;
-        });
-        
-        container.innerHTML = html.join('');
-        
-        document.querySelectorAll('input[name="customLists"]').forEach(cb => {
-            cb.checked = selectedLists.includes(cb.value);
-        });
+        this.renderCustomLists();
+        this.render();
+
+        if (this.dom.bookDetailsModal && this.dom.bookDetailsModal.classList.contains('active')) {
+            this.openBookDetails(bookId);
+        }
+
+        this.showToast(`Livro removido de "${listName}"!`);
+    },
+
+    async addBookToList(bookId, listId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        const currentLists = book.customLists || [];
+        if (currentLists.includes(listId)) return;
+
+        const updatedLists = [...currentLists, listId];
+        book.customLists = updatedLists;
+
+        const listObj = (rm.lists || []).find(l => l.id === listId);
+        const listName = listObj ? listObj.name : 'lista';
+
+        await rm.update(book.id, { customLists: updatedLists });
+
+        this.renderCustomLists();
+        this.render();
+
+        if (this.dom.bookDetailsModal && this.dom.bookDetailsModal.classList.contains('active')) {
+            this.openBookDetails(bookId);
+        }
+
+        this.showToast(`Livro adicionado a "${listName}"!`);
+    },
+
+    closeAddListDropdown() {
+        const menu = document.getElementById('bdFloatingListMenu');
+        if (menu) menu.remove();
     },
 
     shareList(listId) {
@@ -1792,11 +1993,13 @@ const App = {
         }
     },
 
-
-
     render() {
         if (this.state.filter === 'recommended') {
             this.renderRecommendationsTab();
+            return;
+        }
+        if (this.state.filter === 'all-notes') {
+            this.renderAllNotesTab();
             return;
         }
 
@@ -1806,12 +2009,15 @@ const App = {
             const sortContainer = toolbarRight.querySelector('.sort-dropdown-container');
             if (searchWrapper) searchWrapper.style.display = 'flex';
             if (sortContainer) sortContainer.style.display = 'block';
+            if (this.dom.btnViewMode) this.dom.btnViewMode.style.display = 'flex';
             this.dom.addBtn.style.display = 'flex';
             
             const btnGerar = document.getElementById('btnGerarRecomendacoes');
             if (btnGerar) btnGerar.style.display = 'none';
         }
         
+        this.applyViewMode(this.state.viewMode);
+
         const filtered = this.getFilteredBooks();
         const sorted = this.sortBooks(filtered);
 
@@ -1828,7 +2034,8 @@ const App = {
             return;
         }
 
-        const isCustomizable = this.state.filter === 'want-to-read' || (this.state.filter && this.state.filter.startsWith('list_'));
+        const isCustomList = Boolean(this.state.filter && this.state.filter.startsWith('list_'));
+        const isCustomizable = this.state.filter === 'want-to-read' || isCustomList;
         const canDrag = this.state.sortBy === 'custom' && 
                         isCustomizable && 
                         !this.state.searchQuery && 
@@ -1861,10 +2068,27 @@ const App = {
         pageBooks.forEach(book => {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
+            card.dataset.id = book.id;
             const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
             
             const escTitle = escapeHTML(book.title);
             const escAuthor = escapeHTML(book.author);
+            const escSeries = book.series ? escapeHTML(book.series) : '';
+            const escSeriesNum = book.seriesNumber ? escapeHTML(String(book.seriesNumber)) : '';
+            const seriesBadgeHTML = escSeries
+                ? `<div class="book-series-badge" title="${escSeries}${escSeriesNum ? ' #' + escSeriesNum : ''}">${escSeries}${escSeriesNum ? ` #${escSeriesNum}` : ''}</div>`
+                : '';
+
+            let loanBadgeHTML = '';
+            if (book.tags && (book.tags.includes('lent') || book.tags.includes('borrowed'))) {
+                const isLent = book.tags.includes('lent');
+                const daysStr = book.loanDate ? formatDaysAgo(book.loanDate) : '';
+                const person = book.loanDetails ? escapeHTML(book.loanDetails) : '';
+                const badgeText = `${isLent ? '↗' : '↙'} ${person || (isLent ? 'Emprestei' : 'Emprestado')}${daysStr ? ` (${daysStr})` : ''}`;
+                loanBadgeHTML = `<div class="book-loan-badge ${isLent ? 'is-lent' : 'is-borrowed'}" title="${badgeText}">${badgeText}</div>`;
+            }
+
+            const progressVal = this.calculateProgress(book);
 
             card.innerHTML = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
@@ -1879,19 +2103,38 @@ const App = {
                 <svg class="bookmark-icon" viewBox="0 0 24 32" fill="currentColor">
                     <path d="M0 0h24v32l-12-8-12 8z"/>
                 </svg>
+                ${seriesBadgeHTML}
+                ${loanBadgeHTML}
                 <div class="title-overlay">${escTitle}</div>
 
-                <button class="quick-add-btn" data-id="${book.id}" title="Ações Rápidas (Progresso/Anotações)">
+                <button class="quick-add-btn" data-id="${book.id}" onmousedown="event.stopPropagation();" ontouchstart="event.stopPropagation();" title="Ações Rápidas (Progresso/Anotações)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
+                ${isCustomList ? `
+                <button class="list-remove-btn" data-id="${book.id}" data-list="${this.state.filter}" onmousedown="event.stopPropagation();" ontouchstart="event.stopPropagation();" title="Remover desta lista">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                ` : ''}
             </div>
             
+            <div class="book-list-details">
+                <div class="book-list-title">${escTitle}</div>
+                <div class="book-list-author">${escAuthor}${escSeries ? ` • <span class="book-list-series">${escSeries}${escSeriesNum ? ' #' + escSeriesNum : ''}</span>` : ''}</div>
+                <div class="book-list-meta">
+                    ${book.pages ? `<span>${book.pages} págs</span>` : ''}
+                    ${book.genre ? `<span>• ${escapeHTML(book.genre)}</span>` : ''}
+                </div>
+            </div>
+
             <div class="book-footer">
                 <div class="reading-progress">
-                    ${this.calculateProgress(book)}%
+                    ${progressVal}%
                 </div>
                 <div class="book-rating">
                     ${starSvg} ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
@@ -1921,17 +2164,21 @@ const App = {
                 forceFallback: true,
                 fallbackClass: 'sortable-fallback',
                 fallbackOnBody: true,
+                fallbackTolerance: 8,
+                touchStartThreshold: 8,
+                filter: '.quick-add-btn, .list-remove-btn, button, .quick-add-btn *, .list-remove-btn *, button *',
+                preventOnFilter: false,
                 scroll: true,
                 scrollSensitivity: 120,
                 scrollSpeed: 30,
                 bubbleScroll: true,
-                delay: window.innerWidth <= 768 ? 200 : 0,
+                delay: window.innerWidth <= 768 ? 300 : 0,
                 delayOnTouchOnly: true,
                 onStart: () => {
                     document.body.classList.add('is-dragging');
                 },
                 onEnd: (evt) => {
-                    setTimeout(() => document.body.classList.remove('is-dragging'), 50);
+                    setTimeout(() => document.body.classList.remove('is-dragging'), 100);
                     if (evt.oldIndex === evt.newIndex) return;
 
                     const listId = this.state.filter === 'want-to-read' ? 'sys_want_to_read' : this.state.filter;
@@ -1989,6 +2236,22 @@ const App = {
                     return a.author.localeCompare(b.author);
                 case 'rating':
                     return b.rating - a.rating;
+                case 'pages':
+                    return (parseInt(b.pages) || 0) - (parseInt(a.pages) || 0);
+                case 'series': {
+                    const sA = (a.series || '').trim();
+                    const sB = (b.series || '').trim();
+                    if (sA && !sB) return -1;
+                    if (!sA && sB) return 1;
+                    if (sA && sB) {
+                        const cmp = sA.localeCompare(sB);
+                        if (cmp !== 0) return cmp;
+                        const nA = parseFloat(a.seriesNumber) || 9999;
+                        const nB = parseFloat(b.seriesNumber) || 9999;
+                        if (nA !== nB) return nA - nB;
+                    }
+                    return a.title.localeCompare(b.title);
+                }
                 case 'read-date':
                     return new Date(b.readDate || 0) - new Date(a.readDate || 0);
                 case 'recent':
@@ -1999,33 +2262,39 @@ const App = {
     },
 
     handleGridClick(e) {
+        const target = e.target;
+        if (!target) return;
+
+        const btnRemoveFromList = target.closest('.list-remove-btn');
+        if (btnRemoveFromList) {
+            e.stopPropagation();
+            const bookId = btnRemoveFromList.dataset.id;
+            const listId = btnRemoveFromList.dataset.list;
+            this.removeBookFromList(bookId, listId);
+            return;
+        }
+
+        const btnQuickAdd = target.closest('.quick-add-btn');
+        if (btnQuickAdd) {
+            e.stopPropagation();
+            this.state.returnToDetailsBookId = null;
+            this.openQuickActionModal(btnQuickAdd.dataset.id, 'history');
+            return;
+        }
+
         if (document.body.classList.contains('is-dragging')) {
             e.stopPropagation();
             e.preventDefault();
             return;
         }
 
-        const target = e.target;
-
-        const btnQuickAdd = target.closest('.quick-add-btn');
-        if (btnQuickAdd) {
+        const bookCard = target.closest('.book-card');
+        if (bookCard && bookCard.dataset.id) {
             e.stopPropagation();
-            this.openQuickActionModal(btnQuickAdd.dataset.id, 'history');
-            return;
-        }
-
-        const bookCoverContainer = target.closest('.book-cover-container');
-        if (bookCoverContainer) {
-            e.stopPropagation();
-            const btn = bookCoverContainer.querySelector('.quick-add-btn');
-            if (btn) {
-                this.editBook(btn.dataset.id);
-            }
+            this.openBookDetails(bookCard.dataset.id);
             return;
         }
     },
-
-
 
     updateCounts() {
         const books = this.state.books;
@@ -2048,6 +2317,15 @@ const App = {
         this.dom.counts.target.textContent = count(b => b.tags && b.tags.includes('target'));
         this.dom.counts.ebook.textContent = count(b => b.tags && b.tags.includes('ebook'));
         this.dom.counts.audiobook.textContent = count(b => b.tags && b.tags.includes('audiobook'));
+
+        if (this.dom.counts.notes) {
+            let totalNotes = 0;
+            books.forEach(b => {
+                totalNotes += (b.notes || []).length;
+                totalNotes += (b.history || []).filter(h => h.note && h.note.trim()).length;
+            });
+            this.dom.counts.notes.textContent = totalNotes;
+        }
     },
 
     toggleBodyScroll(active) {
@@ -2079,9 +2357,20 @@ const App = {
         this.toggleBodyScroll(true);
     },
 
-    closeModal() {
+    closeModal(skipReturnToDetails = false) {
         this.dom.modal.classList.remove('active');
-        this.toggleBodyScroll(false);
+
+        if (!skipReturnToDetails && this.state.returnToDetailsBookId) {
+            const returnId = this.state.returnToDetailsBookId;
+            this.state.returnToDetailsBookId = null;
+            if (this.state.books.some(b => b.id === returnId)) {
+                this.openBookDetails(returnId);
+            } else {
+                this.toggleBodyScroll(false);
+            }
+        } else if (!skipReturnToDetails) {
+            this.toggleBodyScroll(false);
+        }
 
         if (this.closeModalTimer) clearTimeout(this.closeModalTimer);
 
@@ -2174,7 +2463,7 @@ const App = {
             let coverUrl = '';
             if (info.imageLinks) {
                 const thumb = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
-                if (thumb) coverUrl = thumb.replace('http:', 'https:');
+                if (thumb) coverUrl = cleanCoverUrl(thumb);
             }
             const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : '';
             
@@ -2250,10 +2539,338 @@ const App = {
 
         let coverUrl = '';
         if (info.imageLinks) {
-            coverUrl = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
-            if (coverUrl) coverUrl = coverUrl.replace('http:', 'https:');
+            coverUrl = cleanCoverUrl(info.imageLinks.thumbnail || info.imageLinks.smallThumbnail);
         }
         document.getElementById('bookCover').value = coverUrl;
+
+        if (this.dom.bookDescription) {
+            const rawDesc = info.description || '';
+            this.dom.bookDescription.value = rawDesc.replace(/<[^>]+>/g, '');
+        }
+        if (this.dom.bookGenre) {
+            const cat = Array.isArray(info.categories) && info.categories.length > 0 ? info.categories[0] : '';
+            this.dom.bookGenre.value = cat;
+        }
+        if (this.dom.bookPublisher) {
+            this.dom.bookPublisher.value = info.publisher || '';
+        }
+        if (this.dom.bookIsbn) {
+            let isbnVal = '';
+            if (Array.isArray(info.industryIdentifiers)) {
+                const isbn13 = info.industryIdentifiers.find(i => i.type === 'ISBN_13');
+                const isbn10 = info.industryIdentifiers.find(i => i.type === 'ISBN_10');
+                isbnVal = (isbn13 || isbn10 || info.industryIdentifiers[0] || {}).identifier || '';
+            }
+            this.dom.bookIsbn.value = isbnVal;
+        }
+        if (this.dom.bookPublishedYear) {
+            this.dom.bookPublishedYear.value = info.publishedDate ? info.publishedDate.substring(0, 4) : '';
+        }
+    },
+
+    openISBNScanner() {
+        if (!this.dom.isbnScannerModal) return;
+        this.dom.isbnScannerModal.style.zIndex = '1150';
+        this.openModal(this.dom.isbnScannerModal);
+        if (this.dom.manualIsbnInput) this.dom.manualIsbnInput.value = '';
+
+        const videoEl = document.getElementById('isbnVideo');
+        const statusEl = document.getElementById('isbnScannerStatus');
+        const cameraWrap = document.getElementById('isbnCameraWrapper');
+
+        if (!ISBNScanner.isSupported()) {
+            if (cameraWrap) cameraWrap.style.display = 'none';
+            if (statusEl) statusEl.textContent = 'Leitor de câmera automático indisponível neste navegador. Digite o código ISBN abaixo:';
+            setTimeout(() => this.dom.manualIsbnInput?.focus(), 100);
+            return;
+        }
+
+        if (cameraWrap) cameraWrap.style.display = 'block';
+        if (statusEl) statusEl.textContent = 'Iniciando câmera... Aponte para o código de barras do livro.';
+
+        ISBNScanner.start(
+            videoEl,
+            (isbnCode) => {
+                this.closeISBNScanner();
+                this.showToast(`ISBN detectado: ${isbnCode}`);
+                if (this.dom.apiSearch) {
+                    this.dom.apiSearch.value = isbnCode;
+                    this.handleAPISearch(isbnCode);
+                }
+            },
+            (errMsg) => {
+                if (cameraWrap) cameraWrap.style.display = 'none';
+                if (statusEl) statusEl.textContent = errMsg;
+            }
+        );
+    },
+
+    closeISBNScanner() {
+        ISBNScanner.stop();
+        if (this.dom.isbnScannerModal) {
+            this.dom.isbnScannerModal.classList.remove('active');
+            this.toggleBodyScroll(false);
+        }
+    },
+
+    openSubModalFromDetails(bookId, actionType, tab = 'history') {
+        this.closeAddListDropdown();
+        this.state.returnToDetailsBookId = bookId;
+        if (this.dom.bookDetailsModal) {
+            this.dom.bookDetailsModal.classList.remove('active');
+        }
+        if (actionType === 'edit') {
+            this.editBook(bookId);
+        } else if (actionType === 'quick') {
+            this.openQuickActionModal(bookId, tab);
+        }
+    },
+
+    openBookDetails(bookId) {
+        this.closeAddListDropdown();
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book || !this.dom.bookDetailsModal || !this.dom.bookDetailsBody) return;
+
+        this.processBookStats(book);
+        const progress = this.calculateProgress(book);
+        const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+        const escTitle = escapeHTML(book.title);
+        const escAuthor = escapeHTML(book.author);
+        const escSeries = book.series ? escapeHTML(book.series) : '';
+        const escSeriesNum = book.seriesNumber ? escapeHTML(String(book.seriesNumber)) : '';
+        const escGenre = book.genre ? escapeHTML(book.genre) : '';
+        const escPublisher = book.publisher ? escapeHTML(book.publisher) : '';
+        const escDesc = book.description ? escapeHTML(book.description) : '';
+
+        const statusLabels = {
+            'read': { text: 'Lido', cls: 'status-read' },
+            'reading': { text: 'Lendo', cls: 'status-reading' },
+            'want-to-read': { text: 'Quero Ler', cls: 'status-want' },
+            're-reading': { text: 'Relendo', cls: 'status-reread' },
+            'rereading': { text: 'Relendo', cls: 'status-reread' },
+            'abandoned': { text: 'Abandonei', cls: 'status-abandoned' }
+        };
+        const st = statusLabels[book.status] || { text: book.status, cls: 'status-want' };
+
+        const notesCount = (book.notes || []).length;
+        const historyCount = (book.history || []).length;
+        const finishesCount = (book.history || []).filter(h => h.type === 'finish').length;
+        const totalTimesRead = (parseInt(book.timesRead) || 0) + finishesCount;
+
+        // Wire header & footer buttons in #bookDetailsModal
+        const btnShare = document.getElementById('btnShareBookFromDetails');
+        if (btnShare) btnShare.onclick = () => this.shareBookCard(book.id);
+
+        const btnHistory = document.getElementById('btnOpenHistoryFromDetails');
+        if (btnHistory) {
+            btnHistory.onclick = () => this.openSubModalFromDetails(book.id, 'quick', 'history');
+        }
+
+        const btnNotes = document.getElementById('btnOpenNotesFromDetails');
+        if (btnNotes) {
+            btnNotes.onclick = () => this.openSubModalFromDetails(book.id, 'quick', 'notes');
+        }
+
+        const lblNotes = document.getElementById('lblDetailsNotesCount');
+        if (lblNotes) lblNotes.textContent = `Anotações (${notesCount})`;
+
+        const btnEdit = document.getElementById('btnEditFromDetails');
+        if (btnEdit) {
+            btnEdit.onclick = () => this.openSubModalFromDetails(book.id, 'edit');
+        }
+
+        // Estimate remaining time / days for active reading books
+        let paceEstimateSubHTML = '';
+        if (['reading', 're-reading', 'rereading'].includes(book.status) && book.pages > 0 && progress < 100) {
+            const remainingPages = Math.max(0, (parseInt(book.pages) || 0) - (parseInt(book.readPages) || 0));
+            const activeDaysCount = Object.keys(book.computed?.heatmapDays || {}).length;
+            const totalRead = book.computed?.totalReadPages || parseInt(book.readPages) || 0;
+            const avgPagesPerDay = activeDaysCount > 0 ? Math.max(5, Math.round(totalRead / activeDaysCount)) : 20;
+            const estDays = Math.ceil(remainingPages / avgPagesPerDay);
+            paceEstimateSubHTML = `
+                <div class="bd-estimate-sub">
+                    <span>Faltam ${remainingPages} págs</span>
+                    <span>~${estDays} ${estDays === 1 ? 'dia' : 'dias'} (${avgPagesPerDay} pág/dia)</span>
+                </div>
+            `;
+        }
+
+        // Loan Box with 1-click return
+        let loanBannerHTML = '';
+        if (book.tags && (book.tags.includes('lent') || book.tags.includes('borrowed'))) {
+            const isLent = book.tags.includes('lent');
+            const person = book.loanDetails ? escapeHTML(book.loanDetails) : 'Não informado';
+            const daysStr = book.loanDate ? formatDaysAgo(book.loanDate) : '';
+            loanBannerHTML = `
+                <div class="bd-loan-box">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.78rem; display: block;">${isLent ? 'Emprestado para' : 'Pego emprestado de'}</span>
+                        <strong>${person}</strong> ${daysStr ? `<span class="note-location-tag" style="margin-left: 6px;">${daysStr}</span>` : ''}
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="App.returnLoanBook('${book.id}')">
+                        Devolver
+                    </button>
+                </div>
+            `;
+        }
+
+        // Fourth metric box: Completion Days (if array has items) or Notes Count
+        const compDaysArr = book.computed?.completionDays || [];
+        const lastCompDays = compDaysArr.length > 0 ? compDaysArr[compDaysArr.length - 1] : null;
+        const fourthMetricHTML = lastCompDays !== null
+            ? `<div class="bd-metric-box">
+                    <span class="bd-metric-label">Conclusão</span>
+                    <span class="bd-metric-value">${lastCompDays} ${lastCompDays === 1 ? 'dia' : 'dias'}</span>
+               </div>`
+            : `<div class="bd-metric-box" style="cursor: pointer;" onclick="App.openSubModalFromDetails('${book.id}', 'quick', 'notes')" title="Clique para ver anotações">
+                    <span class="bd-metric-label">Anotações</span>
+                    <span class="bd-metric-value">${notesCount}</span>
+               </div>`;
+
+        // Active tags rendered as compact pills inside the summary card
+        const tagNames = {
+            'favorite': 'Favorito',
+            'desired': 'Desejado',
+            'borrowed': 'Emprestado',
+            'physical': 'Físico',
+            'owned': 'Tenho',
+            'lent': 'Emprestei',
+            'target': `Meta${book.goalYear ? ` ${book.goalYear}` : ''}`,
+            'ebook': 'Ebook',
+            'audiobook': 'AudioBook'
+        };
+        const activeTags = (book.tags || []).filter(t => tagNames[t]);
+        const inlineTagsHTML = activeTags.map(t => `
+            <span class="bd-tag-pill">
+                <span class="status-indicator status-${t}" style="width: 8px; height: 8px;"></span>
+                <span>${tagNames[t]}</span>
+            </span>
+        `).join('');
+
+        const inlineMetaParts = [];
+        if (escSeries) inlineMetaParts.push(`${escSeries}${escSeriesNum ? ` #${escSeriesNum}` : ''}`);
+        if (escGenre) inlineMetaParts.push(escGenre);
+        if (escPublisher) inlineMetaParts.push(escPublisher);
+        const inlineMetaHTML = inlineMetaParts.length > 0
+            ? `<div class="bd-inline-meta">${inlineMetaParts.join(' • ')}</div>`
+            : '';
+
+        const isReadingStatus = ['reading', 're-reading', 'rereading'].includes(book.status);
+        const progressHTML = isReadingStatus ? `
+                <div class="bd-inline-progress" onclick="App.openSubModalFromDetails('${book.id}', 'quick', 'history');" title="Clique para gerenciar o histórico de leitura">
+                    <div class="progress-info" style="margin-bottom: 0.35rem;">
+                        <span class="history-title" style="font-size: 0.78rem; color: var(--text-secondary);">Progresso (${book.readPages || 0} de ${book.pages || 0} págs)</span>
+                        <span class="history-percent" style="font-size: 0.8rem;">${progress}%</span>
+                    </div>
+                    <div class="progress-bar-container" style="height: 6px;">
+                        <div class="progress-bar-fill" style="width: ${progress}%;"></div>
+                    </div>
+                    ${paceEstimateSubHTML}
+                </div>
+        ` : '';
+
+        this.dom.bookDetailsBody.innerHTML = `
+            <div class="bd-summary-card">
+                <div class="bd-cover-wrap">
+                    ${!isPlaceholder
+                        ? `<img src="${book.cover}" alt="${escTitle}" class="bd-cover-img">`
+                        : `<div class="bd-cover-placeholder"><span>${escTitle}</span></div>`
+                    }
+                </div>
+                <div class="bd-summary-info">
+                    <div class="bd-status-rating-row">
+                        <span class="bd-status-badge">
+                            <span class="status-indicator ${st.cls}"></span>
+                            ${st.text}
+                        </span>
+                        <span class="bd-rating-badge">
+                            ${starSvg} ${book.rating > 0 ? book.rating.toFixed(1) : '-'}
+                        </span>
+                    </div>
+
+                    <div class="bd-identity-block">
+                        <h4 class="bd-title" title="${escTitle}">${escTitle}</h4>
+                        <p class="bd-author">${escAuthor}</p>
+                        ${inlineMetaHTML}
+                    </div>
+
+                    ${inlineTagsHTML ? `<div class="bd-tags-row">${inlineTagsHTML}</div>` : ''}
+                </div>
+
+                ${progressHTML}
+            </div>
+
+            <div class="bd-metrics-grid">
+                <div class="bd-metric-box">
+                    <span class="bd-metric-label">Páginas</span>
+                    <span class="bd-metric-value">${book.pages || 0}</span>
+                </div>
+                <div class="bd-metric-box">
+                    <span class="bd-metric-label">Leituras</span>
+                    <span class="bd-metric-value">${totalTimesRead}x</span>
+                </div>
+                <div class="bd-metric-box" style="cursor: pointer;" onclick="App.openSubModalFromDetails('${book.id}', 'quick', 'history')" title="Clique para ver o histórico">
+                    <span class="bd-metric-label">Registros</span>
+                    <span class="bd-metric-value">${historyCount}</span>
+                </div>
+                ${fourthMetricHTML}
+            </div>
+
+            ${loanBannerHTML}
+
+            ${escDesc ? `
+            <div class="form-group full-width">
+                <label>Sinopse</label>
+                <div class="bd-synopsis-box">${escDesc}</div>
+            </div>` : ''}
+        `;
+
+        this.dom.bookDetailsModal.style.zIndex = '1040';
+        this.openModal(this.dom.bookDetailsModal);
+    },
+
+    async returnLoanBook(bookId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+
+        book.tags = (book.tags || []).filter(t => t !== 'lent' && t !== 'borrowed');
+        book.loanDetails = '';
+        book.loanDate = null;
+
+        await rm.update(book.id, {
+            tags: book.tags,
+            loanDetails: '',
+            loanDate: null
+        });
+
+        this.refresh();
+        this.showToast('Empréstimo finalizado e livro marcado como devolvido!');
+        if (this.dom.bookDetailsModal && this.dom.bookDetailsModal.classList.contains('active')) {
+            this.openBookDetails(bookId);
+        }
+    },
+
+    async shareBookCard(bookId, quoteText = '', quoteLocation = '', quoteDate = '') {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book) return;
+        this.processBookStats(book);
+        this.showToast('Gerando imagem do card...');
+        try {
+            const res = await shareOrDownloadCard(book, {
+                quoteText,
+                quoteLocation,
+                quoteDate,
+                allowNativeShare: true
+            });
+            if (res && res.method === 'download') {
+                this.showToast('Card PNG baixado com sucesso!');
+            } else if (res && res.method === 'share') {
+                this.showToast('Card compartilhado!');
+            }
+        } catch (err) {
+            console.error('Erro ao gerar card:', err);
+            this.showToast('Erro ao gerar card.', 'error');
+        }
     },
 
     editBook(id) {
@@ -2270,6 +2887,13 @@ const App = {
         this.dom.bookAuthor.value = book.author;
         this.dom.bookPages.value = book.pages;
         this.dom.bookCover.value = book.cover;
+        if (this.dom.bookSeries) this.dom.bookSeries.value = book.series || '';
+        if (this.dom.bookSeriesNumber) this.dom.bookSeriesNumber.value = book.seriesNumber || '';
+        if (this.dom.bookGenre) this.dom.bookGenre.value = book.genre || '';
+        if (this.dom.bookPublisher) this.dom.bookPublisher.value = book.publisher || '';
+        if (this.dom.bookDescription) this.dom.bookDescription.value = book.description || '';
+        if (this.dom.bookIsbn) this.dom.bookIsbn.value = book.isbn || '';
+        if (this.dom.bookPublishedYear) this.dom.bookPublishedYear.value = book.publishedYear || '';
 
         if (this.datePicker) {
             let displayDate = null;
@@ -2331,8 +2955,6 @@ const App = {
         document.querySelectorAll('input[name="tags"]').forEach(checkbox => {
             checkbox.checked = book.tags.includes(checkbox.value);
         });
-
-        this.renderCustomListsCheckboxes(book.customLists || []);
 
         document.getElementById('modalTitle').textContent = 'Editar Livro';
 
@@ -2396,17 +3018,7 @@ const App = {
         }
 
         const readDateVal = this.dom.bookReadDate.value;
-
-        let processedCover = this.dom.bookCover.value.trim();
-        if (processedCover.includes('drive.google.com')) {
-            const fileIdMatch = processedCover.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            const ucIdMatch = processedCover.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-            const id = fileIdMatch ? fileIdMatch[1] : (ucIdMatch ? ucIdMatch[1] : null);
-            
-            if (id && !processedCover.includes('thumbnail?id=')) {
-                processedCover = `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
-            }
-        }
+        const processedCover = cleanCoverUrl(this.dom.bookCover.value.trim());
 
         const formData = {
             title: title,
@@ -2420,14 +3032,23 @@ const App = {
             loanDetails: this.dom.loanDetails.value || '',
             loanDate: this.dom.loanDate.value || null,
             timesRead: parseInt(this.dom.bookTimesRead.value) || 0,
+            series: this.dom.bookSeries ? this.dom.bookSeries.value.trim() : '',
+            seriesNumber: this.dom.bookSeriesNumber ? this.dom.bookSeriesNumber.value.trim() : '',
+            genre: this.dom.bookGenre ? this.dom.bookGenre.value.trim() : '',
+            publisher: this.dom.bookPublisher ? this.dom.bookPublisher.value.trim() : '',
+            description: this.dom.bookDescription ? this.dom.bookDescription.value.trim() : '',
+            isbn: this.dom.bookIsbn ? this.dom.bookIsbn.value.trim() : '',
+            publishedYear: this.dom.bookPublishedYear ? this.dom.bookPublishedYear.value.trim() : '',
             readFormat: [],
             tags: []
         };
 
-        formData.customLists = [];
-        document.querySelectorAll('input[name="customLists"]:checked').forEach(checkbox => {
-            formData.customLists.push(checkbox.value);
-        });
+        if (id) {
+            const existingBook = this.state.books.find(b => b.id === id);
+            formData.customLists = existingBook ? (existingBook.customLists || []) : [];
+        } else {
+            formData.customLists = [];
+        }
 
         const isReadOrReread = ['read', 're-reading', 'rereading'].includes(formData.status);
         if (isReadOrReread && !formData.readDate) {
@@ -2465,7 +3086,7 @@ const App = {
                 if (newStatus === 'read' && oldStatus !== 'read') {
                     newReadPages = parseInt(formData.pages) || 0;
                     history.push({
-                        id: `auto_fi_${Date.now()}`,
+                        id: generateEntryId('auto_fi'),
                         date: new Date().toISOString(),
                         page: newReadPages,
                         type: 'finish'
@@ -2480,7 +3101,7 @@ const App = {
                 } else if (isRereading && oldStatus === 'read') {
                     newReadPages = 0;
                     history.push({
-                        id: `auto_st_${Date.now()}`,
+                        id: generateEntryId('auto_st'),
                         date: new Date().toISOString(),
                         page: 0,
                         type: 'start'
@@ -2488,7 +3109,7 @@ const App = {
                 } else if (isRereading && !wasRereading && oldStatus !== 'read') {
                     newReadPages = 0;
                     history.push({
-                        id: `auto_st_${Date.now()}`,
+                        id: generateEntryId('auto_st'),
                         date: new Date().toISOString(),
                         page: 0,
                         type: 'start'
@@ -2541,11 +3162,11 @@ const App = {
                 : now;
 
             if (initialStatus === 'read') {
-                newBook.history.push({ id: `auto_st_${Date.now()}`, date: logDate, type: 'start', page: 0 });
-                newBook.history.push({ id: `auto_fi_${Date.now()}`, date: logDate, type: 'finish', page: pagesTotal });
+                newBook.history.push({ id: generateEntryId('auto_st'), date: logDate, type: 'start', page: 0 });
+                newBook.history.push({ id: generateEntryId('auto_fi'), date: logDate, type: 'finish', page: pagesTotal });
                 newBook.readPages = pagesTotal;
             } else if (initialStatus === 'reading' || initialStatus === 're-reading' || initialStatus === 'rereading') {
-                newBook.history.push({ id: `auto_st_${Date.now()}`, date: now, type: 'start', page: 0 });
+                newBook.history.push({ id: generateEntryId('auto_st'), date: now, type: 'start', page: 0 });
                 newBook.readPages = 0;
             }
 
@@ -2617,30 +3238,121 @@ const App = {
         });
     },
 
+    closeQuickActionModal() {
+        this.stopReadingTimer();
+        if (this.dom.quickActionModal) {
+            this.dom.quickActionModal.classList.remove('active');
+        }
+        const isEditModalActive = this.dom.modal && this.dom.modal.classList.contains('active');
+        if (!isEditModalActive && this.state.returnToDetailsBookId) {
+            const returnId = this.state.returnToDetailsBookId;
+            this.state.returnToDetailsBookId = null;
+            if (this.state.books.some(b => b.id === returnId)) {
+                this.openBookDetails(returnId);
+                return;
+            }
+        }
+        this.toggleBodyScroll(false);
+    },
+
     showHistoryListView() {
+        this.stopReadingTimer();
         document.getElementById('historyListView').style.display = 'flex';
         document.getElementById('historyFormView').style.display = 'none';
         this.dom.historyForm.reset();
         document.getElementById('historyEntryId').value = '';
+        if (this.dom.readingDurationMinutes) this.dom.readingDurationMinutes.value = '';
     },
 
     showHistoryFormView(entry = null) {
+        this.resetReadingTimer(false);
         document.getElementById('historyListView').style.display = 'none';
         document.getElementById('historyFormView').style.display = 'flex';
 
         if (entry) {
-            this.dom.historyEntryId.value = entry.date;
+            this.dom.historyEntryId.value = entry.id || entry.date;
             this.dom.newCurrentPage.value = entry.page;
             this.dom.historyNoteContent.value = entry.note || '';
             this.dom.isPercentage.checked = false;
             this.dom.lblHistoryInput.textContent = 'Página Atual';
+            if (this.dom.readingDurationMinutes) {
+                this.dom.readingDurationMinutes.value = entry.durationMinutes || '';
+            }
         } else {
             this.dom.historyEntryId.value = '';
             this.dom.historyForm.reset();
             this.dom.isPercentage.checked = false;
             this.dom.lblHistoryInput.textContent = 'Página Atual';
+            if (this.dom.readingDurationMinutes) {
+                this.dom.readingDurationMinutes.value = '';
+            }
         }
         setTimeout(() => this.dom.newCurrentPage.focus(), 50);
+    },
+
+    toggleReadingTimer() {
+        if (!this.timerState) {
+            this.timerState = { isRunning: false, seconds: 0, intervalId: null };
+        }
+
+        if (this.timerState.isRunning) {
+            this.stopReadingTimer();
+        } else {
+            this.timerState.isRunning = true;
+            if (this.dom.btnToggleTimer) this.dom.btnToggleTimer.textContent = '⏸ Pausar';
+            if (this.dom.btnResetTimer) this.dom.btnResetTimer.style.display = 'inline-flex';
+
+            this.timerState.intervalId = setInterval(() => {
+                this.timerState.seconds++;
+                this.updateTimerDisplay();
+                if (this.dom.readingDurationMinutes && this.timerState.seconds >= 30) {
+                    this.dom.readingDurationMinutes.value = Math.max(1, Math.round(this.timerState.seconds / 60));
+                }
+            }, 1000);
+        }
+    },
+
+    stopReadingTimer() {
+        if (!this.timerState) return;
+        if (this.timerState.intervalId) {
+            clearInterval(this.timerState.intervalId);
+            this.timerState.intervalId = null;
+        }
+        if (this.timerState.isRunning) {
+            this.timerState.isRunning = false;
+            if (this.dom.btnToggleTimer) {
+                this.dom.btnToggleTimer.textContent = this.timerState.seconds > 0 ? '▶ Retomar' : '▶ Iniciar';
+            }
+            if (this.dom.readingDurationMinutes && this.timerState.seconds > 0) {
+                this.dom.readingDurationMinutes.value = Math.max(1, Math.round(this.timerState.seconds / 60));
+            }
+        }
+    },
+
+    resetReadingTimer(clearInput = true) {
+        this.stopReadingTimer();
+        if (this.timerState) {
+            this.timerState.seconds = 0;
+        }
+        this.updateTimerDisplay();
+        if (this.dom.btnToggleTimer) this.dom.btnToggleTimer.textContent = '▶ Iniciar';
+        if (this.dom.btnResetTimer) this.dom.btnResetTimer.style.display = 'none';
+        if (clearInput && this.dom.readingDurationMinutes) {
+            this.dom.readingDurationMinutes.value = '';
+        }
+    },
+
+    updateTimerDisplay() {
+        if (!this.dom.timerDisplay) return;
+        const totalSec = this.timerState ? this.timerState.seconds : 0;
+        const hrs = Math.floor(totalSec / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        if (hrs > 0) {
+            this.dom.timerDisplay.textContent = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        } else {
+            this.dom.timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
     },
 
     renderHistoryList(book) {
@@ -2662,6 +3374,7 @@ const App = {
 
         this.dom.historyList.innerHTML = sortedHistory.map(entry => {
             const dateDisplay = this.formatRelativeDate(entry.date);
+            const entryKey = entry.id || entry.date;
             let label = `Pág. ${entry.page}`;
             let icon = '📖';
 
@@ -2673,6 +3386,10 @@ const App = {
                 icon = '🚀';
             }
 
+            const durationBadge = entry.durationMinutes > 0
+                ? `<span class="note-location-tag" style="margin-top: 0; background: rgba(16, 185, 129, 0.15); color: #34d399;">⏱️ ${entry.durationMinutes} min</span>`
+                : '';
+
             return `
                 <div class="history-item ${entry.type || 'progress'}" style="flex-direction: column; align-items: stretch; gap: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
@@ -2680,20 +3397,21 @@ const App = {
                             <span class="history-icon">${icon}</span>
                             <div class="history-details">
                                 <span class="history-date">${dateDisplay}</span>
-                                <div class="history-val">
+                                <div class="history-val" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                     <span class="note-location-tag" style="margin-top: 0;">${label}</span>
+                                    ${durationBadge}
                                 </div>
                             </div>
                         </div>
                     <div class="history-actions">
                         <div class="action-buttons">
-                            <button type="button" class="action-btn edit" onclick="App.editHistoryItem('${book.id}', '${entry.date}')" title="Editar">
+                            <button type="button" class="action-btn edit" onclick="App.editHistoryItem('${book.id}', '${entryKey}')" title="Editar">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button type="button" class="action-btn delete" onclick="App.deleteHistoryItem('${book.id}', '${entry.date}')" title="Excluir">
+                            <button type="button" class="action-btn delete" onclick="App.deleteHistoryItem('${book.id}', '${entryKey}')" title="Excluir">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2706,7 +3424,7 @@ const App = {
                     <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; padding-left: 4px; padding-right: 4px;">
                             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Comentário</span>
-                            <button type="button" class="action-btn" onclick="App.copyHistoryNoteToClipboard('${book.id}', '${entry.date}')" title="Copiar comentário" style="opacity: 0.7;">
+                            <button type="button" class="action-btn" onclick="App.copyHistoryNoteToClipboard('${book.id}', '${entryKey}')" title="Copiar comentário" style="opacity: 0.7;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -2720,10 +3438,10 @@ const App = {
         }).join('');
     },
 
-    copyHistoryNoteToClipboard(bookId, dateStr) {
+    copyHistoryNoteToClipboard(bookId, entryKey) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
-        const entry = book.history.find(h => h.date === dateStr);
+        const entry = book.history.find(h => (h.id || h.date) === entryKey || h.date === entryKey);
         if (entry && entry.note) {
             navigator.clipboard.writeText(entry.note).then(() => {
                 this.showToast('Comentário copiado!', 'success');
@@ -2731,14 +3449,14 @@ const App = {
         }
     },
 
-    deleteHistoryItem(bookId, dateStr) {
+    deleteHistoryItem(bookId, entryKey) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
-        const entryToDelete = book.history.find(h => h.date === dateStr);
+        const entryToDelete = book.history.find(h => (h.id || h.date) === entryKey || h.date === entryKey);
         
         if (entryToDelete) {
-            const hasFutureEntries = book.history.some(h => new Date(h.date) > new Date(dateStr));
+            const hasFutureEntries = book.history.some(h => new Date(h.date) > new Date(entryToDelete.date));
             
             if (hasFutureEntries) {
                 if (entryToDelete.type === 'start') {
@@ -2753,26 +3471,24 @@ const App = {
         }
 
         this.openDeleteModal('Tem certeza que deseja excluir esse registro?', () => {
-            book.history = book.history.filter(h => h.date !== dateStr);
+            book.history = book.history.filter(h => (h.id || h.date) !== entryKey && h.date !== entryKey);
             this.recalculateBookProgress(book);
 
             rm.update(book.id, book);
             this.refresh();
 
-            const percent = Math.round((book.readPages / book.pages) * 100);
-            this.dom.historyProgressText.textContent = `${percent}%`;
-            this.dom.historyProgressBar.style.width = `${percent}%`;
+            this.updateModalProgressHeader(book);
             document.getElementById('newCurrentPage').value = book.readPages;
 
             this.renderHistoryList(book);
         });
     },
 
-    editHistoryItem(bookId, dateStr) {
+    editHistoryItem(bookId, entryKey) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
-        const entry = book.history.find(h => h.date === dateStr);
+        const entry = book.history.find(h => (h.id || h.date) === entryKey || h.date === entryKey);
         if (entry) {
             this.showHistoryFormView(entry);
         }
@@ -2822,11 +3538,13 @@ const App = {
 
     async handleHistorySubmit(e) {
         e.preventDefault();
+        this.stopReadingTimer();
         const bookId = document.getElementById('historyBookId').value;
         const entryId = document.getElementById('historyEntryId').value;
         const inputVal = document.getElementById('newCurrentPage').value;
         const noteVal = document.getElementById('historyNoteContent').value.trim();
         const isPercentage = document.getElementById('isPercentage').checked;
+        const durationVal = this.dom.readingDurationMinutes ? (parseInt(this.dom.readingDurationMinutes.value) || 0) : 0;
 
         if (inputVal === '') {
             this.showMessage('Atenção', 'Por favor, informe a página ou porcentagem atual.', '⚠️');
@@ -2852,11 +3570,17 @@ const App = {
         if (newPageCount < 0) newPageCount = 0;
 
         if (entryId) {
-            const entryIndex = book.history.findIndex(h => h.date === entryId);
+            const entryIndex = book.history.findIndex(h => (h.id || h.date) === entryId || h.date === entryId);
             if (entryIndex !== -1) {
                 const entry = book.history[entryIndex];
+                if (!entry.id) entry.id = generateEntryId('hist');
                 entry.page = newPageCount;
                 entry.note = noteVal;
+                if (durationVal > 0) {
+                    entry.durationMinutes = durationVal;
+                } else {
+                    delete entry.durationMinutes;
+                }
                 
                 if (newPageCount === book.pages) {
                     entry.type = 'finish';
@@ -2886,7 +3610,7 @@ const App = {
                 this.showMessage('Atenção', 'O progresso informado é igual ao último registro.', '⚠️');
                 return;
             }
-            await this.updateProgress(bookId, newPageCount, noteVal);
+            await this.updateProgress(bookId, newPageCount, noteVal, durationVal);
             if (newPageCount === book.pages) return;
         }
         
@@ -2955,7 +3679,7 @@ const App = {
         }
     },
 
-    async updateProgress(bookId, newPage, note = '') {
+    async updateProgress(bookId, newPage, note = '', durationMinutes = 0) {
         const book = this.state.books.find(b => b.id === bookId);
         if (!book) return;
 
@@ -2976,12 +3700,17 @@ const App = {
         book.readPages = newPage;
 
         if (!book.history) book.history = [];
-        book.history.push({
+        const newEntry = {
+            id: generateEntryId('hist'),
             date: new Date().toISOString(),
             page: newPage,
             type: entryType,
             note: note
-        });
+        };
+        if (durationMinutes > 0) {
+            newEntry.durationMinutes = durationMinutes;
+        }
+        book.history.push(newEntry);
 
         await rm.update(book.id, book);
         this.refresh();
@@ -3004,13 +3733,29 @@ const App = {
 
     closeDeleteModal() {
         this.dom.deleteModal.classList.remove('active');
-        this.toggleBodyScroll(false);
         this.deleteCallback = null;
+        const isOtherModalActive = (this.dom.quickActionModal && this.dom.quickActionModal.classList.contains('active')) ||
+                                   (this.dom.modal && this.dom.modal.classList.contains('active'));
+        if (!isOtherModalActive && this.state.returnToDetailsBookId) {
+            const returnId = this.state.returnToDetailsBookId;
+            this.state.returnToDetailsBookId = null;
+            if (this.state.books.some(b => b.id === returnId)) {
+                this.openBookDetails(returnId);
+                return;
+            }
+        }
+        this.toggleBodyScroll(false);
     },
 
     closeAllModals() {
-        if (this.closeModal) this.closeModal();
+        const returnId = this.state.returnToDetailsBookId;
+        if (this.closeModal) this.closeModal(true);
         document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        if (returnId && this.state.books.some(b => b.id === returnId)) {
+            this.openBookDetails(returnId);
+        } else {
+            this.state.returnToDetailsBookId = null;
+        }
     },
 
     showMessage(title, text, icon = '✨') {
@@ -3092,11 +3837,30 @@ const App = {
         }
     },
 
-
     setStatsYear(year) {
         if (!this.statsState) return;
         this.statsState.selectedYear = year;
         this.renderStatsDashboard();
+    },
+
+    promptYearlyGoal(year) {
+        if (!this.dom.yearlyGoalModal) return;
+        const targetYear = String(year || new Date().getFullYear());
+        if (this.dom.yearlyGoalYear) this.dom.yearlyGoalYear.value = targetYear;
+        const labelEl = document.getElementById('yearlyGoalYearLabel');
+        if (labelEl) labelEl.textContent = targetYear;
+
+        const savedDirect = parseInt(localStorage.getItem(`rm_yearly_goal_books_${targetYear}`)) || 0;
+        const goalsMap = JSON.parse(localStorage.getItem('rm_yearly_goals') || '{}');
+        const currentGoal = savedDirect || goalsMap[targetYear] || '';
+
+        if (this.dom.yearlyGoalCount) {
+            this.dom.yearlyGoalCount.value = currentGoal;
+        }
+
+        this.dom.yearlyGoalModal.style.zIndex = '1160';
+        this.openModal(this.dom.yearlyGoalModal);
+        setTimeout(() => this.dom.yearlyGoalCount?.focus(), 80);
     },
 
     closePeriodDetails() {
@@ -3261,7 +4025,7 @@ const App = {
                     }
                 } else {
                     const newNote = {
-                        id: Date.now().toString(),
+                        id: generateEntryId('note'),
                         content: content.trim(),
                         location: location.trim(),
                         createdAt: new Date().toISOString()
@@ -3273,6 +4037,9 @@ const App = {
                 this.showNotesListView();
                 this.renderNotesList(book.notes);
                 this.dom.notesForm.reset();
+                if (this.state.filter === 'all-notes') {
+                    this.renderAllNotesTab();
+                }
             }
         } catch (error) {
             console.error("Erro ao salvar nota:", error);
@@ -3289,6 +4056,8 @@ const App = {
             return;
         }
 
+        const bookId = document.getElementById('notesBookId')?.value || '';
+
         list.innerHTML = notes.map(note => {
             const escContent = escapeHTML(note.content);
             const escLocation = escapeHTML(note.location);
@@ -3302,19 +4071,26 @@ const App = {
                             ${note.location ? `<span class="note-location-tag">${escLocation}</span>` : ''}
                         </div>
                         <div class="action-buttons">
-                        <button type="button" class="action-btn" onclick="App.copyNoteToClipboard('${note.id}')" title="Copiar anotação">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                        </button>
-                            <button type="button" class="action-btn edit" onclick="App.editNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Editar nota">
+                            <button type="button" class="action-btn" onclick="App.shareNoteCard('${bookId}', '${note.id}')" title="Gerar Card de Citação (PNG)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" class="action-btn" onclick="App.copyNoteToClipboard('${note.id}')" title="Copiar anotação">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="action-btn edit" onclick="App.editNoteItem('${bookId}', '${note.id}')" title="Editar nota">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
-                            <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${document.getElementById('notesBookId').value}', '${note.id}')" title="Excluir nota">
+                            <button type="button" class="action-btn delete" onclick="App.deleteNoteItem('${bookId}', '${note.id}')" title="Excluir nota">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 6h18"></path>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -3326,6 +4102,14 @@ const App = {
                 </div>
             </div>
         `}).join('');
+    },
+
+    shareNoteCard(bookId, noteId) {
+        const book = this.state.books.find(b => b.id === bookId);
+        if (!book || !book.notes) return;
+        const note = book.notes.find(n => n.id === noteId);
+        if (!note) return;
+        this.shareBookCard(bookId, note.content, note.location || '', note.date || note.createdAt || '');
     },
 
     copyNoteToClipboard(noteId) {
@@ -3348,6 +4132,9 @@ const App = {
             book.notes = book.notes.filter(n => n.id !== noteId);
             rm.update(bookId, { notes: book.notes });
             this.renderNotesList(book.notes);
+            if (this.state.filter === 'all-notes') {
+                this.renderAllNotesTab();
+            }
         });
     },
 
@@ -3361,6 +4148,188 @@ const App = {
         }
     },
 
+    renderAllNotesTab() {
+        this.dom.grid.innerHTML = '';
+        if (this.dom.paginationControls) this.dom.paginationControls.style.display = 'none';
+
+        const toolbarRight = document.querySelector('.toolbar-right');
+        if (toolbarRight) {
+            const searchWrapper = toolbarRight.querySelector('.search-wrapper');
+            const sortContainer = toolbarRight.querySelector('.sort-dropdown-container');
+            if (searchWrapper) searchWrapper.style.display = 'flex';
+            if (sortContainer) sortContainer.style.display = 'none';
+            if (this.dom.btnViewMode) this.dom.btnViewMode.style.display = 'none';
+            this.dom.addBtn.style.display = 'none';
+            const btnGerar = document.getElementById('btnGerarRecomendacoes');
+            if (btnGerar) btnGerar.style.display = 'none';
+        }
+
+        const allEntries = [];
+        this.state.books.forEach(book => {
+            (book.notes || []).forEach(note => {
+                if (note && note.content && note.content.trim()) {
+                    allEntries.push({
+                        type: 'note',
+                        id: note.id,
+                        bookId: book.id,
+                        bookTitle: book.title,
+                        bookAuthor: book.author,
+                        bookCover: book.cover,
+                        content: note.content,
+                        location: note.location || '',
+                        date: note.updatedAt || note.createdAt || new Date(0).toISOString()
+                    });
+                }
+            });
+
+            (book.history || []).forEach(h => {
+                if (h && h.note && h.note.trim()) {
+                    allEntries.push({
+                        type: 'history',
+                        id: h.id || h.date,
+                        bookId: book.id,
+                        bookTitle: book.title,
+                        bookAuthor: book.author,
+                        bookCover: book.cover,
+                        content: h.note,
+                        location: h.page ? `Pág. ${h.page}` : '',
+                        date: h.date || new Date(0).toISOString()
+                    });
+                }
+            });
+        });
+
+        const normalize = (str) => (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const rawQuery = (this.state.searchQuery || '').trim();
+        const terms = normalize(rawQuery).split(/\s+/).filter(Boolean);
+
+        const filtered = terms.length > 0
+            ? allEntries.filter(item => {
+                const contentNorm = normalize(item.content);
+                const titleNorm = normalize(item.bookTitle);
+                const authorNorm = normalize(item.bookAuthor);
+                const locNorm = normalize(item.location);
+                return terms.every(term =>
+                    contentNorm.includes(term) ||
+                    titleNorm.includes(term) ||
+                    authorNorm.includes(term) ||
+                    locNorm.includes(term)
+                );
+            })
+            : allEntries;
+
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        this.dom.resultsCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'anotação encontrada' : 'anotações encontradas'}`;
+
+        if (filtered.length === 0) {
+            this.dom.grid.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1; padding-top: 3rem;">
+                    <div style="margin-bottom: 0.75rem; color: var(--text-muted); display: flex; justify-content: center;">
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                    </div>
+                    <h3 style="color: white; margin-bottom: 8px;">${rawQuery ? 'Nenhuma anotação corresponde à busca' : 'Seu mural de anotações está vazio'}</h3>
+                    <p>Adicione reflexões, citações favoritas ou comentários durante suas leituras para vê-los reunidos aqui.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'all-notes-container';
+        container.style.gridColumn = '1 / -1';
+
+        container.innerHTML = filtered.map((item, idx) => {
+            const escTitle = escapeHTML(item.bookTitle);
+            const escAuthor = escapeHTML(item.bookAuthor);
+            const escContent = escapeHTML(item.content);
+            const escLoc = escapeHTML(item.location);
+            const dateLabel = this.formatRelativeDate(item.date);
+            const isPlaceholder = !item.bookCover || item.bookCover.includes('placehold.co') || item.bookCover.includes('Sem+Capa');
+            const badgeHTML = item.type === 'note'
+                ? `<span class="note-type-badge">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <span>Nota</span>
+                   </span>`
+                : `<span class="note-type-badge">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span>Progresso</span>
+                   </span>`;
+
+            return `
+                <div class="global-note-card" data-note-idx="${idx}">
+                    <div class="global-note-header">
+                        <div class="global-note-book" onclick="App.openBookDetails('${item.bookId}')" style="cursor: pointer;">
+                            ${isPlaceholder
+                                ? `<div class="global-note-cover-placeholder">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                    </svg>
+                                   </div>`
+                                : `<img src="${item.bookCover}" alt="${escTitle}" class="global-note-cover" onerror="this.style.display='none'">`
+                            }
+                            <div class="global-note-book-info">
+                                <div class="global-note-book-title">${escTitle}</div>
+                                <div class="global-note-book-author">${escAuthor}</div>
+                            </div>
+                        </div>
+                        <div class="global-note-actions">
+                            <button type="button" class="action-btn" onclick="App.shareGlobalNote(${idx})" title="Gerar Card PNG">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </button>
+                            <button type="button" class="action-btn" onclick="App.copyGlobalNote(${idx})" title="Copiar texto">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                            <button type="button" class="action-btn" onclick="App.openQuickActionModal('${item.bookId}', '${item.type === 'note' ? 'notes' : 'history'}')" title="Abrir no Livro">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <blockquote class="global-note-quote">${escContent}</blockquote>
+                    <div class="global-note-footer">
+                        ${badgeHTML}
+                        ${escLoc ? `<span class="note-location-tag">${escLoc}</span>` : ''}
+                        <span class="global-note-date">${dateLabel}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this._cachedGlobalNotes = filtered;
+        this.dom.grid.appendChild(container);
+    },
+
+    copyGlobalNote(idx) {
+        const item = this._cachedGlobalNotes && this._cachedGlobalNotes[idx];
+        if (!item) return;
+        navigator.clipboard.writeText(`"${item.content}" — ${item.bookTitle} (${item.bookAuthor})`).then(() => {
+            this.showToast('Citação copiada para a área de transferência!');
+        });
+    },
+
+    shareGlobalNote(idx) {
+        const item = this._cachedGlobalNotes && this._cachedGlobalNotes[idx];
+        if (!item) return;
+        this.shareBookCard(item.bookId, item.content, item.location);
+    },
+
     renderRecommendationsTab() {
         this.dom.grid.innerHTML = '';
         if (this.dom.paginationControls) this.dom.paginationControls.style.display = 'none';
@@ -3371,6 +4340,7 @@ const App = {
             const sortContainer = toolbarRight.querySelector('.sort-dropdown-container');
             if (searchWrapper) searchWrapper.style.display = 'none';
             if (sortContainer) sortContainer.style.display = 'none';
+            if (this.dom.btnViewMode) this.dom.btnViewMode.style.display = 'none';
             this.dom.addBtn.style.display = 'none';
             
             let btnGerar = document.getElementById('btnGerarRecomendacoes');
@@ -3391,9 +4361,9 @@ const App = {
             this.dom.resultsCount.textContent = `Encontramos ${cachedRecommendations.length} tesouros!`;
             
             cachedRecommendations.forEach((book, index) => {
-                const info = book.volumeInfo;
+                const info = book.volumeInfo || {};
                 const thumb = info.imageLinks ? (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail) : null;
-                const coverUrl = thumb ? thumb.replace('http:', 'https:') : '';
+                const coverUrl = cleanCoverUrl(thumb);
                 const escTitle = escapeHTML(info.title || 'Título desconhecido');
                 const escAuthor = escapeHTML(info.authors ? info.authors[0] : 'Autor desconhecido');
                 const escReason = escapeHTML(book.geminiReason || 'Excelente adição à sua biblioteca.');
@@ -3406,10 +4376,7 @@ const App = {
                 
                 card.onclick = () => {
                     App.dom.addBtn.click();
-                    document.getElementById('bookTitle').value = info.title || '';
-                    document.getElementById('bookAuthor').value = escAuthor;
-                    document.getElementById('bookPages').value = info.pageCount || '';
-                    document.getElementById('bookCover').value = coverUrl || '';
+                    this.populateFormWithBook(info);
                 };
 
                 card.innerHTML = `
@@ -3445,13 +4412,13 @@ const App = {
         if (livrosBase.length === 0) {
             this.showMessage(
                 'Precisamos conhecer o seu gosto! 🕵️‍♂️', 
-                'Adicione alguns livros à sua biblioteca primeiro. Assim, a IA terá uma base para sugerir leituras que combinem com você.', 
+                'Adicione alguns livros à sua biblioteca primeiro. Assim, poderemos analisar seus autores e gêneros favoritos para sugerir leituras que combinem com você.', 
                 '📚'
             );
             return;
         }
 
-        this.dom.grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin-bottom:20px;"></div><p>Procurando livros que combinem contigo...</p></div>';
+        this.dom.grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin-bottom:20px;"></div><p>Analisando seus autores e gêneros favoritos...</p></div>';
 
         try {
             const sugestoesBrutas = await GeminiAPI.getRecomendacoes(livrosBase, todosOsTitulos);
@@ -3459,32 +4426,41 @@ const App = {
 
             if (sugestoes.length === 0) throw new Error("Sem sugestões novas.");
 
-            const resultadosIniciais = sugestoes.map(sug => ({
-                id: `temp-${Math.random()}`,
-                volumeInfo: { title: sug.title, authors: [sug.author], imageLinks: null },
-                geminiReason: sug.reason
-            }));
+            const resultadosIniciais = sugestoes.map(sug => {
+                if (sug.prefetchedItem && sug.prefetchedItem.volumeInfo) {
+                    return {
+                        ...sug.prefetchedItem,
+                        geminiReason: sug.reason
+                    };
+                }
+                return {
+                    id: `temp-${Math.random()}`,
+                    volumeInfo: { title: sug.title, authors: [sug.author], imageLinks: null },
+                    geminiReason: sug.reason
+                };
+            });
 
             this.state.searchResults = resultadosIniciais;
             localStorage.setItem('rm_recommendations', JSON.stringify(resultadosIniciais));
             this.renderRecommendationsTab();
 
+            const indicesNeedingFetch = sugestoes
+                .map((sug, idx) => (!sug.prefetchedItem ? idx : -1))
+                .filter(idx => idx !== -1);
+
             const BATCH_SIZE = 5;
-            for (let i = 0; i < sugestoes.length; i += BATCH_SIZE) {
-                const currentBatch = sugestoes.slice(i, i + BATCH_SIZE);
+            for (let i = 0; i < indicesNeedingFetch.length; i += BATCH_SIZE) {
+                const currentBatch = indicesNeedingFetch.slice(i, i + BATCH_SIZE);
                 
-                const batchPromises = currentBatch.map(async (sug, batchIdx) => {
-                    const globalIdx = i + batchIdx;
+                const batchPromises = currentBatch.map(async (globalIdx) => {
+                    const sug = sugestoes[globalIdx];
                     try {
                         let busca = await GoogleBooksAPI.search(`${sug.title} ${sug.author}`);
-                        
                         if (!busca || busca.length === 0) {
                             busca = await GoogleBooksAPI.search(sug.title);
                         }
-
                         if (!busca || busca.length === 0) {
                             busca = await OpenLibraryAPI.search(`${sug.title} ${sug.author}`);
-                            
                             if (!busca || busca.length === 0) {
                                 busca = await OpenLibraryAPI.search(sug.title);
                             }
@@ -3502,7 +4478,6 @@ const App = {
                 });
 
                 await Promise.all(batchPromises);
-                await new Promise(r => setTimeout(r, 2000));
             }
         } catch (error) {
             console.error(error);
@@ -3514,19 +4489,15 @@ const App = {
         const card = document.getElementById(`rec-card-${index}`);
         if (!card) return;
 
-        const info = bookData.volumeInfo;
+        const info = bookData.volumeInfo || {};
         let coverUrl = '';
         if (info.imageLinks) {
-            const thumb = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
-            if (thumb) coverUrl = thumb.replace('http:', 'https:');
+            coverUrl = cleanCoverUrl(info.imageLinks.thumbnail || info.imageLinks.smallThumbnail);
         }
         
         card.onclick = () => {
             App.dom.addBtn.click();
-            document.getElementById('bookTitle').value = info.title || '';
-            document.getElementById('bookAuthor').value = info.authors ? info.authors[0] : '';
-            document.getElementById('bookPages').value = info.pageCount || 0;
-            document.getElementById('bookCover').value = coverUrl || '';
+            this.populateFormWithBook(info);
         };
 
         if (coverUrl) {

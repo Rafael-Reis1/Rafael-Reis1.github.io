@@ -17,20 +17,18 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 window.onYouTubeIframeAPIReady = function() {
     ytApiReady = true;
     
-    // Usa um IntersectionObserver para inicializar os players apenas quando eles aparecerem na tela
     const observer = new IntersectionObserver((entries, obs) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const container = entry.target;
                 const fgIframe = container.querySelector('.ambilight');
-                // Se ainda não foi inicializado (não tem id configurado)
                 if (fgIframe && !fgIframe.id) {
                     setupAmbilightPair(container, fgIframe);
                 }
-                obs.unobserve(container); // Para de observar após carregar
+                obs.unobserve(container);
             }
         });
-    }, { rootMargin: "300px 0px" }); // Carrega quando o vídeo estiver a 300px de aparecer na tela
+    }, { rootMargin: "300px 0px" });
 
     document.querySelectorAll('.video-container').forEach(container => {
         observer.observe(container);

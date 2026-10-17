@@ -11,7 +11,10 @@ export function processBookStats(book) {
         hasFinishedBefore: book.status === 'read' || ['re-reading', 'rereading'].includes(book.status) || (book.timesRead > 0),
         activityByYear: {},
         activityByMonth: {},
-        heatmapDays: {}
+        heatmapDays: {},
+        totalReadingMinutes: 0,
+        pagesWithTimer: 0,
+        completionDays: []
     };
 
     const ensureYear = (y) => {
@@ -29,6 +32,7 @@ export function processBookStats(book) {
     };
 
     let lastPage = 0;
+    let cycleStartDate = null;
     const sortedHistory = [...(book.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     sortedHistory.forEach(h => {
@@ -38,11 +42,32 @@ export function processBookStats(book) {
         if (h.type === 'finish') {
             diff = p - lastPage;
             lastPage = 0;
+            if (cycleStartDate && !isSynthetic(h)) {
+                const finishDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+                const diffMs = finishDate - cycleStartDate;
+                if (diffMs > 60000) {
+                    const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+                    book.computed.completionDays.push(days);
+                }
+            }
+            cycleStartDate = null;
         } else if (h.type === 'start') {
             lastPage = 0;
+            if (!isSynthetic(h)) {
+                cycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            }
         } else {
             diff = pageNum - lastPage;
             lastPage = pageNum;
+            if (!cycleStartDate && !isSynthetic(h)) {
+                cycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            }
+        }
+
+        const durMin = parseFloat(h.durationMinutes) || 0;
+        if (durMin > 0 && diff > 0) {
+            book.computed.totalReadingMinutes += durMin;
+            book.computed.pagesWithTimer += diff;
         }
 
         if (diff > 0 || h.type === 'finish') {
@@ -149,6 +174,64 @@ export function processBookStats(book) {
         ensureYear(parseInt(book.goalYear));
     }
 }
+
+export function calculateReadingStreaks(dailyPages = {}) {
+    const activeDates = Object.entries(dailyPages)
+        .filter(([dateKey, pages]) => pages > 0 && dateKey !== '1970-01-01')
+        .map(([dateKey]) => dateKey)
+        .sort();
+
+    if (activeDates.length === 0) {
+        return { currentStreak: 0, longestStreak: 0, activeDays: 0, avgPagesPerActiveDay: 0, totalPagesInHeatmap: 0 };
+    }
+
+    const totalPagesInHeatmap = activeDates.reduce((acc, d) => acc + (dailyPages[d] || 0), 0);
+    const avgPagesPerActiveDay = Math.round(totalPagesInHeatmap / activeDates.length);
+
+    let longestStreak = 1;
+    let tempStreak = 1;
+
+    for (let i = 1; i < activeDates.length; i++) {
+        const prev = new Date(activeDates[i - 1] + 'T12:00:00');
+        const curr = new Date(activeDates[i] + 'T12:00:00');
+        const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+            tempStreak++;
+            if (tempStreak > longestStreak) longestStreak = tempStreak;
+        } else if (diffDays > 1) {
+            tempStreak = 1;
+        }
+    }
+
+    const formatDateKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const activeSet = new Set(activeDates);
+    let currentStreak = 0;
+    let checkDate = null;
+
+    if (activeSet.has(formatDateKey(today))) {
+        checkDate = new Date(today);
+    } else if (activeSet.has(formatDateKey(yesterday))) {
+        checkDate = new Date(yesterday);
+    }
+
+    while (checkDate && activeSet.has(formatDateKey(checkDate))) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return {
+        currentStreak,
+        longestStreak,
+        activeDays: activeDates.length,
+        avgPagesPerActiveDay,
+        totalPagesInHeatmap
+    };
+}
+
 
 export async function migrateLegacyHistory(rm) {
     if (!rm.books || rm.books.length === 0) return;

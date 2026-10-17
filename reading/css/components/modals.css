@@ -77,7 +77,25 @@
     overflow-y: auto;
     flex: 1;
     min-height: 0;
-    scrollbar-color: var(--accent-color) transparent;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
 }
 
 .modal-footer {
@@ -391,5 +409,381 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding: 20px
+    padding: 20px;
 }
+
+#yearlyGoalForm {
+    padding: 0;
+    gap: 0;
+}
+
+#quickActionModal .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#quickActionModal .form-row {
+    margin-bottom: 10px;
+}
+
+/* Modal Detalhes do Livro — Padrão Unificado com Editar Livro / Progresso */
+#bookDetailsModal .modal-content {
+    max-width: 31.25rem;
+}
+
+.bd-summary-card {
+    display: grid;
+    grid-template-columns: 115px 1fr;
+    column-gap: 1.15rem;
+    row-gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    align-items: start;
+}
+
+.bd-cover-wrap {
+    grid-column: 1;
+    grid-row: 1;
+    width: 115px;
+    height: 172px;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #0f101e;
+    border: 1px solid var(--glass-border);
+    position: relative;
+    display: flex;
+    align-self: start;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.bd-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bd-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.bd-summary-info {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.bd-status-rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.bd-tags-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.bd-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
+
+.bd-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    padding: 0.16rem 0.5rem;
+    border-radius: 20px;
+}
+
+.bd-rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.22);
+    padding: 0.18rem 0.55rem;
+    border-radius: 20px;
+    flex-shrink: 0;
+}
+
+.bd-identity-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.bd-title {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.bd-author {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bd-inline-meta {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    font-weight: 500;
+    margin-top: 0.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bd-inline-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.bd-inline-progress:hover {
+    opacity: 0.9;
+}
+
+.bd-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+}
+
+.bd-metric-box {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.6rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.15rem;
+}
+
+.bd-metric-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.bd-metric-value {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.bd-readonly-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.85rem;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+}
+
+.bd-synopsis-box {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    max-height: 9rem;
+    overflow-y: auto;
+    white-space: pre-line;
+}
+
+.bd-loan-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--color-lent);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.bd-estimate-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+@media (max-width: 560px) {
+    #bookDetailsModal .modal-body {
+        padding: 0.95rem !important;
+        gap: 0.65rem !important;
+    }
+
+    .bd-summary-card {
+        grid-template-columns: 95px 1fr;
+        column-gap: 0.85rem;
+        row-gap: 0.75rem;
+        padding: 0.85rem;
+        align-items: start;
+    }
+
+    .bd-cover-wrap {
+        grid-column: 1;
+        grid-row: 1;
+        width: 95px;
+        height: 142px;
+        aspect-ratio: 2 / 3;
+        align-self: start;
+    }
+
+    .bd-summary-info {
+        grid-column: 2;
+        grid-row: 1;
+        gap: 0.4rem;
+    }
+
+    .bd-title {
+        font-size: 0.98rem;
+    }
+
+    .bd-author {
+        font-size: 0.8rem;
+    }
+
+    .bd-tag-pill {
+        font-size: 0.68rem;
+        padding: 0.14rem 0.45rem;
+    }
+
+    .bd-inline-progress {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        padding-top: 0.65rem;
+    }
+
+    .bd-metrics-grid {
+        gap: 0.4rem;
+    }
+
+    .bd-metric-box {
+        padding: 0.5rem 0.25rem;
+    }
+
+    .bd-metric-label {
+        font-size: 0.62rem;
+        letter-spacing: 0.02em;
+    }
+
+    .bd-metric-value {
+        font-size: 0.9rem;
+    }
+
+    #bookDetailsModal .modal-footer {
+        padding: 0.75rem 0.95rem;
+        gap: 0.45rem;
+    }
+
+    #bookDetailsModal .modal-footer .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Scanner de ISBN via Câmera */
+.isbn-camera-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--glass-border);
+}
+
+#isbnVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.isbn-scan-line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 50%;
+    height: 2px;
+    background: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+    animation: pulse 1.5s infinite;
+}
+
