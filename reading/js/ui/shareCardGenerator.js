@@ -242,14 +242,6 @@ function drawCoverWithEffects(ctx, coverImg, titleStr, authorStr, x, y, w, h, ra
 
     if (coverImg) {
         ctx.drawImage(coverImg, x, y, w, h);
-
-        const spineGrad = ctx.createLinearGradient(x, y, x + 26, y);
-        spineGrad.addColorStop(0, 'rgba(255, 255, 255, 0.28)');
-        spineGrad.addColorStop(0.25, 'rgba(255, 255, 255, 0.06)');
-        spineGrad.addColorStop(0.55, 'rgba(0, 0, 0, 0.24)');
-        spineGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = spineGrad;
-        ctx.fillRect(x, y, 26, h);
     } else {
         const phGrad = ctx.createLinearGradient(x, y, x + w, y + h);
         phGrad.addColorStop(0, '#312e81');
@@ -588,12 +580,24 @@ export async function generateShareCard(book, options = {}) {
 
     const compDaysArr = book.computed?.completionDays || [];
     const lastCompDays = compDaysArr.length > 0 ? compDaysArr[compDaysArr.length - 1] : null;
-    const activeDaysCount = Object.keys(book.computed?.heatmapDays || {}).length;
-    const totalReadComputed = book.computed?.totalReadPages || readPages || 0;
-    const avgPace = activeDaysCount > 0 ? Math.max(1, Math.round(totalReadComputed / activeDaysCount)) : 0;
     const historyArr = Array.isArray(book.history) ? book.history : [];
     const finishesCount = historyArr.filter(h => h.type === 'finish').length;
     const totalTimesRead = (parseInt(book.timesRead) || 0) + finishesCount;
+
+    // Ritmo correto e proporcional para cada estado:
+    let avgPace = 0;
+    if (isReading) {
+        // Leitura ou releitura ativa: ritmo exclusivo do ciclo atual (não mistura com leituras anteriores)
+        avgPace = book.computed?.currentCyclePace || 0;
+    } else if (isRead) {
+        // Livro concluído: ritmo baseado na duração total de conclusão (páginas / tempo de leitura)
+        if (lastCompDays !== null && lastCompDays > 0 && totalPages > 0) {
+            avgPace = totalPages / lastCompDays;
+        } else {
+            const activeDaysCount = Object.keys(book.computed?.heatmapDays || {}).length;
+            avgPace = activeDaysCount > 0 ? (totalPages / activeDaysCount) : 0;
+        }
+    }
 
     // Pré-cálculo de texto do título
     const titleFontSize = titleStr.length > 40 ? 36 : 42;
@@ -843,9 +847,10 @@ export async function generateShareCard(book, options = {}) {
         }
 
         if (avgPace > 0) {
-            const infoParts = [`${avgPace} pág/dia`];
+            const paceInt = Math.max(1, Math.round(avgPace));
+            const infoParts = [`${paceInt} pág/dia`];
             if (remainingPgs > 0) {
-                const estDays = Math.ceil(remainingPgs / avgPace);
+                const estDays = Math.ceil(remainingPgs / paceInt);
                 infoParts.push(`~${estDays} ${estDays === 1 ? 'dia' : 'dias'} restantes`);
             }
             ctx.font = '600 16px Inter, system-ui, sans-serif';
@@ -864,11 +869,17 @@ export async function generateShareCard(book, options = {}) {
         ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
         ctx.stroke();
 
-        const col3 = (avgPace > 0)
-            ? { label: 'RITMO MÉDIO', value: `${avgPace} pág/dia` }
-            : (totalTimesRead > 1)
-                ? { label: 'RELEITURAS', value: `${totalTimesRead}ª vez lido` }
-                : { label: 'STATUS', value: '100% Concluído' };
+        let col3;
+        if (avgPace > 0) {
+            const paceStr = avgPace >= 10
+                ? `${Math.round(avgPace)} pág/dia`
+                : `${avgPace.toFixed(1).replace('.', ',')} pág/dia`;
+            col3 = { label: 'RITMO MÉDIO', value: paceStr };
+        } else if (totalTimesRead > 1) {
+            col3 = { label: 'RELEITURAS', value: `${totalTimesRead}ª vez lido` };
+        } else {
+            col3 = { label: 'STATUS', value: '100% Concluído' };
+        }
 
         const statCols = [
             { label: 'PÁGINAS', value: totalPages > 0 ? `${totalPages}` : 'Concluído' },

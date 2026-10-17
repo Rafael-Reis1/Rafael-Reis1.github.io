@@ -2672,7 +2672,7 @@ const App = {
         }
 
         const lblNotes = document.getElementById('lblDetailsNotesCount');
-        if (lblNotes) lblNotes.textContent = `Anotações (${notesCount})`;
+        if (lblNotes) lblNotes.textContent = `Anotações`;
 
         const btnEdit = document.getElementById('btnEditFromDetails');
         if (btnEdit) {
@@ -2683,9 +2683,11 @@ const App = {
         let paceEstimateSubHTML = '';
         if (['reading', 're-reading', 'rereading'].includes(book.status) && book.pages > 0 && progress < 100) {
             const remainingPages = Math.max(0, (parseInt(book.pages) || 0) - (parseInt(book.readPages) || 0));
-            const activeDaysCount = Object.keys(book.computed?.heatmapDays || {}).length;
-            const totalRead = book.computed?.totalReadPages || parseInt(book.readPages) || 0;
-            const avgPagesPerDay = activeDaysCount > 0 ? Math.max(5, Math.round(totalRead / activeDaysCount)) : 20;
+            const currentPace = book.computed?.currentCyclePace || 0;
+            const currentActiveDays = book.computed?.currentCycleActiveDays || 0;
+            const avgPagesPerDay = currentPace > 0
+                ? currentPace
+                : (currentActiveDays > 0 ? Math.max(1, Math.round((parseInt(book.readPages) || 0) / currentActiveDays)) : 20);
             const estDays = Math.ceil(remainingPages / avgPagesPerDay);
             paceEstimateSubHTML = `
                 <div class="bd-estimate-sub">
@@ -2714,18 +2716,11 @@ const App = {
             `;
         }
 
-        // Fourth metric box: Completion Days (if array has items) or Notes Count
-        const compDaysArr = book.computed?.completionDays || [];
-        const lastCompDays = compDaysArr.length > 0 ? compDaysArr[compDaysArr.length - 1] : null;
-        const fourthMetricHTML = lastCompDays !== null
-            ? `<div class="bd-metric-box">
-                    <span class="bd-metric-label">Conclusão</span>
-                    <span class="bd-metric-value">${lastCompDays} ${lastCompDays === 1 ? 'dia' : 'dias'}</span>
-               </div>`
-            : `<div class="bd-metric-box" style="cursor: pointer;" onclick="App.openSubModalFromDetails('${book.id}', 'quick', 'notes')" title="Clique para ver anotações">
-                    <span class="bd-metric-label">Anotações</span>
-                    <span class="bd-metric-value">${notesCount}</span>
-               </div>`;
+        // Fourth metric box: Anotações padronizado para todos os livros
+        const fourthMetricHTML = `<div class="bd-metric-box" style="cursor: pointer;" onclick="App.openSubModalFromDetails('${book.id}', 'quick', 'notes')" title="Clique para ver anotações">
+                <span class="bd-metric-label">Anotações</span>
+                <span class="bd-metric-value">${notesCount}</span>
+           </div>`;
 
         // Active tags rendered as compact pills inside the summary card
         const tagNames = {
