@@ -702,7 +702,7 @@ export class StatsView {
                                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             `}
                         </svg>
-                        ${isCurrentActiveMonth ? 'Balanço c/ Agendados' : (isFutureMonth ? 'Balanço Agendado' : (isMonthlyMode ? 'Saldo do Mês' : 'Saldo do Período'))}
+                        ${isCurrentActiveMonth ? 'Previsão de Fechamento' : (isFutureMonth ? 'Previsão do Mês' : (isMonthlyMode ? 'Saldo do Mês' : 'Saldo do Período'))}
                     </div>
                     <div class="stats-kpi-sub">${forecastText}</div>
                 </div>
@@ -910,7 +910,7 @@ export class StatsView {
                                 <span>${hasCustomTarget ? (isOverTarget ? `<strong style="color: #fbbf24;">⚠️ +${this.formatCurrency(overTargetAmount)} acima da meta (${budgetTargetPct}%)</strong>` : `🎯 Margem na meta (${budgetTargetPct}%): ${this.formatCurrency(remainingToTarget)}`) : `${Math.max(0, 100 - consumptionRate)}% livre`}</span>
                             ` : willBeOverbudget ? `
                                 <span>Sobra atual: <strong style="color: #fbbf24;">${this.formatCurrency(remainingIncome)}</strong> <small style="color: #fbbf24;">(${this.formatCurrency(futureScheduledExpenses)} a vencer ⚠️)</small></span>
-                                <span style="color: #f87171; font-weight: 600;">Balanço c/ agendados: -${this.formatCurrency(projectedDeficit)}</span>
+                                <span style="color: #f87171; font-weight: 600;">Déficit previsto: -${this.formatCurrency(projectedDeficit)}</span>
                             ` : (isCurrentActiveMonth && futureScheduledExpenses > 0) ? `
                                 <span>Livre para gastar: <strong style="color: var(--income-color);">${this.formatCurrency(trueFreeAmount)}</strong> <small style="color: var(--text-secondary);">(${this.formatCurrency(futureScheduledExpenses)} a vencer)</small></span>
                                 <span>${hasCustomTarget ? (isOverTarget ? `<strong style="color: #fbbf24;">⚠️ +${this.formatCurrency(overTargetAmount)} acima da meta (${budgetTargetPct}%)</strong>` : `🎯 Na meta (${budgetTargetPct}%): restam ${this.formatCurrency(remainingToTarget)}`) : `${Math.max(0, Math.round((trueFreeAmount / totalIncome) * 100))}% livre`}</span>

@@ -374,3 +374,14 @@
 .sidebar-overlay {
     display: none;
 }
+
+.nav-item.active[data-filter="all-notes"] {
+    background: #ec4899;
+    border-color: #ec4899;
+}
+
+.icon-notes {
+    color: #ec4899;
+    fill: currentColor;
+}
+

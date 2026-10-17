@@ -21,11 +21,13 @@
 
 .sortable-fallback .book-cover-container:hover { transform: none !important; z-index: initial; }
 
-.sortable-fallback .book-cover-container:hover .quick-add-btn { opacity: 0 !important; pointer-events: none !important; transform: translate(-50%, 10px) !important; }
+.sortable-fallback .book-cover-container:hover .quick-add-btn,
+.sortable-fallback .book-cover-container:hover .list-remove-btn { opacity: 0 !important; pointer-events: none !important; transform: translate(-50%, 10px) !important; }
 
 body.is-dragging .book-cover-container:hover { transform: none !important; z-index: initial !important; }
 
-body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !important; }
+body.is-dragging .quick-add-btn,
+body.is-dragging .list-remove-btn { opacity: 0 !important; pointer-events: none !important; }
 
 .sortable-fallback .book-cover-container { box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; }
 
@@ -35,7 +37,8 @@ body.is-dragging .quick-add-btn { opacity: 0 !important; pointer-events: none !i
 
 .sortable-chosen .book-cover-container { transform: scale(1.05) !important; box-shadow: 0 15px 30px rgba(0,0,0,0.5) !important; transition: all 0.2s ease; }
 
-.sortable-chosen .quick-add-btn { opacity: 0 !important; }
+.sortable-chosen .quick-add-btn,
+.sortable-chosen .list-remove-btn { opacity: 0 !important; }
 
 .sortable-ghost .book-cover-container { transform: none !important; box-shadow: none !important; }
 
