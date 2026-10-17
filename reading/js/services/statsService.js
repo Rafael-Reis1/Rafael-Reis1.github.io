@@ -173,6 +173,63 @@ export function processBookStats(book) {
     if (book.goalYear) {
         ensureYear(parseInt(book.goalYear));
     }
+
+    // -------------------------------------------------------------------------
+    // CÁLCULO ESPECÍFICO DO CICLO ATUAL (PARA LEITURA/RELEITURA ATIVA E RITMO REAL)
+    // -------------------------------------------------------------------------
+    const lastFinishIndex = sortedHistory.map(h => h.type).lastIndexOf('finish');
+    const currentCycleEntries = lastFinishIndex !== -1 ? sortedHistory.slice(lastFinishIndex + 1) : sortedHistory;
+
+    const currentCycleHeatmapDays = {};
+    let currentCycleStartDate = null;
+    let lastPageInCycle = 0;
+
+    currentCycleEntries.forEach(h => {
+        const pageNum = parseInt(h.page) || 0;
+        let diff = 0;
+        if (h.type === 'start') {
+            lastPageInCycle = 0;
+            if (!isSynthetic(h)) {
+                currentCycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            }
+        } else if (h.type !== 'finish') {
+            diff = pageNum - lastPageInCycle;
+            lastPageInCycle = pageNum;
+            if (!currentCycleStartDate && !isSynthetic(h)) {
+                currentCycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            }
+            if (diff > 0 && !isSynthetic(h)) {
+                let d = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+                if (d.getFullYear() > 1970) {
+                    const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    currentCycleHeatmapDays[dKey] = (currentCycleHeatmapDays[dKey] || 0) + diff;
+                }
+            }
+        }
+    });
+
+    const isCurrentlyActive = ['reading', 're-reading', 'rereading'].includes(book.status);
+    const currentActiveDays = Object.keys(currentCycleHeatmapDays).length;
+    const currentReadPages = isCurrentlyActive ? Math.min(p, Math.max(0, parseInt(book.readPages) || 0)) : (book.status === 'read' ? p : 0);
+
+    let currentCyclePace = 0;
+    if (currentActiveDays > 0 && currentReadPages > 0) {
+        currentCyclePace = Math.max(1, Math.round(currentReadPages / currentActiveDays));
+    } else if (currentCycleStartDate && currentReadPages > 0) {
+        const daysElapsed = Math.max(1, Math.ceil((new Date() - currentCycleStartDate) / (1000 * 60 * 60 * 24)));
+        currentCyclePace = Math.max(1, Math.round(currentReadPages / daysElapsed));
+    }
+
+    book.computed.currentCycleActiveDays = currentActiveDays;
+    book.computed.currentCycleReadPages = currentReadPages;
+    book.computed.currentCyclePace = currentCyclePace;
+
+    // Ritmo de conclusão do livro lido baseado no tempo real da leitura (lastCompDays)
+    const compDays = book.computed.completionDays;
+    const lastCompDays = compDays.length > 0 ? compDays[compDays.length - 1] : null;
+    book.computed.lastCompletionPace = (lastCompDays !== null && lastCompDays > 0 && p > 0)
+        ? (p / lastCompDays)
+        : null;
 }
 
 export function calculateReadingStreaks(dailyPages = {}) {
