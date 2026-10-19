@@ -1,5 +1,6 @@
 import { auth, googleProvider } from '../services/firebase.js';
 import { CATEGORIES, CATEGORY_NAMES, EXPENSE_COLORS, INCOME_COLORS } from '../utils/constants.js';
+import { escapeHtml as escapeHtmlValue, debounce, todayString, tomorrowString, parseDateOnly } from '../utils/helpers.js';
 import { StatsView } from './statsView.js';
 
 export class UIController {
@@ -36,11 +37,6 @@ export class UIController {
 
         this.initElements();
         this.initEventListeners();
-
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-
 
         this.setDefaultDate();
         this.render();
@@ -172,7 +168,7 @@ export class UIController {
         });
 
         this.btnNextPage.addEventListener('click', () => {
-            const totalPages = Math.ceil(this.fm.getFilteredTransactions(this.currentFilters).length / this.itemsPerPage);
+            const totalPages = Math.ceil(this.fm.getFilteredTransactions(this.buildFilters()).length / this.itemsPerPage);
             if (this.currentPage < totalPages) {
                 this.currentPage++;
                 this.render();
@@ -237,13 +233,30 @@ export class UIController {
 
         this.btnAddTransaction.addEventListener('click', () => this.openAddModal());
 
+        const applySearch = debounce(() => {
+            const view = this.refreshView();
+            this.renderDashboard(view);
+            this.renderChart(view);
+            this.renderIncomeChart(view);
+            this.renderTransactionsList(view);
+        }, 250);
+
         this.searchInput.addEventListener('input', () => {
             this.currentFilters.search = this.searchInput.value;
             this.currentPage = 1;
-            this.renderDashboard();
-            this.renderChart();
-            this.renderIncomeChart();
-            this.renderTransactionsList();
+            applySearch();
+        });
+
+        this.transactionsList.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button) return;
+
+            const { action, id, groupId } = button.dataset;
+
+            if (action === 'series' && groupId) this.openSeriesModal(groupId);
+            if (action === 'paid' && id) this.togglePaid(id);
+            if (action === 'edit' && id) this.openEditModal(id);
+            if (action === 'delete' && id) this.openDeleteModal(id);
         });
 
         this.btnOpenFilters.addEventListener('click', () => this.openFilterModal());
@@ -527,23 +540,7 @@ export class UIController {
     }
 
     setDefaultDate() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-        this.setDatePickerValue(document.getElementById('editDate'), dateStr);
-    }
-
-    getCategoryColor(type, category) {
-        if (type === 'income') return 'var(--income-color)';
-        return EXPENSE_COLORS[category] || 'var(--text-primary)';
-    }
-
-    getCategoryColorBg(type, category) {
-        if (type === 'income') return 'rgba(34, 197, 94, 0.1)';
-        const color = EXPENSE_COLORS[category];
-        return color ? color + '20' : 'rgba(255, 255, 255, 0.05)';
+        this.setDatePickerValue(document.getElementById('editDate'), todayString());
     }
 
     updateEditCategoryOptions(preserveValue = null) {
@@ -567,13 +564,31 @@ export class UIController {
         }
     }
 
+    buildFilters() {
+        return {
+            startDate: this.currentFilters.startDate || null,
+            endDate: this.currentFilters.endDate || null,
+            type: this.currentFilters.type || null,
+            category: this.currentFilters.category || null,
+            status: this.currentFilters.status || null,
+            search: this.currentFilters.search || null
+        };
+    }
+
+    refreshView() {
+        this.view = this.fm.getFilteredView(this.buildFilters());
+        return this.view;
+    }
+
     render() {
+        const view = this.refreshView();
+
         this.renderActiveFilters();
-        this.renderDashboard();
+        this.renderDashboard(view);
 
         const typeFilter = this.currentFilters.type;
         if (!typeFilter || typeFilter === 'expense') {
-            this.renderChart();
+            this.renderChart(view);
         } else {
             if (this.chart) {
                 this.chart.destroy();
@@ -584,7 +599,7 @@ export class UIController {
         }
 
         if (!typeFilter || typeFilter === 'income') {
-            this.renderIncomeChart();
+            this.renderIncomeChart(view);
         } else {
             if (this.incomeChart) {
                 this.incomeChart.destroy();
@@ -595,7 +610,7 @@ export class UIController {
         }
 
         this.updateFilterOptions();
-        this.renderTransactionsList();
+        this.renderTransactionsList(view);
 
         if (this.statsModal && this.statsModal.classList.contains('active') && this.statsView) {
             this.statsView.render();
@@ -693,37 +708,29 @@ export class UIController {
         this.render();
     }
 
-    renderDashboard() {
-        const filters = {
-            startDate: this.currentFilters.startDate || null,
-            endDate: this.currentFilters.endDate || null,
-            type: this.currentFilters.type || null,
-            category: this.currentFilters.category || null,
-            status: this.currentFilters.status || null,
-            search: this.currentFilters.search || null
-        };
+    renderDashboard(view = null) {
+        const filters = this.buildFilters();
+        const summary = view ? view.summary : this.refreshView().summary;
+        this.summary = summary;
 
-        const totals = this.fm.getFilteredTotals(filters);
-
-        let displayBalance;
         const isFiltered = filters.startDate || filters.endDate || filters.category || filters.search || filters.status;
 
+        let displayBalance;
         if (isFiltered) {
-            displayBalance = totals.balance;
+            displayBalance = summary.balance;
             this.balanceLabel.textContent = 'Resultado do Filtro';
+            this.balanceLabel.title = 'Receitas menos despesas no período filtrado';
         } else {
             displayBalance = this.fm.getBalance();
-            this.balanceLabel.textContent = 'Saldo Atual';
+            this.balanceLabel.textContent = 'Saldo em Caixa';
+            this.balanceLabel.title = 'Receitas recebidas menos despesas efetivamente pagas até hoje';
         }
 
-        const futureExpenses = this.fm.getFutureExpenses(filters);
-        const overdueExpenses = this.fm.getOverdueExpenses(filters);
-        const futureIncomes = this.fm.getFutureIncomes(filters);
-        const overdueIncomes = this.fm.getOverdueIncomes(filters);
+        const { futureExpenses, overdueExpenses, futureIncomes, overdueIncomes } = summary;
 
         this.balanceValue.textContent = this.formatCurrency(displayBalance);
-        this.incomeValue.textContent = this.formatCurrency(totals.income);
-        this.expenseValue.textContent = this.formatCurrency(totals.expense);
+        this.incomeValue.textContent = this.formatCurrency(summary.income);
+        this.expenseValue.textContent = this.formatCurrency(summary.expense);
 
         const futureElement = document.getElementById('futureValue');
         const futureCard = document.querySelector('.card.future');
@@ -771,18 +778,15 @@ export class UIController {
     }
 
     updateDashboardFiltered() {
-        this.renderDashboard();
-        this.renderTransactionsList();
+        const view = this.refreshView();
+        this.renderDashboard(view);
+        this.renderTransactionsList(view);
     }
 
-    renderChart() {
-        const expenses = this.fm.getFilteredExpensesByCategory({
-            startDate: this.currentFilters.startDate || null,
-            endDate: this.currentFilters.endDate || null,
-            category: this.currentFilters.category || null,
-            status: this.currentFilters.status || null,
-            search: this.currentFilters.search || null
-        });
+    renderChart(view = null) {
+        const expenses = view
+            ? view.expenseByCategory
+            : this.fm.getFilteredExpensesByCategory(this.buildFilters());
         const categories = Object.keys(expenses);
         this.expenseChartCategories = categories;
 
@@ -896,14 +900,10 @@ export class UIController {
         }
     }
 
-    renderIncomeChart() {
-        const incomes = this.fm.getFilteredIncomesByCategory({
-            startDate: this.currentFilters.startDate || null,
-            endDate: this.currentFilters.endDate || null,
-            category: this.currentFilters.category || null,
-            status: this.currentFilters.status || null,
-            search: this.currentFilters.search || null
-        });
+    renderIncomeChart(view = null) {
+        const incomes = view
+            ? view.incomeByCategory
+            : this.fm.getFilteredIncomesByCategory(this.buildFilters());
         const categories = Object.keys(incomes);
         this.incomeChartCategories = categories;
 
@@ -1083,8 +1083,10 @@ export class UIController {
         }
     }
 
-    renderTransactionsList() {
-        let transactions = this.fm.getFilteredTransactions(this.currentFilters);
+    renderTransactionsList(view = null) {
+        const transactions = view
+            ? view.visible
+            : this.fm.getFilteredTransactions(this.buildFilters());
 
         if (this.transactionCount) {
             this.transactionCount.textContent = `(${transactions.length})`;
@@ -1139,15 +1141,11 @@ export class UIController {
         }
         this.btnNextPage.removeAttribute('disabled');
 
+        const todayStr = todayString();
+        const tomorrowStr = tomorrowString();
+
         pageItems.forEach(t => {
             const el = document.createElement('div');
-
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
             let statusClass = '';
             if (t.isPaid) {
@@ -1197,7 +1195,7 @@ export class UIController {
                     </span>
                     <div class="action-buttons">
                         ${hasSeries ? `
-                        <button class="action-btn series-btn" onclick="app.openSeriesModal('${t.groupId}')" title="Ver Série">
+                        <button class="action-btn series-btn" data-action="series" data-group-id="${this.escapeHtml(t.groupId)}" title="Ver Série">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                                 <polyline points="2 17 12 22 22 17"></polyline>
@@ -1205,18 +1203,18 @@ export class UIController {
                             </svg>
                         </button>
                         ` : ''}
-                        <button class="action-btn paid-btn ${paidClass}" onclick="app.togglePaid('${t.id}')" title="${isPaid ? (t.type === 'income' ? 'Marcar como não recebido' : 'Marcar como não pago') : (t.type === 'income' ? 'Marcar como recebido' : 'Marcar como pago')}">
+                        <button class="action-btn paid-btn ${paidClass}" data-action="paid" data-id="${this.escapeHtml(t.id)}" title="${isPaid ? (t.type === 'income' ? 'Marcar como não recebido' : 'Marcar como não pago') : (t.type === 'income' ? 'Marcar como recebido' : 'Marcar como pago')}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </button>
-                        <button class="action-btn edit" onclick="app.openEditModal('${t.id}')" title="Editar">
+                        <button class="action-btn edit" data-action="edit" data-id="${this.escapeHtml(t.id)}" title="Editar">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
-                        <button class="action-btn delete" onclick="app.openDeleteModal('${t.id}')" title="Excluir">
+                        <button class="action-btn delete" data-action="delete" data-id="${this.escapeHtml(t.id)}" title="Excluir">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"></polyline>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1225,9 +1223,6 @@ export class UIController {
                     </div>
                 </div>
             `;
-
-            el.querySelector('.edit').addEventListener('click', () => this.openEditModal(t.id));
-            el.querySelector('.delete').addEventListener('click', () => this.openDeleteModal(t.id));
 
             this.transactionsList.appendChild(el);
         });
@@ -1681,66 +1676,6 @@ export class UIController {
         }
     }
 
-
-    handleFormSubmit(e) {
-        e.preventDefault();
-
-        const rawAmount = document.getElementById('editAmount').value;
-        const parseAmount = parseFloat(rawAmount.replace(/\./g, '').replace(',', '.'));
-
-        if (parseAmount <= 0) {
-            this.showToast('O valor deve ser maior que zero', 'error');
-            return;
-        }
-
-        const data = {
-            description: document.getElementById('editDescription').value.trim(),
-            amount: parseAmount,
-            date: document.getElementById('editDate').value,
-            type: document.getElementById('editType').value,
-            category: document.getElementById('editCategory').value
-        };
-
-        const isRecurring = document.getElementById('isRecurring').checked;
-        if (isRecurring && !this.isEditing) {
-            const installments = parseInt(document.getElementById('recurringInstallments').value);
-            if (!installments || installments < 2) {
-                this.showToast('Informe o número de parcelas (mínimo 2)', 'error');
-                document.getElementById('recurringInstallments').focus();
-                return;
-            }
-            data.isRecurring = true;
-            data.installments = installments;
-        }
-
-        const syncErrorCallback = () => {
-            this.showToast('Erro ao sincronizar com a nuvem. Será sincronizado ao reconectar.', 'error');
-        };
-
-        const offlineCallback = () => {
-            this.showToast('Você está offline. Será sincronizado ao reconectar.', 'info');
-        };
-
-        if (this.isEditing && this.editingId) {
-            this.fm.update(this.editingId, data, syncErrorCallback, offlineCallback);
-            this.showToast('Transação atualizada!', 'success');
-
-            const seriesModal = document.getElementById('seriesModal');
-            if (seriesModal && seriesModal.classList.contains('active')) {
-                const t = this.fm.get(this.editingId);
-                if (t && t.groupId) {
-                    this.openSeriesModal(t.groupId);
-                }
-            }
-        } else {
-            this.fm.add(data, syncErrorCallback, offlineCallback);
-            this.showToast(data.installments ? 'Parcelas geradas com sucesso!' : 'Transação adicionada!', 'success');
-        }
-
-        this.closeModal(this.editModal, true);
-        this.render();
-    }
-
     openSeriesModal(groupId) {
         const transactions = this.fm.getGroupTransactions(groupId);
         if (!transactions || transactions.length === 0) return;
@@ -1796,12 +1731,8 @@ export class UIController {
             });
         }
 
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        const todayStr = todayString();
+        const tomorrowStr = tomorrowString();
 
         transactions.forEach(t => {
             const isPaid = t.isPaid === true;
@@ -2103,6 +2034,12 @@ export class UIController {
         reader.onload = (event) => {
             try {
                 const data = JSON.parse(event.target.result);
+
+                if (!data || !Array.isArray(data.transactions)) {
+                    this.showToast('Arquivo inválido: lista de transações ausente', 'error');
+                    return;
+                }
+
                 this.pendingImportData = data;
                 this.openModal(this.importModal);
             } catch (err) {
@@ -2135,10 +2072,15 @@ export class UIController {
 
         try {
             const count = await this.fm.import(this.pendingImportData, replace);
+            const skipped = this.fm.lastImportSkipped || 0;
             this.pendingImportData = null;
             this.closeModal(this.importModal, true);
             this.render();
-            this.showToast(`${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`, 'success');
+
+            let message = `${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`;
+            if (skipped > 0) message += ` ${skipped} inválida(s) ignorada(s).`;
+
+            this.showToast(message, skipped > 0 ? 'info' : 'success');
         } catch (err) {
             this.showToast('Erro ao importar: ' + err.message, 'error');
         } finally {
@@ -2168,19 +2110,13 @@ export class UIController {
 
     formatDate(dateString) {
         if (!dateString) return '';
-        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = dateString.split('-');
-            return `${day}/${month}/${year}`;
-        }
-        try {
-            const date = new Date(dateString);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch (e) {
-            return dateString;
-        }
+
+        const date = parseDateOnly(dateString);
+        if (!date) return dateString;
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}/${month}/${date.getFullYear()}`;
     }
 
     getCategoryName(key) {
@@ -2194,13 +2130,12 @@ export class UIController {
 
     getCategoryColorBg(type, key) {
         if (type === 'income') return 'rgba(34, 197, 94, 0.1)';
-        return 'rgba(255, 255, 255, 0.05)';
+        const color = EXPENSE_COLORS[key];
+        return color ? `${color}20` : 'rgba(255, 255, 255, 0.05)';
     }
 
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return escapeHtmlValue(text);
     }
 
     openModal(modal) {

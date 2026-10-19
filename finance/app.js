@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const financeManager = new FinanceManager();
     const ui = new UIController(financeManager);
 
-    window.app = ui;
     window.financeApp = { financeManager, ui };
 
     let deferredPrompt;

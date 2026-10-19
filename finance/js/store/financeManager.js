@@ -1,5 +1,5 @@
 import { auth, db, firebase } from '../services/firebase.js';
-import { normalize } from '../utils/helpers.js';
+import { normalize, parseDateOnly, getYearMonth, todayString, tomorrowString, toDateString } from '../utils/helpers.js';
 
 export class FinanceManager {
     constructor() {
@@ -101,7 +101,7 @@ export class FinanceManager {
 
         this.stopListener();
 
-        this.fetchSettings(user.uid);
+        await this.fetchSettings(user.uid);
 
         const transactionsRef = db.collection('finance_data').doc(user.uid).collection('transactions');
 
@@ -179,8 +179,17 @@ export class FinanceManager {
                     const batch = db.batch();
 
                     chunk.forEach(t => {
-                        const ref = userRef.collection('transactions').doc(t.id);
-                        batch.set(ref, t);
+                        if (!t || typeof t !== 'object') return;
+
+                        const data = { ...t };
+                        delete data.id;
+                        Object.keys(data).forEach(key => {
+                            if (data[key] === undefined) delete data[key];
+                        });
+
+                        const docId = (typeof t.id === 'string' && t.id) ? t.id : this.generateId();
+                        const ref = userRef.collection('transactions').doc(docId);
+                        batch.set(ref, data);
                     });
 
                     await batch.commit();
@@ -199,7 +208,11 @@ export class FinanceManager {
 
 
     getAll() {
-        return [...this.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+        return [...this.transactions].sort((a, b) => {
+            const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+            if (dateCompare !== 0) return dateCompare;
+            return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+        });
     }
 
     get(id) {
@@ -212,7 +225,7 @@ export class FinanceManager {
         const groupId = installments > 1 ? this.generateId() : null;
 
         if (installments > 1) {
-            const baseDate = new Date(transaction.date + 'T12:00:00');
+            const baseDate = parseDateOnly(transaction.date) || new Date();
             const installmentValue = Math.round((transaction.amount / installments) * 100) / 100;
             const totalCalculated = installmentValue * installments;
             const diff = Math.round((transaction.amount - totalCalculated) * 100) / 100;
@@ -275,7 +288,9 @@ export class FinanceManager {
                     if (onSyncError) onSyncError();
                 });
             } else {
-                batch.commit();
+                batch.commit().catch(() => {
+                    this.hasPendingChanges = true;
+                });
                 if (onOffline) onOffline();
             }
         }
@@ -329,7 +344,7 @@ export class FinanceManager {
         if (groupId && mode !== 'all') {
             remainingTransactions = this.transactions
                 .filter(t => t.groupId === groupId && !idsToDelete.has(t.id))
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
+                .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
         }
 
         this.transactions = this.transactions.filter(t => !idsToDelete.has(t.id));
@@ -380,7 +395,9 @@ export class FinanceManager {
                     if (onSyncError) onSyncError();
                 });
             } else {
-                batch.commit();
+                batch.commit().catch(() => {
+                    this.hasPendingChanges = true;
+                });
                 if (onOffline) onOffline();
             }
         }
@@ -390,7 +407,7 @@ export class FinanceManager {
     getGroupTransactions(groupId) {
         return this.transactions
             .filter(t => t.groupId === groupId)
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+            .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     }
 
     generateId() {
@@ -398,155 +415,159 @@ export class FinanceManager {
     }
 
     getBalance() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
+        const todayStr = todayString();
 
-        return this.transactions
-            .filter(t => t.date <= dateStr)
-            .reduce((acc, t) => {
-                if (t.type === 'income') {
-                    return acc + t.amount;
+        return this.transactions.reduce((acc, t) => {
+            if (!t || typeof t.date !== 'string' || t.date > todayStr) return acc;
+
+            const amount = Number(t.amount) || 0;
+
+            if (t.type === 'income') return acc + amount;
+            if (t.type !== 'expense') return acc;
+
+            if (!t.isPaid && t.date < todayStr) return acc;
+
+            return acc - amount;
+        }, 0);
+    }
+
+    _searchTerms(filters = {}) {
+        return normalize(filters.search || '').split(/\s+/).filter(Boolean);
+    }
+
+    _matchesCommon(t, filters, searchTerms) {
+        if (filters.startDate && t.date < filters.startDate) return false;
+        if (filters.endDate && t.date > filters.endDate) return false;
+
+        if (filters.category) {
+            if (filters.category === 'outros') {
+                if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
+            } else if (t.category !== filters.category) {
+                return false;
+            }
+        }
+
+        if (searchTerms.length > 0) {
+            const description = normalize(t.description || '');
+            if (!searchTerms.every(term => description.includes(term))) return false;
+        }
+
+        return true;
+    }
+
+    _effectiveEndDate(filters = {}) {
+        if (filters.endDate || filters.status || filters.search) return filters.endDate || '';
+
+        const tomorrowStr = tomorrowString();
+        if (!filters.startDate || filters.startDate <= tomorrowStr) return tomorrowStr;
+
+        return '';
+    }
+
+    _matchesStatus(t, status, todayStr) {
+        if (!status) return true;
+
+        if (status === 'paid') return t.isPaid === true;
+        if (status === 'overdue') return !t.isPaid && t.date < todayStr;
+        if (status === 'pending') return !t.isPaid && t.date >= todayStr;
+
+        return true;
+    }
+
+    getFilteredView(filters = {}) {
+        const todayStr = todayString();
+        const searchTerms = this._searchTerms(filters);
+        const effectiveEndDate = this._effectiveEndDate(filters);
+        const typeFilter = filters.type || '';
+        const statusFilter = filters.status || '';
+
+        const all = [];
+        const visible = [];
+        const expenseByCategory = {};
+        const incomeByCategory = {};
+
+        const summary = {
+            income: 0,
+            expense: 0,
+            balance: 0,
+            futureExpenses: 0,
+            futureIncomes: 0,
+            overdueExpenses: 0,
+            overdueIncomes: 0
+        };
+
+        const countsFutureExpenses = !typeFilter || typeFilter === 'expense';
+        const countsFutureIncomes = !typeFilter || typeFilter === 'income';
+        const allowsPending = !statusFilter || statusFilter === 'pending';
+        const allowsOverdue = !statusFilter || statusFilter === 'overdue';
+
+        this.transactions.forEach(t => {
+            if (!t || typeof t.date !== 'string') return;
+            if (t.type !== 'income' && t.type !== 'expense') return;
+
+            const tDate = t.date.substring(0, 10);
+            const withinEndDate = !effectiveEndDate || tDate <= effectiveEndDate;
+
+            if (!this._matchesCommon(t, filters, searchTerms)) return;
+            if (!this._matchesStatus(t, statusFilter, todayStr)) return;
+
+            const amount = Number(t.amount) || 0;
+
+            if (withinEndDate) {
+                all.push(t);
+
+                if (t.type === 'expense') {
+                    expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + amount;
                 } else {
-                    if (!t.isPaid && t.date < dateStr) return acc;
-                    return acc - t.amount;
+                    incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + amount;
                 }
-            }, 0);
-    }
+            }
 
-    getFutureExpenses(filters = {}) {
-        if (filters.type && filters.type !== 'expense') return 0;
+            if (typeFilter && t.type !== typeFilter) return;
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
-        return this.transactions
-            .filter(t => {
-                if (t.date < dateStr) return false;
-                if (t.type === 'income') return false;
-                if (t.type !== 'expense') return false;
-                if (t.isPaid === true) return false;
-
-                if (filters.status && filters.status !== 'pending') return false;
-                if (filters.startDate && t.date < filters.startDate) return false;
-                if (filters.endDate && t.date > filters.endDate) return false;
-                if (filters.category) {
-                    if (filters.category === 'outros') {
-                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
-                    } else if (t.category !== filters.category) {
-                        return false;
+            if (t.isPaid !== true) {
+                if (t.type === 'expense') {
+                    if (t.date >= todayStr && countsFutureExpenses && allowsPending) {
+                        summary.futureExpenses += amount;
+                    }
+                    if (t.date < todayStr && countsFutureExpenses && allowsOverdue) {
+                        summary.overdueExpenses += amount;
+                    }
+                } else {
+                    if (t.date >= todayStr && countsFutureIncomes && allowsPending) {
+                        summary.futureIncomes += amount;
+                    }
+                    if (t.date < todayStr && countsFutureIncomes && allowsOverdue) {
+                        summary.overdueIncomes += amount;
                     }
                 }
-                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+            }
 
-                return true;
-            })
-            .reduce((acc, t) => acc + t.amount, 0);
-    }
+            if (!withinEndDate) return;
 
-    getFutureIncomes(filters = {}) {
-        if (filters.type && filters.type !== 'income') return 0;
+            const isExcluded = t.type === 'expense'
+                ? this.excludedCategories.has(t.category)
+                : this.excludedIncomeCategories.has(t.category);
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
+            if (isExcluded) return;
 
-        return this.transactions
-            .filter(t => {
-                if (t.date < dateStr) return false;
-                if (t.type !== 'income') return false;
-                if (t.isPaid === true) return false;
+            visible.push(t);
+            if (t.type === 'income') summary.income += amount;
+            else summary.expense += amount;
+        });
 
-                if (filters.status && filters.status !== 'pending') return false;
-                if (filters.startDate && t.date < filters.startDate) return false;
-                if (filters.endDate && t.date > filters.endDate) return false;
-                if (filters.category) {
-                    if (filters.category === 'outros') {
-                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
-                    } else if (t.category !== filters.category) {
-                        return false;
-                    }
-                }
-                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
+        const sortByDate = (a, b) => {
+            const dateCompare = b.date.localeCompare(a.date);
+            if (dateCompare !== 0) return dateCompare;
+            return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+        };
 
-                return true;
-            })
-            .reduce((acc, t) => acc + t.amount, 0);
-    }
+        all.sort(sortByDate);
+        visible.sort(sortByDate);
 
-    getOverdueExpenses(filters = {}) {
-        if (filters.type && filters.type !== 'expense') return 0;
+        summary.balance = summary.income - summary.expense;
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
-        return this.transactions
-            .filter(t => {
-                if (t.date >= dateStr) return false;
-                if (t.type !== 'expense') return false;
-                if (t.isPaid === true) return false;
-
-                if (filters.status && filters.status !== 'overdue') return false;
-                if (filters.startDate && t.date < filters.startDate) return false;
-                if (filters.endDate && t.date > filters.endDate) return false;
-                if (filters.category) {
-                    if (filters.category === 'outros') {
-                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
-                    } else if (t.category !== filters.category) {
-                        return false;
-                    }
-                }
-                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
-
-                return true;
-            })
-            .reduce((acc, t) => acc + t.amount, 0);
-    }
-
-    getOverdueIncomes(filters = {}) {
-        if (filters.type && filters.type !== 'income') return 0;
-
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
-
-        return this.transactions
-            .filter(t => {
-                if (t.date >= dateStr) return false;
-                if (t.type !== 'income') return false;
-                if (t.isPaid === true) return false;
-
-                if (filters.status && filters.status !== 'overdue') return false;
-                if (filters.startDate && t.date < filters.startDate) return false;
-                if (filters.endDate && t.date > filters.endDate) return false;
-                if (filters.category) {
-                    if (filters.category === 'outros') {
-                        if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
-                    } else if (t.category !== filters.category) {
-                        return false;
-                    }
-                }
-                const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                if (filters.search && !normalize(t.description).includes(normalize(filters.search))) return false;
-
-                return true;
-            })
-            .reduce((acc, t) => acc + t.amount, 0);
+        return { all, visible, summary, expenseByCategory, incomeByCategory };
     }
 
     togglePaid(id, onSyncError = null, onOffline = null) {
@@ -572,150 +593,79 @@ export class FinanceManager {
     }
 
     getMonthlyIncome(year, month, filters = {}) {
+        const todayStr = todayString();
+
         return this.transactions
             .filter(t => {
-                const d = new Date(t.date);
-                if (t.type !== 'income' || d.getFullYear() !== year || d.getMonth() !== month) return false;
+                const ym = getYearMonth(t.date);
+                if (t.type !== 'income' || !ym || ym.year !== year || ym.month !== month) return false;
 
-                if (filters.status && filters.status === 'overdue' && t.type === 'income') return false;
-                if (filters.status === 'paid' && t.isPaid !== true) return false;
-                if (filters.status === 'pending' && t.isPaid === true) return false;
+                if (filters.status === 'overdue') return false;
+                if (filters.status && !this._matchesStatus(t, filters.status, todayStr)) return false;
 
                 if (filters.category && t.category !== filters.category) return false;
-                if (filters.search) {
-                    const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                    if (!normalize(t.description).includes(normalize(filters.search))) return false;
-                }
+                if (filters.search && !this._matchesCommon(t, { search: filters.search }, this._searchTerms(filters))) return false;
+
                 return true;
             })
-            .reduce((acc, t) => acc + t.amount, 0);
+            .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     }
 
     getMonthlyExpense(year, month, filters = {}) {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todayStr = todayString();
 
         return this.transactions
             .filter(t => {
-                const d = new Date(t.date);
-                if (t.type !== 'expense' || d.getFullYear() !== year || d.getMonth() !== month) return false;
+                const ym = getYearMonth(t.date);
+                if (t.type !== 'expense' || !ym || ym.year !== year || ym.month !== month) return false;
 
-                if (filters.status) {
-                    if (filters.status === 'paid' && !t.isPaid) return false;
-                    if (filters.status === 'overdue' && (t.isPaid || t.date >= todayStr)) return false;
-                    if (filters.status === 'pending') {
-                        if (t.isPaid) return false;
-                        if (t.date < todayStr) return false;
-                    }
-                }
+                if (filters.status && !this._matchesStatus(t, filters.status, todayStr)) return false;
+                if (filters.category && !this._matchesCommon(t, { category: filters.category }, [])) return false;
+                if (filters.search && !this._matchesCommon(t, { search: filters.search }, this._searchTerms(filters))) return false;
 
-                if (filters.category) {
-                    if (filters.category === 'outros') {
-                        if (t.category !== 'outros') return false;
-                    } else if (t.category !== filters.category) {
-                        return false;
-                    }
-                }
-                if (filters.search) {
-                    const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                    if (!normalize(t.description).includes(normalize(filters.search))) return false;
-                }
                 return true;
             })
-            .reduce((acc, t) => acc + t.amount, 0);
+            .reduce((acc, t) => acc + (Number(t.amount) || 0), 0);
     }
 
     getExpensesByCategory(year, month) {
-        const expenses = this.transactions.filter(t => {
-            const d = new Date(t.date);
-            return t.type === 'expense' && d.getFullYear() === year && d.getMonth() === month;
-        });
-
-        const byCategory = {};
-        expenses.forEach(t => {
-            if (!byCategory[t.category]) {
-                byCategory[t.category] = 0;
-            }
-            byCategory[t.category] += t.amount;
-        });
-
-        return byCategory;
+        return this._groupByCategory('expense', year, month);
     }
 
     getIncomesByCategory(year, month) {
-        const incomes = this.transactions.filter(t => {
-            const d = new Date(t.date);
-            return t.type === 'income' && d.getFullYear() === year && d.getMonth() === month;
-        });
+        return this._groupByCategory('income', year, month);
+    }
 
+    _groupByCategory(type, year, month) {
         const byCategory = {};
-        incomes.forEach(t => {
-            if (!byCategory[t.category]) {
-                byCategory[t.category] = 0;
-            }
-            byCategory[t.category] += t.amount;
+
+        this.transactions.forEach(t => {
+            if (t.type !== type) return;
+
+            const ym = getYearMonth(t.date);
+            if (!ym || ym.year !== year || ym.month !== month) return;
+
+            byCategory[t.category] = (byCategory[t.category] || 0) + (Number(t.amount) || 0);
         });
 
         return byCategory;
     }
 
     getFilteredTransactions(filters = {}, ignoreExclusions = false) {
-        const normalize = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-        let effectiveEndDate = filters.endDate;
-        if (!effectiveEndDate && !filters.status && !filters.search) {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            const year = tomorrow.getFullYear();
-            const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-            const day = String(tomorrow.getDate()).padStart(2, '0');
-            const tomorrowStr = `${year}-${month}-${day}`;
-
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-            if (!filters.startDate || filters.startDate <= tomorrowStr) {
-                effectiveEndDate = tomorrowStr;
-            }
-        }
-
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const todayStr = todayString();
+        const searchTerms = this._searchTerms(filters);
+        const effectiveEndDate = this._effectiveEndDate(filters);
 
         return this.transactions.filter(t => {
+            if (!t || typeof t.date !== 'string') return false;
+
             const tDate = t.date.substring(0, 10);
+
             if (filters.startDate && tDate < filters.startDate) return false;
-
             if (effectiveEndDate && tDate > effectiveEndDate) return false;
-
             if (filters.type && t.type !== filters.type) return false;
-
-            if (filters.status) {
-                if (filters.status === 'paid' && !t.isPaid) return false;
-                if (filters.status === 'overdue') {
-                    if (t.isPaid || t.date >= todayStr) return false;
-                }
-                if (filters.status === 'pending') {
-                    if (t.isPaid) return false;
-                    if (t.date < todayStr) return false;
-                }
-            }
-
-            if (filters.category) {
-                if (filters.category === 'outros') {
-                    if (t.category !== 'outros' && t.category !== 'outros_receita') return false;
-                } else {
-                    if (t.category !== filters.category) return false;
-                }
-            }
-
-            if (filters.search) {
-                const searchTerms = normalize(filters.search).split(/\s+/).filter(Boolean);
-                const description = normalize(t.description);
-                const matchesAll = searchTerms.every(term => description.includes(term));
-                if (!matchesAll) return false;
-            }
+            if (!this._matchesStatus(t, filters.status, todayStr)) return false;
+            if (!this._matchesCommon(t, filters, searchTerms)) return false;
 
             if (!ignoreExclusions) {
                 if (t.type === 'expense' && this.excludedCategories.has(t.category)) return false;
@@ -733,43 +683,46 @@ export class FinanceManager {
     getFilteredTotals(filters = {}) {
         const transactions = this.getFilteredTransactions(filters);
 
-        const income = transactions
-            .filter(t => t.type === 'income')
-            .reduce((acc, t) => acc + t.amount, 0);
+        let income = 0;
+        let expense = 0;
 
-        const expense = transactions
-            .filter(t => t.type === 'expense')
-            .reduce((acc, t) => acc + t.amount, 0);
+        transactions.forEach(t => {
+            const amount = Number(t.amount) || 0;
+            if (t.type === 'income') income += amount;
+            else if (t.type === 'expense') expense += amount;
+        });
 
         return { income, expense, balance: income - expense };
     }
 
-    getFilteredExpensesByCategory(filters = {}) {
-        const transactions = this.getFilteredTransactions({ ...filters, type: 'expense' }, true);
+    _sumByCategory(filters, type) {
+        const transactions = this.getFilteredTransactions({ ...filters, type }, true);
         const byCategory = {};
+
         transactions.forEach(t => {
-            if (!byCategory[t.category]) byCategory[t.category] = 0;
-            byCategory[t.category] += t.amount;
+            byCategory[t.category] = (byCategory[t.category] || 0) + (Number(t.amount) || 0);
         });
+
         return byCategory;
     }
 
+    getFilteredExpensesByCategory(filters = {}) {
+        return this._sumByCategory(filters, 'expense');
+    }
+
     getFilteredIncomesByCategory(filters = {}) {
-        const transactions = this.getFilteredTransactions({ ...filters, type: 'income' }, true);
-        const byCategory = {};
-        transactions.forEach(t => {
-            if (!byCategory[t.category]) byCategory[t.category] = 0;
-            byCategory[t.category] += t.amount;
-        });
-        return byCategory;
+        return this._sumByCategory(filters, 'income');
     }
 
     getAvailableMonths() {
         const months = new Set();
+
         this.transactions.forEach(t => {
-            const d = new Date(t.date);
-            months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            const ym = getYearMonth(t.date);
+            if (!ym) return;
+            months.add(`${ym.year}-${String(ym.month + 1).padStart(2, '0')}`);
         });
+
         return Array.from(months).sort().reverse();
     }
 
@@ -790,19 +743,169 @@ export class FinanceManager {
         }
 
         return {
-            version: '1.1',
+            version: '1.2',
             exportedAt: new Date().toISOString(),
             transactions: this.transactions,
-            subscriptions: subscriptions
+            subscriptions: subscriptions,
+            settings: {
+                budgetTargetPct: this.getBudgetTargetPct(),
+                emailNotifications: this.settings?.emailNotifications !== false
+            }
+        };
+    }
+
+    _sanitizeImportedSettings(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+
+        const settings = {};
+
+        const pct = Number(raw.budgetTargetPct);
+        if (Number.isFinite(pct) && pct >= 10 && pct <= 100) {
+            settings.budgetTargetPct = Math.round(pct);
+        }
+
+        if (typeof raw.emailNotifications === 'boolean') {
+            settings.emailNotifications = raw.emailNotifications;
+        }
+
+        return Object.keys(settings).length > 0 ? settings : null;
+    }
+
+    async _applyImportedSettings(rawSettings) {
+        const settings = this._sanitizeImportedSettings(rawSettings);
+        if (!settings) return;
+
+        this.settings = { ...this.settings, ...settings };
+
+        if (typeof settings.budgetTargetPct === 'number') {
+            try {
+                localStorage.setItem('finance_budget_target_pct', String(settings.budgetTargetPct));
+            } catch (e) {}
+        }
+
+        if (auth.currentUser) {
+            try {
+                await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                    settings
+                }, { merge: true });
+            } catch (e) {
+                console.error('Erro ao restaurar configurações:', e);
+            }
+        }
+    }
+
+    _sanitizeId(value) {
+        if (typeof value !== 'string') return this.generateId();
+
+        const id = value.trim();
+        if (!id || id === '.' || id === '..' || id.includes('/')) return this.generateId();
+
+        return id;
+    }
+
+    _parseAmount(value) {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+
+        let text = value.replace(/[^\d,.-]/g, '').trim();
+        if (!text) return NaN;
+
+        if (text.includes(',')) {
+            text = text.replace(/\./g, '').replace(',', '.');
+        }
+
+        const parsed = Number(text);
+        return Number.isFinite(parsed) ? parsed : NaN;
+    }
+
+    _sanitizeImportedTransaction(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+
+        const description = String(raw.description ?? '').trim();
+        const amount = this._parseAmount(raw.amount);
+        const date = parseDateOnly(raw.date);
+        const type = raw.type === 'income' ? 'income' : raw.type === 'expense' ? 'expense' : null;
+
+        if (!description || !Number.isFinite(amount) || amount <= 0 || !date || !type) return null;
+
+        const category = (typeof raw.category === 'string' && raw.category.trim())
+            ? raw.category.trim()
+            : (type === 'income' ? 'outros_receita' : 'outros');
+
+        const transaction = {
+            id: this._sanitizeId(raw.id),
+            description,
+            amount,
+            date: toDateString(date),
+            type,
+            category,
+            isPaid: raw.isPaid === true,
+            createdAt: (typeof raw.createdAt === 'string' && raw.createdAt) ? raw.createdAt : new Date().toISOString()
+        };
+
+        if (typeof raw.groupId === 'string' && raw.groupId.trim()) transaction.groupId = raw.groupId.trim();
+        if (Number.isInteger(raw.installmentCurrent) && raw.installmentCurrent > 0) {
+            transaction.installmentCurrent = raw.installmentCurrent;
+        }
+        if (Number.isInteger(raw.installmentTotal) && raw.installmentTotal > 1) {
+            transaction.installmentTotal = raw.installmentTotal;
+        }
+        if (typeof raw.subscriptionId === 'string' && raw.subscriptionId.trim()) {
+            transaction.subscriptionId = raw.subscriptionId.trim();
+        }
+        if (raw.isRecurring === true) transaction.isRecurring = true;
+        if (Number.isInteger(raw.installments) && raw.installments > 1) transaction.installments = raw.installments;
+
+        return transaction;
+    }
+
+    _sanitizeImportedSubscription(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+
+        const name = String(raw.name ?? '').trim();
+        const amount = this._parseAmount(raw.amount);
+        const day = Number(raw.day);
+
+        if (!name || !Number.isFinite(amount) || amount <= 0) return null;
+        if (!Number.isInteger(day) || day < 1 || day > 31) return null;
+
+        const type = raw.type === 'income' ? 'income' : 'expense';
+
+        return {
+            id: this._sanitizeId(raw.id),
+            name,
+            amount,
+            day,
+            type,
+            category: (typeof raw.category === 'string' && raw.category.trim())
+                ? raw.category.trim()
+                : (type === 'income' ? 'outros_receita' : 'outros'),
+            active: raw.active !== false,
+            lastGenerated: typeof raw.lastGenerated === 'string' ? raw.lastGenerated : '',
+            createdAt: (typeof raw.createdAt === 'string' && raw.createdAt) ? raw.createdAt : new Date().toISOString()
         };
     }
 
     async import(data, replace = false) {
-        if (!data || !data.transactions || !Array.isArray(data.transactions)) {
-            throw new Error('Formato de dados inválido');
+        if (!data || !Array.isArray(data.transactions)) {
+            throw new Error('Formato de dados inválido: lista de transações ausente');
         }
 
-        const newImportedData = data.transactions;
+        const seenIds = new Set();
+        const sanitized = data.transactions.map(t => this._sanitizeImportedTransaction(t));
+        const newImportedData = sanitized.filter(t => {
+            if (!t) return false;
+
+            if (seenIds.has(t.id)) t.id = this.generateId();
+            seenIds.add(t.id);
+
+            return true;
+        });
+        const skipped = sanitized.length - newImportedData.length;
+
+        if (newImportedData.length === 0) {
+            throw new Error('Nenhuma transação válida encontrada no arquivo');
+        }
 
         if (replace) {
             this.transactions = newImportedData;
@@ -855,9 +958,11 @@ export class FinanceManager {
             }
         }
 
-        if (data.subscriptions && Array.isArray(data.subscriptions) && auth.currentUser) {
+        if (Array.isArray(data.subscriptions) && auth.currentUser) {
             const subsRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('subscriptions');
-            let subsToImport = data.subscriptions;
+            let subsToImport = data.subscriptions
+                .map(s => this._sanitizeImportedSubscription(s))
+                .filter(Boolean);
 
             if (replace) {
                 const subsSnapshot = await subsRef.get();
@@ -884,6 +989,9 @@ export class FinanceManager {
             }
         }
 
+        await this._applyImportedSettings(data.settings);
+
+        this.lastImportSkipped = skipped;
         return this.transactions.length;
     }
 

@@ -6,25 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="App de gerenciamento de finanças pessoais - Controle suas receitas e despesas">
     <title>Financeiro Pessoal</title>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1710260815">
-    <link rel="stylesheet" href="style.css?v=1710260815">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1710260815">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910260739">
+    <link rel="stylesheet" href="style.css?v=1910260739">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910260739">
 
-    <link rel="manifest" href="manifest.json?v=1710260815">
+    <link rel="manifest" href="manifest.json?v=1910260739">
     <meta name="theme-color" content="#0d0b26">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
-    <link rel="apple-touch-icon" href="icon-maskable.png?v=1710260815">
+    <link rel="apple-touch-icon" href="icon-maskable.png?v=1910260739">
     <meta name="mobile-web-app-capable" content="yes">
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=1710260815"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=1710260815"></script>
-    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=1710260815"></script>
-    <script src="lib/chart.js?v=1710260815"></script>
-    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=1710260815">
-    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=1710260815"></script>
-    <script src="../assets/libs_comuns/flatpickr/pt.js?v=1710260815"></script>
-    <script type="module" src="app.js?v=1710260815"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-app-compat.js?v=1910260739"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-auth-compat.js?v=1910260739"></script>
+    <script src="../assets/libs_comuns/firebase/10.7.1/firebase-firestore-compat.js?v=1910260739"></script>
+    <script src="lib/chart.js?v=1910260739"></script>
+    <link rel="stylesheet" href="../assets/libs_comuns/flatpickr/flatpickr.min.css?v=1910260739">
+    <script src="../assets/libs_comuns/flatpickr/flatpickr.js?v=1910260739"></script>
+    <script src="../assets/libs_comuns/flatpickr/pt.js?v=1910260739"></script>
+    <script type="module" src="app.js?v=1910260739"></script>
 </head>
 
 <body>
@@ -182,7 +182,7 @@
                             </svg>
                         </div>
                         <div class="card-content">
-                            <span class="card-label">Saldo Atual</span>
+                            <span class="card-label" title="Receitas recebidas menos despesas efetivamente pagas até hoje">Saldo em Caixa</span>
                             <span class="card-value" id="balanceValue">R$ 0,00</span>
                         </div>
                     </div>
@@ -735,7 +735,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=1710260815');
+                navigator.serviceWorker.register('sw.js?v=1910260739');
             });
         }
     </script>
