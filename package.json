@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Portfólio e projetos locais",
   "scripts": {
-    "test": "node validate.js && node --no-warnings reading/tests/run.mjs && node --no-warnings finance/tests/run.mjs",
+    "test": "node validate.js && node --no-warnings reading/tests/run.mjs && node --no-warnings finance/tests/run.mjs && node --no-warnings tests/portfolio-dom.mjs",
     "test:reading": "node --no-warnings reading/tests/run.mjs",
     "test:finance": "node --no-warnings finance/tests/run.mjs",
+    "test:portfolio": "node --no-warnings tests/portfolio-dom.mjs",
     "validate": "node validate.js",
     "cache": "node updateCache.js"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
   }
 }

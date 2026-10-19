@@ -8,10 +8,10 @@ Bem-vindo ao meu portfólio oficial! Este repositório hospeda minha página pes
 
 ## 👨‍💻 Sobre Mim
 
-Sou um Desenvolvedor Web Full-Stack focado em criar aplicações robustas, escaláveis e com excelente experiência de usuário. Tenho experiência em construir PWAs, integrar serviços em nuvem (Firebase) e otimizar interfaces complexas.
+Sou Engenheiro de Software com foco em backend, arquitetura de microsserviços, mensageria e integrações corporativas. Trabalho com NestJS, Node.js, TypeScript, Redis/BullMQ e SQL Server, além de PWAs e interfaces quando o projeto pede.
 
-* **Foco:** JavaScript (Vanilla & Frameworks), Node.js, HTML5, CSS3.
-* **Interesses:** PWAs, Soluções Financeiras, Ferramentas de Produtividade, Inteligência Artificial Local e Dashboard Design.
+* **Foco:** Node.js/NestJS, TypeScript, APIs REST, mensageria assíncrona, SQL Server e integrações com TOTVS RM/Fluig.
+* **Interesses:** Arquitetura de software, observabilidade, automação de processos, PWAs e IA local no navegador.
 
 ---
 
@@ -20,7 +20,7 @@ Sou um Desenvolvedor Web Full-Stack focado em criar aplicações robustas, escal
 ### 1. 📚 Reading Manager
 Um gerenciador de biblioteca pessoal completo e PWA, focado em métricas reais de leitura e organização de acervo. Diferente de outras plataformas, ele foca no esforço de leitura (paginômetro) e não apenas na posse do livro.
 
-* **Tecnologias:** JavaScript (Vanilla), Firebase (Firestore/Auth), OpenLibrary API, Google Books API, Chart.js.
+* **Tecnologias:** JavaScript (Vanilla), Firebase (Firestore/Auth), OpenLibrary API, Google Books API, Canvas API.
 * **Funcionalidades:**
     * 🏆 **Paginômetro Real:** Contabiliza páginas lidas considerando releituras e abandonos, medindo o esforço real do leitor.
     * 📅 **Metas e Estatísticas Anuais:** Gráficos detalhados separados por ano, evitando misturar dados de períodos diferentes.
@@ -84,9 +84,29 @@ Além dos projetos principais, desenvolvi diversas ferramentas para automação 
 ![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/node.js-6DA55F.svg?style=for-the-badge&logo=node.js&logoColor=white)
+![NestJS](https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![Firebase](https://img.shields.io/badge/firebase-%23039BE5.svg?style=for-the-badge&logo=firebase)
 ![PWA](https://img.shields.io/badge/PWA-5A0FC8.svg?style=for-the-badge&logo=pwa&logoColor=white)
 ![Chart.js](https://img.shields.io/badge/chart.js-F5788D.svg?style=for-the-badge&logo=chart.js&logoColor=white)
+
+---
+
+## ✅ Testes
+
+Os apps de Reading e Finance têm suítes de regressão para as regras de negócio (paginômetro, parcelamento, filtros, importação, backfill de assinaturas). O portfólio tem um smoke test de DOM para abas, busca, paginação, modal, estrutura do currículo e escaping.
+
+```bash
+npm install           # uma vez: instala o jsdom usado no teste do portfólio
+npm test              # valida sintaxe + reading + finance + portfólio
+npm run test:reading
+npm run test:finance
+npm run test:portfolio
+```
+
+As regras do Firestore estão versionadas em [`firestore.rules`](./firestore.rules).
 
 ---
 
