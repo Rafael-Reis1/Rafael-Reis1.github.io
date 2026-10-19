@@ -1,4 +1,5 @@
 import { CATEGORY_NAMES, CATEGORIES, EXPENSE_COLORS } from '../utils/constants.js';
+import { escapeHtml as escapeHtmlValue } from '../utils/helpers.js';
 
 export class StatsView {
     constructor(financeManager) {
@@ -95,12 +96,7 @@ export class StatsView {
     }
 
     escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        return escapeHtmlValue(str);
     }
 
     formatCurrency(val) {
