@@ -21,6 +21,7 @@
     box-sizing: border-box;
     font-family: var(--font-body);
     -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
 }
 
 body {

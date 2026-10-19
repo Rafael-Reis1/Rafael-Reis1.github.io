@@ -1,3 +1,5 @@
+import { escapeHtml } from '../utils/helpers.js';
+
 export class CustomSelect {
     constructor(originalSelect) {
         this.originalSelect = originalSelect;
@@ -169,14 +171,14 @@ export class CustomSelect {
     }
 
     formatContent(text) {
-        const trimmed = text.trim();
+        const trimmed = String(text || '').trim();
         const emojiMatch = trimmed.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u);
         if (emojiMatch) {
             const emoji = emojiMatch[0];
             const rest = trimmed.substring(emoji.length).trim();
-            return `<span class="opt-icon">${emoji}</span><span class="opt-text">${rest}</span>`;
+            return `<span class="opt-icon">${escapeHtml(emoji)}</span><span class="opt-text">${escapeHtml(rest)}</span>`;
         }
-        return trimmed;
+        return escapeHtml(trimmed);
     }
 }
 

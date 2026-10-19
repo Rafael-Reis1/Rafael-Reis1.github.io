@@ -11,6 +11,7 @@ export class FinanceManager {
         this.onSubsUpdateCallback = null;
         this.excludedCategories = new Set();
         this.excludedIncomeCategories = new Set();
+        // `emailNotifications` é consumido pelas Cloud Functions de envio (fora deste repositório).
         this.settings = { emailNotifications: true, budgetTargetPct: 80 };
     }
 
@@ -51,9 +52,9 @@ export class FinanceManager {
             localStorage.setItem('finance_budget_target_pct', String(cleanPct));
         } catch (e) {}
 
-        if (auth.currentUser) {
+        if (this.currentUid()) {
             try {
-                await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                await db.collection('finance_data').doc(this.currentUid()).set({
                     settings: { budgetTargetPct: cleanPct }
                 }, { merge: true });
             } catch (e) {
@@ -64,13 +65,13 @@ export class FinanceManager {
     }
 
     async toggleEmailNotifications() {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
 
         const newValue = !this.settings.emailNotifications;
         this.settings.emailNotifications = newValue;
 
         try {
-            await db.collection('finance_data').doc(auth.currentUser.uid).set({
+            await db.collection('finance_data').doc(this.currentUid()).set({
                 settings: { emailNotifications: newValue }
             }, { merge: true });
             return newValue;
@@ -82,10 +83,10 @@ export class FinanceManager {
     }
 
     async setEmailNotifications(enabled) {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
         this.settings.emailNotifications = enabled;
         try {
-            await db.collection('finance_data').doc(auth.currentUser.uid).set({
+            await db.collection('finance_data').doc(this.currentUid()).set({
                 settings: { emailNotifications: enabled }
             }, { merge: true });
         } catch (e) {
@@ -159,6 +160,8 @@ export class FinanceManager {
 
     clear() {
         this.transactions = [];
+        this.subscriptions = [];
+        this.settings = { emailNotifications: true, budgetTargetPct: 80 };
         this.hasPendingChanges = false;
     }
 
@@ -248,6 +251,8 @@ export class FinanceManager {
 
                 let amount = installmentValue;
                 if (i === 0 && diff !== 0) amount += diff;
+                // Evita artefatos de ponto flutuante (ex.: 33.339999999999996).
+                amount = Math.round(amount * 100) / 100;
 
                 transactionsToAdd.push({
                     id: this.generateId(),
@@ -273,9 +278,9 @@ export class FinanceManager {
 
         this.transactions.push(...transactionsToAdd);
 
-        if (auth.currentUser) {
+        if (this.currentUid()) {
             const batch = db.batch();
-            const userRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
+            const userRef = db.collection('finance_data').doc(this.currentUid()).collection('transactions');
 
             transactionsToAdd.forEach(t => {
                 const ref = userRef.doc(t.id);
@@ -304,8 +309,8 @@ export class FinanceManager {
             this.transactions[index] = { ...this.transactions[index], ...data };
             const updatedTransaction = this.transactions[index];
 
-            if (auth.currentUser) {
-                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
+            if (this.currentUid()) {
+                const ref = db.collection('finance_data').doc(this.currentUid())
                     .collection('transactions').doc(id);
 
                 ref.update(data).catch((e) => {
@@ -371,9 +376,9 @@ export class FinanceManager {
             });
         }
 
-        if (auth.currentUser) {
+        if (this.currentUid()) {
             const batch = db.batch();
-            const userRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
+            const userRef = db.collection('finance_data').doc(this.currentUid()).collection('transactions');
 
             transactionsToDelete.forEach(t => {
                 const ref = userRef.doc(t.id);
@@ -412,6 +417,11 @@ export class FinanceManager {
 
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+
+    /** UID do usuário logado (ou null quando o SDK não carregou/está deslogado). */
+    currentUid() {
+        return auth && auth.currentUser ? auth.currentUser.uid : null;
     }
 
     getBalance() {
@@ -576,8 +586,8 @@ export class FinanceManager {
             const currentPaid = this.transactions[index].isPaid || false;
             this.transactions[index].isPaid = !currentPaid;
 
-            if (auth.currentUser) {
-                const ref = db.collection('finance_data').doc(auth.currentUser.uid)
+            if (this.currentUid()) {
+                const ref = db.collection('finance_data').doc(this.currentUid())
                     .collection('transactions').doc(id);
 
                 ref.update({ isPaid: !currentPaid }).catch((e) => {
@@ -734,9 +744,9 @@ export class FinanceManager {
 
     async export() {
         let subscriptions = [];
-        if (auth.currentUser) {
+        if (this.currentUid()) {
             const subsSnapshot = await db.collection('finance_data')
-                .doc(auth.currentUser.uid)
+                .doc(this.currentUid())
                 .collection('subscriptions')
                 .get();
             subscriptions = subsSnapshot.docs.map(doc => doc.data());
@@ -783,9 +793,9 @@ export class FinanceManager {
             } catch (e) {}
         }
 
-        if (auth.currentUser) {
+        if (this.currentUid()) {
             try {
-                await db.collection('finance_data').doc(auth.currentUser.uid).set({
+                await db.collection('finance_data').doc(this.currentUid()).set({
                     settings
                 }, { merge: true });
             } catch (e) {
@@ -886,6 +896,113 @@ export class FinanceManager {
         };
     }
 
+    async _writeTransactionChunks(items) {
+        const uid = this.currentUid();
+        if (!uid || items.length === 0) return items.length;
+
+        const collectionRef = db.collection('finance_data').doc(uid).collection('transactions');
+        let written = 0;
+
+        for (let i = 0; i < items.length; i += 500) {
+            const chunk = items.slice(i, i + 500);
+            const batch = db.batch();
+            chunk.forEach(t => batch.set(collectionRef.doc(t.id), t));
+
+            try {
+                await batch.commit();
+            } catch (error) {
+                console.error('Falha ao gravar transações importadas:', error);
+                throw new Error(
+                    `Falha ao gravar as transações (${written} de ${items.length}). ` +
+                    'Nada foi apagado — verifique a conexão e tente novamente.'
+                );
+            }
+
+            written += chunk.length;
+        }
+
+        return written;
+    }
+
+    async _deleteTransactionsNotIn(keepIds) {
+        const uid = this.currentUid();
+        if (!uid) return 0;
+
+        let deleted = 0;
+        try {
+            const collectionRef = db.collection('finance_data').doc(uid).collection('transactions');
+            const snapshot = await collectionRef.get();
+            const obsolete = snapshot.docs.filter(doc => !keepIds.has(doc.id));
+
+            for (let i = 0; i < obsolete.length; i += 500) {
+                const batch = db.batch();
+                obsolete.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                deleted += Math.min(500, obsolete.length - i);
+            }
+        } catch (error) {
+            console.error('Limpeza de transações antigas incompleta:', error);
+        }
+
+        return deleted;
+    }
+
+    async _writeSubscriptionChunks(items) {
+        const uid = this.currentUid();
+        if (!uid || items.length === 0) return items.length;
+
+        const subsRef = db.collection('finance_data').doc(uid).collection('subscriptions');
+        let written = 0;
+
+        for (let i = 0; i < items.length; i += 500) {
+            const chunk = items.slice(i, i + 500);
+            const batch = db.batch();
+            chunk.forEach(s => batch.set(subsRef.doc(s.id), s));
+
+            try {
+                await batch.commit();
+            } catch (error) {
+                console.error('Falha ao gravar assinaturas importadas:', error);
+                throw new Error(
+                    `Falha ao gravar as assinaturas (${written} de ${items.length}). ` +
+                    'Nada foi apagado — verifique a conexão e tente novamente.'
+                );
+            }
+
+            written += chunk.length;
+        }
+
+        return written;
+    }
+
+    async _deleteSubscriptionsNotIn(keepIds) {
+        const uid = this.currentUid();
+        if (!uid) return 0;
+
+        let deleted = 0;
+        try {
+            const subsRef = db.collection('finance_data').doc(uid).collection('subscriptions');
+            const snapshot = await subsRef.get();
+            const obsolete = snapshot.docs.filter(doc => !keepIds.has(doc.id));
+
+            for (let i = 0; i < obsolete.length; i += 500) {
+                const batch = db.batch();
+                obsolete.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                deleted += Math.min(500, obsolete.length - i);
+            }
+        } catch (error) {
+            console.error('Limpeza de assinaturas antigas incompleta:', error);
+        }
+
+        return deleted;
+    }
+
+    /**
+     * Importa um backup de forma segura: valida tudo, grava os registros novos
+     * e só então remove o que ficou de fora (modo `replace`). Se a gravação
+     * falhar, nenhum dado existente é apagado.
+     */
     async import(data, replace = false) {
         if (!data || !Array.isArray(data.transactions)) {
             throw new Error('Formato de dados inválido: lista de transações ausente');
@@ -907,96 +1024,68 @@ export class FinanceManager {
             throw new Error('Nenhuma transação válida encontrada no arquivo');
         }
 
+        let importedCount = 0;
+        let deletedTransactions = 0;
+
         if (replace) {
+            importedCount = await this._writeTransactionChunks(newImportedData);
+            deletedTransactions = await this._deleteTransactionsNotIn(new Set(newImportedData.map(t => t.id)));
             this.transactions = newImportedData;
-
-            if (auth.currentUser) {
-                const userRef = db.collection('finance_data').doc(auth.currentUser.uid);
-                const collectionRef = userRef.collection('transactions');
-
-                const snapshot = await collectionRef.get();
-                const totalToDelete = snapshot.size;
-                const deleteDocs = snapshot.docs;
-
-                for (let i = 0; i < totalToDelete; i += 500) {
-                    const batch = db.batch();
-                    deleteDocs.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
-                    await batch.commit();
-                }
-
-                const totalToAdd = newImportedData.length;
-                for (let i = 0; i < totalToAdd; i += 500) {
-                    const chunk = newImportedData.slice(i, i + 500);
-                    const batch = db.batch();
-                    chunk.forEach(t => {
-                        const ref = collectionRef.doc(t.id);
-                        batch.set(ref, t);
-                    });
-                    await batch.commit();
-                }
-            }
-
         } else {
             const existingIds = new Set(this.transactions.map(t => t.id));
             const distinctNew = newImportedData.filter(t => !existingIds.has(t.id));
 
+            importedCount = await this._writeTransactionChunks(distinctNew);
             this.transactions = [...this.transactions, ...distinctNew];
-
-            if (auth.currentUser && distinctNew.length > 0) {
-                const collectionRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('transactions');
-                const totalToAdd = distinctNew.length;
-
-                for (let i = 0; i < totalToAdd; i += 500) {
-                    const chunk = distinctNew.slice(i, i + 500);
-                    const batch = db.batch();
-                    chunk.forEach(t => {
-                        const ref = collectionRef.doc(t.id);
-                        batch.set(ref, t);
-                    });
-                    await batch.commit();
-                }
-            }
         }
 
-        if (Array.isArray(data.subscriptions) && auth.currentUser) {
-            const subsRef = db.collection('finance_data').doc(auth.currentUser.uid).collection('subscriptions');
-            let subsToImport = data.subscriptions
+        let subscriptionsImported = 0;
+
+        if (Array.isArray(data.subscriptions)) {
+            const subsToImport = data.subscriptions
                 .map(s => this._sanitizeImportedSubscription(s))
                 .filter(Boolean);
 
             if (replace) {
-                const subsSnapshot = await subsRef.get();
-                const subsToDelete = subsSnapshot.docs;
-                for (let i = 0; i < subsToDelete.length; i += 500) {
-                    const batch = db.batch();
-                    subsToDelete.slice(i, i + 500).forEach(doc => batch.delete(doc.ref));
-                    await batch.commit();
-                }
+                subscriptionsImported = await this._writeSubscriptionChunks(subsToImport);
+                await this._deleteSubscriptionsNotIn(new Set(subsToImport.map(s => s.id)));
+                this.subscriptions = subsToImport;
             } else {
-                const currentSubsSnapshot = await subsRef.get();
-                const existingSubIds = new Set(currentSubsSnapshot.docs.map(doc => doc.id));
-                subsToImport = subsToImport.filter(s => !existingSubIds.has(s.id));
-            }
+                let existingIds = new Set(this.subscriptions.map(s => s.id));
+                if (this.currentUid()) {
+                    try {
+                        const snap = await db.collection('finance_data').doc(this.currentUid())
+                            .collection('subscriptions').get();
+                        existingIds = new Set(snap.docs.map(doc => doc.id));
+                    } catch (error) {
+                        console.warn('Não foi possível conferir assinaturas existentes:', error);
+                    }
+                }
 
-            for (let i = 0; i < subsToImport.length; i += 500) {
-                const chunk = subsToImport.slice(i, i + 500);
-                const batch = db.batch();
-                chunk.forEach(s => {
-                    const ref = subsRef.doc(s.id);
-                    batch.set(ref, s);
-                });
-                await batch.commit();
+                const distinctSubs = subsToImport.filter(s => !existingIds.has(s.id));
+                subscriptionsImported = await this._writeSubscriptionChunks(distinctSubs);
+                if (distinctSubs.length > 0) {
+                    this.subscriptions = [...this.subscriptions, ...distinctSubs];
+                }
             }
         }
 
         await this._applyImportedSettings(data.settings);
 
         this.lastImportSkipped = skipped;
-        return this.transactions.length;
+        this.lastImportDeleted = deletedTransactions;
+
+        return {
+            imported: importedCount,
+            skipped,
+            subscriptionsImported,
+            deletedTransactions,
+            total: this.transactions.length
+        };
     }
 
     async addSubscription(data) {
-        if (!auth.currentUser) return null;
+        if (!this.currentUid()) return null;
 
         const subscription = {
             id: this.generateId(),
@@ -1011,7 +1100,7 @@ export class FinanceManager {
         };
 
         const subRef = db.collection('finance_data')
-            .doc(auth.currentUser.uid)
+            .doc(this.currentUid())
             .collection('subscriptions')
             .doc(subscription.id);
 
@@ -1024,10 +1113,10 @@ export class FinanceManager {
     }
 
     async cancelSubscription(id) {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
 
         const subRef = db.collection('finance_data')
-            .doc(auth.currentUser.uid)
+            .doc(this.currentUid())
             .collection('subscriptions')
             .doc(id);
 
@@ -1035,10 +1124,10 @@ export class FinanceManager {
     }
 
     async activateSubscription(id) {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
 
         const subRef = db.collection('finance_data')
-            .doc(auth.currentUser.uid)
+            .doc(this.currentUid())
             .collection('subscriptions')
             .doc(id);
 
@@ -1046,10 +1135,10 @@ export class FinanceManager {
     }
 
     async deleteSubscription(id) {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
 
         const subRef = db.collection('finance_data')
-            .doc(auth.currentUser.uid)
+            .doc(this.currentUid())
             .collection('subscriptions')
             .doc(id);
 
@@ -1057,10 +1146,10 @@ export class FinanceManager {
     }
 
     async updateSubscription(id, data) {
-        if (!auth.currentUser) return;
+        if (!this.currentUid()) return;
 
         const subRef = db.collection('finance_data')
-            .doc(auth.currentUser.uid)
+            .doc(this.currentUid())
             .collection('subscriptions')
             .doc(id);
 
@@ -1073,18 +1162,108 @@ export class FinanceManager {
         });
     }
 
+    /** Converte 'YYYY-MM' em { year, month } (month 0-11) ou null. */
+    _parseMonthKey(key) {
+        if (typeof key !== 'string') return null;
+        const match = key.match(/^(\d{4})-(\d{2})$/);
+        if (!match) return null;
+
+        const year = Number(match[1]);
+        const month = Number(match[2]) - 1;
+        if (month < 0 || month > 11) return null;
+
+        return { year, month };
+    }
+
+    _monthKey(year, month) {
+        return `${year}-${String(month + 1).padStart(2, '0')}`;
+    }
+
+    /**
+     * Calcula as cobranças que faltam para uma assinatura, do mês seguinte ao
+     * último gerado (ou da criação) até o mês de referência. Não grava nada.
+     * Meses que já têm lançamento daquela assinatura são ignorados, e o
+     * backfill é limitado a `maxMonths` para não criar uma dívida artificial.
+     */
+    buildMissingSubscriptionCharges(sub, existingTransactions = [], referenceDate = new Date(), maxMonths = 24) {
+        if (!sub || sub.active === false) return { transactions: [], lastGenerated: null };
+
+        const amount = Number(sub.amount);
+        if (!Number.isFinite(amount) || amount <= 0) return { transactions: [], lastGenerated: null };
+
+        const refYear = referenceDate.getFullYear();
+        const refMonth = referenceDate.getMonth();
+        const currentKey = this._monthKey(refYear, refMonth);
+        const endIndex = refYear * 12 + refMonth;
+
+        let startIndex;
+        const lastGenerated = this._parseMonthKey(sub.lastGenerated);
+        if (lastGenerated) {
+            startIndex = lastGenerated.year * 12 + lastGenerated.month + 1;
+        } else {
+            const createdAt = sub.createdAt ? new Date(sub.createdAt) : null;
+            if (createdAt && !Number.isNaN(createdAt.getTime())) {
+                startIndex = createdAt.getFullYear() * 12 + createdAt.getMonth();
+            } else {
+                startIndex = endIndex;
+            }
+        }
+
+        if (startIndex > endIndex) return { transactions: [], lastGenerated: currentKey };
+
+        const firstIndex = Math.max(startIndex, endIndex - (maxMonths - 1));
+
+        const existingMonths = new Set(
+            (existingTransactions || [])
+                .filter(t => t && t.subscriptionId === sub.id && typeof t.date === 'string')
+                .map(t => t.date.slice(0, 7))
+        );
+
+        const day = Math.max(1, Math.min(31, parseInt(sub.day, 10) || 1));
+        const type = sub.type === 'income' ? 'income' : 'expense';
+        const category = sub.category || (type === 'income' ? 'outros_receita' : 'outros');
+        const createdAtIso = new Date().toISOString();
+
+        const transactions = [];
+        for (let index = firstIndex; index <= endIndex; index++) {
+            const year = Math.floor(index / 12);
+            const month = index % 12;
+            const key = this._monthKey(year, month);
+            if (existingMonths.has(key)) continue;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(Math.min(day, daysInMonth)).padStart(2, '0')}`;
+
+            transactions.push({
+                id: this.generateId(),
+                description: sub.name,
+                amount,
+                date,
+                type,
+                category,
+                subscriptionId: sub.id,
+                isPaid: false,
+                isRecurring: true,
+                createdAt: createdAtIso
+            });
+        }
+
+        return { transactions, lastGenerated: currentKey };
+    }
+
     async checkRecurringExpenses(specificSubId = null) {
-        if (!auth.currentUser) return;
+        const uid = this.currentUid();
+        if (!uid) return 0;
 
         const now = new Date();
-        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const currentKey = this._monthKey(now.getFullYear(), now.getMonth());
 
         try {
             let subscriptionsToCheck = [];
             
             if (specificSubId) {
                 const subRef = db.collection('finance_data')
-                    .doc(auth.currentUser.uid)
+                    .doc(uid)
                     .collection('subscriptions')
                     .doc(specificSubId);
                 const subDoc = await subRef.get();
@@ -1093,66 +1272,50 @@ export class FinanceManager {
                 }
             } else {
                 const subsSnapshot = await db.collection('finance_data')
-                    .doc(auth.currentUser.uid)
+                    .doc(uid)
                     .collection('subscriptions')
                     .get();
                 subscriptionsToCheck = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             }
 
+            const userRef = db.collection('finance_data').doc(uid);
+            let generated = 0;
+
             for (const sub of subscriptionsToCheck) {
-                if (sub.active === false) continue;
-                
-                if (sub.lastGenerated === currentMonth) continue;
-
-                const alreadyExists = this.transactions.some(t => 
-                    t.subscriptionId === sub.id && 
-                    t.date && t.date.startsWith(currentMonth)
-                );
-
-                if (alreadyExists) {
-                    const subRef = db.collection('finance_data')
-                        .doc(auth.currentUser.uid)
-                        .collection('subscriptions')
-                        .doc(sub.id);
-                    await subRef.update({ lastGenerated: currentMonth });
+                // Assinatura cancelada: só avança o marcador para não cobrar o período inativo
+                // caso ela seja reativada depois.
+                if (sub.active === false) {
+                    if (sub.lastGenerated !== currentKey) {
+                        await userRef.collection('subscriptions').doc(sub.id)
+                            .update({ lastGenerated: currentKey });
+                    }
                     continue;
                 }
 
-                const day = Math.min(sub.day, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
-                const transactionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const { transactions, lastGenerated } = this.buildMissingSubscriptionCharges(sub, this.transactions, now);
+                if (!lastGenerated) continue;
+
+                const pointerNeedsUpdate = sub.lastGenerated !== lastGenerated;
+                if (transactions.length === 0 && !pointerNeedsUpdate) continue;
 
                 const batch = db.batch();
+                const transactionsRef = userRef.collection('transactions');
 
-                const transactionId = this.generateId();
-                const transactionRef = db.collection('finance_data')
-                    .doc(auth.currentUser.uid)
-                    .collection('transactions')
-                    .doc(transactionId);
-
-                const transaction = {
-                    id: transactionId,
-                    description: sub.name,
-                    amount: sub.amount,
-                    date: transactionDate,
-                    type: sub.type || 'expense',
-                    category: sub.category,
-                    subscriptionId: sub.id,
-                    createdAt: new Date().toISOString()
-                };
-
-                batch.set(transactionRef, transaction);
-
-                const subRef = db.collection('finance_data')
-                    .doc(auth.currentUser.uid)
-                    .collection('subscriptions')
-                    .doc(sub.id);
-
-                batch.update(subRef, { lastGenerated: currentMonth });
+                transactions.forEach(t => batch.set(transactionsRef.doc(t.id), t));
+                batch.update(userRef.collection('subscriptions').doc(sub.id), { lastGenerated });
 
                 await batch.commit();
+
+                if (transactions.length > 0) {
+                    this.transactions.push(...transactions);
+                    generated += transactions.length;
+                }
             }
+
+            return generated;
         } catch (error) {
             console.error('Erro ao verificar assinaturas:', error);
+            return 0;
         }
     }
 }
