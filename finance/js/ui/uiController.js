@@ -3,6 +3,50 @@ import { CATEGORIES, CATEGORY_NAMES, EXPENSE_COLORS, INCOME_COLORS } from '../ut
 import { escapeHtml as escapeHtmlValue, debounce, todayString, tomorrowString, parseDateOnly } from '../utils/helpers.js';
 import { StatsView } from './statsView.js';
 
+const isIOSDevice = () => {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isStandalonePwa = () => {
+    try {
+        return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    } catch (error) {
+        return false;
+    }
+};
+
+// Chave antiga ('privacyMode') era genérica e podia colidir com outros apps do domínio.
+const PRIVACY_STORAGE_KEY = 'finance_privacyMode';
+const LEGACY_PRIVACY_STORAGE_KEY = 'privacyMode';
+
+const readPrivacyPreference = () => {
+    try {
+        const current = localStorage.getItem(PRIVACY_STORAGE_KEY);
+        if (current !== null) return current === 'true';
+
+        const legacy = localStorage.getItem(LEGACY_PRIVACY_STORAGE_KEY);
+        if (legacy !== null) {
+            // Migra silenciosamente a preferência antiga.
+            localStorage.setItem(PRIVACY_STORAGE_KEY, legacy);
+            localStorage.removeItem(LEGACY_PRIVACY_STORAGE_KEY);
+            return legacy === 'true';
+        }
+    } catch (error) {
+        // localStorage indisponível (modo privado): mantém o padrão.
+    }
+    return false;
+};
+
+const savePrivacyPreference = (isActive) => {
+    try {
+        localStorage.setItem(PRIVACY_STORAGE_KEY, String(isActive));
+    } catch (error) {
+        // Sem persistência: a preferência vale só para esta sessão.
+    }
+};
+
 export class UIController {
     constructor(financeManager) {
         this.fm = financeManager;
@@ -37,9 +81,22 @@ export class UIController {
 
         this.initElements();
         this.initEventListeners();
+        this.applyAccessibilityDefaults();
 
         this.setDefaultDate();
         this.render();
+    }
+
+    applyAccessibilityDefaults() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (!modal.hasAttribute('role')) modal.setAttribute('role', 'dialog');
+            if (!modal.hasAttribute('aria-modal')) modal.setAttribute('aria-modal', 'true');
+        });
+
+        if (this.toast) {
+            this.toast.setAttribute('role', 'status');
+            this.toast.setAttribute('aria-live', 'polite');
+        }
     }
 
     initElements() {
@@ -128,6 +185,11 @@ export class UIController {
     }
 
     handleAnonymousLogin() {
+        if (!auth) {
+            this.showToast('Login indisponível. Verifique sua conexão e recarregue a página.', 'error');
+            return;
+        }
+
         auth.signInAnonymously()
             .then(() => {
                 this.showToast('Bem-vindo! Você está testando como visitante.', 'success');
@@ -152,7 +214,7 @@ export class UIController {
 
         this.btnLogout.addEventListener('click', () => {
             this.fm.clear();
-            auth.signOut();
+            if (auth) auth.signOut();
             this.userDropdown.classList.remove('active');
             this.render();
             this.showToast('Você saiu com sucesso.', 'success');
@@ -209,19 +271,35 @@ export class UIController {
             }
         });
 
-        auth.onAuthStateChanged(async (user) => {
-            this.updateAuthUI(user);
-            if (user) {
-                await this.fm.initListener(user, () => {
+        if (auth && typeof auth.getRedirectResult === 'function') {
+            auth.getRedirectResult()
+                .then((result) => {
+                    if (result && result.user) {
+                        this.showToast(`Bem-vindo, ${result.user.displayName || 'de volta'}!`, 'success');
+                    }
+                })
+                .catch((error) => console.warn('Falha ao concluir login por redirect:', error));
+        }
+
+        if (auth) {
+            auth.onAuthStateChanged(async (user) => {
+                this.updateAuthUI(user);
+                if (user) {
+                    await this.fm.initListener(user, () => {
+                        this.render();
+                    });
+                    await this.fm.checkRecurringExpenses();
+                } else {
+                    this.fm.stopListener();
+                    this.fm.clear();
                     this.render();
-                });
-                await this.fm.checkRecurringExpenses();
-            } else {
-                this.fm.stopListener();
-                this.fm.clear();
-                this.render();
-            }
-        });
+                }
+            });
+        } else {
+            console.error('Firebase Auth indisponível: verifique a conexão com o SDK.');
+            this.updateAuthUI(null);
+            this.showToast('Não foi possível conectar ao serviço de login. Recarregue a página.', 'error');
+        }
 
         window.addEventListener('online', async () => {
             this.showToast('Conexão restabelecida!', 'success');
@@ -407,7 +485,7 @@ export class UIController {
         const privacyIconShow = document.getElementById('privacyIconShow');
         const privacyIconHide = document.getElementById('privacyIconHide');
 
-        if (localStorage.getItem('privacyMode') === 'true') {
+        if (readPrivacyPreference()) {
             document.body.classList.add('privacy-mode');
             btnPrivacy.classList.add('active');
             privacyIconShow.style.display = 'none';
@@ -419,7 +497,7 @@ export class UIController {
             btnPrivacy.classList.toggle('active', isActive);
             privacyIconShow.style.display = isActive ? 'none' : 'block';
             privacyIconHide.style.display = isActive ? 'block' : 'none';
-            localStorage.setItem('privacyMode', isActive);
+            savePrivacyPreference(isActive);
             this.showToast(isActive ? 'Modo privacidade ativado' : 'Modo privacidade desativado', 'success');
         });
 
@@ -2071,13 +2149,18 @@ export class UIController {
         }
 
         try {
-            const count = await this.fm.import(this.pendingImportData, replace);
-            const skipped = this.fm.lastImportSkipped || 0;
+            const result = await this.fm.import(this.pendingImportData, replace);
+            const skipped = result.skipped || 0;
             this.pendingImportData = null;
             this.closeModal(this.importModal, true);
             this.render();
 
-            let message = `${replace ? 'Dados substituídos' : 'Dados mesclados'}! ${count} transações.`;
+            let message = replace
+                ? `Dados substituídos! ${result.imported} transações gravadas.`
+                : `Dados mesclados! ${result.imported} transações novas.`;
+            if (result.subscriptionsImported > 0) {
+                message += ` ${result.subscriptionsImported} assinatura(s).`;
+            }
             if (skipped > 0) message += ` ${skipped} inválida(s) ignorada(s).`;
 
             this.showToast(message, skipped > 0 ? 'info' : 'success');
@@ -2170,6 +2253,11 @@ export class UIController {
     }
 
     handleAuthClick() {
+        if (!auth || !googleProvider) {
+            this.showToast('Login indisponível. Verifique sua conexão e recarregue a página.', 'error');
+            return;
+        }
+
         if (auth.currentUser) {
             auth.signOut().then(() => {
                 this.fm.stopListener();
@@ -2177,17 +2265,32 @@ export class UIController {
             }).catch(e => {
                 this.showToast('Erro ao sair.', 'error');
             });
-        } else {
-            auth.signInWithPopup(googleProvider).then((result) => {
-                this.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
-            }).catch((error) => {
-                console.error(error);
+            return;
+        }
+
+        // Em iOS e em PWA standalone o popup costuma ser bloqueado: usa redirect.
+        if (isIOSDevice() || isStandalonePwa()) {
+            auth.signInWithRedirect(googleProvider).catch((error) => {
+                console.error('Erro no login por redirect:', error);
                 this.showToast('Erro no login Google.', 'error');
             });
+            return;
         }
+
+        auth.signInWithPopup(googleProvider).then((result) => {
+            this.showToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
+        }).catch((error) => {
+            console.error(error);
+            this.showToast('Erro no login Google.', 'error');
+        });
     }
 
     async handleEmailToggle() {
+        if (!auth || !auth.currentUser) {
+            this.showToast('Entre com sua conta para alterar as notificações.', 'info');
+            return;
+        }
+
         if (this.btnEmailToggle) this.btnEmailToggle.disabled = true;
 
         try {
