@@ -26,100 +26,83 @@ function escapeHTML(str) {
         .replace(/'/g, '&#39;');
 }
 
-const starSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="star-pill-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
-
-function calculateProgress(book) {
-    if (book.status === 'read' || book.status === 're-reading' || book.status === 'rereading') {
-        return 100;
-    }
-    const current = parseInt(book.readPages) || 0;
-    const total = parseInt(book.pages) || 1;
-    if (current === 0) return 0;
-    const p = Math.round((current / total) * 100);
-    return Math.min(p, 100);
+function safeImageUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim().replace(/^http:\/\//i, 'https://');
+    if (!trimmed || trimmed === 'null') return '';
+    if (/^(?:javascript|vbscript|file):/i.test(trimmed)) return '';
+    return trimmed;
 }
 
-async function init() {
+/**
+ * A página pública lê apenas `shared_lists/{token}` — uma cópia enxuta
+ * (título, autor, capa) escrita pelo dono da lista. A biblioteca privada
+ * (notas, empréstimos, avaliações) não é mais acessível por aqui.
+ */
+function init() {
     const params = new URLSearchParams(window.location.search);
-    const userId = params.get('u');
-    const listId = params.get('list');
+    const token = params.get('l');
 
-    if (!userId || !listId) {
-        showError("Link inválido. Faltam parâmetros na URL.");
+    if (token) {
+        if (!/^[A-Za-z0-9-]{16,64}$/.test(token)) {
+            showError("Link inválido. Verifique se o endereço foi copiado por completo.");
+            return;
+        }
+        watchSharedList(token);
         return;
     }
 
-    try {
-        const listDoc = await db.collection('library_data').doc(userId).collection('lists').doc(listId).get();
-        
-        if (!listDoc.exists) {
-            showError("Lista não encontrada ou foi excluída.");
+    if (params.get('u') && params.get('list')) {
+        showError("Este link usa o formato antigo e não é mais válido. Peça para quem compartilhou gerar um novo link.");
+        return;
+    }
+
+    showError("Link inválido. Faltam parâmetros na URL.");
+}
+
+function watchSharedList(token) {
+    db.collection('shared_lists').doc(token).onSnapshot((doc) => {
+        if (!doc.exists) {
+            showError("Este link expirou ou a lista deixou de ser compartilhada.");
             return;
         }
+        renderList(doc.data());
+    }, (error) => {
+        console.error('Erro ao carregar lista compartilhada:', error);
+        showError("Não foi possível carregar a lista. Tente novamente em alguns instantes.");
+    });
+}
 
-        let currentListData = listDoc.data();
-        let currentBooks = [];
+function renderList(data) {
+    const title = (data && data.name) ? data.name : 'Lista Compartilhada';
 
-        document.getElementById('listTitle').textContent = currentListData.name || 'Lista Compartilhada';
-        document.title = (currentListData.name || 'Lista') + " - Compartilhada";
+    document.getElementById('listTitle').textContent = title;
+    document.title = `${title} - Lista compartilhada`;
 
-        const updateDisplay = () => {
-            if (currentBooks.length === 0) {
-                showError("Esta lista está vazia.");
-                document.getElementById('booksGrid').style.display = 'none';
-                return;
-            } else {
-                document.getElementById('errorMsg').style.display = 'none';
-            }
+    document.getElementById('loadingMsg').style.display = 'none';
 
-            const books = [...currentBooks];
+    const books = Array.isArray(data && data.books) ? [...data.books] : [];
 
-            if (currentListData.bookOrder && Array.isArray(currentListData.bookOrder) && currentListData.bookOrder.length > 0) {
-                const orderMap = new Map();
-                currentListData.bookOrder.forEach((id, index) => {
-                    orderMap.set(id, index);
-                });
-
-                books.sort((a, b) => {
-                    const idxA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
-                    const idxB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
-                    if (idxA !== idxB) {
-                        return idxA - idxB;
-                    }
-                    return new Date(b.createdAt) - new Date(a.createdAt);
-                });
-            } else {
-                books.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
-
-            renderBooks(books);
-        };
-
-        db.collection('library_data').doc(userId).collection('lists').doc(listId)
-            .onSnapshot((doc) => {
-                if (doc.exists) {
-                    currentListData = doc.data();
-                    document.getElementById('listTitle').textContent = currentListData.name || 'Lista Compartilhada';
-                    document.title = (currentListData.name || 'Lista') + " - Compartilhada";
-                    updateDisplay();
-                }
-            });
-
-        db.collection('library_data').doc(userId).collection('books')
-            .where('customLists', 'array-contains', listId)
-            .onSnapshot((snapshot) => {
-                currentBooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                document.getElementById('loadingMsg').style.display = 'none';
-                updateDisplay();
-            }, (error) => {
-                console.error(error);
-                showError("Ocorreu um erro ao carregar os livros. Verifique se as permissões do Firebase (Rules) foram configuradas para permitir leitura.");
-            });
-
-    } catch (e) {
-        console.error(e);
-        showError("Ocorreu um erro ao conectar com o banco de dados.");
+    if (books.length === 0) {
+        document.getElementById('booksGrid').style.display = 'none';
+        showError("Esta lista ainda está vazia.");
+        return;
     }
+
+    document.getElementById('errorMsg').style.display = 'none';
+
+    // Respeita a ordem personalizada salva pelo dono da lista.
+    const order = Array.isArray(data.bookOrder) ? data.bookOrder : [];
+    if (order.length > 0) {
+        const orderMap = new Map(order.map((id, index) => [id, index]));
+        books.sort((a, b) => {
+            const indexA = orderMap.has(a.id) ? orderMap.get(a.id) : 999999;
+            const indexB = orderMap.has(b.id) ? orderMap.get(b.id) : 999999;
+            return indexA - indexB;
+        });
+    }
+
+    renderBooks(books);
 }
 
 function renderBooks(books) {
@@ -129,18 +112,20 @@ function renderBooks(books) {
 
     books.forEach(book => {
         const card = document.createElement('div');
-        card.className = `book-card status-${book.status}`;
-        
-        const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+        const status = /^[a-z0-9-]{1,32}$/i.test(book.status || '') ? book.status : 'want-to-read';
+        card.className = `book-card status-${status}`;
+
+        const coverUrl = safeImageUrl(book.cover);
+        const isPlaceholder = !coverUrl || coverUrl.includes('placehold.co') || coverUrl.includes('Sem+Capa');
         const escTitle = escapeHTML(book.title);
         const escAuthor = escapeHTML(book.author);
 
         card.innerHTML = `
         <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
             ${!isPlaceholder ? `
-            <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+            <img src="${escapeHTML(coverUrl)}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
             ` : ''}
-            
+
             <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                 <div class="placeholder-title">${escTitle}</div>
                 <div class="placeholder-author">${escAuthor}</div>
@@ -153,7 +138,7 @@ function renderBooks(books) {
         card.addEventListener('click', () => {
             const searchQuery = encodeURIComponent(`${book.title} ${book.author}`);
             const amazonUrl = `https://www.amazon.com.br/s?k=${searchQuery}&tag=rafaelreis0f-20`;
-            window.open(amazonUrl, '_blank');
+            window.open(amazonUrl, '_blank', 'noopener,noreferrer');
         });
 
         grid.appendChild(card);

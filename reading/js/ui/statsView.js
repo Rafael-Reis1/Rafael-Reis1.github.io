@@ -1,7 +1,7 @@
 /**
  * Renderização e Controle Visual do Modal de Estatísticas, Heatmap e Detalhes de Período
  */
-import { escapeHTML } from '../utils/helpers.js';
+import { escapeHTML, safeImageUrl } from '../utils/helpers.js';
 import { calculateReadingStreaks } from '../services/statsService.js';
 
 export const StatsView = {
@@ -229,7 +229,8 @@ export const StatsView = {
             const goalTagTotal = booksInGoal.length;
             const goalTagRead = booksInGoal.filter(b => b.status === 'read').length;
 
-            const savedTargetBooks = parseInt(localStorage.getItem(`rm_yearly_goal_books_${selectedYear}`)) || 0;
+            const goals = (statsState.yearlyGoals && typeof statsState.yearlyGoals === 'object') ? statsState.yearlyGoals : {};
+            const savedTargetBooks = parseInt(goals[selectedYear], 10) || 0;
             const effectiveTarget = savedTargetBooks > 0 ? savedTargetBooks : goalTagTotal;
             const effectiveRead = savedTargetBooks > 0 ? current.booksCount : goalTagRead;
 
@@ -610,7 +611,7 @@ export const StatsView = {
             let html = '<div class="books-list-compact">';
             books.forEach(book => {
                 const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
-                const finalCover = isPlaceholder ? '' : book.cover;
+                const finalCover = isPlaceholder ? '' : escapeHTML(safeImageUrl(book.cover));
                 
                 const pagesInPeriod = book._tempPagesInPeriod || 0;
                 const escTitle = escapeHTML(book.title);

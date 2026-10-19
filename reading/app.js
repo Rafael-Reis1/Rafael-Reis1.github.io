@@ -1,4 +1,4 @@
-import { debounce, escapeHTML, starSvg, cleanCoverUrl, generateEntryId, formatDaysAgo } from './js/utils/helpers.js';
+import { debounce, escapeHTML, starSvg, cleanCoverUrl, safeImageUrl, generateEntryId, formatDaysAgo } from './js/utils/helpers.js';
 import { BookModel } from './js/models/Book.js';
 import { auth, db, googleProvider } from './js/services/firebase.js';
 import { GoogleBooksAPI, OpenLibraryAPI, GeminiAPI } from './js/services/api.js';
@@ -35,16 +35,58 @@ const App = {
         this.state.sortBy = localStorage.getItem('rm_sortBy') || 'recent';
         this.state.viewMode = localStorage.getItem('rm_viewMode') || 'grid';
 
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (!modal.hasAttribute('role')) modal.setAttribute('role', 'dialog');
+            if (!modal.hasAttribute('aria-modal')) modal.setAttribute('aria-modal', 'true');
+        });
+
         document.body.appendChild(this.dom.statusOptions);
         this.bindEvents();
         this.bindMobileEvents();
         this.initDatePicker();
         this.initStats();
+        this.startAuthWatchdog();
 
         this.applyViewMode(this.state.viewMode);
         this.setFilter(this.state.filter);
         this.setSort(this.state.sortBy);
         this.refresh();
+    },
+
+    /**
+     * Se o SDK de autenticação não responder (offline, CDN bloqueada),
+     * evita que a tela fique eternamente em "Carregando página...".
+     */
+    startAuthWatchdog() {
+        if (this.authWatchdog) clearTimeout(this.authWatchdog);
+
+        this.authWatchdog = setTimeout(() => {
+            const overlay = document.getElementById('loginOverlay');
+            const loading = document.getElementById('authLoading');
+            const content = document.getElementById('authContent');
+            if (!overlay || !loading || !content) return;
+            if (overlay.classList.contains('hidden') || overlay.style.display === 'none') return;
+            if (loading.style.display === 'none') return;
+
+            loading.style.display = 'none';
+            content.style.display = 'flex';
+
+            const note = content.querySelector('.login-note');
+            if (note) {
+                note.textContent = 'Não foi possível conectar ao serviço de login. Verifique sua conexão e recarregue a página.';
+            }
+        }, 12000);
+    },
+
+    /** Remove apenas as preferências deste app (não mexe no storage de outros apps do domínio). */
+    clearReadingPreferences() {
+        try {
+            Object.keys(localStorage)
+                .filter(key => key.startsWith('rm_'))
+                .forEach(key => localStorage.removeItem(key));
+        } catch (error) {
+            console.error('Erro ao limpar preferências locais:', error);
+        }
     },
 
     async migrateLegacyHistory() {
@@ -347,6 +389,7 @@ const App = {
                     name: newName,
                     updatedAt: new Date().toISOString()
                 });
+                this.syncSharedList(listId);
                 closeRenameModal();
                 this.renderCustomLists();
                 if (this.state.filter === listId) {
@@ -560,8 +603,15 @@ const App = {
             const hiddenInput = document.getElementById('bookRating');
             const ratingDisplay = document.getElementById('ratingValueDisplay');
 
+            starWidget.setAttribute('role', 'slider');
+            starWidget.setAttribute('aria-label', 'Avaliação do livro');
+            starWidget.setAttribute('aria-valuemin', '0');
+            starWidget.setAttribute('aria-valuemax', '5');
+            starWidget.setAttribute('aria-valuenow', String(parseFloat(hiddenInput.value) || 0));
+
             const updateStars = (val) => {
                 ratingDisplay.textContent = val.toFixed(1);
+                starWidget.setAttribute('aria-valuenow', String(val));
                 stars.forEach(star => {
                     const index = parseInt(star.dataset.index);
                     star.classList.remove('filled', 'half-filled');
@@ -689,6 +739,15 @@ const App = {
         });
 
         this.dom.grid.addEventListener('click', (e) => this.handleGridClick(e));
+
+        this.dom.grid.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            if (e.target.closest('button')) return;
+            const card = e.target.closest('.book-card');
+            if (!card || !card.dataset.id) return;
+            e.preventDefault();
+            this.openBookDetails(card.dataset.id);
+        });
 
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.book-card')) {
@@ -820,6 +879,15 @@ const App = {
             this.render();
         });
 
+        window.addEventListener('resize', debounce(() => {
+            const nextItemsPerPage = window.innerWidth > 768 ? 200 : 30;
+            if (nextItemsPerPage !== this.state.itemsPerPage) {
+                this.state.itemsPerPage = nextItemsPerPage;
+                this.state.currentPage = 1;
+                this.render();
+            }
+        }, 250));
+
         this.dom.bookSearch.addEventListener('input', debounce((e) => {
             this.state.searchQuery = e.target.value.trim();
             this.state.currentPage = 1;
@@ -846,7 +914,7 @@ const App = {
             if (this.dom.loginOverlay) this.dom.loginOverlay.classList.remove('hidden');
 
             rm.clear();
-            localStorage.clear();
+            this.clearReadingPreferences();
 
             this.state.filter = 'all';
             this.state.formatFilter = 'all';
@@ -854,7 +922,7 @@ const App = {
             this.dom.bookSearch.value = '';
             this.setFilter('all'); 
             rm.clear();
-            auth.signOut();
+            if (auth) auth.signOut();
             this.dom.userDropdown.classList.remove('active');
             this.refresh();
             this.showToast('Você saiu com sucesso.', 'success');
@@ -900,17 +968,10 @@ const App = {
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
-                
-                const count = await rm.import(data, true, (msg) => {
+
+                const result = await rm.import(data, true, (msg) => {
                     if (loadingText) loadingText.textContent = msg;
                 });
-
-                setTimeout(() => {
-                    if (overlay && overlay.style.display !== 'none') {
-                        overlay.style.display = 'none';
-                        overlay.classList.add('hidden');
-                    }
-                }, 10000);
 
                 if (overlay) {
                     overlay.style.display = 'none';
@@ -918,14 +979,26 @@ const App = {
                 }
                 await this.migrateLegacyHistory();
                 this.refresh();
-                
-                this.showToast(`${count} livros importados com sucesso.`, 'success');
+
+                const parts = [`${result.importedBooks} ${result.importedBooks === 1 ? 'livro importado' : 'livros importados'}`];
+                if (result.importedLists > 0) {
+                    parts.push(`${result.importedLists} ${result.importedLists === 1 ? 'lista' : 'listas'}`);
+                }
+                if (result.skippedBooks > 0 || result.skippedLists > 0) {
+                    const skipped = result.skippedBooks + result.skippedLists;
+                    parts.push(`${skipped} ${skipped === 1 ? 'registro inválido ignorado' : 'registros inválidos ignorados'}`);
+                }
+                if (result.deletedBooks > 0) {
+                    parts.push(`${result.deletedBooks} ${result.deletedBooks === 1 ? 'livro antigo removido' : 'livros antigos removidos'}`);
+                }
+
+                this.showToast(parts.join(' • '), (result.skippedBooks > 0 || result.skippedLists > 0) ? 'info' : 'success');
             } catch (err) {
                 if (overlay) {
                     overlay.style.display = 'none';
                     overlay.classList.add('hidden');
                 }
-                this.showMessage('Erro', 'Falha ao importar: ' + err.message, '❌');
+                this.showMessage('Erro ao importar', err.message || 'Não foi possível concluir a importação.', '❌');
             } finally {
                 if (loadingText) loadingText.textContent = originalText;
                 e.target.value = '';
@@ -938,28 +1011,37 @@ const App = {
             }
         });
 
-        auth.onAuthStateChanged(async (user) => {
+        if (auth) {
+            auth.onAuthStateChanged(async (user) => {
+                if (this.authWatchdog) {
+                    clearTimeout(this.authWatchdog);
+                    this.authWatchdog = null;
+                }
 
-            try {
-                this.updateAuthUI(user);
-            } catch (e) {
-                console.error('Error updating UI:', e);
-            }
+                try {
+                    this.updateAuthUI(user);
+                } catch (e) {
+                    console.error('Error updating UI:', e);
+                }
 
-            if (user) {
-                await rm.initListener(user, () => {
+                if (user) {
+                    await rm.initListener(user, () => {
+                        this.refresh();
+                        if (!this.state.migrated && rm.books.length > 0) {
+                            this.state.migrated = true;
+                            this.migrateLegacyHistory();
+                        }
+                    });
+                } else {
+                    rm.stopListener();
+                    rm.clear();
                     this.refresh();
-                    if (!this.state.migrated && rm.books.length > 0) {
-                        this.state.migrated = true;
-                        this.migrateLegacyHistory();
-                    }
-                });
-            } else {
-                rm.stopListener();
-                rm.clear();
-                this.refresh();
-            }
-        });
+                }
+            });
+        } else {
+            console.error('Firebase Auth indisponível: verifique a conexão com o SDK.');
+            this.startAuthWatchdog();
+        }
 
         const formatContainer = document.getElementById('formatFilters');
         if (formatContainer) {
@@ -1051,20 +1133,15 @@ const App = {
         if (this.dom.cancelYearlyGoalBtn) this.dom.cancelYearlyGoalBtn.addEventListener('click', closeYearlyGoal);
         if (this.dom.yearlyGoalModal) this.setupModalCloseAttributes(this.dom.yearlyGoalModal, closeYearlyGoal);
         if (this.dom.yearlyGoalForm) {
-            this.dom.yearlyGoalForm.addEventListener('submit', (e) => {
+            this.dom.yearlyGoalForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const year = this.dom.yearlyGoalYear.value;
                 const count = Math.max(0, parseInt(this.dom.yearlyGoalCount.value) || 0);
                 if (year) {
-                    const goals = JSON.parse(localStorage.getItem('rm_yearly_goals') || '{}');
-                    if (count > 0) {
-                        goals[year] = count;
-                        localStorage.setItem(`rm_yearly_goal_books_${year}`, String(count));
-                    } else {
-                        delete goals[year];
-                        localStorage.removeItem(`rm_yearly_goal_books_${year}`);
+                    await rm.setYearlyGoal(year, count);
+                    if (this.statsState) {
+                        this.statsState.yearlyGoals = rm.getYearlyGoals();
                     }
-                    localStorage.setItem('rm_yearly_goals', JSON.stringify(goals));
                     closeYearlyGoal();
                     this.renderStatsDashboard();
                     this.showToast(count > 0 ? `Meta de ${count} livros definida para ${year}!` : `Meta de ${year} removida.`);
@@ -1088,6 +1165,11 @@ const App = {
     },
 
     handleAnonymousLogin() {
+        if (!auth) {
+            this.showMessage('Login indisponível', 'Não foi possível conectar ao serviço de autenticação. Verifique sua conexão e recarregue a página.', '⚠️');
+            return;
+        }
+
         const loading = document.getElementById('authLoading');
         const content = document.getElementById('authContent');
 
@@ -1105,6 +1187,11 @@ const App = {
     },
 
     handleAuthClick() {
+        if (!auth || !googleProvider) {
+            this.showMessage('Login indisponível', 'Não foi possível conectar ao serviço de autenticação. Verifique sua conexão e recarregue a página.', '⚠️');
+            return;
+        }
+
         const loading = document.getElementById('authLoading');
         const content = document.getElementById('authContent');
 
@@ -1218,6 +1305,7 @@ const App = {
 
     refresh() {
         this.state.books = rm.books;
+        this.scheduleSharedListsSync();
         const dailyPages = {};
         let totalPagesRead = 0;
 
@@ -1452,6 +1540,13 @@ const App = {
                                 </div>
                             </div>
                         `;
+                    } else if (this.state.books.length > 0 || rm.lists.length > 0) {
+                        // A lista salva não existe mais (ex.: excluída em outro dispositivo).
+                        localStorage.setItem('rm_filter', 'all');
+                        this.state.filter = 'all';
+                        this.setFilter('all');
+                        this.showToast('A lista selecionada não existe mais. Voltando para a biblioteca.', 'info');
+                        return;
                     } else {
                         labelText = 'Carregando lista...';
                     }
@@ -1821,14 +1916,17 @@ const App = {
                 onEnd: (evt) => {
                     setTimeout(() => document.body.classList.remove('is-dragging'), 50);
                     const items = container.querySelectorAll('.nav-item');
+                    const changedListIds = [];
                     items.forEach((item, index) => {
                         const listId = item.dataset.filter;
                         const listObj = rm.lists.find(l => l.id === listId);
                         if (listObj && listObj.order !== index) {
                             listObj.order = index;
                             rm.updateList(listId, { order: index });
+                            changedListIds.push(listId);
                         }
                     });
+                    changedListIds.forEach(id => this.syncSharedList(id));
                 }
             });
         }
@@ -1854,6 +1952,7 @@ const App = {
 
         await rm.update(book.id, { customLists: updatedLists });
 
+        this.syncSharedList(listId);
         this.renderCustomLists();
         this.render();
 
@@ -1879,6 +1978,7 @@ const App = {
 
         await rm.update(book.id, { customLists: updatedLists });
 
+        this.syncSharedList(listId);
         this.renderCustomLists();
         this.render();
 
@@ -1894,9 +1994,34 @@ const App = {
         if (menu) menu.remove();
     },
 
-    shareList(listId) {
-        if (!auth.currentUser) return;
-        
+    async shareList(listId) {
+        if (!auth || !auth.currentUser) {
+            this.showMessage('Login necessário', 'Entre com sua conta Google para gerar um link público da lista.', '🔒');
+            return;
+        }
+
+        const listObj = rm.lists.find(l => l.id === listId);
+        if (!listObj) return;
+
+        let token = null;
+        try {
+            this.showToast('Gerando link público...', 'info');
+            token = await rm.publishSharedList(listId, { create: true });
+        } catch (error) {
+            console.error('Falha ao publicar lista:', error);
+            this.showMessage(
+                'Não foi possível gerar o link',
+                'Verifique sua conexão e tente novamente. Sua biblioteca não foi alterada.',
+                '⚠️'
+            );
+            return;
+        }
+
+        if (!token) {
+            this.showMessage('Não foi possível gerar o link', 'Tente novamente em alguns instantes.', '⚠️');
+            return;
+        }
+
         let path = window.location.pathname;
         if (!path.includes('.html') && !path.endsWith('/')) {
             path += '/share.html';
@@ -1905,18 +2030,41 @@ const App = {
         } else {
             path = path.replace(/[^/]*\.html$/, 'share.html');
         }
-        
-        const url = window.location.origin + path + '?u=' + auth.currentUser.uid + '&list=' + listId;
-        
+
+        const url = `${window.location.origin}${path}?l=${encodeURIComponent(token)}`;
+
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(url).then(() => {
-                this.showMessage('Link Copiado!', 'O link para sua lista foi copiado para a área de transferência. Agora é só enviar para os amigos!', '🔗');
+                this.showMessage('Link Copiado!', 'O link público da sua lista foi copiado. Ele mostra apenas capa, título e autor dos livros — notas e empréstimos continuam privados.', '🔗');
             }).catch(() => {
                 this.showMessage('Link para Compartilhar', `Copie o link abaixo para compartilhar:\n\n${url}`, '🔗');
             });
         } else {
             this.showMessage('Link para Compartilhar', `Copie o link abaixo para compartilhar:\n\n${url}`, '🔗');
         }
+    },
+
+    /** Atualiza o snapshot público de uma lista já compartilhada (nunca cria link novo). */
+    syncSharedList(listId) {
+        if (!listId) return;
+        const sharedLists = rm.settings && rm.settings.sharedLists;
+        if (!sharedLists || !sharedLists[listId]) return;
+
+        rm.publishSharedList(listId).catch(error => {
+            console.warn('Falha ao atualizar lista compartilhada:', error);
+        });
+    },
+
+    /** Revalida os links públicos depois que os dados carregam (debounce). */
+    scheduleSharedListsSync() {
+        if (this.sharedListsSyncTimer) clearTimeout(this.sharedListsSyncTimer);
+
+        this.sharedListsSyncTimer = setTimeout(() => {
+            const sharedLists = rm.settings && rm.settings.sharedLists;
+            if (!sharedLists || Object.keys(sharedLists).length === 0) return;
+            if (rm.lists.length === 0) return;
+            rm.syncSharedLists().catch(error => console.warn('Falha ao sincronizar listas compartilhadas:', error));
+        }, 4000);
     },
     renameCustomList(listId) {
         const listObj = rm.lists.find(l => l.id === listId);
@@ -1939,6 +2087,7 @@ const App = {
 
         this.openDeleteModal(`Tem certeza que deseja excluir a lista "${listObj.name}"? Isso não apagará os livros, apenas removerá eles desta lista.`, () => {
             rm.deleteList(listId);
+            rm.revokeSharedList(listId).catch(error => console.warn('Falha ao revogar link público:', error));
             
             const updates = {};
             this.state.books.forEach(book => {
@@ -2069,7 +2218,11 @@ const App = {
             const card = document.createElement('div');
             card.className = `book-card status-${book.status}`;
             card.dataset.id = book.id;
+            card.tabIndex = 0;
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-label', `${book.title || 'Livro'} — ${book.author || 'Autor desconhecido'}`);
             const isPlaceholder = !book.cover || book.cover.includes('placehold.co') || book.cover.includes('Sem+Capa');
+            const coverUrl = escapeHTML(safeImageUrl(book.cover));
             
             const escTitle = escapeHTML(book.title);
             const escAuthor = escapeHTML(book.author);
@@ -2093,7 +2246,7 @@ const App = {
             card.innerHTML = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}">
                 ${!isPlaceholder ? `
-                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                <img src="${coverUrl}" loading="lazy" alt="${escTitle}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
                 ` : ''}
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${escTitle}</div>
@@ -2200,12 +2353,13 @@ const App = {
                             bookOrder: newSortedIds
                         };
                         rm.lists.push(newList);
-                        if (auth.currentUser) {
+                        if (auth && auth.currentUser) {
                             db.collection('library_data').doc(auth.currentUser.uid)
                                 .collection('lists').doc(listId)
                                 .set(newList).catch(e => console.error('Sync error:', e));
                         }
                     }
+                    this.syncSharedList(listId);
                 }
             });
         }
@@ -2406,7 +2560,7 @@ const App = {
         
         if (this.apiSearchTimeout) clearTimeout(this.apiSearchTimeout);
         
-        this.apiSearchTimeout = setTimeout(async () => {
+        const runSearch = async () => {
             this.dom.apiResults.innerHTML = '<div class="api-loading">Buscando na nuvem...</div>';
             this.dom.apiResults.classList.add('active');
 
@@ -2448,7 +2602,10 @@ const App = {
                 console.error('API Search error:', error);
                 this.dom.apiResults.innerHTML = '<div class="api-loading">Erro na busca.</div>';
             }
-        }, 500);
+        };
+
+        // O input já é debounced; aqui apenas evitamos disparar buscas duplicadas.
+        this.apiSearchTimeout = setTimeout(runSearch, 0);
     },
 
     renderAPISearchResults(books) {
@@ -2465,7 +2622,7 @@ const App = {
                 const thumb = info.imageLinks.thumbnail || info.imageLinks.smallThumbnail;
                 if (thumb) coverUrl = cleanCoverUrl(thumb);
             }
-            const finalCover = (coverUrl && coverUrl !== 'null') ? coverUrl : '';
+            const finalCover = escapeHTML(safeImageUrl(coverUrl));
             
             const title = info.title || 'Título desconhecido';
             const author = info.authors ? info.authors.join(', ') : 'Autor desconhecido';
@@ -2768,7 +2925,7 @@ const App = {
             <div class="bd-summary-card">
                 <div class="bd-cover-wrap">
                     ${!isPlaceholder
-                        ? `<img src="${book.cover}" alt="${escTitle}" class="bd-cover-img">`
+                        ? `<img src="${escapeHTML(safeImageUrl(book.cover))}" alt="${escTitle}" class="bd-cover-img">`
                         : `<div class="bd-cover-placeholder"><span>${escTitle}</span></div>`
                     }
                 </div>
@@ -3013,7 +3170,7 @@ const App = {
         }
 
         const readDateVal = this.dom.bookReadDate.value;
-        const processedCover = cleanCoverUrl(this.dom.bookCover.value.trim());
+        const processedCover = safeImageUrl(this.dom.bookCover.value.trim());
 
         const formData = {
             title: title,
@@ -3126,7 +3283,8 @@ const App = {
                     year: formData.readDate ? parseInt(formData.readDate.split('-')[0]) : existingBook.year,
                     goalYear: formData.tags.includes('target') ? (formData.goalYear ? parseInt(formData.goalYear) : new Date().getFullYear()) : null
                 };
-                rm.update(updatedBook.id, updatedBook);
+                const { computed: _computed, ...persistedBook } = updatedBook;
+                rm.update(persistedBook.id, persistedBook);
             }
         } else {
             const titleLower = formData.title.toLowerCase().trim();
@@ -3469,7 +3627,11 @@ const App = {
             book.history = book.history.filter(h => (h.id || h.date) !== entryKey && h.date !== entryKey);
             this.recalculateBookProgress(book);
 
-            rm.update(book.id, book);
+            rm.update(book.id, {
+                history: book.history,
+                readPages: book.readPages,
+                status: book.status
+            });
             this.refresh();
 
             this.updateModalProgressHeader(book);
@@ -3588,7 +3750,12 @@ const App = {
                 }
 
                 this.recalculateBookProgress(book);
-                await rm.update(book.id, book);
+                await rm.update(book.id, {
+                    history: book.history,
+                    readPages: book.readPages,
+                    status: book.status,
+                    readDate: book.readDate
+                });
                 this.refresh();
                 if (newPageCount === book.pages) return;
             }
@@ -3707,7 +3874,12 @@ const App = {
         }
         book.history.push(newEntry);
 
-        await rm.update(book.id, book);
+        await rm.update(book.id, {
+            status: book.status,
+            readPages: book.readPages,
+            readDate: book.readDate,
+            history: book.history
+        });
         this.refresh();
 
         if (wasFinished) {
@@ -3755,7 +3927,7 @@ const App = {
 
     showMessage(title, text, icon = '✨') {
         this.dom.messageTitle.textContent = title;
-        this.dom.messageText.innerHTML = text.replace(/\n/g, '<br>');
+        this.dom.messageText.innerHTML = escapeHTML(text).replace(/\n/g, '<br>');
         this.dom.messageIcon.innerHTML = icon;
         this.dom.messageModal.style.zIndex = '1200';
         this.dom.messageModal.classList.add('active');
@@ -3778,15 +3950,19 @@ const App = {
     showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        
-        toast.innerHTML = `
-            <span class="toast-message">${message}</span>
-        `;
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+        const text = document.createElement('span');
+        text.className = 'toast-message';
+        text.textContent = message;
+        toast.appendChild(text);
         
         let container = document.getElementById('toast-container');
         if (!container) {
             container = document.createElement('div');
             container.id = 'toast-container';
+            container.setAttribute('aria-live', 'polite');
+            container.setAttribute('aria-atomic', 'false');
             document.body.appendChild(container);
         }
         
@@ -3846,8 +4022,8 @@ const App = {
         if (labelEl) labelEl.textContent = targetYear;
 
         const savedDirect = parseInt(localStorage.getItem(`rm_yearly_goal_books_${targetYear}`)) || 0;
-        const goalsMap = JSON.parse(localStorage.getItem('rm_yearly_goals') || '{}');
-        const currentGoal = savedDirect || goalsMap[targetYear] || '';
+        const goalsMap = rm.getYearlyGoals();
+        const currentGoal = goalsMap[targetYear] || savedDirect || '';
 
         if (this.dom.yearlyGoalCount) {
             this.dom.yearlyGoalCount.value = currentGoal;
@@ -3979,13 +4155,14 @@ const App = {
             processForYear(statsData.all, 'all');
         });
 
-        this.statsState = { data: statsData, selectedYear: 'all' };
+        this.statsState = { data: statsData, selectedYear: 'all', yearlyGoals: rm.getYearlyGoals() };
         this.renderStatsDashboard();
         modal.classList.add('active');
         this.toggleBodyScroll(true);
     },
 
     renderStatsDashboard() {
+        if (!this.statsState) return;
         StatsView.renderStatsDashboard(this.statsState, this.state.books);
     },
     
@@ -4267,7 +4444,7 @@ const App = {
                                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                                     </svg>
                                    </div>`
-                                : `<img src="${item.bookCover}" alt="${escTitle}" class="global-note-cover" onerror="this.style.display='none'">`
+                                : `<img src="${escapeHTML(safeImageUrl(item.bookCover))}" alt="${escTitle}" class="global-note-cover" onerror="this.style.display='none'">`
                             }
                             <div class="global-note-book-info">
                                 <div class="global-note-book-title">${escTitle}</div>
@@ -4381,7 +4558,7 @@ const App = {
                                 ? `<div class="placeholder-icon" style="display:flex; flex-direction:column; align-items:center; opacity:0.2; color:white;">
                                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                                 </div>`
-                                 : `<img src="${coverUrl}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">`
+                                 : `<img src="${escapeHTML(safeImageUrl(coverUrl))}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">`
                             }
 
                             <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
@@ -4498,7 +4675,7 @@ const App = {
         if (coverUrl) {
             const container = card.querySelector('.book-cover-container');
             container.innerHTML = `
-                <img src="${coverUrl}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">
+                <img src="${escapeHTML(safeImageUrl(coverUrl))}" class="book-cover" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; this.parentElement?.classList?.remove('skeleton');">
                 <div class="title-overlay" style="transform: translateY(0); background: linear-gradient(to top, rgba(0, 0, 0, 0.98) 40%, rgba(0, 0, 0, 0.7) 80%, transparent); padding: 2rem 0.75rem 0.75rem; height: auto; display: flex; flex-direction: column; justify-content: flex-end; z-index: 10;">
                     <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: white; line-height: 1.2;">${escapeHTML(info.title)}</div>
                     <div style="font-size: 0.75rem; font-weight: normal; color: #fbbf24; font-style: italic; line-height: 1.3;">

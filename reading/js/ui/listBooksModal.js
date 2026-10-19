@@ -1,7 +1,7 @@
 /**
  * Controlador do Modal de Seleção de Livros para Listas Customizadas
  */
-import { escapeHTML } from '../utils/helpers.js';
+import { escapeHTML, safeImageUrl } from '../utils/helpers.js';
 import { auth, db, firebase } from '../services/firebase.js';
 import { rm } from '../store/readingManager.js';
 
@@ -127,7 +127,7 @@ export function renderListBooksModal() {
             const coverHtml = `
             <div class="book-cover-container ${isPlaceholder ? 'is-placeholder' : 'skeleton'}" style="height: 100%; border-radius: 8px;">
                 ${!isPlaceholder ? `
-                <img src="${book.cover}" loading="lazy" alt="${escTitle}" class="book-cover" style="height: 100%; width: 100%; object-fit: cover;" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
+                <img src="${escapeHTML(safeImageUrl(book.cover))}" loading="lazy" alt="${escTitle}" class="book-cover" style="height: 100%; width: 100%; object-fit: cover;" onload="this.parentElement?.classList?.remove('skeleton')" onerror="this.style.display='none'; const p = this.closest('.book-cover-container'); if (p) { p.classList.add('is-placeholder'); p.classList.remove('skeleton'); const ph = p.querySelector('.book-cover-placeholder'); if (ph) ph.classList.add('visible'); }">
                 ` : ''}
                 <div class="book-cover-placeholder ${isPlaceholder ? 'visible' : ''}">
                     <div class="placeholder-title">${escTitle}</div>
@@ -282,7 +282,7 @@ export function initListBooksEvents(App) {
     const btnSaveListBooks = document.getElementById('btnSaveListBooks');
     if (btnSaveListBooks) {
         btnSaveListBooks.addEventListener('click', async () => {
-            if (!listBooksCurrentListId || !auth.currentUser) return;
+            if (!listBooksCurrentListId || !auth || !auth.currentUser) return;
             
             const btn = document.getElementById('btnSaveListBooks');
             const originalText = btn.innerHTML;
@@ -324,7 +324,10 @@ export function initListBooksEvents(App) {
                 
                 if (operations > 0) {
                     await batch.commit();
-                    if (appInstance) appInstance.showToast(`${operations} livro(s) atualizados com sucesso!`);
+                    if (appInstance) {
+                        appInstance.showToast(`${operations} livro(s) atualizados com sucesso!`);
+                        if (appInstance.syncSharedList) appInstance.syncSharedList(listBooksCurrentListId);
+                    }
                 } else {
                     if (appInstance) appInstance.showToast('Nenhuma alteração foi feita.');
                 }

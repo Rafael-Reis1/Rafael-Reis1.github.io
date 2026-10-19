@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // ---------------------------------------------------------------------
+    // Finance (privado: só o dono lê e escreve)
+    // ---------------------------------------------------------------------
+    match /finance_data/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Library (privado: só o dono lê e escreve, inclusive o documento pai,
+    // que guarda preferências como a meta anual de leitura)
+    // ---------------------------------------------------------------------
+    match /library_data/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Listas compartilhadas: cópia pública e enxuta (título, autor, capa).
+    // `get` liberado por token (impossível de adivinhar); `list` bloqueado
+    // para ninguém conseguir enumerar todas as listas compartilhadas.
+    // Escrita apenas pelo dono da lista.
+    // ---------------------------------------------------------------------
+    match /shared_lists/{token} {
+      allow get: if true;
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.books is list
+        && request.resource.data.books.size() <= 300;
+
+      allow update: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.books is list
+        && request.resource.data.books.size() <= 300;
+
+      allow delete: if request.auth != null
+        && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}

@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Portfólio e projetos locais",
   "scripts": {
-    "test": "node validate.js",
+    "test": "node validate.js && node --no-warnings reading/tests/run.mjs",
+    "test:reading": "node --no-warnings reading/tests/run.mjs",
+    "validate": "node validate.js",
     "cache": "node updateCache.js"
   }
 }

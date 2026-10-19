@@ -51,6 +51,25 @@ export const generateEntryId = (prefix = 'entry') => {
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 };
 
+/**
+ * Normaliza e valida uma URL de imagem antes de injetá-la em um atributo HTML.
+ * Rejeita esquemas executáveis (javascript:, vbscript:) e mantém URLs relativas
+ * que já existiam na biblioteca. O escaping do atributo é responsabilidade do caller.
+ */
+export const safeImageUrl = (url) => {
+    const cleaned = cleanCoverUrl(url);
+    if (!cleaned) return '';
+    if (/^(?:javascript|vbscript|file):/i.test(cleaned)) return '';
+    return cleaned;
+};
+
+/**
+ * Valida o formato de um UID do Firebase (usado em links de compartilhamento).
+ */
+export const isValidFirebaseUid = (uid) => {
+    return typeof uid === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(uid);
+};
+
 export const formatDaysAgo = (dateStr) => {
     if (!dateStr) return '';
     const d = dateStr.length === 10 ? new Date(dateStr + 'T12:00:00') : new Date(dateStr);
