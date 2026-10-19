@@ -36,6 +36,7 @@ body {
 }
 
 .container {
+    position: relative;
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -131,6 +132,8 @@ body {
     height: 100%;
     width: 100%;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    overflow-anchor: none;
     scrollbar-gutter: stable;
     padding: 2rem;
 }
@@ -138,6 +141,68 @@ body {
 .messages>* {
     width: 100%;
     max-width: 800px;
+}
+
+.scroll-bottom-btn {
+    position: absolute;
+    left: 50%;
+    bottom: 96px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    background: rgba(20, 21, 38, 0.92);
+    color: var(--text-secondary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 10px);
+    transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.scroll-bottom-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+
+.scroll-bottom-btn:hover {
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.scroll-bottom-btn.visible:active {
+    transform: translate(-50%, 0) scale(0.92);
+}
+
+.scroll-bottom-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.scroll-bottom-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-color);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.scroll-bottom-btn.has-new .scroll-bottom-dot {
+    opacity: 1;
 }
 
 ::-webkit-scrollbar {
@@ -237,9 +302,7 @@ body {
 }
 
 .rowAssistant .message.is-streaming {
-    background: linear-gradient(90deg, var(--glass-bg) 25%, rgba(255, 255, 255, 0.1) 50%, var(--glass-bg) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
+    border-color: color-mix(in srgb, var(--current-chat-color, var(--accent-color)) 45%, var(--glass-border));
 }
 
 .skeleton-loading {
@@ -300,6 +363,15 @@ body {
     overflow-x: auto;
     font-size: 0.9em;
     margin: 0;
+    background: #282c34;
+    color: #abb2bf;
+}
+
+/* Enquanto a resposta chega o highlight.js ainda não rodou: mantém o bloco
+   com a mesma aparência do tema para o código não "pular" no fim. */
+.rowAssistant .message pre>code:not(.hljs) {
+    display: block;
+    padding: 1em;
 }
 
 .rowAssistant .message ul,
@@ -399,7 +471,7 @@ body {
 
 #stopButton {
     background-color: #dc3545;
-    color: var(--text-color);
+    color: #ffffff;
 }
 
 #stopButton:hover {
@@ -794,7 +866,7 @@ progress {
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: flex-end;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: #1a1b26;
 }
 
 .personas-list {
