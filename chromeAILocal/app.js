@@ -1,3 +1,38 @@
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+}[char]));
+
+const safeColor = (value, fallback = '#f2511b') =>
+    /^#[0-9a-fA-F]{3,8}$/.test(String(value || '')) ? value : fallback;
+
+// Dados vindos de arquivos .json importados não são confiáveis: normalizamos antes de usar.
+const normalizePersona = (persona) => ({
+    id: String(persona?.id ?? ('p-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8))),
+    name: String(persona?.name ?? '').trim(),
+    prompt: String(persona?.prompt ?? ''),
+    color: safeColor(persona?.color),
+    icon: String(persona?.icon || '🤖')
+});
+
+const normalizeChat = (chat) => ({
+    id: String(chat?.id ?? ''),
+    title: String(chat?.title || 'Chat importado'),
+    messages: Array.isArray(chat?.messages)
+        ? chat.messages
+            .filter(msg => msg && typeof msg.content === 'string' && (msg.role === 'user' || msg.role === 'assistant'))
+            .map(msg => ({ role: msg.role, content: msg.content }))
+        : [],
+    systemPrompt: String(chat?.systemPrompt ?? ''),
+    personaName: chat?.personaName ? String(chat.personaName) : null,
+    personaIcon: chat?.personaIcon ? String(chat.personaIcon) : null,
+    personaColor: chat?.personaColor ? safeColor(chat.personaColor) : null,
+    timestamp: Number(chat?.timestamp) || Date.now()
+});
+
 class PersonaManager {
     constructor() {
         this.personas = [];
@@ -697,9 +732,11 @@ class UIManager {
             canvasContainer: document.getElementById('canvasContainer'),
             canvasFrame: document.getElementById('canvasFrame'),
             closeCanvasBtn: document.getElementById('closeCanvas'),
-            refreshCanvasBtn: document.getElementById('refreshCanvas')
+            refreshCanvasBtn: document.getElementById('refreshCanvas'),
+            scrollToBottomBtn: document.getElementById('scrollToBottomBtn')
         };
 
+        this.stickToBottom = true;
         this.currentCanvasCode = '';
         this.currentBlobUrl = null;
         this.codeState = { html: null, css: null, js: null };
@@ -811,6 +848,8 @@ class UIManager {
 
         if (this.els.sendBtn) this.els.sendBtn.onclick = () => this.handleSend();
         if (this.els.stopBtn) this.els.stopBtn.onclick = () => this.handleStop();
+
+        this.initScroll();
 
         if (this.els.prompt) {
             this.els.prompt.addEventListener('input', () => this.adjustTextarea());
@@ -943,11 +982,16 @@ class UIManager {
     }
 
     loadInitialState() {
-        if (this.chats.getAll().length === 0) {
+        const chats = this.chats.getAll();
+
+        if (chats.length === 0) {
             this.createNewChat();
         } else {
-            this.switchChat(this.chats.getAll()[0].id);
+            const savedId = localStorage.getItem('activeChatId');
+            const targetId = savedId && this.chats.get(savedId) ? savedId : chats[0].id;
+            this.switchChat(targetId);
         }
+
         this.adjustTextarea();
         this.initCanvas();
     }
@@ -993,6 +1037,7 @@ class UIManager {
                 container.style.width = targetWidth + 'px';
                 canvas.style.opacity = '1';
                 canvas.style.width = '';
+                if (this.stickToBottom) this.scrollToBottom();
             }
         };
 
@@ -1031,6 +1076,7 @@ class UIManager {
                 container.style.width = '';
                 canvas.style.opacity = '';
                 canvas.style.width = '';
+                if (this.stickToBottom) this.scrollToBottom();
             }
         };
         requestAnimationFrame(animate);
@@ -1363,6 +1409,9 @@ ${code}
 
     switchChat(id) {
         this.chats.activeChatId = id;
+        try {
+            localStorage.setItem('activeChatId', id);
+        } catch (_) { }
         this.reconstructCodeState(id);
 
         if (this.codeState.html) {
@@ -1387,7 +1436,7 @@ ${code}
             }
         }
 
-        setTimeout(() => this.scrollToBottom(true), 50);
+        this.scrollToBottomSoon();
 
         this.renderChatList();
         this.updateInputState();
@@ -1508,7 +1557,7 @@ ${code}
             item.innerHTML = `
                 <span>
                     ${this.getPersonaBadge(chat.personaName, chat.personaIcon, chat.personaColor)}
-                    ${chat.title}
+                    ${escapeHtml(chat.title)}
                 </span>
                 <div class="chat-actions">
                     <button class="chat-action-btn edit" title="Renomear">
@@ -1522,7 +1571,7 @@ ${code}
 
             const persona = this.personas.getAll().find(p => p.name === chat.personaName);
             if (persona && persona.id !== 'default') {
-                item.style.borderLeftColor = persona.color || '#f2511b';
+                item.style.borderLeftColor = safeColor(persona.color);
                 item.classList.add('persona-custom');
             }
 
@@ -1634,7 +1683,7 @@ ${code}
             const persona = this.personas.getAll().find(p => p.name === chat.personaName);
 
             const activePersonaName = persona ? persona.name : (chat.personaName || 'Padrão');
-            const activeColor = persona ? (persona.color || '#f2511b') : (chat.personaColor || '#f2511b');
+            const activeColor = safeColor(persona ? persona.color : chat.personaColor);
 
             if (activePersonaName === 'Padrão' || !activePersonaName) {
                 prompt.placeholder = 'Digite sua mensagem para a IA...';
@@ -1696,8 +1745,8 @@ ${code}
         if (!personaName || personaName.includes('Padrão')) return '';
         const persona = this.personas.getAll().find(p => p.name === personaName);
 
-        const icon = persona ? (persona.icon || '🤖') : (iconSnapshot || '🤖');
-        const color = persona ? (persona.color || 'inherit') : (colorSnapshot || 'inherit');
+        const icon = escapeHtml(persona ? (persona.icon || '🤖') : (iconSnapshot || '🤖'));
+        const color = safeColor(persona ? persona.color : colorSnapshot, 'inherit');
 
         if (!persona && !iconSnapshot) return `<span class="persona-icon-sidebar">🤖</span>`;
 
@@ -1725,14 +1774,20 @@ ${code}
             el.className = 'persona-item';
 
             const isSystemPersona = systemIds.includes(String(p.id));
+            const personaColor = safeColor(p.color);
+            const personaIcon = escapeHtml(p.icon || '🤖');
+            const personaName = escapeHtml(p.name);
+            const personaDesc = p.id === 'default'
+                ? 'Assistente geral do Chrome AI. Versátil e útil para a maioria das tarefas.'
+                : (p.prompt ? escapeHtml(p.prompt.substring(0, 60)) + (p.prompt.length > 60 ? '...' : '') : 'Sem descrição');
 
             el.innerHTML = `
                 <div class="persona-info">
                     <div style="display:flex; align-items:center; gap: 0.5rem;">
-                        <span class="persona-icon-display" style="background-color: ${p.color || '#f2511b'}20; color: ${p.color || '#f2511b'}; border-radius: 4px;">${p.icon || '🤖'}</span>
-                        <strong>${p.name}</strong>
+                        <span class="persona-icon-display" style="background-color: ${personaColor}20; color: ${personaColor}; border-radius: 4px;">${personaIcon}</span>
+                        <strong>${personaName}</strong>
                     </div>
-                    <p>${p.id === 'default' ? 'Assistente geral do Chrome AI. Versátil e útil para a maioria das tarefas.' : (p.prompt ? p.prompt.substring(0, 60) + (p.prompt.length > 60 ? '...' : '') : 'Sem descrição')}</p>
+                    <p>${personaDesc}</p>
                 </div>
                 <div class="persona-actions">
                     <button class="btn-primary-small start-chat">Conversar</button>
@@ -1871,16 +1926,17 @@ ${code}
                 const data = JSON.parse(e.target.result);
                 const existingNames = this.personas.getAll().map(p => p.name.toLowerCase());
 
-                if (data.type === 'personas' && data.personas) {
+                if (data.type === 'personas' && Array.isArray(data.personas)) {
                     let imported = 0;
                     let skipped = 0;
-                    data.personas.forEach(p => {
-                        if (p.name && p.prompt !== undefined) {
-                            if (existingNames.includes(p.name.toLowerCase())) {
+                    data.personas.forEach(rawPersona => {
+                        const persona = normalizePersona(rawPersona);
+                        if (persona.name && persona.prompt !== undefined) {
+                            if (existingNames.includes(persona.name.toLowerCase())) {
                                 skipped++;
                             } else {
-                                this.personas.create(p.name, p.prompt, p.color || '#f2511b', p.icon || '🤖');
-                                existingNames.push(p.name.toLowerCase());
+                                this.personas.create(persona.name, persona.prompt, persona.color, persona.icon);
+                                existingNames.push(persona.name.toLowerCase());
                                 imported++;
                             }
                         }
@@ -1888,11 +1944,12 @@ ${code}
                     this.showDialog(`${imported} persona(s) importada(s)${skipped > 0 ? `, ${skipped} ignorada(s) (duplicadas)` : ''}`, { title: 'Importação Concluída' });
                     this.renderPersonasList();
                 } else if (data.name && data.prompt !== undefined) {
-                    if (existingNames.includes(data.name.toLowerCase())) {
-                        this.showDialog(`Persona "${data.name}" já existe.`, { title: 'Importação Falhou' });
+                    const persona = normalizePersona(data);
+                    if (existingNames.includes(persona.name.toLowerCase())) {
+                        this.showDialog(`Persona "${persona.name}" já existe.`, { title: 'Importação Falhou' });
                     } else {
-                        this.personas.create(data.name, data.prompt, data.color || '#f2511b', data.icon || '🤖');
-                        this.showDialog(`Persona "${data.name}" importada com sucesso!`, { title: 'Importação Concluída' });
+                        this.personas.create(persona.name, persona.prompt, persona.color, persona.icon);
+                        this.showDialog(`Persona "${persona.name}" importada com sucesso!`, { title: 'Importação Concluída' });
                         this.renderPersonasList();
                     }
                 } else {
@@ -1944,15 +2001,17 @@ ${code}
             try {
                 const data = JSON.parse(e.target.result);
 
-                if (data.type === 'chats' && data.chats) {
+                if (data.type === 'chats' && Array.isArray(data.chats)) {
                     const importPersonas = () => {
-                        if (!data.personas) return 0;
+                        if (!Array.isArray(data.personas)) return 0;
                         const existingNames = new Set(this.personas.getAll().map(p => p.name));
                         let count = 0;
-                        data.personas.forEach(p => {
-                            if (!existingNames.has(p.name)) {
-                                this.personas.personas.push(p);
-                                existingNames.add(p.name);
+                        data.personas.forEach(rawPersona => {
+                            const persona = normalizePersona(rawPersona);
+                            if (!persona.name) return;
+                            if (!existingNames.has(persona.name)) {
+                                this.personas.personas.push(persona);
+                                existingNames.add(persona.name);
                                 count++;
                             }
                         });
@@ -1982,9 +2041,11 @@ ${code}
                                     let imported = 0;
                                     let skipped = 0;
 
-                                    data.chats.forEach(chat => {
+                                    data.chats.forEach(rawChat => {
+                                        const chat = normalizeChat(rawChat);
                                         const isDuplicate = existingChats.some(existing =>
                                             existing.title === chat.title &&
+                                            Array.isArray(existing.messages) &&
                                             existing.messages.length === chat.messages.length
                                         );
 
@@ -2013,8 +2074,8 @@ ${code}
                                 class: 'btn-primary-outline',
                                 onClick: () => {
                                     const importedPersonas = importPersonas();
-                                    localStorage.setItem('chats', JSON.stringify(data.chats));
-                                    this.chats.chats = data.chats;
+                                    this.chats.chats = data.chats.map(normalizeChat);
+                                    this.chats.save();
 
                                     const warning = checkMissing(data.chats);
                                     const personaMsg = importedPersonas > 0 ? ` (+ ${importedPersonas} personas restauradas)` : '';
@@ -2146,8 +2207,8 @@ ${code}
                     onChunk: (text) => {
                         if (firstChunk) {
                             msgElement.className = 'message is-streaming';
-                            const dlMsg = document.getElementById(downloadMsgId);
-                            if (dlMsg) dlMsg.remove();
+                            const dlRow = document.getElementById(downloadMsgId)?.closest('.rowAssistant');
+                            if (dlRow) dlRow.remove();
                             firstChunk = false;
                         }
 
@@ -2167,6 +2228,12 @@ ${code}
             );
 
             this.throttledRender(fullResponse, msgElement, true);
+
+            if (!fullResponse.trim()) {
+                msgElement.innerHTML = '<p class="error-message"><b>Nada foi gerado.</b> Tente enviar novamente.</p>';
+                return;
+            }
+
             this.chats.addMessage(chatId, 'assistant', fullResponse);
             this.addCopyButtons(msgElement, fullResponse);
             this.checkAutoUpdateCanvas(fullResponse, true);
@@ -2182,10 +2249,12 @@ ${code}
                     this.chats.addMessage(chatId, 'assistant', fullResponse);
                     if (msgElement) this.addCopyButtons(msgElement, fullResponse);
                 } else if (msgElement) {
-                    msgElement.remove();
+                    const row = msgElement.closest('.rowAssistant');
+                    if (row) row.remove();
+                    else msgElement.remove();
                 }
             } else {
-                if (msgElement) msgElement.innerHTML = `<p class="error-message"><b>Erro:</b> ${error.message}</p>`;
+                if (msgElement) msgElement.innerHTML = `<p class="error-message"><b>Erro:</b> ${escapeHtml(error.message)}</p>`;
             }
         } finally {
             this.setLoadingState(false);
@@ -2194,6 +2263,8 @@ ${code}
             this.abortController = null;
 
             this.updateMessageActions();
+            // Cabeçalhos de código, estatísticas e botões de ação mudam a altura no fim.
+            this.scrollToBottom();
         }
     }
 
@@ -2437,6 +2508,7 @@ ${code}
 
             if (!existing) {
                 this.addMessageToDOM(`<div class="message" id="${msgId}">${html}</div>`, 'assistant');
+                this.scrollToBottom();
             } else {
                 existing.innerHTML = html;
             }
@@ -2446,8 +2518,12 @@ ${code}
     }
 
     throttledRender(fullText, element, force) {
-        const now = Date.now();
-        if (!force && (now - this.lastRenderTime < 10)) return;
+        if (!element) return;
+
+        // ~16 atualizações por segundo: suficiente para parecer instantâneo e evita
+        // reparsear o Markdown inteiro (e redesenhar o DOM) a cada chunk de 10ms.
+        const now = performance.now();
+        if (!force && now - this.lastRenderTime < 60) return;
 
         this.lastRenderTime = now;
         this.renderMarkdownUpdate(fullText, element, !force);
@@ -2463,7 +2539,15 @@ ${code}
 
         element.innerHTML = sanitized;
 
-        if (window.renderMathInElement) {
+        // Links abrem em outra aba para não derrubar a conversa atual.
+        element.querySelectorAll('a[href]').forEach(link => {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+        });
+
+        // Durante o streaming o HTML é recriado a cada chunk: rodar KaTeX e highlight.js
+        // em tudo a cada atualização trava a thread principal. O acabamento fica para o fim.
+        if (!isStreaming && window.renderMathInElement) {
             renderMathInElement(element, {
                 delimiters: [
                     { left: '$$', right: '$$', display: true },
@@ -2545,26 +2629,34 @@ ${code}
             });
         }
 
-        element.querySelectorAll('pre code:not(.language-mermaid):not(.hljs-added)').forEach(block => {
-            hljs.highlightElement(block);
-            block.classList.add('hljs-added');
-        });
+        if (!isStreaming) {
+            element.querySelectorAll('pre code:not(.language-mermaid):not(.hljs-added)').forEach(block => {
+                hljs.highlightElement(block);
+                block.classList.add('hljs-added');
+            });
+        }
+
+        if (!element.isConnected) return;
+
+        if (this.stickToBottom) this.scrollToBottom();
+        this.updateScrollButton();
+        if (!this.stickToBottom) this.markNewContent();
     }
 
     renderMessage(role, content, animate = true) {
         let html = '';
         if (role === 'user') {
-            const escaped = content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            html = `<p class="message">${escaped}</p>`;
+            html = `<p class="message">${escapeHtml(content)}</p>`;
         } else {
             const id = 'msg-' + Math.random().toString(36).substr(2, 9);
             html = `<div class="message" id="${id}"></div>`;
-            setTimeout(() => {
+            setTimeout(async () => {
                 const el = document.getElementById(id);
-                if (el) {
-                    this.renderMarkdownUpdate(content, el);
-                    this.addCopyButtons(el, content);
-                }
+                if (!el) return;
+
+                await this.renderMarkdownUpdate(content, el);
+                this.addCopyButtons(el, content);
+                if (this.stickToBottom) this.scrollToBottom();
             }, 0);
         }
         this.addMessageToDOM(html, role);
@@ -2577,8 +2669,8 @@ ${code}
         if (role === 'assistant') {
             const chat = this.chats.get(this.chats.activeChatId);
             const persona = chat ? this.personas.getAll().find(p => p.name === chat.personaName) : null;
-            const icon = persona?.icon || '🤖';
-            const color = persona?.color || '#f2511b';
+            const icon = escapeHtml(persona?.icon || '🤖');
+            const color = safeColor(persona?.color || chat?.personaColor);
 
             div.innerHTML = `
                 <div class="avatar" style="background-color: ${color}20; color: ${color};">${icon}</div>
@@ -2591,16 +2683,137 @@ ${code}
         this.els.messages.appendChild(div);
     }
 
-    scrollToBottom(force = false) {
+    initScroll() {
+        const el = this.els.messages;
+        if (!el) return;
+
+        el.addEventListener('scroll', () => {
+            // Durante a animação suave o "colar no fim" não deve ser desligado
+            // por posições intermediárias do scroll.
+            if (this._smoothScroll) return;
+
+            const nearBottom = this.isNearBottom();
+            if (nearBottom === this.stickToBottom) return;
+            this.stickToBottom = nearBottom;
+            this.updateScrollButton();
+        }, { passive: true });
+
+        // Rolar com o mouse/dedo cancela a animação e devolve o controle ao usuário.
+        ['wheel', 'touchstart'].forEach((type) => {
+            el.addEventListener(type, () => this.cancelSmoothScroll(), { passive: true });
+        });
+
+        // `scrollend` avisa quando a animação suave termina de verdade,
+        // sem depender de um timeout chutado.
+        el.addEventListener('scrollend', () => this.finishSmoothScroll(), { passive: true });
+
+        el.addEventListener('load', (event) => {
+            if (event.target.tagName === 'IMG' && this.stickToBottom) this.scrollToBottom();
+        }, true);
+
+        if (this.els.scrollToBottomBtn) {
+            this.els.scrollToBottomBtn.addEventListener('click', () => {
+                this.stickToBottom = true;
+                this.scrollToBottom(true, true);
+                if (this.els.prompt) this.els.prompt.focus();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (this.stickToBottom) this.scrollToBottom();
+        });
+
+        this.updateScrollButton();
+    }
+
+    isNearBottom(threshold = 120) {
+        const el = this.els.messages;
+        if (!el) return true;
+        return el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+    }
+
+    updateScrollButton() {
+        const el = this.els.messages;
+        const btn = this.els.scrollToBottomBtn;
+        if (!el || !btn) return;
+
+        if (this._smoothScroll) {
+            btn.classList.remove('visible', 'has-new');
+            return;
+        }
+
+        const canScroll = el.scrollHeight - el.clientHeight > 8;
+        const show = canScroll && !this.isNearBottom();
+
+        btn.classList.toggle('visible', show);
+        if (!show) btn.classList.remove('has-new');
+    }
+
+    markNewContent() {
+        const btn = this.els.scrollToBottomBtn;
+        if (btn && btn.classList.contains('visible')) btn.classList.add('has-new');
+    }
+
+    cancelSmoothScroll() {
+        if (!this._smoothScroll) return;
+        this._smoothScroll = false;
+        clearTimeout(this._smoothScrollTimer);
+        this._smoothScrollTimer = null;
+        this.updateScrollButton();
+    }
+
+    finishSmoothScroll() {
+        if (!this._smoothScroll) return;
+        this._smoothScroll = false;
+        clearTimeout(this._smoothScrollTimer);
+        this._smoothScrollTimer = null;
+        // Se chegou conteúdo novo durante a animação, encosta no fim de verdade.
+        this.scrollToBottom();
+    }
+
+    scrollToBottom(force = false, smooth = false) {
         if (!this.els.messages) return;
 
-        const el = this.els.messages;
-        const threshold = 150;
-        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
-
-        if (force || isNearBottom) {
-            el.scrollTop = el.scrollHeight;
+        if (force) {
+            this.stickToBottom = true;
+            this.cancelSmoothScroll();
         }
+
+        if (!this.stickToBottom) {
+            this.updateScrollButton();
+            return;
+        }
+
+        const el = this.els.messages;
+        const reduceMotion = window.matchMedia
+            ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            : false;
+
+        if (smooth && !reduceMotion) {
+            this._smoothScroll = true;
+            this.updateScrollButton();
+            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+
+            clearTimeout(this._smoothScrollTimer);
+            this._smoothScrollTimer = setTimeout(() => this.finishSmoothScroll(), 1600);
+            return;
+        }
+
+        // Enquanto a animação suave está rolando, um chunk novo não pode
+        // dar um salto por cima dela (o ajuste final acontece no scrollend).
+        if (this._smoothScroll) {
+            this.updateScrollButton();
+            return;
+        }
+
+        el.scrollTop = el.scrollHeight;
+        this.updateScrollButton();
+    }
+
+    scrollToBottomSoon() {
+        this.scrollToBottom(true);
+        requestAnimationFrame(() => this.scrollToBottom());
+        [80, 240, 600].forEach((delay) => setTimeout(() => this.scrollToBottom(), delay));
     }
 
     setLoadingState(isLoading) {

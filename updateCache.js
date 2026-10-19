@@ -29,6 +29,10 @@ function walkAndReplace(dir) {
 
         if (!VALID_EXTS.has(path.extname(entry.name))) continue;
 
+        // Bibliotecas minificadas de terceiros podem conter `?v=` dentro de
+        // expressões (ex.: `cond ? v = 1 : ...`). Trocar isso corrompe o código.
+        if (entry.name.endsWith('.min.js')) continue;
+
         const filePath = path.join(dir, entry.name);
         const content  = fs.readFileSync(filePath, 'utf8');
 

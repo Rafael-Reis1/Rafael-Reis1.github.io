@@ -6,8 +6,8 @@
     "id": "/chromeAILocal/",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#1e1e1e",
-    "theme_color": "#1e1e1e",
+    "background_color": "#06071a",
+    "theme_color": "#06071a",
     "orientation": "any",
     "icons": [
         {
