@@ -18,6 +18,18 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 html {
     scrollbar-color: var(--accent-color) var(--body-color);
     scrollbar-gutter: stable;
@@ -178,6 +190,8 @@ iframe {
     align-items: center;
     justify-content: center;
     transition: all 0.25s ease;
+    text-decoration: none;
+    color: inherit;
     flex-shrink: 0;
 }
 
@@ -227,7 +241,6 @@ iframe {
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-    transition: height 500ms cubic-bezier(.12, .12, 0, 1);
     overflow: hidden;
 }
 
@@ -278,7 +291,7 @@ iframe {
     gap: 0;
 }
 
-.navBarButtuns {
+.navBarButtons {
     padding: 0 1.1rem;
     height: 100%;
     display: flex;
@@ -294,9 +307,10 @@ iframe {
     transition: color 0.2s ease;
     letter-spacing: 0.01em;
     white-space: nowrap;
+    text-decoration: none;
 }
 
-.navBarButtuns::after {
+.navBarButtons::after {
     content: '';
     position: absolute;
     bottom: 0;
@@ -309,7 +323,7 @@ iframe {
     transition: transform 0.25s ease;
 }
 
-.navBarButtuns:hover {
+.navBarButtons:hover {
     color: rgba(247, 247, 247, 0.75);
 }
 
@@ -326,16 +340,32 @@ iframe {
 }
 
 .infos {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    height: fit-content;
     border-radius: 20px;
     padding: 1.875rem;
     padding-top: calc(3.25rem + 1.875rem);
     padding-bottom: 2.5rem;
-    transition: opacity 250ms ease;
+}
+
+/* Com JS, só a seção ativa aparece. Sem JS, todas ficam visíveis (conteúdo acessível). */
+html.js .infos:not(.is-active) {
+    display: none;
+}
+
+html.js .infos.is-active {
+    animation: section-in 220ms ease-out both;
+}
+
+@keyframes section-in {
+    from {
+        opacity: 0.35;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .title {
@@ -436,6 +466,11 @@ iframe {
     transition: all 0.25s ease;
     flex: 1;
     letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
 }
 
 .ctaBtn:hover {
@@ -457,6 +492,11 @@ iframe {
     transition: all 0.25s ease;
     flex: 1;
     letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
 }
 
 .ctaBtnSecondary:hover {
@@ -478,9 +518,170 @@ iframe {
 
 .bento-resume-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
     gap: 1.5rem;
     margin-top: 1.5rem;
+    align-items: stretch;
+}
+
+.cv-main,
+.cv-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.bento-card.cv-summary {
+    grid-column: 1 / -1;
+    background: linear-gradient(150deg, rgba(242, 81, 27, 0.09) 0%, rgba(255, 255, 255, 0.02) 60%);
+    border-color: rgba(242, 81, 27, 0.2);
+}
+
+.bento-card.cv-summary:hover {
+    background: linear-gradient(150deg, rgba(242, 81, 27, 0.13) 0%, rgba(255, 255, 255, 0.04) 60%);
+}
+
+.cv-summary-text {
+    max-width: 68ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(247, 247, 247, 0.72);
+}
+
+.cv-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+    margin-top: 1.35rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    list-style: none;
+}
+
+.cv-facts li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.cv-fact-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(247, 247, 247, 0.5);
+}
+
+.cv-facts strong {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.cv-skill-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cv-skill-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(247, 247, 247, 0.48);
+}
+
+.cv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    list-style: none;
+}
+
+.cv-chips li {
+    padding: 0.26rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(247, 247, 247, 0.82);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.cv-languages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    list-style: none;
+}
+
+.cv-languages li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.86rem;
+}
+
+.cv-languages span {
+    color: rgba(247, 247, 247, 0.55);
+}
+
+.cv-languages strong {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.cv-language-note {
+    margin-top: 0.75rem;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: rgba(247, 247, 247, 0.5);
+}
+
+.bento-card.cv-download {
+    margin-top: auto;
+    padding: 0;
+    background: linear-gradient(150deg, rgba(242, 81, 27, 0.14) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-color: rgba(242, 81, 27, 0.28);
+}
+
+.bento-card.cv-download:hover {
+    background: linear-gradient(150deg, rgba(242, 81, 27, 0.2) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border-color: rgba(242, 81, 27, 0.45);
+}
+
+.cv-download .cvActions {
+    width: 100%;
+    max-width: 22rem;
+    margin-inline: auto;
+    gap: 0.6rem;
+    padding: 1.25rem;
+}
+
+.cv-download-label {
+    margin-bottom: 0.15rem;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(247, 247, 247, 0.5);
+}
+
+.cv-download .btnDownload {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.85rem;
+}
+
+.cv-download .btnDownload img {
+    width: 18px;
+    height: 18px;
 }
 
 .bento-timeline {
@@ -545,17 +746,6 @@ iframe {
     color: var(--accent-color);
 }
 
-.bento-cv-download {
-    grid-column: span 2;
-    background: linear-gradient(135deg, rgba(242, 81, 27, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(242, 81, 27, 0.2);
-}
-
-.bento-cv-download:hover {
-    background: linear-gradient(135deg, rgba(242, 81, 27, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
-    border-color: rgba(242, 81, 27, 0.4);
-}
-
 .btnDownload {
     color: var(--text-color);
     width: 100%;
@@ -569,40 +759,113 @@ iframe {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .btnDownload img {
-    filter: invert(1);
     width: 24px;
     height: 24px;
+}
+
+.cvActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1.5rem;
+}
+
+.cvActions .btnDownload {
+    height: auto;
+}
+
+.btnDownload {
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(242, 81, 27, 0.14) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(242, 81, 27, 0.3);
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.btnDownload:hover {
+    background: linear-gradient(135deg, rgba(242, 81, 27, 0.22) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border-color: rgba(242, 81, 27, 0.5);
+    transform: translateY(-2px);
+}
+
+.btnDownloadSecondary {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btnDownloadSecondary:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.cvQuickLink {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0 1rem 1.25rem;
+    padding: 0.65rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(242, 81, 27, 0.3);
+    background: rgba(242, 81, 27, 0.08);
+    color: var(--text-color);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.cvQuickLink img {
+    width: 15px;
+    height: 15px;
+    opacity: 0.85;
+}
+
+.cvQuickLink:hover {
+    background: rgba(242, 81, 27, 0.18);
+    border-color: rgba(242, 81, 27, 0.55);
 }
 
 .curriculoLive {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    transform: translate(-50%, -50%);
+    width: min(90vw, 56.25rem);
+    height: min(100dvh, 56.25rem);
+    max-height: 100dvh;
     border-radius: 20px;
     z-index: 11;
     view-transition-name: shared-curriculo-area;
     display: none;
-    width: 0;
-    height: 0;
-    opacity: 0;
     background-color: white;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    position: relative;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-color) var(--body-color);
 }
 
 .curriculoLive.show {
-    width: 90vw;
-    max-width: 56.25rem;
-    height: 100vh;
-    max-height: 56.25rem;
+    display: block;
     opacity: 1;
+}
+
+html.modal-open {
+    overflow: hidden;
+}
+
+@media (max-width: 768px) {
+    .curriculoLive {
+        width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        border-radius: 0;
+    }
 }
 
 .overlay {
@@ -641,7 +904,6 @@ iframe {
     display: none;
     opacity: 0;
     transition: opacity 0.3s ease-out;
-    display: flex;
     justify-content: center;
     align-items: center;
 }
@@ -666,7 +928,7 @@ iframe {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
-    padding: 8;
+    padding: 8px;
     font-size: 0.9em;
     font-weight: bold;
     cursor: pointer;
@@ -680,12 +942,27 @@ iframe {
 }
 
 .download-button-modal.show {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     opacity: 1;
 }
 
-.curriculoLive {
-    position: fixed;
+.download-button-modal img {
+    width: 18px;
+    height: 18px;
+}
+
+.curriculoLive.show .close-button {
+    display: flex;
+    opacity: 1;
+}
+
+.curriculoLive.show .download-button-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
 }
 
 .habilidadesContainer {
@@ -801,14 +1078,19 @@ iframe {
 }
 
 .fade-in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+html.js .fade-in:not(.visible) {
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
 
 .fade-in.visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 
 .bento-header {
@@ -818,6 +1100,21 @@ iframe {
     flex-wrap: wrap;
     gap: 1rem;
     margin-bottom: 2rem;
+}
+
+.portfolio-count {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: rgba(247, 247, 247, 0.5);
+    letter-spacing: 0.01em;
+}
+
+.empty-projects {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: rgba(247, 247, 247, 0.6);
+    padding: 2.5rem 1rem;
+    font-size: 0.95rem;
 }
 
 .bento-header .title {
@@ -853,6 +1150,32 @@ iframe {
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
+.bento-card-image {
+    margin: -1.5rem -1.5rem 1.25rem;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+    aspect-ratio: 800 / 420;
+    background: #0d0e20;
+    flex-shrink: 0;
+}
+
+.bento-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+
+.bento-card:hover .bento-card-image img {
+    transform: scale(1.03);
+}
+
+.bento-hero .bento-card-image {
+    margin: -1.75rem -1.75rem 1.5rem;
+    aspect-ratio: 3.9 / 1;
+}
+
 .bento-card::before {
     content: '';
     position: absolute;
@@ -875,18 +1198,11 @@ iframe {
 
 .bento-hero {
     grid-column: span 2;
-    grid-row: span 1;
-    padding: 0;
     padding: 1.75rem;
-}
-
-.bento-hero-cv {
-    padding: 0;
 }
 
 .bento-feat {
     grid-column: span 1;
-    grid-row: span 1;
 }
 
 .bento-graph {
@@ -906,7 +1222,7 @@ iframe {
 .bento-card-content {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
     position: relative;
     z-index: 1;
 }
@@ -938,7 +1254,7 @@ iframe {
     font-size: 0.9rem;
     color: rgba(247, 247, 247, 0.55);
     line-height: 1.5;
-    flex: 1;
+    flex: 0 0 auto;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -949,14 +1265,15 @@ iframe {
     font-size: 0.95rem;
     line-height: 1.5;
     max-width: 100%;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
 }
 
 .bento-card-bottom {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-top: 1rem;
+    margin-top: auto;
+    padding-top: 1rem;
 }
 
 .bento-card-lang {
@@ -1010,6 +1327,14 @@ iframe {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.bento-badge.neutral {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .bento-badge.internal {
@@ -1086,12 +1411,32 @@ iframe {
     font-size: 0.8rem;
 }
 
+@media screen and (min-width: 1241px) {
+    .cv-skills {
+        flex: 1 1 auto;
+    }
+
+    .cv-skill-groups {
+        flex: 1;
+        justify-content: space-between;
+    }
+}
+
+@media screen and (max-width: 1240px) {
+    .bento-resume-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .cv-main,
+    .cv-rail {
+        gap: 1.25rem;
+    }
+}
+
 @media screen and (max-width: 900px) {
     .bento-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
-    .bento-hero, .bento-graph {
-        grid-column: span 2;
     }
 }
 
@@ -1099,8 +1444,17 @@ iframe {
     .bento-grid {
         grid-template-columns: 1fr;
     }
-    .bento-hero, .bento-graph {
+    .bento-hero {
         grid-column: span 1;
+    }
+    .bento-hero .bento-card-image {
+        aspect-ratio: 800 / 420;
+    }
+    .bento-card-desc,
+    .bento-hero .bento-card-desc {
+        display: block;
+        -webkit-line-clamp: none;
+        overflow: visible;
     }
     .bento-header {
         flex-direction: column;
@@ -1109,15 +1463,6 @@ iframe {
     .bento-search {
         width: 100%;
     }
-}
-
-.search-icon {
-    position: absolute;
-    right: 1rem;
-    opacity: 0.4;
-    display: flex;
-    align-items: center;
-    pointer-events: none;
 }
 
 .search-icon img {
@@ -1129,19 +1474,20 @@ iframe {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 9rem;
+    min-height: 9.5rem;
     width: 8.75rem;
     min-width: 8.75rem;
-    padding: 1.25rem;
+    padding: 1.1rem 1rem;
     border-radius: 20px;
     background-color: var(--base-color);
-    position: relative; 
+    position: relative;
     flex-direction: column;
+    gap: 0.65rem;
 }
 
 .habilidadesBox img {
     max-width: 100%;
-    max-height: 4rem;
+    max-height: 3.75rem;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -1149,22 +1495,18 @@ iframe {
 }
 
 .habilidadesBox:hover img {
-    transform: translateY(-15px);
+    transform: translateY(-4px) scale(1.03);
 }
 
 .legenda-tech {
-    position: absolute;
-    bottom: 15px;
-    opacity: 0;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.habilidadesBox:hover .legenda-tech {
+    position: static;
     opacity: 1;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    pointer-events: none;
 }
 
 ::view-transition-old(shared-curriculo-area) {
@@ -1246,7 +1588,7 @@ iframe {
         width: calc(100% + 2.5rem);
     }
 
-    .navBarButtuns {
+    .navBarButtons {
         width: 100%;
         justify-content: center;
     }
@@ -1295,13 +1637,6 @@ iframe {
 
     .legenda-tech {
         opacity: 1;
-    }
-
-    .bento-resume-grid {
-        display: grid;
-        grid-template-columns: auto;
-        gap: 1.5rem;
-        margin-top: 1.5rem;
     }
 }
 
@@ -1400,5 +1735,47 @@ iframe {
     .pagination-container {
         margin-left: 0;
         width: 100%;
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Foco visível (teclado) e preferência por menos movimento                   */
+/* -------------------------------------------------------------------------- */
+
+:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
+}
+
+.navBarButtons:focus-visible {
+    outline-offset: -3px;
+    border-radius: 6px;
+}
+
+.habilidadesContainer:focus-visible {
+    outline-offset: -3px;
+    border-radius: 16px;
+}
+
+.bento-card:focus-visible {
+    outline-offset: 4px;
+}
+
+.page-btn:focus-visible {
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .infoCardWrapper {
+        animation: none !important;
     }
 }

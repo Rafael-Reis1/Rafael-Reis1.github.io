@@ -6,244 +6,428 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
         content="Portfólio de Rafael Reis - Engenheiro de Software especializado em NestJS, Node.js, arquitetura de sistemas corporativos, mensageria e integrações de microsserviços.">
-    <meta name="keywords"
-        content="Rafael Reis, Engenheiro de Software, Backend Developer, NestJS, Node.js, TypeScript, Redis, BullMQ, TOTVS RM, TOTVS Fluig, SQL Server">
     <meta name="author" content="Rafael Reis da Silveira">
+    <meta name="theme-color" content="#06071A">
+
+    <link rel="canonical" href="https://rafael-reis1.github.io/">
+    <meta property="og:site_name" content="Rafael Reis">
     <meta property="og:title" content="Rafael Reis | Engenheiro de Software">
-    <meta property="og:description" content="Portfólio e projetos de arquitetura de software, mensageria e sistemas corporativos.">
-    <meta property="og:image" content="https://avatars.githubusercontent.com/u/88260667?v=1910261219">
+    <meta property="og:description"
+        content="Portfólio de engenharia de software: arquitetura de microsserviços, mensageria, integrações corporativas e projetos web.">
+    <meta property="og:image" content="https://rafael-reis1.github.io/imgs/og-cover.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Rafael Reis — Engenheiro de Software">
     <meta property="og:url" content="https://rafael-reis1.github.io/">
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Rafael Reis | Engenheiro de Software">
+    <meta name="twitter:description" content="Arquitetura de microsserviços, mensageria e integrações corporativas.">
+    <meta name="twitter:image" content="https://rafael-reis1.github.io/imgs/og-cover.png">
 
-    <link rel="stylesheet" href="assets/libs_comuns/fonts.css?v=1910261219">
-    <link rel="stylesheet" href="style.css?v=1910261219">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1910261219">
-    <script src="app.js?v=1910261219" defer></script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": "Rafael Reis da Silveira",
+            "jobTitle": "Engenheiro de Software",
+            "url": "https://rafael-reis1.github.io/",
+            "image": "https://rafael-reis1.github.io/imgs/profile.jpg",
+            "worksFor": { "@type": "Organization", "name": "Univale" },
+            "sameAs": [
+                "https://github.com/Rafael-Reis1",
+                "https://www.linkedin.com/in/rafael-reis-00331b85/"
+            ],
+            "knowsAbout": [
+                "NestJS", "Node.js", "TypeScript", "Redis", "BullMQ", "SQL Server",
+                "TOTVS RM", "TOTVS Fluig", "Microsserviços", "CI/CD"
+            ]
+        }
+    </script>
+
+    <link rel="preload" as="image" href="imgs/profile.jpg">
+    <link rel="stylesheet" href="assets/libs_comuns/fonts.css?v=1910261412">
+    <link rel="stylesheet" href="style.css?v=1910261412">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1910261412">
+    <script>document.documentElement.classList.add('js');</script>
+    <script src="app.js?v=1910261412" defer></script>
     <title>Rafael Reis | Engenheiro de Software</title>
 </head>
 
 <body>
-    <div class="main">
+    <main class="main">
         <div class="layoutWrapper">
-        <div class="infoCardWrapper">
-        <aside class="infoCard">
-            <div class="profilePhotoWrapper">
-                <div class="profilePhoto">
-                    <img src="https://github.com/Rafael-Reis1.png" alt="Rafael Reis da Silveira">
+            <aside class="infoCardWrapper">
+                <div class="infoCard">
+                    <div class="profilePhotoWrapper">
+                        <div class="profilePhoto">
+                            <img src="imgs/profile.jpg" alt="Rafael Reis da Silveira" width="172" height="172">
+                        </div>
+                        <span class="statusBadge">● Disponível</span>
+                    </div>
+                    <div class="cardContent">
+                        <h1>Rafael Reis da Silveira</h1>
+                        <p class="profileRole">Engenheiro de Software</p>
+                    </div>
+                    <div class="socialLinks">
+                        <a class="socialBtn" href="mailto:rafael.reis1776@gmail.com"
+                            aria-label="Enviar e-mail para Rafael Reis" title="rafael.reis1776@gmail.com">
+                            <img src="imgs/Email.svg" alt="" aria-hidden="true">
+                        </a>
+                        <a class="socialBtn" href="https://github.com/Rafael-Reis1" target="_blank"
+                            rel="noopener noreferrer" aria-label="GitHub de Rafael Reis (abre em nova aba)"
+                            title="GitHub: Rafael-Reis1">
+                            <img src="imgs/GitHubOutLine.svg" alt="" aria-hidden="true">
+                        </a>
+                        <a class="socialBtn" href="https://www.linkedin.com/in/rafael-reis-00331b85/" target="_blank"
+                            rel="noopener noreferrer" aria-label="LinkedIn de Rafael Reis (abre em nova aba)"
+                            title="LinkedIn: Rafael Reis">
+                            <img src="imgs/LinkedIn.svg" alt="" aria-hidden="true">
+                        </a>
+                    </div>
+                    <a class="cvQuickLink" href="docs/Curriculo.pdf" download>
+                        <img src="imgs/download.svg" alt="" aria-hidden="true">
+                        Baixar currículo
+                    </a>
                 </div>
-                <span class="statusBadge">● Disponível</span>
-            </div>
-            <div class="cardContent">
-                <h1>Rafael Reis da Silveira</h1>
-                <p class="profileRole">Engenheiro de Software</p>
-            </div>
-            <div class="socialLinks">
-                <button class="socialBtn" id="mail" aria-label="Email: rafael.reis1776@gmail.com" title="rafael.reis1776@gmail.com">
-                    <img src="imgs/Email.svg" alt="Email">
-                </button>
-                <button class="socialBtn" id="github" aria-label="GitHub: Rafael-Reis1" title="GitHub: Rafael-Reis1">
-                    <img src="imgs/GitHubOutLine.svg" alt="GitHub">
-                </button>
-                <button class="socialBtn" id="LinkedIn" aria-label="LinkedIn: Rafael Reis" title="LinkedIn: Rafael Reis">
-                    <img src="imgs/LinkedIn.svg" alt="LinkedIn">
-                </button>
-            </div>
-        </aside>
-        </div>
+            </aside>
 
-        <div class="mainInfo">
-            <div class="navBar">
-                <button id="btnSobre" class="navBarButtuns btnAccentColor">Sobre</button>
-                <button id="btnCurriculo" class="navBarButtuns">Currículo</button>
-                <button id="btnPortfolio" class="navBarButtuns">Portfólio</button>
-            </div>
-            <div class="infos" id="sobre">
-                <div class="title">
-                    <h2>Sobre mim</h2>
-                </div>
-                <div id="informacaoSobre">
-                    <p>
-                        Engenheiro de Software com foco em <strong>arquitetura de microsserviços, mensageria e alta disponibilidade</strong>.
-                        Especialista em construir soluções robustas utilizando Node.js, NestJS, TypeScript e modelagem relacional em SQL Server,
-                        integrando ecossistemas corporativos complexos e ERPs (TOTVS RM e Fluig).
-                    </p>
-                    <p class="sobreParagrafo2">
-                        Atualmente atuando na <strong>Univale</strong> na concepção e arquitetura do Portal do Colaborador,
-                        automação de compliance trabalhista (CLT) e orquestração de filas assíncronas com Redis/BullMQ.
-                    </p>
-                </div>
-                <div class="quickStats">
-                    <div class="statItem">
-                        <span class="statNumber">2+</span>
-                        <span class="statLabel">Anos de exp.</span>
-                    </div>
-                    <div class="statItem">
-                        <span class="statNumber">10+</span>
-                        <span class="statLabel">Projetos</span>
-                    </div>
-                    <div class="statItem">
-                        <span class="statNumber">12+</span>
-                        <span class="statLabel">Tecnologias</span>
-                    </div>
-                </div>
-                <div class="ctaContainer">
-                    <button id="btnVerPortfolio" class="ctaBtn">Ver Portfólio →</button>
-                    <button id="btnContato" class="ctaBtnSecondary">Contato</button>
-                </div>
-                <br>
-                <hr>
-                <h3 id="habilidadesH3">Habilidades</h3>
-                <p class="scrollHint">← arraste para explorar →</p>
-                <div class="habilidadesContainer" id="habilidadesContainer">
-                    <div class="habilidadesBox">
-                        <img src="imgs/JavaScript.svg" alt="TypeScript">
-                        <span class="legenda-tech">TypeScript</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/Node Js.svg" alt="NodeJs">
-                        <span class="legenda-tech">Node.js</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/Node Js.svg" alt="NestJS">
-                        <span class="legenda-tech">NestJS</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/Html 5.svg" alt="Html">
-                        <span class="legenda-tech">HTML 5</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/CSS3.svg" alt="Css">
-                        <span class="legenda-tech">CSS 3</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/socket_io.png" alt="Socket IO">
-                        <span class="legenda-tech">Socket IO</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/ubuntu.png" alt="Ubuntu">
-                        <span class="legenda-tech">Ubuntu</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/nginx.png" alt="Nginx">
-                        <span class="legenda-tech">Nginx</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/MySQL Logo.svg" alt="SQL Server">
-                        <span class="legenda-tech">SQL Server</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/Figma.svg" alt="Figma">
-                        <span class="legenda-tech">Figma</span>
-                    </div>
-                    <div class="habilidadesBox">
-                        <img src="imgs/Fluig.png" alt="Fluig">
-                        <span class="legenda-tech">TOTVS Fluig</span>
-                    </div>
-                </div>
-            </div>
-            <div class="infos" id="curriculo" style="display: none;">
-                <div class="bento-header">
+            <div class="mainInfo">
+                <nav class="navBar" role="tablist" aria-label="Seções do portfólio">
+                    <a id="btnSobre" class="navBarButtons btnAccentColor" href="#sobre" role="tab"
+                        aria-selected="true" aria-controls="sobre">Sobre</a>
+                    <a id="btnCurriculo" class="navBarButtons" href="#curriculo" role="tab" aria-selected="false"
+                        aria-controls="curriculo">Currículo</a>
+                    <a id="btnPortfolio" class="navBarButtons" href="#portfolio" role="tab" aria-selected="false"
+                        aria-controls="portfolio">Portfólio</a>
+                </nav>
+
+                <section class="infos is-active" id="sobre" role="tabpanel" aria-labelledby="btnSobre">
                     <div class="title">
-                        <h2>Currículo</h2>
+                        <h2>Sobre mim</h2>
                     </div>
-                </div>
+                    <div id="informacaoSobre">
+                        <p>
+                            Engenheiro de Software com foco em <strong>arquitetura de microsserviços, mensageria e alta disponibilidade</strong>.
+                            Experiência na construção de soluções robustas com Node.js, NestJS, TypeScript e modelagem relacional em SQL Server,
+                            integrando ecossistemas corporativos complexos e ERPs (TOTVS RM e Fluig).
+                        </p>
+                        <p class="sobreParagrafo2">
+                            Atualmente atuando na <strong>Univale</strong> na concepção e arquitetura do Portal do Colaborador,
+                            automação de compliance trabalhista (CLT) e orquestração de filas assíncronas com Redis/BullMQ.
+                        </p>
+                    </div>
+                    <div class="quickStats">
+                        <div class="statItem">
+                            <span class="statNumber">2+</span>
+                            <span class="statLabel">Anos de exp.</span>
+                        </div>
+                        <div class="statItem">
+                            <span class="statNumber">14+</span>
+                            <span class="statLabel">Projetos</span>
+                        </div>
+                        <div class="statItem">
+                            <span class="statNumber">14+</span>
+                            <span class="statLabel">Tecnologias</span>
+                        </div>
+                    </div>
+                    <div class="ctaContainer">
+                        <a href="#portfolio" id="btnVerPortfolio" class="ctaBtn" data-tab-target="btnPortfolio">Ver Portfólio →</a>
+                        <a href="mailto:rafael.reis1776@gmail.com?subject=Contato%20via%20portf%C3%B3lio" class="ctaBtnSecondary">Contato</a>
+                    </div>
+                    <br>
+                    <hr>
+                    <h3 id="habilidadesH3">Habilidades</h3>
+                    <p class="scrollHint">← arraste ou use as setas do teclado →</p>
+                    <div class="habilidadesContainer" id="habilidadesContainer" tabindex="0" role="region"
+                        aria-label="Tecnologias e ferramentas">
+                        <div class="habilidadesBox">
+                            <img src="imgs/TypeScript.svg" alt="TypeScript" loading="lazy" decoding="async">
+                            <span class="legenda-tech">TypeScript</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Node Js.svg" alt="Node.js" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Node.js</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/NestJS.svg" alt="NestJS" loading="lazy" decoding="async">
+                            <span class="legenda-tech">NestJS</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Redis.svg" alt="Redis e BullMQ" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Redis / BullMQ</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/SQLServer.svg" alt="SQL Server" loading="lazy" decoding="async">
+                            <span class="legenda-tech">SQL Server</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Docker.svg" alt="Docker" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Docker</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Firebase.svg" alt="Firebase" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Firebase</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/socket_io.png" alt="Socket.IO" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Socket.IO</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/nginx.png" alt="Nginx" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Nginx</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/ubuntu.png" alt="Ubuntu Server" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Ubuntu</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Html 5.svg" alt="HTML 5" loading="lazy" decoding="async">
+                            <span class="legenda-tech">HTML 5</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/CSS3.svg" alt="CSS 3" loading="lazy" decoding="async">
+                            <span class="legenda-tech">CSS 3</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Figma.svg" alt="Figma" loading="lazy" decoding="async">
+                            <span class="legenda-tech">Figma</span>
+                        </div>
+                        <div class="habilidadesBox">
+                            <img src="imgs/Fluig.png" alt="TOTVS Fluig" loading="lazy" decoding="async">
+                            <span class="legenda-tech">TOTVS Fluig</span>
+                        </div>
+                    </div>
+                </section>
 
-                <div class="bento-resume-grid">
-                    <div class="bento-card fade-in">
-                        <div class="bento-card-header">
-                            <div class="bento-badge" style="background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.8);">
-                                <img src="imgs/Open Book.svg" alt="Livro"> Educação
+                <section class="infos" id="curriculo" role="tabpanel" aria-labelledby="btnCurriculo">
+                    <div class="bento-header">
+                        <div class="title">
+                            <h2>Currículo</h2>
+                        </div>
+                    </div>
+
+                    <div class="bento-resume-grid">
+                        <div class="bento-card cv-summary fade-in">
+                            <div class="bento-card-header">
+                                <h3 class="bento-badge neutral">Resumo</h3>
+                            </div>
+                            <p class="cv-summary-text">Engenheiro de Software com experiência consolidada na construção de
+                                soluções corporativas robustas, especializando-se na resolução de regras de negócio
+                                complexas, orquestração de microsserviços assíncronos e modernização de ecossistemas
+                                legados de grande porte.</p>
+                            <ul class="cv-facts">
+                                <li>
+                                    <span class="cv-fact-label">Atuação</span>
+                                    <strong>Backend &amp; integrações</strong>
+                                </li>
+                                <li>
+                                    <span class="cv-fact-label">Foco</span>
+                                    <strong>Microsserviços assíncronos</strong>
+                                </li>
+                                <li>
+                                    <span class="cv-fact-label">Disponibilidade</span>
+                                    <strong>Remoto</strong>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="cv-main">
+                            <div class="bento-card fade-in">
+                                <div class="bento-card-header">
+                                    <h3 class="bento-badge neutral">
+                                        <img src="imgs/Document.svg" alt="" aria-hidden="true"> Experiência
+                                    </h3>
+                                </div>
+                                <div class="bento-card-content">
+                                    <div class="bento-timeline">
+                                        <div class="timeline-item">
+                                            <span class="timeline-date">03/2025 - atual</span>
+                                            <h4 class="timeline-title">Univale / Engenheiro de Software Full-Cycle</h4>
+                                            <ul class="timeline-list">
+                                                <li>Arquitetura e desenvolvimento do Portal do Colaborador (NestJS, TypeScript,
+                                                    RBAC e Stateful JWT)</li>
+                                                <li>Mensageria e filas assíncronas de alta resiliência com Redis e BullMQ
+                                                    (idempotência e retry em 3 níveis)</li>
+                                                <li>Automação de regras da CLT (interjornada de 11h) e integração de middlewares
+                                                    REST com TOTVS RM e Fluig</li>
+                                                <li>Gestão de infraestrutura Linux (Ubuntu 24.04), Nginx e esteiras de CI/CD com
+                                                    GitHub Actions</li>
+                                            </ul>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <span class="timeline-date">08/2024 - 03/2025</span>
+                                            <h4 class="timeline-title">Univale / Estagiário em Desenvolvimento de Sistemas</h4>
+                                            <ul class="timeline-list">
+                                                <li>Apoio na modernização de rotinas e integração entre serviços internos e
+                                                    plataformas legadas TOTVS</li>
+                                                <li>Construção de rotinas em Node.js e otimização de consultas em SQL Server</li>
+                                            </ul>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <span class="timeline-date">04/2024 - 08/2024</span>
+                                            <h4 class="timeline-title">Cafezinho / Estágio Dev. Mobile Android Java</h4>
+                                            <p class="timeline-desc">Prototipagem de telas no Figma e implementação nativa em
+                                                Android com consumo de APIs RESTful.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bento-card fade-in">
+                                <div class="bento-card-header">
+                                    <h3 class="bento-badge neutral">
+                                        <img src="imgs/Open Book.svg" alt="" aria-hidden="true"> Educação
+                                    </h3>
+                                </div>
+                                <div class="bento-card-content">
+                                    <div class="bento-timeline">
+                                        <div class="timeline-item">
+                                            <span class="timeline-date">02/2023 - 12/2026 (previsto)</span>
+                                            <h4 class="timeline-title">Univale / Sistemas de Informação (Bacharelado)</h4>
+                                            <p class="timeline-desc">Foco em arquitetura de sistemas computacionais, engenharia
+                                                de software, segurança da informação e modelagem de bancos de dados
+                                                relacionais.</p>
+                                        </div>
+                                        <div class="timeline-item">
+                                            <span class="timeline-date">02/2018 - 06/2021 (trancado)</span>
+                                            <h4 class="timeline-title">Anhanguera (Pitágoras) / Eng. Elétrica</h4>
+                                            <p class="timeline-desc">Formação em eletrônica, sistemas de potência, automação e
+                                                telecomunicações.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="bento-card-content">
-                            <div class="bento-timeline">
-                                <div class="timeline-item">
-                                    <span class="timeline-date">02/2023 - 12/2026 (previsto)</span>
-                                    <h4 class="timeline-title">Univale / Sistemas de Informação (Bacharelado)</h4>
-                                    <p class="timeline-desc">Foco em arquitetura de sistemas computacionais, engenharia de software, segurança da informação e modelagem de bancos de dados relacionais.</p>
+
+                        <aside class="cv-rail" aria-label="Competências, idiomas e download do currículo">
+                            <div class="bento-card cv-skills fade-in">
+                                <div class="bento-card-header">
+                                    <h3 class="bento-badge neutral">
+                                        <img src="imgs/TypeScript.svg" alt="" aria-hidden="true"> Competências
+                                    </h3>
                                 </div>
-                                <div class="timeline-item">
-                                    <span class="timeline-date">02/2018 - 06/2021 (trancado)</span>
-                                    <h4 class="timeline-title">Anhanguera (Pitágoras) / Eng. Elétrica</h4>
-                                    <p class="timeline-desc">Formação em eletrônica, sistemas de potência, automação e telecomunicações.</p>
+                                <div class="cv-skill-groups">
+                                    <div class="cv-skill-group">
+                                        <span class="cv-skill-label">Linguagens &amp; Backend</span>
+                                        <ul class="cv-chips">
+                                            <li>TypeScript</li>
+                                            <li>Node.js</li>
+                                            <li>NestJS</li>
+                                            <li>Express</li>
+                                            <li>APIs RESTful</li>
+                                            <li>WebSockets</li>
+                                        </ul>
+                                    </div>
+                                    <div class="cv-skill-group">
+                                        <span class="cv-skill-label">Mensageria &amp; Dados</span>
+                                        <ul class="cv-chips">
+                                            <li>Redis</li>
+                                            <li>BullMQ</li>
+                                            <li>SQL Server</li>
+                                            <li>Prisma ORM</li>
+                                        </ul>
+                                    </div>
+                                    <div class="cv-skill-group">
+                                        <span class="cv-skill-label">Infraestrutura</span>
+                                        <ul class="cv-chips">
+                                            <li>Linux (Ubuntu)</li>
+                                            <li>Nginx</li>
+                                            <li>Docker</li>
+                                            <li>GitHub Actions</li>
+                                            <li>PM2</li>
+                                        </ul>
+                                    </div>
+                                    <div class="cv-skill-group">
+                                        <span class="cv-skill-label">Integrações</span>
+                                        <ul class="cv-chips">
+                                            <li>TOTVS RM</li>
+                                            <li>TOTVS Fluig</li>
+                                            <li>SOAP/XML</li>
+                                            <li>Middleware</li>
+                                        </ul>
+                                    </div>
+                                    <div class="cv-skill-group">
+                                        <span class="cv-skill-label">Frontend</span>
+                                        <ul class="cv-chips">
+                                            <li>JavaScript</li>
+                                            <li>PWAs</li>
+                                            <li>Figma</li>
+                                            <li>Usabilidade</li>
+                                        </ul>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div class="bento-card fade-in">
+                                <div class="bento-card-header">
+                                    <h3 class="bento-badge neutral">Idiomas</h3>
+                                </div>
+                                <ul class="cv-languages">
+                                    <li><span>Português</span><strong>Nativo</strong></li>
+                                    <li><span>Inglês</span><strong>Intermediário</strong></li>
+                                </ul>
+                                <p class="cv-language-note">Leitura e escrita técnica fluente para arquitetura,
+                                    documentação e consumo de APIs.</p>
+                            </div>
+
+                            <div class="bento-card cv-download fade-in">
+                                <div class="cvActions">
+                                    <span class="cv-download-label">Currículo completo</span>
+                                    <a id="btnCurriculoDownload" class="btnDownload" href="Curriculo/Curriculo.html"
+                                        target="_blank" rel="noopener">
+                                        <img src="imgs/Document.svg" alt="" aria-hidden="true">
+                                        <span>Ver online</span>
+                                    </a>
+                                    <a class="btnDownload btnDownloadSecondary" href="docs/Curriculo.pdf" download>
+                                        <img src="imgs/download.svg" alt="" aria-hidden="true">
+                                        <span>Baixar PDF</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+                </section>
+
+                <section class="infos" id="portfolio" role="tabpanel" aria-labelledby="btnPortfolio">
+                    <div class="bento-header">
+                        <div>
+                            <div class="title">
+                                <h2>Portfólio</h2>
+                            </div>
+                            <p class="portfolio-count" id="portfolioCount" aria-live="polite"></p>
+                        </div>
+                        <div class="search-container bento-search">
+                            <label class="visually-hidden" for="searchInput">Buscar projeto ou repositório</label>
+                            <input type="search" id="searchInput" placeholder="Buscar projeto ou repositório..."
+                                class="search-input" autocomplete="off">
+                            <div class="search-icon" aria-hidden="true">
+                                <img src="imgs/Search.svg" alt="">
                             </div>
                         </div>
                     </div>
 
-                    <div class="bento-card fade-in">
-                        <div class="bento-card-header">
-                            <div class="bento-badge" style="background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.8);">
-                                <img src="imgs/Document.svg" alt="Maleta"> Experiência
-                            </div>
-                        </div>
-                        <div class="bento-card-content">
-                            <div class="bento-timeline">
-                                <div class="timeline-item">
-                                    <span class="timeline-date">03/2025 - atual</span>
-                                    <h4 class="timeline-title">Univale / Engenheiro de Software Full-Cycle</h4>
-                                    <ul class="timeline-list">
-                                        <li>Arquitetura e desenvolvimento do Portal do Colaborador (NestJS, TypeScript, RBAC e Stateful JWT)</li>
-                                        <li>Mensageria e filas assíncronas de alta resiliência com Redis e BullMQ (idempotência e retry em 3 níveis)</li>
-                                        <li>Automação de regras da CLT (interjornada de 11h) e integração de middlewares REST com TOTVS RM e Fluig</li>
-                                        <li>Gestão de infraestrutura Linux (Ubuntu 24.04), Nginx e esteiras de CI/CD com GitHub Actions</li>
-                                    </ul>
-                                </div>
-                                <div class="timeline-item">
-                                    <span class="timeline-date">08/2024 - 03/2025</span>
-                                    <h4 class="timeline-title">Univale / Estagiário em Desenvolvimento de Sistemas</h4>
-                                    <ul class="timeline-list">
-                                        <li>Apoio na modernização de rotinas e integração entre serviços internos e plataformas legadas TOTVS</li>
-                                        <li>Construção de rotinas em Node.js e otimização de consultas em SQL Server</li>
-                                    </ul>
-                                </div>
-                                <div class="timeline-item">
-                                    <span class="timeline-date">04/2024 - 08/2024</span>
-                                    <h4 class="timeline-title">Cafezinho / Estágio Dev. Mobile Android Java</h4>
-                                    <p class="timeline-desc">Prototipagem de telas no Figma e implementação nativa em Android com consumo de APIs RESTful.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="bento-grid" id="bentoGrid"></div>
 
-                    <div class="bento-card bento-hero bento-hero-cv fade-in" id="downloadCVBento" style="display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;">
-                        <button id="btnCurriculoDownload" class="btnDownload" style="width: 100%; height: 100%; border-radius: 16px; background: transparent; padding: 2rem;">
-                            <img src="imgs/Document.svg" alt="Curriculo">
-                            <p style="font-size: 1.1rem;">Ver Currículo em PDF</p>
-                        </button>
+                    <div class="pagination-wrapper">
+                        <div class="pagination-container" id="paginationRepos"></div>
                     </div>
-                </div>
-            </div>
-            <div class="infos" id="portfolio" style="display: none;">
-                <div class="bento-header">
-                    <div class="title">
-                        <h2>Portfólio</h2>
-                    </div>
-                    <div class="search-container bento-search">
-                        <input type="text" id="searchInput" placeholder="Buscar projeto ou repositório..." class="search-input">
-                        <div class="search-icon">
-                            <img src="imgs/Search.svg" alt="Buscar">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bento-grid" id="bentoGrid">
-                </div>
-                
-                <div class="pagination-wrapper">
-                    <div class="pagination-container" id="paginationRepos"></div>
-                </div>
+                </section>
             </div>
         </div>
-        </div>
-    </div>
-    <div id="curriculoLive" class="curriculoLive">
-        <iframe src="Curriculo/Curriculo.html" id="actualCurriculoIframe" width="100%" height="100%">
-            <p>Seu navegador não suporta iframes, ou o PDF não pode ser exibido.</p>
+    </main>
+
+    <div id="curriculoLive" class="curriculoLive" role="dialog" aria-modal="true" aria-label="Currículo completo">
+        <iframe id="actualCurriculoIframe" data-src="Curriculo/Curriculo.html" title="Currículo de Rafael Reis"
+            width="100%" height="100%">
+            Seu navegador não suporta iframes. <a href="Curriculo/Curriculo.html">Abrir currículo</a>.
         </iframe>
-        <button id="closeButton" class="close-button">×</button>
-        <button id="downloadButtonModal" class="download-button-modal"><img src="imgs/download.svg"
-                alt="Curriculo"></button>
+        <button id="closeButton" class="close-button" aria-label="Fechar currículo">×</button>
+        <a id="downloadButtonModal" class="download-button-modal" href="docs/Curriculo.pdf" download
+            aria-label="Baixar currículo em PDF">
+            <img src="imgs/download.svg" alt="">
+        </a>
     </div>
     <div id="overlay" class="overlay"></div>
 </body>
