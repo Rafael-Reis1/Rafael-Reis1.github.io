@@ -2,6 +2,33 @@
  * Serviço de Regras de Negócio e Processamento de Estatísticas de Leitura (Paginômetro e Heatmap)
  */
 
+/**
+ * Converte o campo `date` de um registro de histórico em Date, sem lançar erro.
+ * Aceita string ISO, 'YYYY-MM-DD' e Timestamp do Firestore. Retorna null se inválido.
+ */
+const parseEntryDate = (value) => {
+    if (!value) return null;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+        const converted = value.toDate();
+        return isNaN(converted.getTime()) ? null : converted;
+    }
+    const text = String(value);
+    const parsed = text.length === 10 ? new Date(`${text}T12:00:00`) : new Date(text);
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDateKey = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const entryTime = (entry) => {
+    const parsed = parseEntryDate(entry && entry.date);
+    return parsed ? parsed.getTime() : 0;
+};
+
 export function processBookStats(book) {
     const isSynthetic = (h) => h.migrated || h.isFallbackDate || (h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_')));
     const p = parseInt(book.pages) || 0;
@@ -33,7 +60,9 @@ export function processBookStats(book) {
 
     let lastPage = 0;
     let cycleStartDate = null;
-    const sortedHistory = [...(book.history || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sortedHistory = [...(book.history || [])]
+        .filter(h => h && typeof h === 'object')
+        .sort((a, b) => entryTime(a) - entryTime(b));
 
     sortedHistory.forEach(h => {
         let diff = 0;
@@ -43,8 +72,8 @@ export function processBookStats(book) {
             diff = p - lastPage;
             lastPage = 0;
             if (cycleStartDate && !isSynthetic(h)) {
-                const finishDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
-                const diffMs = finishDate - cycleStartDate;
+                const finishDate = parseEntryDate(h.date);
+                const diffMs = finishDate ? finishDate - cycleStartDate : 0;
                 if (diffMs > 60000) {
                     const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
                     book.computed.completionDays.push(days);
@@ -53,14 +82,16 @@ export function processBookStats(book) {
             cycleStartDate = null;
         } else if (h.type === 'start') {
             lastPage = 0;
-            if (!isSynthetic(h)) {
-                cycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            const startDate = parseEntryDate(h.date);
+            if (!isSynthetic(h) && startDate) {
+                cycleStartDate = startDate;
             }
         } else {
             diff = pageNum - lastPage;
             lastPage = pageNum;
-            if (!cycleStartDate && !isSynthetic(h)) {
-                cycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            const progressDate = parseEntryDate(h.date);
+            if (!cycleStartDate && !isSynthetic(h) && progressDate) {
+                cycleStartDate = progressDate;
             }
         }
 
@@ -87,14 +118,13 @@ export function processBookStats(book) {
                 return;
             }
 
-            let d = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
-            const isEpoch = d.getFullYear() <= 1970;
+            const entryDate = parseEntryDate(h.date);
+            const isEpoch = !entryDate || entryDate.getFullYear() <= 1970;
 
-            const year = isEpoch ? 'Desconhecido' : d.getFullYear();
-            const month = d.getMonth();
+            const year = isEpoch ? 'Desconhecido' : entryDate.getFullYear();
+            const month = isEpoch ? 0 : entryDate.getMonth();
             const ym = isEpoch ? 'Desconhecido' : `${year}-${String(month + 1).padStart(2, '0')}`;
-            const day = d.getDate();
-            const dKey = isEpoch ? '1970-01-01' : `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dKey = isEpoch ? '1970-01-01' : formatDateKey(entryDate);
 
             if (diff > 0) {
                 ensureYear(year).pages += diff;
@@ -119,10 +149,10 @@ export function processBookStats(book) {
     
     if (historyFinishes === 0 && (book.status === 'read' || isRereading)) {
         let year, month, ym;
-        if (book.readDate) {
-            const d = new Date(book.readDate + 'T12:00:00');
-            year = d.getFullYear();
-            month = d.getMonth();
+        const fallbackDate = parseEntryDate(book.readDate);
+        if (fallbackDate && fallbackDate.getFullYear() > 1970) {
+            year = fallbackDate.getFullYear();
+            month = fallbackDate.getMonth();
             ym = `${year}-${String(month + 1).padStart(2, '0')}`;
         } else {
             year = 'Desconhecido';
@@ -156,10 +186,10 @@ export function processBookStats(book) {
     if ((!book.history || book.history.length === 0) && book.status !== 'read' && (book.readPages || 0) > 0) {
         let year = 'Desconhecido';
         let ym = 'Desconhecido';
-        if (book.readDate) {
-            const d = new Date(book.readDate + 'T12:00:00');
-            year = d.getFullYear();
-            ym = `${year}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const fallbackDate = parseEntryDate(book.readDate);
+        if (fallbackDate && fallbackDate.getFullYear() > 1970) {
+            year = fallbackDate.getFullYear();
+            ym = `${year}-${String(fallbackDate.getMonth() + 1).padStart(2, '0')}`;
         }
         
         const rPages = parseInt(book.readPages) || 0;
@@ -186,24 +216,22 @@ export function processBookStats(book) {
 
     currentCycleEntries.forEach(h => {
         const pageNum = parseInt(h.page) || 0;
+        const entryDate = parseEntryDate(h.date);
         let diff = 0;
         if (h.type === 'start') {
             lastPageInCycle = 0;
-            if (!isSynthetic(h)) {
-                currentCycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            if (!isSynthetic(h) && entryDate) {
+                currentCycleStartDate = entryDate;
             }
         } else if (h.type !== 'finish') {
             diff = pageNum - lastPageInCycle;
             lastPageInCycle = pageNum;
-            if (!currentCycleStartDate && !isSynthetic(h)) {
-                currentCycleStartDate = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
+            if (!currentCycleStartDate && !isSynthetic(h) && entryDate) {
+                currentCycleStartDate = entryDate;
             }
-            if (diff > 0 && !isSynthetic(h)) {
-                let d = h.date.length === 10 ? new Date(h.date + 'T12:00:00') : new Date(h.date);
-                if (d.getFullYear() > 1970) {
-                    const dKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    currentCycleHeatmapDays[dKey] = (currentCycleHeatmapDays[dKey] || 0) + diff;
-                }
+            if (diff > 0 && !isSynthetic(h) && entryDate && entryDate.getFullYear() > 1970) {
+                const dKey = formatDateKey(entryDate);
+                currentCycleHeatmapDays[dKey] = (currentCycleHeatmapDays[dKey] || 0) + diff;
             }
         }
     });
@@ -300,14 +328,16 @@ export async function migrateLegacyHistory(rm) {
         let history = book.history || [];
         let changed = false;
         if (history.length > 1) {
-            const sortedHistory = [...history].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const sortedHistory = [...history].sort((a, b) => entryTime(a) - entryTime(b));
             const sanitized = [];
             let lastFinish = null;
             let historyWasCleaned = false;
 
             for (const entry of sortedHistory) {
                 if (entry.type === 'finish') {
-                    if (lastFinish && (new Date(entry.date) - new Date(lastFinish.date) < 86400000)) {
+                    const entryMs = entryTime(entry);
+                    const lastFinishMs = lastFinish ? entryTime(lastFinish) : 0;
+                    if (lastFinish && entryMs > 0 && lastFinishMs > 0 && (entryMs - lastFinishMs) < 86400000) {
                         historyWasCleaned = true;
                         const idx = sanitized.indexOf(lastFinish);
                         if (idx !== -1) sanitized.splice(idx, 1);
@@ -345,24 +375,6 @@ export async function migrateLegacyHistory(rm) {
             
             history = [...history, ...syntheticHistory];
             changed = true;
-        } else if (history.length > 0) {
-            let needsHealing = false;
-            const healedHistory = history.map(h => {
-                const d = new Date(h.date);
-                const isJan2026 = d.getFullYear() === 2026 && d.getMonth() === 0;
-                const isPrefixed = h.id && (String(h.id).startsWith('mig_') || String(h.id).startsWith('MIGRATED_'));
-                
-                if (isJan2026 && !h.migrated && !isPrefixed) {
-                    needsHealing = true;
-                    return { ...h, migrated: true, isFallbackDate: true };
-                }
-                return h;
-            });
-
-            if (needsHealing) {
-                history = healedHistory;
-                changed = true;
-            }
         }
 
         if (changed) {
@@ -373,7 +385,8 @@ export async function migrateLegacyHistory(rm) {
 
     if (totalUpdated > 0) {
         await rm.updateMultiple(updates);
-        const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const isDev = typeof window !== 'undefined'
+            && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
         if (isDev) console.log(`✅ Sanitização concluída: ${totalUpdated} livros corrigidos.`);
     }
 }

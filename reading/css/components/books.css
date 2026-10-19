@@ -39,6 +39,18 @@
     flex-direction: column;
 }
 
+/* Acessibilidade: cards são focáveis (Enter/Espaço abrem o livro).
+   O anel de foco aparece só na navegação por teclado, não no clique/toque. */
+.book-card:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.book-card:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 3px;
+    border-radius: 12px;
+}
+
 .book-cover-container:hover {
     transform: translateY(-0.3125rem) scale(1.02);
     z-index: 10;
