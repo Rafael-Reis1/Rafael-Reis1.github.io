@@ -8,153 +8,57 @@ let lastY = 0;
 function cleanupPhase2Tools() {
     isCirclePreviewActive = false;
     isCensorshipActive = false;
+    isDrawingCensorship = false;
     isDraggingCircle = false;
 }
 
 let isCirclePreviewActive = false;
-let circleCropX = 0;
-let circleCropY = 0;
+let circleCropX = null;
+let circleCropY = null;
 let isDraggingCircle = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
 function buildCircleCropControls(container) {
-    isCirclePreviewActive = false;
-    circleCropX = null;
-    circleCropY = null;
+    isCirclePreviewActive = true;
+    circleCropX = originalImage ? originalImage.width / 2 : 0;
+    circleCropY = originalImage ? originalImage.height / 2 : 0;
 
     container.innerHTML = `
         <div class="control-group">
-            <p style="margin-bottom: 1rem; opacity: 0.8;">
-                O recorte será aplicado ao baixar.
+            <p style="margin-bottom: 0.75rem; opacity: 0.8;">
+                O recorte circular com fundo transparente será aplicado ao aplicar ou baixar.
             </p>
             <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #4ade80;">
-                Arraste o círculo na imagem para ajustar a posição!
+                Arraste sobre a imagem para ajustar a posição do círculo!
             </p>
-            <button id="btnCirclePreview" class="btn-primary" onclick="toggleCirclePreview()" style="width: 100%;">
-                👁️ Visualizar Recorte
+            <button id="btnCirclePreview" class="btn-secondary" onclick="toggleCirclePreview()" style="width: 100%;">
+                ❌ Mostrar Original
             </button>
         </div>
     `;
 
     setupCircleCropEvents();
+    applyCirclePreview(true);
 }
 
-function setupCircleCropEvents() {
-    if (canvas.hasAttribute('data-circle-events')) return;
-    canvas.setAttribute('data-circle-events', 'true');
-
-    canvas.addEventListener('mousedown', (e) => {
-        if (!isCirclePreviewActive) return;
-        isDraggingCircle = true;
-        const rect = canvas.getBoundingClientRect();
-        lastMouseX = e.clientX - rect.left;
-        lastMouseY = e.clientY - rect.top;
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isCirclePreviewActive || !isDraggingCircle) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const deltaX = mouseX - lastMouseX;
-        const deltaY = mouseY - lastMouseY;
-
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        circleCropX += deltaX * scaleX;
-        circleCropY += deltaY * scaleY;
-
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-
-        applyCirclePreview(true);
-    });
-
-    canvas.addEventListener('mouseup', () => {
-        isDraggingCircle = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-        isDraggingCircle = false;
-    });
-
-    canvas.addEventListener('touchstart', (e) => {
-        if (!isCirclePreviewActive) return;
-        e.preventDefault();
-        isDraggingCircle = true;
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        lastMouseX = touch.clientX - rect.left;
-        lastMouseY = touch.clientY - rect.top;
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', (e) => {
-        if (!isCirclePreviewActive || !isDraggingCircle) return;
-        e.preventDefault();
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = touch.clientX - rect.left;
-        const mouseY = touch.clientY - rect.top;
-
-        const deltaX = mouseX - lastMouseX;
-        const deltaY = mouseY - lastMouseY;
-
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        circleCropX += deltaX * scaleX;
-        circleCropY += deltaY * scaleY;
-
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-
-        applyCirclePreview(true);
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', () => {
-        isDraggingCircle = false;
-    });
+function clampCircleCenter() {
+    if (!originalImage) return;
+    const minDim = Math.min(originalImage.width, originalImage.height);
+    const radius = minDim / 2;
+    circleCropX = Math.max(radius, Math.min(originalImage.width - radius, circleCropX));
+    circleCropY = Math.max(radius, Math.min(originalImage.height - radius, circleCropY));
 }
 
-function toggleCirclePreview() {
-    const btn = document.getElementById('btnCirclePreview');
-
-    if (isCirclePreviewActive) {
-        canvas.width = originalImage.width;
-        canvas.height = originalImage.height;
-        ctx.drawImage(originalImage, 0, 0);
-
-        btn.innerHTML = '👁️ Visualizar Recorte';
-        btn.classList.remove('btn-secondary');
-        btn.classList.add('btn-primary');
-        isCirclePreviewActive = false;
-    } else {
-        if (circleCropX === null || circleCropY === null) {
-            circleCropX = originalImage.width / 2;
-            circleCropY = originalImage.height / 2;
-        }
-
-        applyCirclePreview(true);
-
-        btn.innerHTML = '❌ Mostrar Original';
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-secondary');
-        isCirclePreviewActive = true;
-    }
-}
-
-function applyCirclePreview(redraw = false) {
-    if (!isCirclePreviewActive && !redraw) return;
+function renderCircleCropToCanvas() {
+    if (!originalImage) return null;
 
     const minDim = Math.min(originalImage.width, originalImage.height);
     const radius = minDim / 2;
 
     if (circleCropX === null) circleCropX = originalImage.width / 2;
     if (circleCropY === null) circleCropY = originalImage.height / 2;
+    clampCircleCenter();
 
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
@@ -170,13 +74,115 @@ function applyCirclePreview(redraw = false) {
     const sourceX = circleCropX - radius;
     const sourceY = circleCropY - radius;
 
-    tempCtx.drawImage(originalImage,
+    tempCtx.drawImage(
+        originalImage,
         sourceX, sourceY, minDim, minDim,
-        0, 0, minDim, minDim 
+        0, 0, minDim, minDim
     );
 
-    canvas.width = minDim;
-    canvas.height = minDim;
+    return tempCanvas;
+}
+
+function setupCircleCropEvents() {
+    const signal = typeof getToolEventSignal === 'function' ? getToolEventSignal() : undefined;
+    canvas.style.cursor = 'grab';
+
+    const startDrag = (clientX, clientY) => {
+        if (!isCirclePreviewActive) return;
+        isDraggingCircle = true;
+        canvas.style.cursor = 'grabbing';
+        const rect = canvas.getBoundingClientRect();
+        lastMouseX = clientX - rect.left;
+        lastMouseY = clientY - rect.top;
+    };
+
+    const moveDrag = (clientX, clientY) => {
+        if (!isCirclePreviewActive || !isDraggingCircle) return;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = clientX - rect.left;
+        const mouseY = clientY - rect.top;
+
+        const deltaX = mouseX - lastMouseX;
+        const deltaY = mouseY - lastMouseY;
+
+        const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+        const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+
+        circleCropX += deltaX * scaleX;
+        circleCropY += deltaY * scaleY;
+        clampCircleCenter();
+
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+
+        applyCirclePreview(true);
+    };
+
+    const endDrag = () => {
+        if (!isDraggingCircle) return;
+        isDraggingCircle = false;
+        if (isCirclePreviewActive) canvas.style.cursor = 'grab';
+    };
+
+    canvas.onmousedown = (e) => startDrag(e.clientX, e.clientY);
+    canvas.onmousemove = (e) => moveDrag(e.clientX, e.clientY);
+    canvas.onmouseup = endDrag;
+    if (signal) {
+        window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY), { signal });
+        window.addEventListener('mouseup', endDrag, { signal });
+    }
+
+    canvas.ontouchstart = (e) => {
+        if (!isCirclePreviewActive || e.touches.length > 1) return;
+        e.preventDefault();
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    canvas.ontouchmove = (e) => {
+        if (!isCirclePreviewActive || !isDraggingCircle || e.touches.length > 1) return;
+        e.preventDefault();
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    canvas.ontouchend = endDrag;
+}
+
+function toggleCirclePreview() {
+    const btn = document.getElementById('btnCirclePreview');
+
+    if (isCirclePreviewActive) {
+        isCirclePreviewActive = false;
+        canvas.width = originalImage.width;
+        canvas.height = originalImage.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(originalImage, 0, 0);
+        canvas.style.cursor = 'default';
+
+        btn.innerHTML = '👁️ Visualizar Recorte';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
+    } else {
+        if (circleCropX === null || circleCropY === null) {
+            circleCropX = originalImage.width / 2;
+            circleCropY = originalImage.height / 2;
+        }
+
+        isCirclePreviewActive = true;
+        canvas.style.cursor = 'grab';
+        applyCirclePreview(true);
+
+        btn.innerHTML = '❌ Mostrar Original';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
+    }
+}
+
+function applyCirclePreview(redraw = false) {
+    if (!isCirclePreviewActive && !redraw) return;
+
+    const tempCanvas = renderCircleCropToCanvas();
+    if (!tempCanvas) return;
+
+    canvas.width = tempCanvas.width;
+    canvas.height = tempCanvas.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(tempCanvas, 0, 0);
 }
@@ -218,12 +224,33 @@ function buildCensorControls(container) {
     setupCensorshipEvents();
 }
 
+async function ensureBlazeFaceReady() {
+    if (typeof tf !== 'undefined' && typeof blazeface !== 'undefined') return;
+    if (typeof loadExternalScript !== 'function') {
+        throw new Error('Carregador de scripts indisponível');
+    }
+
+    await loadExternalScript(
+        'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs',
+        () => typeof tf !== 'undefined'
+    );
+    await loadExternalScript(
+        'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface',
+        () => typeof blazeface !== 'undefined'
+    );
+}
+
 async function detectAndCensorFaces() {
     const statusEl = document.getElementById('face-status');
     statusEl.style.display = 'block';
+    statusEl.style.color = '';
     statusEl.textContent = '⏳ Carregando modelo e detectando rostos...';
 
     try {
+        await ensureBlazeFaceReady();
+        if (typeof blazeface === 'undefined') {
+            throw new Error('Modelo BlazeFace indisponível');
+        }
         if (!window.blazefaceModel) {
             window.blazefaceModel = await blazeface.load();
         }
@@ -251,7 +278,8 @@ async function detectAndCensorFaces() {
             const newImg = new Image();
             newImg.onload = () => {
                 originalImage = newImg;
-            }
+                if (typeof saveToHistory === 'function') saveToHistory();
+            };
             newImg.src = canvas.toDataURL();
 
         } else {
@@ -279,39 +307,37 @@ function resetToOriginal() {
 }
 
 function setupCensorshipEvents() {
+    const signal = typeof getToolEventSignal === 'function' ? getToolEventSignal() : undefined;
+    canvas.style.cursor = 'crosshair';
+
     canvas.onmousedown = startCensoring;
     canvas.onmousemove = drawCensor;
     canvas.onmouseup = stopCensoring;
-    canvas.onmouseout = stopCensoring;
+    if (signal) {
+        window.addEventListener('mouseup', stopCensoring, { signal });
+    }
 
     canvas.ontouchstart = (e) => {
+        if (!isCensorshipActive || e.touches.length > 1) return;
         e.preventDefault();
         const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        startCensoring({ clientX: touch.clientX, clientY: touch.clientY });
     };
     canvas.ontouchmove = (e) => {
+        if (!isDrawingCensorship || !isCensorshipActive || e.touches.length > 1) return;
         e.preventDefault();
         const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousemove', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
+        drawCensor({ clientX: touch.clientX, clientY: touch.clientY });
     };
     canvas.ontouchend = () => {
-        const mouseEvent = new MouseEvent('mouseup', {});
-        canvas.dispatchEvent(mouseEvent);
+        stopCensoring();
     };
 }
 
 function getMousePos(evt) {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
     return {
         x: (evt.clientX - rect.left) * scaleX,
         y: (evt.clientY - rect.top) * scaleY
@@ -332,7 +358,7 @@ function drawCensor(e) {
     const pos = getMousePos(e);
 
     const dist = Math.hypot(pos.x - lastX, pos.y - lastY);
-    const step = censorshipIntensity / 4;
+    const step = Math.max(1, censorshipIntensity / 4);
 
     if (dist > step) {
         const steps = dist / step;
@@ -349,11 +375,13 @@ function drawCensor(e) {
 }
 
 function stopCensoring() {
+    if (!isDrawingCensorship) return;
     isDrawingCensorship = false;
     const newImg = new Image();
     newImg.onload = () => {
         originalImage = newImg;
-    }
+        if (typeof saveToHistory === 'function') saveToHistory();
+    };
     newImg.src = canvas.toDataURL();
 }
 

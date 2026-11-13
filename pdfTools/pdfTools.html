@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <title>Ferramentas de PDF</title>
+</head>
+
+<body>
+    <button class="btnVoltar" id="btnVoltar" onclick="window.location.href='/'">
+        <img class="seta-animada arrow-back-icon" alt="Voltar">
+        Home
+    </button>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header-section">
+                <h1>Ferramentas de PDF</h1>
+                <p class="subtitle">Junte, divida, assine e converta seus PDFs direto no navegador - 100% privado e gratuito</p>
+
+                <div class="search-container">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="toolSearch" placeholder="Pesquisar ferramenta... (ex: juntar, dividir, assinar, ocr)">
+                </div>
+            </header>
+
+            <div class="tools-grid">
+                <div class="tool-card" data-tool="merge">
+                    <div class="tool-icon merge-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="8" height="10" rx="1.5" />
+                            <rect x="13" y="3" width="8" height="10" rx="1.5" />
+                            <path d="M7 13v4a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-4" />
+                            <polyline points="12 15 12 22" />
+                        </svg>
+                    </div>
+                    <h3>Juntar PDFs</h3>
+                    <p>Una vários documentos PDF em um único arquivo na ordem desejada</p>
+                </div>
+
+                <div class="tool-card" data-tool="split">
+                    <div class="tool-icon split-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="8" y1="14" x2="16" y2="14" />
+                            <polyline points="10 11 7 14 10 17" />
+                            <polyline points="14 11 17 14 14 17" />
+                        </svg>
+                    </div>
+                    <h3>Dividir / Extrair</h3>
+                    <p>Extraia páginas soltas, intervalos ou separe em vários PDFs</p>
+                </div>
+
+                <div class="tool-card" data-tool="organize">
+                    <div class="tool-icon organize-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="8" rx="1" />
+                            <rect x="14" y="3" width="7" height="8" rx="1" />
+                            <rect x="3" y="13" width="7" height="8" rx="1" />
+                            <path d="M14 17h7m-3.5-3.5v7" />
+                        </svg>
+                    </div>
+                    <h3>Organizar Páginas</h3>
+                    <p>Reordene, gire individualmente, duplique ou exclua páginas</p>
+                </div>
+
+                <div class="tool-card" data-tool="rotate">
+                    <div class="tool-icon rotate-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                            <polyline points="21 3 21 8 16 8" />
+                        </svg>
+                    </div>
+                    <h3>Girar Páginas</h3>
+                    <p>Rotacione todo o PDF ou páginas específicas em 90°, 180° ou 270°</p>
+                </div>
+
+                <div class="tool-card" data-tool="pdf-to-img">
+                    <div class="tool-icon pdfimg-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                    </div>
+                    <h3>PDF para Imagens</h3>
+                    <p>Exporte páginas em PNG, JPEG ou WEBP de alta qualidade em ZIP</p>
+                </div>
+
+                <div class="tool-card" data-tool="img-to-pdf">
+                    <div class="tool-icon imgpdf-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <rect x="8" y="12" width="8" height="6" rx="1" />
+                        </svg>
+                    </div>
+                    <h3>Imagens para PDF</h3>
+                    <p>Converta fotos e capturas de tela em documento PDF A4 ou ajustado</p>
+                </div>
+
+                <div class="tool-card" data-tool="watermark">
+                    <div class="tool-icon watermark-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                        </svg>
+                    </div>
+                    <h3>Marca d'Água</h3>
+                    <p>Aplique texto personalizado com ângulo, cor e transparência</p>
+                </div>
+
+                <div class="tool-card" data-tool="page-numbers">
+                    <div class="tool-icon numbers-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="10" y1="6" x2="21" y2="6" />
+                            <line x1="10" y1="12" x2="21" y2="12" />
+                            <line x1="10" y1="18" x2="21" y2="18" />
+                            <path d="M4 6h1v4" />
+                            <path d="M4 10h2" />
+                            <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+                        </svg>
+                    </div>
+                    <h3>Numerar Páginas</h3>
+                    <p>Adicione rodapé ou cabeçalho automático ("Página X de Y")</p>
+                </div>
+
+                <div class="tool-card" data-tool="sign">
+                    <div class="tool-icon sign-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                            <path d="M2 2l7.586 7.586" />
+                        </svg>
+                    </div>
+                    <h3>Assinar / Carimbar</h3>
+                    <p>Desenhe sua assinatura ou insira um carimbo PNG sobre qualquer página</p>
+                </div>
+
+                <div class="tool-card" data-tool="nup">
+                    <div class="tool-icon nup-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <line x1="12" y1="3" x2="12" y2="21" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                        </svg>
+                    </div>
+                    <h3>N Páginas por Folha</h3>
+                    <p>Agrupe 2, 4 ou 6 páginas por folha A4 para economizar papel</p>
+                </div>
+
+                <div class="tool-card" data-tool="compress">
+                    <div class="tool-icon compress-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="4 14 10 14 10 20" />
+                            <polyline points="20 10 14 10 14 4" />
+                            <line x1="14" y1="10" x2="21" y2="3" />
+                            <line x1="3" y1="21" x2="10" y2="14" />
+                        </svg>
+                    </div>
+                    <h3>Compactar PDF</h3>
+                    <p>Reduza o tamanho reestruturando objetos ou recomprimindo páginas</p>
+                </div>
+
+                <div class="tool-card" data-tool="extract-text">
+                    <div class="tool-icon ocr-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="8" y1="13" x2="16" y2="13" />
+                            <line x1="8" y1="17" x2="14" y2="17" />
+                        </svg>
+                    </div>
+                    <h3>Extrair Texto & OCR</h3>
+                    <p>Copie texto selecionável ou rode OCR offline em PDFs escaneados</p>
+                </div>
+
+                <div class="tool-card" data-tool="metadata">
+                    <div class="tool-icon privacy-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    </div>
+                    <h3>Privacidade & Metadados</h3>
+                    <p>Inspecione, edite ou apague autor, criador e histórico do arquivo</p>
+                </div>
+
+                <div class="tool-card" data-tool="redact">
+                    <div class="tool-icon redact-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="16" rx="2" />
+                            <rect x="6" y="8" width="12" height="3.5" rx="1" fill="currentColor" />
+                            <line x1="6" y1="15" x2="14" y2="15" />
+                        </svg>
+                    </div>
+                    <h3>Tarja / Redact Seguro</h3>
+                    <p>Apague CPF, nomes ou trechos sensíveis sem deixar texto oculto</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toolModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ferramenta de PDF</h2>
+                <button type="button" class="modal-close" onclick="closeToolModal()" aria-label="Fechar modal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="uploadArea" class="upload-area">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p id="uploadPrompt">Arraste seu arquivo PDF aqui ou clique para selecionar</p>
+                    <span id="uploadSubPrompt" class="upload-subprompt">Processamento 100% local — nada é enviado para servidores</span>
+                    <input type="file" id="pdfInput" accept="application/pdf,.pdf" style="display: none;">
+                </div>
+
+                <div id="pdfWorkspace" class="pdf-workspace" style="display: none;">
+                    <div id="pdfPreviewPane" class="pdf-preview-pane"></div>
+                    <div id="pdfControls" class="controls-section"></div>
+                </div>
+
+                <div id="pdfProgressBox" class="pdf-progress-box" style="display: none;">
+                    <div class="pdf-progress-track">
+                        <div id="pdfProgressFill" class="pdf-progress-fill" style="width: 0%;"></div>
+                    </div>
+                    <p id="pdfProgressText">Processando...</p>
+                </div>
+            </div>
+
+            <div id="modalFooter" class="modal-footer" style="display: none;">
+                <button type="button" id="btnPdfChangeFile" class="btn-secondary" onclick="triggerChangeFile()">Trocar Arquivo</button>
+                <button type="button" id="btnPdfReset" class="btn-secondary" onclick="resetCurrentTool()">Resetar</button>
+                <button type="button" id="btnPdfPrimary" class="btn-primary" onclick="runPrimaryAction()">Baixar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="pdftools-toast-container" aria-live="polite"></div>
+
+    <script src="../pdfFormatter/lib/pdf-lib.min.js?v=1311260750"></script>
+    <script src="../pdfFormatter/lib/pdf.min.js?v=1311260750"></script>
+    <script src="pdf-core.js?v=1311260750"></script>
+    <script src="tools-pages.js?v=1311260750"></script>
+    <script src="tools-edit.js?v=1311260750"></script>
+    <script src="tools-redact.js?v=1311260750"></script>
+    <script src="app.js?v=1311260750"></script>
+</body>
+
+</html>

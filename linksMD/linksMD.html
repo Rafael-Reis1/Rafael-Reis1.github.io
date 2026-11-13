@@ -4,32 +4,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
     <title>Gerador de Links Markdown</title>
+    <script defer src="../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
 </head>
 
 <body>
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
-        Home
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools/devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
     </button>
 
-    <div class="container">
+    <main class="container">
         <h1>Gerador de Links Markdown</h1>
-        <div class="opcoes">
-            <textarea name="links" id="links" rows="20"></textarea>
-            <div class="formatarBTNS">
-                <div class="formatOpcoes">
-                    <button id="gerarArquivo">Gerar arquivo</button>
-                </div>
-                <button id="limpar">Limpar</button>
+        <p class="tool-subtitle">Extraia URLs de textos e gere links formatados prontos para copiar ou baixar como arquivo <code>.md</code>.</p>
+
+        <section class="opcoes" aria-label="Entrada de links">
+            <div class="textarea-meta">
+                <label for="links"><strong>Links ou texto bruto</strong></label>
+                <span id="links-stats" aria-live="polite">0 links detectados</span>
             </div>
-        </div>
-    </div>
-    <script src="app.js?v=1910261441"></script>
+
+            <textarea name="links" id="links" rows="12" placeholder="Cole URLs (http://, https:// ou www.) separadas por linha, espaço ou vírgula..."></textarea>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <label class="checkbox-item" for="removerDuplicados">
+                        <input type="checkbox" id="removerDuplicados" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Remover duplicados</span>
+                    </label>
+                    <label class="checkbox-item" for="formatoLista">
+                        <input type="checkbox" id="formatoLista">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Como lista (- )</span>
+                    </label>
+                </div>
+
+                <div class="actions-group">
+                    <button type="button" id="copiarMarkdown" class="btn-secondary">Copiar Markdown</button>
+                    <button type="button" id="gerarArquivo">Baixar links.md</button>
+                    <button type="button" id="limpar" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+
+            <div id="previewWrapper" class="md-preview-wrapper" hidden>
+                <div class="textarea-meta">
+                    <span><strong>Prévia Markdown</strong></span>
+                </div>
+                <pre id="markdownPreview" class="md-preview" aria-live="polite"></pre>
+            </div>
+        </section>
+    </main>
 </body>
 
 </html>

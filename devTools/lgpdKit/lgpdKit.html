@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg?v=1311260750">
+    <title>Kit Homologação &amp; LGPD | Suíte Dev</title>
+    <script defer src="../../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
+</head>
+
+<body>
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
+    </button>
+
+    <main class="container container--wide">
+        <h1>Kit Homologação &amp; LGPD</h1>
+        <p class="tool-subtitle">Anonimize dados pessoais antes de compartilhar logs/chamados e gere ou valide lotes de CPF/CNPJ para testes 100% offline.</p>
+
+        <div class="tab-bar" role="tablist" aria-label="Modo do Kit LGPD">
+            <button type="button" class="tab-btn is-active" id="tabBtnMask" role="tab" aria-selected="true" aria-controls="panelMask" data-tab="mask">Mascarador LGPD</button>
+            <button type="button" class="tab-btn" id="tabBtnDocs" role="tab" aria-selected="false" aria-controls="panelDocs" data-tab="docs">Gerador &amp; Validador CPF/CNPJ</button>
+        </div>
+
+        <!-- TAB 1: MASCARADOR LGPD -->
+        <section id="panelMask" class="opcoes tab-panel is-active" role="tabpanel" aria-labelledby="tabBtnMask">
+            <div class="dual-grid">
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="maskInput"><strong>Texto original (log, JSON, SQL ou chamado)</strong></label>
+                        <button type="button" id="maskSampleBtn" class="btn-secondary btn-compact">Inserir exemplo</button>
+                    </div>
+                    <textarea id="maskInput" rows="13" spellcheck="false"
+                        placeholder="Cole aqui logs, JSON, CSV ou mensagens contendo CPF, CNPJ, e-mail, telefone ou tokens Bearer/JWT..."></textarea>
+                </div>
+
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="maskOutput"><strong>Texto seguro (anonimizado)</strong></label>
+                        <span id="maskSummaryBadge" class="stat-pill" aria-live="polite">0 itens ocultados</span>
+                    </div>
+                    <textarea id="maskOutput" rows="13" readonly spellcheck="false"
+                        placeholder="A versão segura aparecerá aqui pronta para colar em chamados ou ferramentas externas..."></textarea>
+                </div>
+            </div>
+
+            <div id="maskBreakdown" class="stats-bar" aria-live="polite"></div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <select id="maskStyle" class="tool-select" aria-label="Estilo de máscara">
+                        <option value="partial">Parcial (ex: ***.456.***-**)</option>
+                        <option value="token">Etiqueta (ex: [CPF], [EMAIL])</option>
+                    </select>
+
+                    <label class="checkbox-item" for="maskCpf">
+                        <input type="checkbox" id="maskCpf" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>CPF</span>
+                    </label>
+                    <label class="checkbox-item" for="maskCnpj">
+                        <input type="checkbox" id="maskCnpj" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>CNPJ</span>
+                    </label>
+                    <label class="checkbox-item" for="maskEmail">
+                        <input type="checkbox" id="maskEmail" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>E-mail</span>
+                    </label>
+                    <label class="checkbox-item" for="maskPhone">
+                        <input type="checkbox" id="maskPhone" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Telefone</span>
+                    </label>
+                    <label class="checkbox-item" for="maskSecrets">
+                        <input type="checkbox" id="maskSecrets" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Tokens / Senhas</span>
+                    </label>
+                    <label class="checkbox-item" for="maskIp">
+                        <input type="checkbox" id="maskIp">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>IPs IPv4</span>
+                    </label>
+                </div>
+
+                <div class="actions-group">
+                    <button type="button" id="maskCopyBtn">Copiar texto seguro</button>
+                    <button type="button" id="maskClearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: GERADOR & VALIDADOR CPF / CNPJ -->
+        <section id="panelDocs" class="opcoes tab-panel" role="tabpanel" aria-labelledby="tabBtnDocs" hidden>
+            <div class="dual-grid">
+                <!-- GERADOR -->
+                <div class="pane-col sub-card">
+                    <div class="textarea-meta">
+                        <strong>Gerador em Lote (Dígitos Válidos)</strong>
+                        <span id="genCountBadge" class="stat-pill accent">5 gerados</span>
+                    </div>
+
+                    <div class="options-group">
+                        <select id="genType" class="tool-select" aria-label="Tipo de documento">
+                            <option value="cpf">CPF</option>
+                            <option value="cnpj">CNPJ</option>
+                        </select>
+
+                        <label class="inline-field">
+                            <span>Qtd:</span>
+                            <input type="number" id="genQty" class="tool-input qty-input" min="1" max="50" value="5">
+                        </label>
+
+                        <select id="genFormat" class="tool-select" aria-label="Formato do lote">
+                            <option value="lines">Um por linha</option>
+                            <option value="sql">Lista SQL ('...', '...')</option>
+                        </select>
+
+                        <label class="checkbox-item" for="genMasked">
+                            <input type="checkbox" id="genMasked" checked>
+                            <span class="checkbox-box" aria-hidden="true"></span>
+                            <span>Com pontuação</span>
+                        </label>
+                    </div>
+
+                    <textarea id="genOutput" rows="9" readonly spellcheck="false" aria-label="Documentos gerados"></textarea>
+
+                    <div class="actions-group">
+                        <button type="button" id="genBtn">Gerar novamente</button>
+                        <button type="button" id="genCopyBtn" class="btn-secondary">Copiar lote</button>
+                    </div>
+                </div>
+
+                <!-- VALIDADOR -->
+                <div class="pane-col sub-card">
+                    <div class="textarea-meta">
+                        <label for="valInput"><strong>Validador Rápido (unitário ou lista)</strong></label>
+                        <span id="valStats" class="stat-pill" aria-live="polite">0 analisados</span>
+                    </div>
+
+                    <textarea id="valInput" rows="5" spellcheck="false"
+                        placeholder="Cole um ou vários CPFs/CNPJs (um por linha) para conferir os dígitos verificadores..."></textarea>
+
+                    <ul id="valResultsList" class="val-results-list" aria-live="polite">
+                        <li class="val-empty">Digite ou cole CPFs/CNPJs acima para validar.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

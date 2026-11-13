@@ -47,27 +47,35 @@ function buildCollageControls(container) {
     renderCollageImageList();
 }
 
+async function addCollageFiles(files) {
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+        await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    collageImages.push(img);
+                    resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = e.target.result;
+            };
+            reader.onerror = () => resolve();
+            reader.readAsDataURL(file);
+        });
+    }
+
+    renderCollage();
+    renderCollageImageList();
+}
+
 async function handleCollageParams() {
     const input = document.getElementById('collageInput');
     if (input.files && input.files.length > 0) {
-        const files = Array.from(input.files);
-
-        for (const file of files) {
-            await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        collageImages.push(img);
-                        resolve();
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-        renderCollage();
-        renderCollageImageList();
+        await addCollageFiles(Array.from(input.files));
+        input.value = '';
     }
 }
 
@@ -114,14 +122,25 @@ function renderCollageImageList() {
 }
 
 function renderCollage() {
-    if (collageImages.length === 0) return;
+    if (!canvas || !ctx) return;
 
     const layout = document.getElementById('collageLayout') ? document.getElementById('collageLayout').value : 'auto';
-    const gap = document.getElementById('collageGap') ? parseInt(document.getElementById('collageGap').value) : 10;
+    const gap = document.getElementById('collageGap') ? parseInt(document.getElementById('collageGap').value, 10) : 10;
     const bgColor = document.getElementById('collageBg') ? document.getElementById('collageBg').value : '#ffffff';
 
-    const targetWidth = 1200;
-    let targetHeight = 1200;
+    if (collageImages.length === 0) {
+        canvas.width = 800;
+        canvas.height = 500;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(247, 247, 247, 0.55)';
+        ctx.font = '600 22px Inter, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Adicione imagens no painel para montar a colagem', canvas.width / 2, canvas.height / 2);
+        return;
+    }
 
     let rows = 1;
     let cols = 1;
@@ -137,13 +156,15 @@ function renderCollage() {
         rows = Math.ceil(collageImages.length / cols);
     }
 
+    const baseWidth = 1200;
+    const minCell = 120;
+    const targetWidth = Math.max(baseWidth, cols * minCell + gap * (cols + 1));
     const cellWidth = (targetWidth - (gap * (cols + 1))) / cols;
     const cellHeight = cellWidth;
+    const targetHeight = (cellHeight * rows) + (gap * (rows + 1));
 
-    targetHeight = (cellHeight * rows) + (gap * (rows + 1));
-
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    canvas.width = Math.round(targetWidth);
+    canvas.height = Math.round(targetHeight);
 
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -185,37 +206,44 @@ function buildArtisticControls(container) {
         <div class="control-group">
             <label>Efeito</label>
             <div class="filters-grid">
-                <button class="filter-btn" onclick="applyArtisticEffect('none')">Normal</button>
-                <button class="filter-btn" onclick="applyArtisticEffect('sketch')">Sketch</button>
-                <button class="filter-btn" onclick="applyArtisticEffect('posterize')">Pop Art</button>
-                <button class="filter-btn" onclick="applyArtisticEffect('edge')">Bordas</button>
+                <button class="filter-btn active" onclick="applyArtisticEffect('none', this)">Normal</button>
+                <button class="filter-btn" onclick="applyArtisticEffect('sketch', this)">Sketch</button>
+                <button class="filter-btn" onclick="applyArtisticEffect('posterize', this)">Pop Art</button>
+                <button class="filter-btn" onclick="applyArtisticEffect('edge', this)">Bordas</button>
             </div>
         </div>
     `;
 }
 
-function applyArtisticEffect(effect) {
-    ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
-    const width = canvas.width;
-    const height = canvas.height;
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
+function applyArtisticEffect(effect, btn) {
+    if (!originalImage) return;
+
+    document.querySelectorAll('#controls .filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    canvas.width = originalImage.width;
+    canvas.height = originalImage.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(originalImage, 0, 0);
 
     if (effect === 'none') {
         return;
     }
 
+    const width = canvas.width;
+    const height = canvas.height;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
     if (effect === 'sketch') {
-        greyScale(data);
         const edges = sobel(data, width, height);
-        for (let i = 0; i < data.length; i += 4) {
-            const val = 255 - edges[i];
+        for (let p = 0, i = 0; i < data.length; i += 4, p++) {
+            const val = 255 - edges[p];
             data[i] = val;
             data[i + 1] = val;
             data[i + 2] = val;
         }
-    }
-    else if (effect === 'posterize') {
+    } else if (effect === 'posterize') {
         const levels = 4;
         const step = 255 / levels;
         for (let i = 0; i < data.length; i += 4) {
@@ -223,13 +251,13 @@ function applyArtisticEffect(effect) {
             data[i + 1] = Math.floor(data[i + 1] / step) * step;
             data[i + 2] = Math.floor(data[i + 2] / step) * step;
         }
-    }
-    else if (effect === 'edge') {
+    } else if (effect === 'edge') {
         const edges = sobel(data, width, height);
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = edges[i];
-            data[i + 1] = edges[i + 1];
-            data[i + 2] = edges[i + 2];
+        for (let p = 0, i = 0; i < data.length; i += 4, p++) {
+            const val = edges[p];
+            data[i] = val;
+            data[i + 1] = val;
+            data[i + 2] = val;
         }
     }
 
@@ -246,39 +274,31 @@ function greyScale(data) {
 }
 
 function sobel(data, width, height) {
-    const grayscale = new Uint8ClampedArray(data.length);
-    for (let i = 0; i < data.length; i += 4) {
-        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-        grayscale[i] = avg;
-        grayscale[i + 1] = avg;
-        grayscale[i + 2] = avg;
-        grayscale[i + 3] = 255;
+    const totalPixels = width * height;
+    const gray = new Uint8Array(totalPixels);
+    for (let p = 0, i = 0; p < totalPixels; p++, i += 4) {
+        gray[p] = (data[i] * 77 + data[i + 1] * 150 + data[i + 2] * 29) >> 8;
     }
 
-    const output = new Uint8ClampedArray(data.length);
-    const kernelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-    const kernelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-
+    const output = new Uint8ClampedArray(totalPixels);
     for (let y = 1; y < height - 1; y++) {
+        const rowPrev = (y - 1) * width;
+        const rowCurr = y * width;
+        const rowNext = (y + 1) * width;
+
         for (let x = 1; x < width - 1; x++) {
-            let pixelX = 0;
-            let pixelY = 0;
+            const tl = gray[rowPrev + x - 1];
+            const tc = gray[rowPrev + x];
+            const tr = gray[rowPrev + x + 1];
+            const ml = gray[rowCurr + x - 1];
+            const mr = gray[rowCurr + x + 1];
+            const bl = gray[rowNext + x - 1];
+            const bc = gray[rowNext + x];
+            const br = gray[rowNext + x + 1];
 
-            for (let ky = -1; ky <= 1; ky++) {
-                for (let kx = -1; kx <= 1; kx++) {
-                    const idx = ((y + ky) * width + (x + kx)) * 4;
-                    const val = grayscale[idx];
-                    pixelX += val * kernelX[(ky + 1) * 3 + (kx + 1)];
-                    pixelY += val * kernelY[(ky + 1) * 3 + (kx + 1)];
-                }
-            }
-
-            const magnitude = Math.sqrt(pixelX * pixelX + pixelY * pixelY);
-            const idx = (y * width + x) * 4;
-            output[idx] = magnitude;
-            output[idx + 1] = magnitude;
-            output[idx + 2] = magnitude;
-            output[idx + 3] = 255;
+            const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+            const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+            output[rowCurr + x] = Math.min(255, Math.hypot(gx, gy));
         }
     }
     return output;
@@ -291,7 +311,7 @@ function buildOCRControls(container) {
                 📝 Extrair Texto (PT-BR)
             </button>
              <button class="btn-secondary" onclick="runOCR('eng')" style="width: 100%; margin-bottom: 1rem;">
-                📝 Extract Text (OR)
+                📝 Extract Text (EN)
             </button>
             <button class="btn-primary" onclick="detectAndCensorText()" style="width: 100%; margin-bottom: 1rem; background: #000;">
                 🕵️ Censurar Texto Detectado
@@ -309,6 +329,18 @@ function buildOCRControls(container) {
     `;
 }
 
+async function ensureTesseractReady() {
+    if (typeof Tesseract !== 'undefined') return;
+    if (typeof loadExternalScript !== 'function') {
+        throw new Error('Biblioteca Tesseract.js indisponível');
+    }
+
+    await loadExternalScript(
+        'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
+        () => typeof Tesseract !== 'undefined'
+    );
+}
+
 async function runOCR(lang = 'por') {
     const status = document.getElementById('ocr-status');
     const output = document.getElementById('ocrBox');
@@ -319,6 +351,10 @@ async function runOCR(lang = 'por') {
     output.value = '';
 
     try {
+        await ensureTesseractReady();
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Biblioteca Tesseract.js indisponível');
+        }
         const result = await Tesseract.recognize(
             canvas,
             lang,
@@ -344,20 +380,40 @@ async function runOCR(lang = 'por') {
 
 function copyOCR() {
     const output = document.getElementById('ocrBox');
-    output.select();
-    document.execCommand('copy');
-    alert('Texto copiado!');
+    if (!output || !output.value) {
+        if (typeof showToast === 'function') showToast('Nenhum texto para copiar.', 'error');
+        return;
+    }
+    if (typeof copyTextToClipboard === 'function') {
+        copyTextToClipboard(output.value, 'Texto copiado!');
+    }
 }
 
 async function detectAndCensorText() {
     const status = document.getElementById('ocr-status');
     status.style.display = 'block';
+    status.style.color = 'var(--text-color)';
     status.textContent = '⏳ Detectando texto para censura...';
 
     try {
-        const result = await Tesseract.recognize(canvas, 'por');
+        await ensureTesseractReady();
+        if (typeof Tesseract === 'undefined') {
+            throw new Error('Biblioteca Tesseract.js indisponível');
+        }
+        const result = await Tesseract.recognize(canvas, 'por', {
+            logger: m => {
+                if (m.status === 'recognizing text') {
+                    status.textContent = `⏳ Analisando imagem: ${Math.round(m.progress * 100)}%`;
+                }
+            }
+        });
 
-        const words = result.data.words;
+        const words = result.data.words || [];
+        if (words.length === 0) {
+            status.textContent = '⚠️ Nenhum texto detectado na imagem.';
+            status.style.color = '#fbbf24';
+            return;
+        }
 
         ctx.fillStyle = 'black';
 
@@ -367,23 +423,23 @@ async function detectAndCensorText() {
             const y = bbox.y0;
             const w = bbox.x1 - bbox.x0;
             const h = bbox.y1 - bbox.y0;
-
             const pad = 2;
-
             ctx.fillRect(x - pad, y - pad, w + (pad * 2), h + (pad * 2));
         });
 
-        status.textContent = `✅ ${words.length} palavras censuradas!`;
+        status.textContent = `✅ ${words.length} palavra(s) censurada(s)!`;
         status.style.color = '#4ade80';
 
         const newImg = new Image();
         newImg.onload = () => {
             originalImage = newImg;
-        }
+            if (typeof saveToHistory === 'function') saveToHistory();
+        };
         newImg.src = canvas.toDataURL();
 
     } catch (err) {
         console.error(err);
-        status.textContent = '❌ Erro ao censurar.';
+        status.textContent = '❌ Erro ao censurar texto.';
+        status.style.color = '#ef4444';
     }
 }

@@ -4,51 +4,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
     <title>Formatar Lista</title>
+    <script defer src="../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
 </head>
 
 <body>
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
-        Home
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools/devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
     </button>
 
-    <div class="container">
+    <main class="container">
         <h1>Formatador de Listas (CSV)</h1>
-        <div class="opcoes">
-            <textarea name="numeros" id="numeros" rows="20"></textarea>
-            <div class="formatarBTNS">
-                <div class="formatOpcoes">
-                    <button id="formataLista">Formatar lista</button>
-                    <div class="checkbox-group">
-                        <div>
-                            <input type="checkbox" id="aspas" name="aspas" value="aspas">
-                            <label for="aspas">Com aspas</label>
-                        </div>
-                    </div>
+        <p class="tool-subtitle">Converta colunas ou textos soltos em listas separadas por vírgula para SQL, filtros e planilhas.</p>
+
+        <section class="opcoes" aria-label="Entrada de itens">
+            <div class="textarea-meta">
+                <label for="numeros"><strong>Entrada</strong></label>
+                <span id="csv-stats" aria-live="polite">0 itens detectados</span>
+            </div>
+
+            <textarea name="numeros" id="numeros" rows="14" placeholder="Cole códigos, números ou itens (um por linha ou misturados no texto)..."></textarea>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <select id="modoExtracao" class="tool-select" aria-label="Modo de extração">
+                        <option value="numbers">Extrair apenas números</option>
+                        <option value="lines">Separar por linha / vírgula / ;</option>
+                    </select>
+
+                    <label class="checkbox-item" for="aspas">
+                        <input type="checkbox" id="aspas" name="aspas" value="aspas">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Com aspas ('')</span>
+                    </label>
+
+                    <label class="checkbox-item" for="duplicados">
+                        <input type="checkbox" id="duplicados">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Remover duplicados</span>
+                    </label>
+
+                    <label class="checkbox-item" for="parenteses">
+                        <input type="checkbox" id="parenteses">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Entre ( )</span>
+                    </label>
+
+                    <label class="checkbox-item" for="espaco">
+                        <input type="checkbox" id="espaco">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Espaço após vírgula</span>
+                    </label>
                 </div>
-                <button id="limpar">Limpar</button>
+
+                <div class="actions-group">
+                    <button type="button" id="formataLista">Formatar lista</button>
+                    <button type="button" id="copiarDiretoBtn" class="btn-secondary">Copiar direto</button>
+                    <button type="button" id="limpar" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="listaFormatadaPopup" class="tool-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="csvModalTitle" aria-hidden="true">
+        <div id="listaBackgroud" class="tool-popup-backdrop"></div>
+        <div class="tool-popup-card popupCard">
+            <div class="popup-header">
+                <h2 id="csvModalTitle">Lista Formatada</h2>
+                <span id="csv-popup-count" class="stat-pill accent">0 itens</span>
+            </div>
+
+            <div class="popup-scroll-box listaNumeros">
+                <p id="listaFormatada" class="csv-output"></p>
+            </div>
+
+            <div class="popup-actions formatarBTNS">
+                <button type="button" id="copiarListaBtn">Copiar lista</button>
+                <button type="button" id="fechar" class="btn-secondary">Fechar</button>
             </div>
         </div>
     </div>
-    <div id="listaFormatadaPopup" style="display: none;">
-        <div id="listaBackgroud">
-        </div>
-        <div class="popupCard">
-            <div class="listaNumeros">
-                <p id="listaFormatada"></p>
-            </div>
-            <div class="formatarBTNS">
-                <button id="copiarListaBtn">Copiar lista</button>
-                <button id="fechar">Fechar</button>
-            </div>
-        </div>
-    </div>
-    <script src="app.js?v=1910261441"></script>
 </body>
 
 </html>

@@ -4,7 +4,10 @@
     --base-color-hover: #1f2031;
     --accent-color: #f2511b;
     --accent-color-hover: #ee6233;
+    --accent-glow: 0 0 18px rgba(242, 81, 27, 0.35);
     --text-color: #f7f7f7;
+    --text-primary: #f7f7f7;
+    --text-secondary: #a1a1aa;
     --border-color: rgba(255, 255, 255, 0.07);
     --font-body: 'Inter', sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue';
     --glass-bg: #131426;
@@ -123,8 +126,23 @@ h1 {
     background-color: var(--base-color-hover);
 }
 
-.btnVoltar .arrow-back-icon {
-    content: url('/imgs/arrow_back_white.webp');
+.options-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.options-toggles {
+    display: flex;
+    gap: 0.625rem;
+}
+
+.upload-subtext {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
 .btnVoltar .seta-animada {
@@ -233,10 +251,29 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 0.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.55rem;
     border-bottom: 1px solid var(--border-color);
     width: 100%;
     z-index: 1000;
+}
+
+.preview-summary {
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.duplex-tip-banner {
+    margin-top: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(242, 81, 27, 0.1);
+    border: 1px solid rgba(242, 81, 27, 0.28);
+    color: #fed7aa;
+    font-size: 0.82rem;
+    line-height: 1.4;
 }
 
 #customAlertModal,
@@ -255,15 +292,16 @@ h1 {
 }
 
 .btn-close,
+.btn-download-preview,
 .btn-print,
 .btn-share {
-    padding: 0.4rem 0.8rem;
+    padding: 0.4rem 0.85rem;
     border-radius: 6px;
     border: none;
     cursor: pointer;
     font-weight: 600;
     font-size: 0.9rem;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.2s;
 }
 
 .btn-close {
@@ -276,15 +314,31 @@ h1 {
     background-color: var(--base-color-hover);
 }
 
-.btn-print,
-.btn-share {
+.btn-download-preview {
     background-color: var(--accent-color);
     color: white;
 }
 
-.btn-print:hover,
-.btn-share:hover {
+.btn-download-preview:hover:not(:disabled) {
     background-color: var(--accent-color-hover);
+}
+
+.btn-print,
+.btn-share {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: white;
+}
+
+.btn-print:hover:not(:disabled),
+.btn-share:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.btn-download-preview:disabled,
+.btn-share:disabled {
+    opacity: 0.65;
+    cursor: wait;
 }
 
 .btn-share {
@@ -325,11 +379,28 @@ h1 {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.65rem;
     align-items: center;
     height: fit-content;
     width: 100%;
     max-width: 75rem;
+}
+
+.sheet-meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.side-label {
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.9;
 }
 
 .paper-sheet {
@@ -349,17 +420,6 @@ h1 {
     align-items: center;
     position: relative;
     overflow: hidden;
-}
-
-.page-number {
-    position: absolute;
-    bottom: 3%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.75rem;
-    color: #333;
-    pointer-events: none;
-    z-index: 10;
 }
 
 .preview-page canvas {
@@ -466,20 +526,17 @@ h1 {
     }
 
     .btn-close,
+    .btn-download-preview,
     .btn-print,
     .btn-share {
         flex: 1;
         justify-content: center;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         padding: 0.5rem;
     }
 
     .btn-print {
         display: none;
-    }
-
-    .btn-share {
-        display: block;
     }
 
     .shortcut-text {
@@ -891,6 +948,13 @@ h1 {
     font-size: 0.95rem;
 }
 
+.success-details {
+    margin-top: 0.5rem;
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
 .success-modal-footer {
     flex-direction: column;
     gap: 0.75rem;
@@ -1120,4 +1184,20 @@ h1 {
     color: var(--accent-color);
     font-weight: 600;
     font-size: 1.1rem;
+}
+
+.tag-checkbox:has(input:focus-visible),
+.select-trigger:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

@@ -1,17 +1,21 @@
-const CACHE_NAME = 'p2pshare-?v=1910261441';
+const CACHE_NAME = 'p2pshare-v20261113-2';
+const SHARE_CACHE_NAME = 'share-cache';
 const urlsToCache = [
+    './',
     './P2PShare.html',
-    './style.css?v=1910261441',
-    './app.js?v=1910261441',
-    './manifest.json?v=1910261441',
+    './style.css',
+    './p2p-core.js',
+    './app.js',
+    './manifest.json',
     './assets/icon-512.png',
-    '/imgs/arrow_back_white.webp',
+    './lib/simplepeer.min.js',
+    './lib/qrcode.min.js',
+    '../imgs/arrow_back_white.webp',
+    '../favicon.svg',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
-    './lib/simplepeer.min.js',
     '../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js',
     '../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js',
-    './lib/qrcode.min.js',
     '../assets/libs_comuns/fonts.css'
 ];
 
@@ -28,9 +32,10 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName !== CACHE_NAME && cacheName !== SHARE_CACHE_NAME) {
                         return caches.delete(cacheName);
                     }
+                    return Promise.resolve();
                 })
             );
         }).then(() => self.clients.claim())
@@ -46,7 +51,7 @@ self.addEventListener('fetch', event => {
                     const file = formData.get('file');
 
                     if (file) {
-                        const cache = await caches.open('share-cache');
+                        const cache = await caches.open(SHARE_CACHE_NAME);
                         await cache.put('shared-file', new Response(file));
 
                         const metadata = JSON.stringify({
@@ -67,13 +72,54 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    if (event.request.method !== 'GET') return;
+
+    const reqUrl = new URL(event.request.url);
+    const isAppShellAsset =
+        reqUrl.origin === self.location.origin &&
+        (reqUrl.pathname.endsWith('.html') ||
+            reqUrl.pathname.endsWith('/P2PShare/') ||
+            reqUrl.pathname.endsWith('/P2PShare/style.css') ||
+            reqUrl.pathname.endsWith('/P2PShare/app.js') ||
+            reqUrl.pathname.endsWith('/P2PShare/p2p-core.js') ||
+            reqUrl.pathname.endsWith('/P2PShare/manifest.json'));
+
+    if (isAppShellAsset) {
+        event.respondWith(
+            fetch(event.request)
+                .then(networkResponse => {
+                    if (networkResponse && networkResponse.ok) {
+                        const copy = networkResponse.clone();
+                        caches.open(CACHE_NAME)
+                            .then(cache => cache.put(event.request, copy))
+                            .catch(() => {});
+                    }
+                    return networkResponse;
+                })
+                .catch(() => caches.match(event.request, { ignoreSearch: true }))
+        );
+        return;
+    }
+
     event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                if (response) {
-                    return response;
+        caches.match(event.request, { ignoreSearch: true })
+            .then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-                return fetch(event.request);
+                return fetch(event.request).then(networkResponse => {
+                    if (
+                        networkResponse &&
+                        networkResponse.ok &&
+                        reqUrl.origin === self.location.origin
+                    ) {
+                        const copy = networkResponse.clone();
+                        caches.open(CACHE_NAME)
+                            .then(cache => cache.put(event.request, copy))
+                            .catch(() => {});
+                    }
+                    return networkResponse;
+                });
             })
     );
 });

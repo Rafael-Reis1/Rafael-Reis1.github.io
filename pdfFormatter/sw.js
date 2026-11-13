@@ -1,17 +1,19 @@
-const CACHE_NAME = 'pdf-booklet-?v=1910261441';
+const CACHE_NAME = 'pdf-booklet-?v=1311260750';
 const urlsToCache = [
     './pdfFormater.html',
-    './style.css?v=1910261441',
-    './app.js?v=1910261441',
-    '../style.css?v=1910261441',
-    './manifest.json?v=1910261441',
-    '/imgs/arrow_back_white.webp',
+    './style.css?v=1311260750',
+    './booklet-core.js?v=1311260750',
+    './app.js?v=1311260750',
+    '../style.css?v=1311260750',
+    './manifest.json?v=1311260750',
+    '../imgs/arrow_back_white.webp',
+    '../favicon.svg?v=1311260750',
     '../Leitor-logs-totvs-fluig/assets/upload.webp',
     '../Leitor-logs-totvs-fluig/assets/upload_blue.webp',
-    './lib/pdf.min.js',
+    './lib/pdf.min.js?v=1311260750',
     './lib/pdf.worker.min.js',
-    './lib/pdf-lib.min.js',
-    '../assets/libs_comuns/fonts.css'
+    './lib/pdf-lib.min.js?v=1311260750',
+    '../assets/libs_comuns/fonts.css?v=1311260750'
 ];
 
 self.addEventListener('install', event => {
@@ -27,7 +29,7 @@ self.addEventListener('activate', event => {
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName !== CACHE_NAME && cacheName !== 'share-cache') {
                         return caches.delete(cacheName);
                     }
                 })
@@ -47,8 +49,8 @@ self.addEventListener('fetch', event => {
                     if (file) {
                         const cache = await caches.open('share-cache');
                         const headers = new Headers();
-                        headers.append('Content-Type', file.type);
-                        headers.append('X-Original-Filename', encodeURIComponent(file.name));
+                        headers.append('Content-Type', file.type || 'application/pdf');
+                        headers.append('X-Original-Filename', encodeURIComponent(file.name || 'documento.pdf'));
 
                         await cache.put('shared-file', new Response(file, { headers }));
                     }
@@ -72,19 +74,15 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
+                if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
                     return response;
                 }
 
                 const responseToCache = response.clone();
                 caches.open(CACHE_NAME)
-                    .then(cache => {
-                        cache.put(event.request, responseToCache);
-                    });
+                    .then(cache => cache.put(event.request, responseToCache));
                 return response;
             })
-            .catch(() => {
-                return caches.match(event.request);
-            })
+            .catch(() => caches.match(event.request, { ignoreSearch: true }))
     );
 });

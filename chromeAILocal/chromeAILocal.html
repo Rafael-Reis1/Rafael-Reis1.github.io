@@ -4,26 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-
-    <script src="lib/axios.min.js?v=1910261441"></script>
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="lib/all.min.css?v=1910261441">
-    <script src="lib/marked.min.js?v=1910261441"></script>
-    <script src="lib/purify.min.js?v=1910261441"></script>
-    <link rel="stylesheet" href="lib/atom-one-dark.min.css?v=1910261441">
-    <script src="lib/highlight.min.js?v=1910261441"></script>
-
-    <link rel="stylesheet" href="lib/katex.min.css?v=1910261441">
-    <script src="lib/katex.min.js?v=1910261441"></script>
-    <script src="lib/auto-render.min.js?v=1910261441"></script>
-
-    <script src="lib/mermaid.min.js?v=1910261441"></script>
-    <script src="lib/panzoom.min.js?v=1910261441"></script>
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="stylesheet" href="lib/atom-one-dark.min.css?v=1311260750">
+    <script defer src="lib/marked.min.js?v=1311260750"></script>
+    <script defer src="lib/purify.min.js?v=1311260750"></script>
+    <script defer src="lib/highlight.min.js?v=1311260750"></script>
     <meta http-equiv="origin-trial"
         content="Aj03smeBgQEzFx/0w0w0+cJGrP6DIUwzXRkKe9/cL96CHKeyPsvsuAYPs8pHxrK6u2nnc7Y7BiJSyG1kszo06AkAAAB9eyJvcmlnaW4iOiJodHRwczovL3JhZmFlbC1yZWlzMS5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IkFJUHJvbXB0QVBJTXVsdGltb2RhbElucHV0IiwiZXhwaXJ5IjoxNzgxNTY4MDAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0=">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#06071a">
     <title>NanoChat - IA Local</title>
@@ -37,6 +26,9 @@
             <p>No momento, o <strong>NanoChat</strong> e a tecnologia Gemini Nano são suportados apenas na versão para computador do Google Chrome.</p>
             <button onclick="window.location.href='/'" class="btn-primary" style="width: 100%; justify-content: center;">
                 Voltar para a Home
+            </button>
+            <button type="button" id="btnDismissMobileNotice" class="btn-secondary btn-mobile-continue">
+                Continuar mesmo assim
             </button>
         </div>
     </div>
@@ -52,14 +44,36 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <button id="btnNewChat" class="btn-new-chat">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
+            <div class="sidebar-header-row">
+                <button type="button" id="btnNewChat" class="btn-new-chat">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>Novo Chat</span>
+                </button>
+                <button type="button" id="btnToggleSidebarCollapse" class="btn-sidebar-collapse"
+                    title="Recolher barra lateral" aria-label="Recolher barra lateral" aria-expanded="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="chat-search-box">
+                <svg class="chat-search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                Novo Chat
-            </button>
+                <input type="search" id="chatSearchInput" class="chat-search-input"
+                    placeholder="Buscar conversas..." aria-label="Buscar conversas" autocomplete="off">
+                <button type="button" id="btnClearSearch" class="chat-search-clear" style="display: none;"
+                    title="Limpar busca" aria-label="Limpar busca">&times;</button>
+            </div>
         </div>
         <div class="chat-list" id="chatList">
         </div>
@@ -94,6 +108,48 @@
 
     <div class="main-wrapper" id="mainWrapper">
         <div class="container">
+            <header class="chat-topbar" id="chatTopbar">
+                <div class="chat-topbar-left">
+                    <button type="button" id="activePersonaChip" class="persona-chip" title="Trocar ou gerenciar Personas">
+                        <span class="persona-chip-icon">🤖</span>
+                        <span class="persona-chip-name">Padrão</span>
+                    </button>
+                    <span id="activeChatTitle" class="chat-topbar-title">Novo Chat</span>
+                </div>
+                <div class="chat-topbar-right">
+                    <button type="button" id="btnOpenCanvasHeader" class="topbar-btn topbar-canvas-btn"
+                        style="display: none;" title="Abrir Preview HTML">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span>Preview</span>
+                    </button>
+                    <button type="button" id="aiStatusBadge" class="ai-status-badge status-warn"
+                        title="Verificar disponibilidade do Chrome AI">
+                        <span class="ai-status-dot" aria-hidden="true"></span>
+                        <span class="ai-status-label">Verificando IA...</span>
+                    </button>
+                    <button type="button" id="btnExportChatMd" class="topbar-icon-btn"
+                        title="Exportar conversa em Markdown (.md)" aria-label="Exportar conversa em Markdown" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button type="button" id="btnClearChat" class="topbar-icon-btn danger"
+                        title="Limpar mensagens desta conversa" aria-label="Limpar mensagens" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
             <div class="messages" id="messages"></div>
 
             <button id="scrollToBottomBtn" class="scroll-bottom-btn" type="button"
@@ -132,14 +188,29 @@
             <div class="canvas-header">
                 <span class="canvas-title">Preview</span>
                 <div class="canvas-actions">
-                    <button id="refreshCanvas" class="canvas-btn" title="Atualizar">
+                    <button type="button" id="copyCanvas" class="canvas-btn" title="Copiar HTML" aria-label="Copiar HTML">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button type="button" id="downloadCanvas" class="canvas-btn" title="Baixar HTML" aria-label="Baixar HTML">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button type="button" id="refreshCanvas" class="canvas-btn" title="Atualizar" aria-label="Atualizar preview">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="23 4 23 10 17 10"></polyline>
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                         </svg>
                     </button>
-                    <button id="closeCanvas" class="canvas-btn" title="Fechar">
+                    <button type="button" id="closeCanvas" class="canvas-btn" title="Fechar" aria-label="Fechar preview">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -265,11 +336,11 @@
         </div>
     </div>
 
-    <script src="app.js?v=1910261441"></script>
+    <script defer src="app.js?v=1311260750"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=1910261441');
+                navigator.serviceWorker.register('sw.js?v=1311260750');
             });
         }
     </script>

@@ -4,51 +4,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
-    <title>Soma valores</title>
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
+    <title>Calculadora de Listas</title>
+    <script defer src="../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
 </head>
 
 <body>
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
-        Home
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools/devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
     </button>
 
-    <div class="container">
+    <main class="container">
         <h1>Calculadora de Listas</h1>
-        <div class="opcoes">
-            <textarea name="numeros" id="numeros" rows="20"></textarea>
-            <div class="somaBTNS">
-                <div class="somarOpcoes">
-                    <button id="realizarSoma">Realizar Soma</button>
-                    <div class="checkbox-group">
-                        <div>
-                            <input type="checkbox" id="ignorar" name="ignorar" value="ignorar">
-                            <label for="ignorar">Ignorar números repetidos</label>
-                        </div>
-                    </div>
+        <p class="tool-subtitle">Cole valores em R$, planilhas ou textos mistos (BR ou ponto decimal) para somar e analisar na hora.</p>
+
+        <section class="opcoes" aria-label="Entrada de valores">
+            <div class="textarea-meta">
+                <label for="numeros"><strong>Valores</strong></label>
+                <span id="soma-live-stats" aria-live="polite">0 valores detectados • Total: R$ 0,00</span>
+            </div>
+
+            <textarea name="numeros" id="numeros" rows="13" placeholder="Ex:&#10;R$ 1.250,50&#10;49.90&#10;-120,00&#10;Frete 35,00"></textarea>
+
+            <div class="controls-row">
+                <div class="options-group somarOpcoes">
+                    <select id="formatoNumero" class="tool-select" aria-label="Padrão numérico">
+                        <option value="auto">Auto (BR e 10.50)</option>
+                        <option value="br">Padrão BR (1.500,00)</option>
+                        <option value="us">Padrão US (1,500.00)</option>
+                    </select>
+
+                    <label class="checkbox-item" for="ignorar">
+                        <input type="checkbox" id="ignorar" name="ignorar" value="ignorar">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar repetidos</span>
+                    </label>
                 </div>
-                <button id="limpar">Limpar</button>
+
+                <div class="actions-group">
+                    <button type="button" id="realizarSoma">Realizar Soma</button>
+                    <button type="button" id="limpar" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="somaPopup" class="tool-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="sumModalTitle" aria-hidden="true">
+        <div id="listaBackgroud" class="tool-popup-backdrop"></div>
+        <div class="tool-popup-card popupCard">
+            <div class="popup-header">
+                <h2 id="sumModalTitle">Resultado da Soma</h2>
+                <span id="soma-count-badge" class="stat-pill accent">0 itens</span>
+            </div>
+
+            <div class="popup-scroll-box listaNumeros sum-result-box">
+                <p id="resultadoSoma" class="sum-main-decimal">0.00</p>
+                <p id="resultadoBRL" class="sum-main-brl">R$ 0,00</p>
+                <div id="soma-extra-stats" class="stats-bar"></div>
+            </div>
+
+            <div class="popup-actions somaBTNS">
+                <div class="actions-group">
+                    <button type="button" id="copiarBtn">Copiar Decimal</button>
+                    <button type="button" id="copiarBrlBtn" class="btn-secondary">Copiar R$</button>
+                </div>
+                <button type="button" id="fechar" class="btn-secondary">Fechar</button>
             </div>
         </div>
     </div>
-    <div id="somaPopup" style="display: none;">
-        <div id="listaBackgroud">
-        </div>
-        <div class="popupCard">
-            <div class="listaNumeros">
-                <p id="resultadoSoma"></p>
-            </div>
-            <div class="somaBTNS">
-                <button id="copiarBtn">Copiar</button>
-                <button id="fechar">Fechar</button>
-            </div>
-        </div>
-    </div>
-    <script src="app.js?v=1910261441"></script>
 </body>
 
 </html>

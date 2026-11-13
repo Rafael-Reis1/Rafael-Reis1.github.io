@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg?v=1311260750">
+    <title>Diff de Texto Geral | Suíte Dev</title>
+    <script defer src="../../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
+</head>
+
+<body>
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
+    </button>
+
+    <main class="container container--wide">
+        <h1>Diff de Texto Geral</h1>
+        <p class="tool-subtitle">Compare qualquer texto, ofício, JSON, SQL, XML ou log com destaque palavra por palavra 100% offline.</p>
+
+        <section class="opcoes" aria-label="Textos para comparação">
+            <div class="diff-inputs">
+                <div class="diff-col">
+                    <div class="textarea-meta">
+                        <label for="textOriginal"><strong>Texto Original (A)</strong></label>
+                        <span id="metaOriginal" aria-live="polite">0 linhas · 0 caracteres</span>
+                    </div>
+                    <textarea id="textOriginal" rows="12" spellcheck="false"
+                        placeholder="Cole aqui o texto original (JSON, SQL, e-mail, contrato, .env, log...)"></textarea>
+                </div>
+
+                <div class="diff-col">
+                    <div class="textarea-meta">
+                        <label for="textModified"><strong>Texto Alterado (B)</strong></label>
+                        <span id="metaModified" aria-live="polite">0 linhas · 0 caracteres</span>
+                    </div>
+                    <textarea id="textModified" rows="12" spellcheck="false"
+                        placeholder="Cole aqui a nova versão do texto para comparar..."></textarea>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <div class="segmented" role="group" aria-label="Modo de visualização">
+                        <button type="button" class="seg-btn is-active" data-view="split" aria-pressed="true">Lado a Lado</button>
+                        <button type="button" class="seg-btn" data-view="unified" aria-pressed="false">Unificado</button>
+                    </div>
+
+                    <label class="checkbox-item" for="onlyChanges">
+                        <input type="checkbox" id="onlyChanges">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Só diferenças</span>
+                    </label>
+
+                    <label class="checkbox-item" for="ignoreWhitespace">
+                        <input type="checkbox" id="ignoreWhitespace">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar espaços</span>
+                    </label>
+
+                    <label class="checkbox-item" for="ignoreCase">
+                        <input type="checkbox" id="ignoreCase">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar maiúsculas</span>
+                    </label>
+
+                    <label class="checkbox-item" for="ignoreEmptyLines">
+                        <input type="checkbox" id="ignoreEmptyLines">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar linhas vazias</span>
+                    </label>
+                </div>
+
+                <div class="actions-group">
+                    <button type="button" id="swapTextsBtn" class="btn-secondary" title="Trocar Texto A pelo Texto B">⇄ Inverter</button>
+                    <button type="button" id="prettyJsonBtn" class="btn-secondary" title="Identar JSON válido nos campos antes de comparar">{ } Formatar JSON</button>
+                    <button type="button" id="copyPatchBtn">Copiar .diff</button>
+                    <button type="button" id="clearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="opcoes diff-result-panel" aria-label="Resultado da comparação" id="resultSection">
+            <div class="diff-result-header">
+                <div id="diffStats" class="stats-bar" aria-live="polite">
+                    <span class="stat-pill">Aguardando comparação</span>
+                </div>
+            </div>
+            <div id="diffOutput" class="diff-output" aria-live="polite">
+                <p class="diff-empty-note">Cole dois textos acima para visualizar as diferenças em tempo real.</p>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

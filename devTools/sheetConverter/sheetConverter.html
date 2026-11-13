@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg?v=1311260750">
+    <title>Planilha para SQL / JSON / Markdown | Suíte Dev</title>
+    <script defer src="../../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
+</head>
+
+<body>
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
+    </button>
+
+    <main class="container container--wide">
+        <h1>Planilha → SQL, JSON e Markdown</h1>
+        <p class="tool-subtitle">Cole células do Excel, Google Sheets ou CSV/TSV e converta em INSERT, UPDATE, JSON ou tabela Markdown na hora.</p>
+
+        <section class="opcoes" aria-label="Conversor de tabela">
+            <div class="sheet-grid">
+                <div class="sheet-pane">
+                    <div class="textarea-meta">
+                        <label for="sheetInput"><strong>Dados de entrada (Excel / TSV / CSV)</strong></label>
+                        <span id="sheetStats" class="stat-pill" aria-live="polite">0 linhas · 0 colunas</span>
+                    </div>
+                    <textarea id="sheetInput" rows="14" spellcheck="false"
+                        placeholder="Cole aqui células copiadas direto do Excel/Sheets ou texto CSV...&#10;&#10;id&#9;nome&#9;curso&#9;ativo&#10;101&#9;Ana Silva&#9;Sistemas&#9;true&#10;102&#9;Bruno Costa&#9;Direito&#9;false"></textarea>
+                </div>
+
+                <div class="sheet-pane">
+                    <div class="textarea-meta">
+                        <label for="sheetOutput"><strong>Resultado gerado</strong></label>
+                        <span id="detectedSepBadge" class="stat-pill">Separador: Auto</span>
+                    </div>
+                    <textarea id="sheetOutput" rows="14" readonly spellcheck="false"
+                        placeholder="O SQL, JSON ou tabela Markdown aparecerá aqui automaticamente..."></textarea>
+                </div>
+            </div>
+
+            <div class="controls-row sheet-options-row">
+                <div class="options-group">
+                    <label class="inline-field">
+                        <span>Formato:</span>
+                        <select id="outputFormat" class="tool-select" aria-label="Formato de saída">
+                            <option value="sql-insert">SQL INSERT (em lote)</option>
+                            <option value="sql-insert-single">SQL INSERT (1 por linha)</option>
+                            <option value="sql-update">SQL UPDATE (1ª coluna como WHERE)</option>
+                            <option value="json">JSON (Array de objetos)</option>
+                            <option value="markdown">Tabela Markdown</option>
+                        </select>
+                    </label>
+
+                    <label class="inline-field" id="tableNameWrapper">
+                        <span>Tabela SQL:</span>
+                        <input type="text" id="tableName" class="tool-input" value="minha_tabela" placeholder="minha_tabela">
+                    </label>
+
+                    <label class="inline-field">
+                        <span>Separador:</span>
+                        <select id="delimiterMode" class="tool-select" aria-label="Separador de colunas">
+                            <option value="auto">Auto</option>
+                            <option value="tab">Tab (Excel)</option>
+                            <option value="semicolon">Ponto e vírgula (;)</option>
+                            <option value="comma">Vírgula (,)</option>
+                            <option value="pipe">Pipe (|)</option>
+                        </select>
+                    </label>
+
+                    <label class="checkbox-item" for="hasHeader">
+                        <input type="checkbox" id="hasHeader" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>1ª linha é cabeçalho</span>
+                    </label>
+
+                    <label class="checkbox-item" for="inferTypes">
+                        <input type="checkbox" id="inferTypes" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Detectar números/NULL</span>
+                    </label>
+                </div>
+
+                <div class="actions-group">
+                    <button type="button" id="sampleBtn" class="btn-secondary">Exemplo</button>
+                    <button type="button" id="downloadBtn" class="btn-secondary">Baixar arquivo</button>
+                    <button type="button" id="copyBtn">Copiar resultado</button>
+                    <button type="button" id="clearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+.container--wide {
+    max-width: 1320px;
+}
+
+.sheet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    width: 100%;
+}
+
+.sheet-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.sheet-pane textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.87rem;
+    min-height: 290px;
+    flex: 1;
+}
+
+#sheetOutput {
+    color: #e2e8f0;
+    background: rgba(6, 7, 26, 0.78);
+}
+
+.inline-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+.tool-input {
+    background: rgba(6, 7, 26, 0.75);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.48rem 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.88rem;
+    width: 150px;
+}
+
+.tool-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.inline-field.is-hidden {
+    display: none;
+}
+
+@media (max-width: 880px) {
+    .sheet-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sheet-pane textarea {
+        min-height: 210px;
+    }
+}

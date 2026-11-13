@@ -19,6 +19,12 @@ function getBgWorker() {
                 }
             }
         };
+        bgWorker.onerror = (err) => {
+            Object.keys(bgWorkerCallbacks).forEach((id) => {
+                bgWorkerCallbacks[id].reject(new Error(err.message || 'Erro no worker de IA'));
+                delete bgWorkerCallbacks[id];
+            });
+        };
     }
     return bgWorker;
 }
@@ -86,6 +92,7 @@ async function processRemoveBackground() {
         img.onload = () => {
             originalImage = img;
             displayImage(img);
+            if (typeof saveToHistory === 'function') saveToHistory();
 
             setTimeout(() => {
                 progressDiv.style.display = 'none';
@@ -191,6 +198,7 @@ async function processBlurBackground() {
         const finalImg = new Image();
         finalImg.onload = () => {
             originalImage = finalImg;
+            if (typeof saveToHistory === 'function') saveToHistory();
         };
         finalImg.src = canvas.toDataURL();
 
@@ -285,7 +293,9 @@ function handleBgImageSelect(input) {
 
 async function processReplaceBackground() {
     if (!replaceBgImage) {
-        alert('Selecione uma imagem de fundo primeiro!');
+        if (typeof showToast === 'function') {
+            showToast('Selecione uma imagem de fundo primeiro!', 'error');
+        }
         return;
     }
 
@@ -338,6 +348,7 @@ async function processReplaceBackground() {
         const finalImg = new Image();
         finalImg.onload = () => {
             originalImage = finalImg;
+            if (typeof saveToHistory === 'function') saveToHistory();
         };
         finalImg.src = canvas.toDataURL();
 

@@ -1,3 +1,12 @@
+let tempRafId = null;
+
+function cleanupPhase1Tools() {
+    if (tempRafId !== null) {
+        cancelAnimationFrame(tempRafId);
+        tempRafId = null;
+    }
+}
+
 function buildFlipControls(container) {
     container.innerHTML = `
         <div class="control-group">
@@ -32,16 +41,18 @@ function flipImage(direction) {
     flipped.onload = () => {
         originalImage = flipped;
         displayImage(flipped);
+        if (typeof saveToHistory === 'function') saveToHistory();
     };
     flipped.src = tempCanvas.toDataURL();
 }
 
-function buildBlurControls(container) {
+function buildBlurControls(container, options = {}) {
+    const initialBlur = options.afterApply ? 0 : 5;
     container.innerHTML = `
         <div class="control-group">
             <label>Intensidade do Blur</label>
-            <input type="range" id="blurAmount" min="0" max="20" value="5" step="0.5">
-            <span id="blurValue">5px</span>
+            <input type="range" id="blurAmount" min="0" max="20" value="${initialBlur}" step="0.5">
+            <span id="blurValue">${initialBlur}px</span>
         </div>
     `;
 
@@ -57,19 +68,25 @@ function buildBlurControls(container) {
 }
 
 function previewBlur() {
-    const blurAmount = document.getElementById('blurAmount').value;
+    if (!originalImage) return;
+    const blurAmount = parseFloat(document.getElementById('blurAmount').value) || 0;
+
+    canvas.width = originalImage.width;
+    canvas.height = originalImage.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (blurAmount <= 0) {
+        ctx.drawImage(originalImage, 0, 0);
+        return;
+    }
 
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-
     tempCanvas.width = originalImage.width;
     tempCanvas.height = originalImage.height;
-
     tempCtx.filter = `blur(${blurAmount}px)`;
     tempCtx.drawImage(originalImage, 0, 0);
 
-    canvas.width = tempCanvas.width;
-    canvas.height = tempCanvas.height;
     ctx.drawImage(tempCanvas, 0, 0);
 }
 
@@ -91,49 +108,69 @@ function buildTemperatureControls(container) {
 
     slider.addEventListener('input', () => {
         valueDisplay.textContent = slider.value;
-        previewTemperature();
+        scheduleTemperaturePreview();
     });
 
     previewTemperature();
 }
 
+function scheduleTemperaturePreview() {
+    if (tempRafId !== null) {
+        cancelAnimationFrame(tempRafId);
+    }
+    tempRafId = requestAnimationFrame(() => {
+        tempRafId = null;
+        previewTemperature();
+    });
+}
+
 function previewTemperature() {
-    const tempAmount = parseInt(document.getElementById('tempAmount').value);
+    if (!originalImage) return;
+    const tempEl = document.getElementById('tempAmount');
+    if (!tempEl) return;
+    const tempAmount = parseInt(tempEl.value, 10) || 0;
+
+    if (tempAmount === 0) {
+        displayImage(originalImage);
+        return;
+    }
 
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-
     tempCanvas.width = originalImage.width;
     tempCanvas.height = originalImage.height;
-
     tempCtx.drawImage(originalImage, 0, 0);
 
     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     const data = imageData.data;
 
+    const rLut = new Uint8Array(256);
+    const bLut = new Uint8Array(256);
+    for (let v = 0; v < 256; v++) {
+        rLut[v] = Math.max(0, Math.min(255, v + tempAmount));
+        bLut[v] = Math.max(0, Math.min(255, v - tempAmount));
+    }
+
     for (let i = 0; i < data.length; i += 4) {
-        if (tempAmount > 0) {
-            data[i] = Math.min(255, data[i] + tempAmount);
-            data[i + 2] = Math.max(0, data[i + 2] - tempAmount);
-        } else {
-            data[i] = Math.max(0, data[i] + tempAmount);
-            data[i + 2] = Math.min(255, data[i + 2] - tempAmount);
-        }
+        data[i] = rLut[data[i]];
+        data[i + 2] = bLut[data[i + 2]];
     }
 
     tempCtx.putImageData(imageData, 0, 0);
 
     canvas.width = tempCanvas.width;
     canvas.height = tempCanvas.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(tempCanvas, 0, 0);
 }
 
-function buildBorderControls(container) {
+function buildBorderControls(container, options = {}) {
+    const initialBorder = options.afterApply ? 0 : 20;
     container.innerHTML = `
         <div class="control-group">
             <label>Espessura da Borda</label>
-            <input type="range" id="borderWidth" min="5" max="100" value="20" step="5">
-            <span id="borderWidthValue">20px</span>
+            <input type="range" id="borderWidth" min="0" max="100" value="${initialBorder}" step="5">
+            <span id="borderWidthValue">${initialBorder}px</span>
         </div>
         <div class="control-group">
             <label>Cor da Borda</label>
@@ -156,8 +193,14 @@ function buildBorderControls(container) {
 }
 
 function previewBorder() {
-    const borderWidth = parseInt(document.getElementById('borderWidth').value);
+    if (!originalImage) return;
+    const borderWidth = parseInt(document.getElementById('borderWidth').value, 10) || 0;
     const borderColor = document.getElementById('borderColor').value;
+
+    if (borderWidth <= 0) {
+        displayImage(originalImage);
+        return;
+    }
 
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
@@ -172,6 +215,7 @@ function previewBorder() {
 
     canvas.width = tempCanvas.width;
     canvas.height = tempCanvas.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(tempCanvas, 0, 0);
 }
 
@@ -190,12 +234,12 @@ function buildAspectRatioControls(container) {
         <div class="control-group">
             <label>Escolha a Proporção</label>
             <div class="filters-grid" style="grid-template-columns: repeat(3, 1fr);">
-                <button class="filter-btn" onclick="applyAspectRatio('1:1')">1:1<br><small>Quadrado</small></button>
-                <button class="filter-btn" onclick="applyAspectRatio('16:9')">16:9<br><small>YouTube</small></button>
-                <button class="filter-btn" onclick="applyAspectRatio('9:16')">9:16<br><small>Stories</small></button>
-                <button class="filter-btn" onclick="applyAspectRatio('4:3')">4:3<br><small>Clássico</small></button>
-                <button class="filter-btn" onclick="applyAspectRatio('3:4')">3:4<br><small>Retrato</small></button>
-                <button class="filter-btn" onclick="applyAspectRatio('3:2')">3:2<br><small>DSLR</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('1:1', this)">1:1<br><small>Quadrado</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('16:9', this)">16:9<br><small>YouTube</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('9:16', this)">9:16<br><small>Stories</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('4:3', this)">4:3<br><small>Clássico</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('3:4', this)">3:4<br><small>Retrato</small></button>
+                <button class="filter-btn" onclick="applyAspectRatio('3:2', this)">3:2<br><small>DSLR</small></button>
             </div>
         </div>
         <div class="control-group">
@@ -206,9 +250,11 @@ function buildAspectRatioControls(container) {
     `;
 }
 
-function applyAspectRatio(ratioKey) {
+function applyAspectRatio(ratioKey, btn) {
     const targetRatio = aspectRatios[ratioKey];
-    const sourceImg = trueOriginalImage;
+    const sourceImg = trueOriginalImage || originalImage;
+    if (!targetRatio || !sourceImg) return;
+
     const imgWidth = sourceImg.width;
     const imgHeight = sourceImg.height;
     const currentRatio = imgWidth / imgHeight;
@@ -240,14 +286,16 @@ function applyAspectRatio(ratioKey) {
 
     canvas.width = cropWidth;
     canvas.height = cropHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(tempCanvas, 0, 0);
 
     const croppedImg = new Image();
     croppedImg.onload = () => {
         originalImage = croppedImg;
+        if (typeof saveToHistory === 'function') saveToHistory();
     };
     croppedImg.src = canvas.toDataURL();
 
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.closest('.filter-btn').classList.add('active');
+    document.querySelectorAll('#controls .filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
 }

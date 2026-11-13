@@ -351,6 +351,16 @@ function fetchAndDisplayRepos() {
             image: 'imgs/projetos/financeiro-pessoal.svg'
         },
         {
+            name: 'Suíte Dev & Utilitários',
+            description: 'Central de utilitários de TI 100% no navegador: Diff de Texto Geral, Conversor Excel/TSV para SQL/JSON/Markdown, Inspetor JSON/XML/JWT/Base64, Kit LGPD & CPF/CNPJ, Formatador CSV, Comparador de Listas, Calculadora, Links Markdown e Leitor de Logs.',
+            html_url: '/devTools/devTools.html',
+            tech: 'JavaScript · Dev Hub',
+            keywords: 'csv listas comparador soma valores calculadora markdown sql in diff texto excel tsv json xml jwt base64 cpf cnpj lgpd logs devtools utilitarios',
+            accent: 'hsl(168, 70%, 56%)',
+            featured: true,
+            image: 'imgs/projetos/suite-dev.svg'
+        },
+        {
             name: 'Criador de Livretos PDF',
             description: 'Transforme qualquer PDF em livreto (booklet) pronto para impressão. Faz a imposição de páginas automaticamente, reorganizando-as para encadernação com visualização em tempo real.',
             html_url: '/pdfFormatter/pdfFormater.html',
@@ -378,6 +388,15 @@ function fetchAndDisplayRepos() {
             image: 'imgs/projetos/estudio-imagem.svg'
         },
         {
+            name: 'Suíte de Ferramentas PDF',
+            description: 'Canivete suíço para PDFs 100% no navegador: junte, divida, organize páginas, assine, aplique marca d\'água, extraia texto/OCR e converta para imagens.',
+            html_url: '/pdfTools/pdfTools.html',
+            tech: 'PDF-Lib · PDF.js',
+            accent: 'hsl(352, 78%, 62%)',
+            featured: true,
+            image: 'imgs/projetos/ferramentas-pdf.svg'
+        },
+        {
             name: 'Leitor de Logs TOTVS/Fluig',
             description: 'Ferramenta moderna para leitura e análise de logs. Possui filtros exclusivos, busca em tempo real e visualização inteligente de stack traces.',
             html_url: '/Leitor-logs-totvs-fluig/leitor.html',
@@ -396,24 +415,6 @@ function fetchAndDisplayRepos() {
             image: 'imgs/projetos/gemini-nano.svg'
         },
         {
-            name: 'Formatador de Listas (CSV)',
-            description: 'Formate facilmente qualquer lista de números ou textos em uma string limpa e separada por vírgulas.',
-            html_url: '/Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html',
-            tech: 'JavaScript',
-            accent: 'hsl(168, 66%, 58%)',
-            featured: true,
-            image: 'imgs/projetos/formatador-listas.svg'
-        },
-        {
-            name: 'Comparador de Listas',
-            description: 'Analise rapidamente duas listas para identificar elementos ausentes, extras ou duplicados entre elas.',
-            html_url: '/ComparaListasNomes/ComparaListasNomes.html',
-            tech: 'JavaScript',
-            accent: 'hsl(320, 66%, 64%)',
-            featured: true,
-            image: 'imgs/projetos/comparador-listas.svg'
-        },
-        {
             name: 'Ambilight Web Player',
             description: 'Crie uma experiência de visualização mais imersiva com um brilho ambiente dinâmico e reativo para seus vídeos.',
             html_url: '/Ambient-Light-Effect/Ambient-Light-Effect.html',
@@ -423,22 +424,13 @@ function fetchAndDisplayRepos() {
             image: 'imgs/projetos/ambilight.svg'
         },
         {
-            name: 'Calculadora de Listas',
-            description: 'Utilitário simples para somar uma lista de valores, lidando com formatos complexos como moeda (R$), números negativos e separadores mistos.',
-            html_url: '/somaValores/somaValores.html',
-            tech: 'JavaScript',
-            accent: 'hsl(100, 66%, 58%)',
+            name: 'Portal do Colaborador - Univale',
+            description: 'Desenvolvido do zero com HTML, CSS e JS. Integração via API com a plataforma Fluig.',
+            html_url: 'https://portalcolaborador.univale.br/',
+            tech: 'Fluig · REST',
+            accent: 'hsl(12, 78%, 60%)',
             featured: true,
-            image: 'imgs/projetos/calculadora-listas.svg'
-        },
-        {
-            name: 'Gerador de Links Markdown',
-            description: 'Organize links instantaneamente. Converte URLs soltas em Markdown formatado, com reconhecimento automático de títulos para YouTube, GitHub, Redes Sociais e Documentações.',
-            html_url: '/linksMD/linksMD.html',
-            tech: 'JavaScript',
-            accent: 'hsl(262, 68%, 66%)',
-            featured: true,
-            image: 'imgs/projetos/links-markdown.svg'
+            image: 'imgs/projetos/portal-colaborador.svg'
         },
         {
             name: 'Agenda Inteligente',
@@ -448,15 +440,6 @@ function fetchAndDisplayRepos() {
             accent: 'hsl(210, 70%, 62%)',
             featured: false,
             image: 'imgs/projetos/agenda-inteligente.svg'
-        },
-        {
-            name: 'Portal do Colaborador - Univale',
-            description: 'Desenvolvido do zero com HTML, CSS e JS. Integração via API com a plataforma Fluig.',
-            html_url: 'https://portalcolaborador.univale.br/',
-            tech: 'Fluig · REST',
-            accent: 'hsl(12, 78%, 60%)',
-            featured: true,
-            image: 'imgs/projetos/portal-colaborador.svg'
         }
     ];
 
@@ -498,6 +481,7 @@ function fetchAndDisplayRepos() {
                     getRepoDisplayName(item.name),
                     item.description,
                     item.tech,
+                    item.keywords,
                     item.language
                 ].some((value) => normalizeText(value).includes(term));
             });

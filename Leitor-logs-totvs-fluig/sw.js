@@ -1,47 +1,56 @@
-const CACHE_NAME = 'leitor-logs-?v=1910261441';
+const CACHE_NAME = 'leitor-logs-?v=1311260750';
 const urlsToCache = [
     './leitor.html',
-    './style.css?v=1910261441',
-    './app.js?v=1910261441',
-    './logWorker.js?v=1910261441',
-    './manifest.json?v=1910261441',
-    './assets/upload.webp',
-    './assets/upload_blue.webp',
-    '../assets/libs_comuns/fonts.css',
-    '../imgs/arrow_back_white.webp',
-    '../favicon.svg'
+    './style.css?v=1311260750',
+    './app.js?v=1311260750',
+    './logWorker.js?v=1311260750',
+    './manifest.json?v=1311260750',
+    './assets/upload.webp?v=1311260750',
+    './assets/upload_blue.webp?v=1311260750',
+    '../assets/libs_comuns/fonts.css?v=1311260750',
+    '../imgs/arrow_back_white.webp?v=1311260750',
+    '../favicon.svg?v=1311260750'
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(urlsToCache))
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
     );
 });
 
-self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request)
-            .then(response => {
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request);
-            })
-    );
-});
-
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
     const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+        caches.keys().then((cacheNames) =>
+            Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (!cacheWhitelist.includes(cacheName)) {
                         return caches.delete(cacheName);
                     }
+                    return null;
                 })
-            );
-        })
+            )
+        ).then(() => self.clients.claim())
+    );
+});
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+    const reqUrl = new URL(event.request.url);
+    if (reqUrl.origin !== self.location.origin) return;
+
+    event.respondWith(
+        fetch(event.request)
+            .then((networkResponse) => {
+                if (networkResponse && networkResponse.ok) {
+                    const copy = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+                }
+                return networkResponse;
+            })
+            .catch(() =>
+                caches.match(event.request).then((cached) => cached || caches.match(event.request, { ignoreSearch: true }))
+            )
     );
 });

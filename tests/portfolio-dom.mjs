@@ -103,12 +103,14 @@ await check('troca de aba atualiza hash, classes e aria', () => {
     assert.equal(document.getElementById('btnSobre').getAttribute('aria-selected'), 'false');
 });
 
-await check('página inicial renderiza 11 cards e contagem', () => {
+await check('página inicial renderiza 11 cards e contagem com Suíte Dev em 3º lugar', () => {
     const cards = document.querySelectorAll('#bentoGrid .bento-card');
     assert.equal(cards.length, 11);
     assert.ok(cards[0].classList.contains('bento-hero'));
     assert.ok(cards[0].querySelector('.bento-card-image img'));
-    assert.ok(document.getElementById('portfolioCount').textContent.includes('Mostrando 1–11 de 15 projetos'));
+    assert.equal(cards[2].getAttribute('href'), '/devTools/devTools.html');
+    assert.ok(cards[2].textContent.includes('Suíte Dev & Utilitários'));
+    assert.ok(document.getElementById('portfolioCount').textContent.includes('Mostrando 1–11 de 13 projetos'));
 });
 
 await check('descrição da API do GitHub é escapada (sem XSS)', async () => {
@@ -150,6 +152,18 @@ await check('busca sem resultado mostra estado vazio', async () => {
     assert.ok(document.querySelector('#bentoGrid .empty-projects'));
 });
 
+await check('busca encontra Suíte Dev pelos utilitários consolidados', async () => {
+    const input = document.getElementById('searchInput');
+    input.value = 'comparador';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    await wait(400);
+
+    const cards = document.querySelectorAll('#bentoGrid .bento-card');
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0].getAttribute('href'), '/devTools/devTools.html');
+    assert.ok(cards[0].textContent.includes('Suíte Dev & Utilitários'));
+});
+
 await check('paginação navega para a segunda página', async () => {
     const input = document.getElementById('searchInput');
     input.value = '';
@@ -161,8 +175,8 @@ await check('paginação navega para a segunda página', async () => {
     assert.ok(page2, 'botão da página 2 não encontrado');
 
     page2.click();
-    assert.equal(document.querySelectorAll('#bentoGrid .bento-card').length, 4);
-    assert.ok(document.getElementById('portfolioCount').textContent.includes('Mostrando 12–15 de 15 projetos'));
+    assert.equal(document.querySelectorAll('#bentoGrid .bento-card').length, 2);
+    assert.ok(document.getElementById('portfolioCount').textContent.includes('Mostrando 12–13 de 13 projetos'));
 });
 
 await check('modal abre com iframe sob demanda e fecha no Escape', () => {

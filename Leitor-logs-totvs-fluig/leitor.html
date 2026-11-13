@@ -4,23 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="manifest" href="manifest.json">
+    <link rel="preload" href="../imgs/arrow_back_white.webp?v=1311260750" as="image">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="manifest" href="manifest.json?v=1311260750">
     <meta name="theme-color" content="#06071A">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
     <title>Leitor de Logs TOTVS/Fluig</title>
 </head>
 
 <body>
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
-        Home
+    <button class="btnVoltar" id="btnVoltar" type="button">
+        <img class="seta-animada arrow-back-icon" alt="Voltar">
+        <span class="btnVoltar-label">Home</span>
     </button>
 
-    <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
-        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+    <button id="installAppBtn" class="btn-install" type="button" title="Instalar App" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path
                 d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.648 14.545 11 12.68 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
             <path
@@ -31,55 +31,106 @@
 
     <div class="container">
         <h1>Leitor de Logs TOTVS/Fluig</h1>
+        <p class="subtitle">Analise logs gigantes localmente em streaming — sem enviar nada para a rede.</p>
         <div class="opcoes">
-            <div id="file-upload" class="file-upload">
+            <div id="file-upload" class="file-upload" role="button" tabindex="0" aria-label="Selecionar ou soltar arquivo de log">
                 <label for="file-input" class="file-upload-label">
-                    <img id="imageUpload" src="assets/upload.webp?v=1910261441 alt="upload">
-                    Arraste e solte o arquivo de log aqui ou clique para selecionar
+                    <img id="imageUpload" src="assets/upload.webp?v=1311260750" alt="Upload de log">
+                    <span class="upload-primary-text">Arraste e solte o arquivo de log aqui ou clique para selecionar</span>
+                    <span class="upload-hints">Suporta .log, logs rotacionados (.log.1, .log.2026-11-12), .txt, .out, múltiplos arquivos e Ctrl+V</span>
                 </label>
-                <input type="file" id="file-input" class="custom-file-input" accept="*/*" capture="environment"
-                    multiple>
+                <input type="file" id="file-input" class="custom-file-input" multiple>
             </div>
         </div>
     </div>
+
     <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="spinner"></div>
-        <div class="loading-text">Analisando arquivo de log, aguarde...</div>
-    </div>
-    <div id="arquivoLogPopup" style="display: none;">
-        <div id="listaBackgroud">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <div id="loadingFileInfo" class="loading-file-info">Preparando leitura...</div>
+            <div class="loading-progress-track">
+                <div id="loadingProgressBar" class="loading-progress-bar"></div>
+            </div>
+            <div id="loadingProgressText" class="loading-text">Analisando arquivo de log, aguarde...</div>
+            <button id="cancelLoadBtn" class="btn-cancel-load" type="button">Cancelar</button>
         </div>
+    </div>
+
+    <div id="arquivoLogPopup" style="display: none;">
+        <div id="listaBackgroud"></div>
         <div class="popupCard">
-            <div id="logDashboard" class="log-dashboard" style="display: none; width: 100%;">
-                <div class="stat-item">
-                    <span class="stat-label">Total:</span>
-                    <span id="statTotal" class="stat-value">0</span>
+            <div class="popup-topbar">
+                <div class="file-meta-group">
+                    <span id="loadedFileInfo" class="loaded-file-badge" title="Arquivo carregado">server.log</span>
+                    <button id="openAnotherFileBtn" type="button" class="toolbar-btn subtle" title="Carregar outro arquivo">+ Abrir outro</button>
                 </div>
-                <div class="stat-item error">
+                <div class="topbar-actions">
+                    <button id="toggleSortBtn" type="button" class="toolbar-btn" title="Alternar ordem (Mais recentes / Cronológica)">↓ Mais recentes</button>
+                    <button id="expandAllBtn" type="button" class="toolbar-btn" title="Expandir ou recolher todos os detalhes (Shift+Enter)">▸ Expandir tudo</button>
+                    <button id="exportar" type="button" class="toolbar-btn">Exportar Logs</button>
+                    <div class="shortcuts-tooltip-container">
+                        <button id="shortcutsBtn" type="button" class="icon-btn" title="Atalhos do Teclado" aria-expanded="false">?</button>
+                        <div id="shortcutsTooltip" class="shortcuts-tooltip">
+                            <h4>Atalhos</h4>
+                            <ul>
+                                <li><kbd>P</kbd> Fixar/Desfixar linha</li>
+                                <li><kbd>/</kbd> Pesquisar</li>
+                                <li><kbd>I</kbd> Filtrar INFO</li>
+                                <li><kbd>W</kbd> Filtrar WARN</li>
+                                <li><kbd>E</kbd> Filtrar ERROR</li>
+                                <li><kbd>D</kbd> Filtrar DEBUG</li>
+                                <li><kbd>F</kbd> Filtrar Fixados</li>
+                                <li><kbd>Shft</kbd>+<kbd>Enter</kbd> Exp/Rec Todos</li>
+                                <li><kbd>Shft</kbd>+<kbd>⬆⬇</kbd> Pular 10 linhas</li>
+                                <li><kbd>Ctrl</kbd>+<kbd>C</kbd> Copiar linha</li>
+                                <li><kbd>PgUp</kbd>/<kbd>Dn</kbd> Paginação</li>
+                                <li><kbd>Home</kbd>/<kbd>End</kbd> Início/Fim</li>
+                                <li><kbd>⬅</kbd>/<kbd>➡</kbd> Paginação</li>
+                                <li><kbd>⬆</kbd>/<kbd>⬇</kbd> Navegar</li>
+                                <li><kbd>Enter</kbd> Exp/Rec Detalhes</li>
+                                <li><kbd>Esc</kbd> Fechar</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button id="fechar" type="button">Fechar</button>
+                </div>
+            </div>
+
+            <div id="logDashboard" class="log-dashboard" style="display: none; width: 100%;">
+                <button type="button" class="stat-item stat-clickable" data-stat-action="all" title="Limpar filtro de nível">
+                    <span class="stat-label">Ocorrências:</span>
+                    <span id="statTotal" class="stat-value">0</span>
+                </button>
+                <button type="button" class="stat-item error stat-clickable" data-stat-action="ERROR" title="Filtrar erros (ERROR/FATAL)">
                     <span class="stat-label">Erros:</span>
                     <span id="statErrors" class="stat-value">0</span>
-                </div>
-                <div class="stat-item warn">
+                </button>
+                <button type="button" class="stat-item warn stat-clickable" data-stat-action="WARN" title="Filtrar alertas (WARN)">
                     <span class="stat-label">Alertas:</span>
                     <span id="statWarnings" class="stat-value">0</span>
+                </button>
+                <div class="stat-item">
+                    <span class="stat-label">Filtrados:</span>
+                    <span id="statVisible" class="stat-value">0</span>
                 </div>
                 <div class="stat-item info">
                     <span class="stat-label">Duração:</span>
                     <span id="statDuration" class="stat-value">--</span>
                 </div>
             </div>
-            <div class="containerArquivoLog">
-                <div id="conteudoArquivoLog"></div>
-            </div>
-            <div class="formatarBTNS">
+
+            <div class="filters-bar">
                 <div class="filters-container">
-                    <div class="time-filters">
-                        <input type="time" id="timeStart" title="Hora Início">
-                        <span style="color: var(--text-color);">-</span>
-                        <input type="time" id="timeEnd" title="Hora Fim">
-                    </div>
                     <div class="search-wrapper">
-                        <input type="text" id="searchInput" placeholder="Buscar... (Ex: para Regex use /erro|falha/)">
+                        <input type="text" id="searchInput" placeholder="Buscar... (use -termo para excluir ou /regex/)">
+                        <button type="button" id="regexToggleBtn" class="inline-search-btn" title="Alternar modo Regex (/.../)" aria-pressed="false">.*</button>
+                        <button type="button" id="clearSearchBtn" class="inline-search-btn" title="Limpar busca" style="display: none;">✕</button>
+                    </div>
+                    <div class="time-filters">
+                        <input type="time" id="timeStart" step="1" title="Hora Início">
+                        <span class="time-sep">-</span>
+                        <input type="time" id="timeEnd" step="1" title="Hora Fim">
+                        <button type="button" id="clearTimeBtn" class="mini-clear-btn" title="Limpar horário" style="display: none;">✕</button>
                     </div>
                     <div class="checkbox-group">
                         <div>
@@ -102,52 +153,39 @@
                             <input type="checkbox" id="pinnedOnly" value="PINNED">
                             <label for="pinnedOnly">📍 Fixados</label>
                         </div>
+                        <div>
+                            <input type="checkbox" id="withStacktraceOnly" value="STACKTRACE">
+                            <label for="withStacktraceOnly">🧩 Com Detalhes</label>
+                        </div>
                     </div>
+                    <button type="button" id="clearFiltersBtn" class="toolbar-btn subtle" style="display: none;">Limpar filtros</button>
                 </div>
+            </div>
+
+            <div class="containerArquivoLog">
+                <div id="conteudoArquivoLog"></div>
+            </div>
+
+            <div class="formatarBTNS">
                 <div id="pagination-controls" class="pagination-controls" style="display: none;"></div>
-                <button id="exportar">Exportar Logs</button>
-                <div class="shortcuts-tooltip-container">
-                    <button id="shortcutsBtn" class="icon-btn" title="Atalhos do Teclado"
-                        style="font-weight: bold;">?</button>
-                    <div class="shortcuts-tooltip">
-                        <h4>Atalhos</h4>
-                        <ul>
-                            <li><kbd>P</kbd> Fixar/Desfixar linha</li>
-                            <li><kbd>/</kbd> Pesquisar</li>
-                            <li><kbd>I</kbd> Filtrar INFO</li>
-                            <li><kbd>W</kbd> Filtrar WARN</li>
-                            <li><kbd>E</kbd> Filtrar ERROR</li>
-                            <li><kbd>D</kbd> Filtrar DEBUG</li>
-                            <li><kbd>F</kbd> Filtrar Fixados</li>
-                            <li><kbd>Shft</kbd>+<kbd>Enter</kbd> Exp/Rec Todos</li>
-                            <li><kbd>Shft</kbd>+<kbd>⬆⬇</kbd> Pular 10 linhas</li>
-                            <li><kbd>Ctrl</kbd>+<kbd>C</kbd> Copiar linha</li>
-                            <li><kbd>PgUp</kbd>/<kbd>Dn</kbd> Paginação</li>
-                            <li><kbd>Home</kbd>/<kbd>End</kbd> Início/Fim</li>
-                            <li><kbd>⬅</kbd>/<kbd>➡</kbd> Paginação</li>
-                            <li><kbd>⬆</kbd>/<kbd>⬇</kbd> Navegar</li>
-                            <li><kbd>Enter</kbd> Exp/Rec Detalhes</li>
-                            <li><kbd>Esc</kbd> Fechar</li>
-                        </ul>
-                    </div>
-                </div>
-                <button id="fechar">Fechar</button>
             </div>
         </div>
+    </div>
+
     <div id="exportModal" class="export-modal" style="display: none;">
         <div class="export-modal-content">
             <div class="export-modal-header">
                 <h3>Exportar Logs</h3>
-                <button class="export-modal-close" id="closeExportModal">
+                <button class="export-modal-close" id="closeExportModal" type="button" aria-label="Fechar modal">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
             </div>
             <div class="export-modal-body">
-                <p style="margin-bottom: 1rem; color: var(--text-muted, #ccc);">Selecione o formato desejado:</p>
+                <p style="margin-bottom: 1rem; color: var(--text-muted, #ccc);">Selecione o formato desejado (<span id="exportCountHint">0 registros filtrados</span>):</p>
                 <div style="display: flex; gap: 1rem; flex-direction: column;">
                     <label class="export-option-label">
                         <input type="radio" name="exportFormat" value="txt" checked>
@@ -173,12 +211,15 @@
                 </div>
             </div>
             <div class="export-modal-footer">
-                <button class="btn-cancel" id="cancelExportBtn">Cancelar</button>
-                <button class="btn-confirm" id="confirmExportBtn">Exportar</button>
+                <button class="btn-cancel" id="cancelExportBtn" type="button">Cancelar</button>
+                <button class="btn-confirm" id="confirmExportBtn" type="button">Exportar</button>
             </div>
         </div>
     </div>
-    <script src="app.js?v=1910261441"></script>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <script src="app.js?v=1311260750"></script>
 </body>
 
 </html>

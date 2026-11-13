@@ -4,28 +4,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="stylesheet" href="style.css?v=1910261441">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
     <title>WebDrop P2P</title>
     <meta name="theme-color" content="#06071A">
-    <script src="lib/simplepeer.min.js?v=1910261441"></script>
-    <script src="../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js?v=1910261441"></script>
-    <script src="../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js?v=1910261441"></script>
-    <link rel="manifest" href="manifest.json?v=1910261441">
-    <script src="lib/qrcode.min.js?v=1910261441"></script>
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
+    <link rel="manifest" href="manifest.json?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
+    <script defer src="lib/simplepeer.min.js?v=1311260750"></script>
+    <script defer src="../assets/libs_comuns/firebase/9.6.1/firebase-app-compat.js?v=1311260750"></script>
+    <script defer src="../assets/libs_comuns/firebase/9.6.1/firebase-database-compat.js?v=1311260750"></script>
+    <script defer src="lib/qrcode.min.js?v=1311260750"></script>
+    <script defer src="p2p-core.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
 </head>
 
 <body>
-    <div id="obs-identity"></div>
+    <div id="obs-identity" aria-live="polite"></div>
 
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
+    <button type="button" class="btnVoltar" id="btnVoltar">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
         Home
     </button>
 
-    <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
-        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+    <button type="button" id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path
                 d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.648 14.545 11 12.68 11H10a.5.5 0 0 1 0-1h2.688C13.979 10 15 8.988 15 7.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 2.825 10.328 1 8 1a4.53 4.53 0 0 0-2.941 1.1c-.757.652-1.153 1.438-1.153 2.055v.448l-.445.049C2.064 4.805 1 5.952 1 7.318 1 8.785 2.23 10 3.781 10H6a.5.5 0 0 1 0 1H3.781C1.708 11 0 9.366 0 7.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383z" />
             <path
@@ -39,12 +41,14 @@
             <div id="panel-waiting" class="card-panel compact-panel">
                 <div class="qr-container">
                     <div id="qrcode">
-                        <div class="qr-loading">
-                            <div class="spinner"></div>
+                        <div class="qr-loading" role="status" aria-live="polite">
+                            <div class="spinner" aria-hidden="true"></div>
                             <p id="loading-text">Aguarde...</p>
                         </div>
                     </div>
                 </div>
+
+                <p id="waiting-status-text" class="waiting-substatus" aria-live="polite" hidden></p>
 
                 <div id="ready-content">
                     <div class="id-badge-container">
@@ -55,12 +59,12 @@
                     </div>
 
                     <p class="instruction compact">
-                        Escaneie ou mande o link.
+                        Escaneie o QR Code ou envie o link.
                     </p>
 
                     <div class="link-box compact">
-                        <input type="text" id="share-link" readonly>
-                        <button id="btn-copy" class="btn-action">Copiar</button>
+                        <input type="text" id="share-link" aria-label="Link de compartilhamento da sala" readonly>
+                        <button type="button" id="btn-copy" class="btn-action">Copiar</button>
                     </div>
 
                     <div class="divider-section">
@@ -68,101 +72,108 @@
                     </div>
 
                     <div class="link-box compact">
-                        <input type="text" id="manual-room-id" placeholder="Cole o ID aqui...">
-                        <button id="btn-manual-connect" class="btn-action"
-                            style="background-color: #2563eb;">Entrar</button>
+                        <input type="text" id="manual-room-id" aria-label="ID ou link da sala remota"
+                            placeholder="Cole o ID ou link aqui..." autocomplete="off">
+                        <button type="button" id="btn-manual-connect" class="btn-action btn-connect">Entrar</button>
                     </div>
+                    <p id="manual-error" class="inline-feedback" role="alert" hidden></p>
 
                     <div class="streamer-section compact">
                         <div class="streamer-title compact">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
+                                stroke-width="2" aria-hidden="true">
                                 <path d="M15 10l5 5-5 5" />
                                 <path d="M4 4v7a4 4 0 0 0 4 4h12" />
                             </svg>
                             Link OBS
                         </div>
                         <div class="custom-link-box compact">
-                            <input type="text" id="link-obs" readonly value="...">
-                            <button id="btn-copy-obs" class="btn-copy-mini btn-obs">Copiar</button>
+                            <input type="text" id="link-obs" aria-label="Link para Browser Source do OBS" readonly
+                                value="...">
+                            <button type="button" id="btn-copy-obs" class="btn-copy-mini btn-obs">Copiar</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="panel-connected" class="card-panel" style="display: none;">
-                <div class="connection-status">
-                    <div class="status-dot"></div>
+                <div class="connection-status" aria-live="polite">
+                    <div class="status-dot" aria-hidden="true"></div>
                     <span id="remote-peer-name">Conectado</span>
                 </div>
 
                 <div class="clipboard-section">
                     <div class="clipboard-input-container">
-                        <input type="text" id="clipboard-input" placeholder="Enviar texto..." autocomplete="off">
-                        <button id="btn-send-text">➤</button>
+                        <input type="text" id="clipboard-input" aria-label="Enviar texto rápido"
+                            placeholder="Enviar texto ou link..." autocomplete="off">
+                        <button type="button" id="btn-send-text" aria-label="Enviar texto" title="Enviar texto">➤</button>
                     </div>
                 </div>
 
                 <div id="drop-zone" class="file-upload">
                     <label for="file-input" class="file-upload-label">
-                        <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt="upload"
+                        <img src="../Leitor-logs-totvs-fluig/assets/upload.webp" id="upload-icon" alt=""
                             style="width: 48px;">
                         <span class="desktop-text">Selecione ou arraste arquivos aqui</span>
-                        <span class="mobile-text">Toque para selecionar</span>
+                        <span class="mobile-text">Toque para selecionar arquivos</span>
                     </label>
                     <input type="file" id="file-input" class="custom-file-input" multiple>
                 </div>
 
+                <div id="transfers-header" class="transfers-header" hidden>
+                    <span id="transfers-summary" aria-live="polite">0 arquivos</span>
+                    <button type="button" id="btn-clear-transfers" class="btn-link-muted">Limpar concluídos</button>
+                </div>
                 <div id="transfers-list" class="transfers-container"></div>
 
-                <button id="btn-disconnect" class="btn-cancel">Desconectar</button>
+                <button type="button" id="btn-disconnect" class="btn-cancel">Desconectar</button>
 
                 <div class="stream-controls">
-                    <button id="btn-share-cam" class="btn-action btn-share stream-btn">Câmera</button>
-                    <button id="btn-share-screen" class="btn-action btn-share stream-btn">Tela</button>
+                    <button type="button" id="btn-share-cam" class="btn-action btn-share stream-btn">Câmera</button>
+                    <button type="button" id="btn-share-screen" class="btn-action btn-share stream-btn">Tela</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="alertModal" class="modal">
+    <div id="alertModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="alertTitle" aria-hidden="true">
         <div class="modal-content modal-small">
             <div class="modal-header">
                 <h3 id="alertTitle">Aviso</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button type="button" id="btn-close-alert-x" class="modal-close" aria-label="Fechar aviso">&times;</button>
             </div>
             <div class="modal-body">
                 <p id="alertMessage"></p>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-primary" onclick="closeModal()">OK</button>
+                <button type="button" id="btn-ok-alert" class="btn btn-primary">OK</button>
             </div>
         </div>
     </div>
 
-    <div id="clipboardModal" class="modal">
+    <div id="clipboardModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="clipboardModalTitle"
+        aria-hidden="true">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Clipboard 📋</h3>
-                <button class="modal-close" onclick="closeClipboardModal()">&times;</button>
+                <h3 id="clipboardModalTitle">Clipboard 📋</h3>
+                <button type="button" id="btn-close-clipboard-x" class="modal-close"
+                    aria-label="Fechar texto recebido">&times;</button>
             </div>
             <div class="modal-body">
-                <textarea id="clipboard-review" readonly></textarea>
+                <textarea id="clipboard-review" aria-label="Texto recebido do dispositivo remoto" readonly></textarea>
             </div>
             <div class="modal-actions">
-                <button class="btn" onclick="closeClipboardModal()">Fechar</button>
-                <button class="btn btn-primary" id="btn-manual-copy">Copiar</button>
+                <button type="button" id="btn-close-clipboard" class="btn btn-secondary">Fechar</button>
+                <button type="button" class="btn btn-primary" id="btn-manual-copy">Copiar</button>
             </div>
         </div>
     </div>
 
-    <div id="video-wrapper" class="video-overlay">
+    <div id="video-wrapper" class="video-overlay" aria-live="polite">
         <p id="video-status" class="video-status-text">Visualizando:</p>
         <video id="remote-video" autoplay playsinline></video>
-        <button id="btn-exit-obs" class="btn-floating-exit">✕ Sair</button>
+        <button type="button" id="btn-exit-obs" class="btn-floating-exit">✕ Sair</button>
     </div>
-
-    <script src="app.js?v=1910261441"></script>
 </body>
 
 </html>

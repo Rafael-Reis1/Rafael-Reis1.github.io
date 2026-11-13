@@ -1,3 +1,132 @@
+const ASSET_VERSION = '?v=1311260750';
+
+const safeStorageGet = (key, fallback = null) => {
+    try {
+        return localStorage.getItem(key);
+    } catch (_) {
+        return fallback;
+    }
+};
+
+const safeStorageSet = (key, value) => {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (err) {
+        console.warn(`Falha ao salvar "${key}" no localStorage:`, err);
+        return false;
+    }
+};
+
+const hasMathDelimiters = (text) =>
+    typeof text === 'string' &&
+    /\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|(^|[^\\])\$[^$\n]+\$/.test(text);
+
+class AssetLoader {
+    constructor() {
+        this._pending = new Map();
+        this._mermaidReady = false;
+    }
+
+    loadStyle(href) {
+        if (typeof document === 'undefined' || !document.head) return Promise.resolve(false);
+        const key = `css:${href}`;
+        if (this._pending.has(key)) return this._pending.get(key);
+
+        const existing = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .some(link => (link.getAttribute('href') || '').includes(href));
+        if (existing) {
+            const p = Promise.resolve(true);
+            this._pending.set(key, p);
+            return p;
+        }
+
+        const promise = new Promise((resolve) => {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = `${href}${ASSET_VERSION}`;
+            link.onload = () => resolve(true);
+            link.onerror = () => resolve(false);
+            document.head.appendChild(link);
+        });
+        this._pending.set(key, promise);
+        return promise;
+    }
+
+    loadScript(src) {
+        if (typeof document === 'undefined' || !document.head) return Promise.resolve(false);
+        const key = `js:${src}`;
+        if (this._pending.has(key)) return this._pending.get(key);
+
+        const existing = Array.from(document.querySelectorAll('script[src]'))
+            .some(script => (script.getAttribute('src') || '').includes(src));
+        if (existing) {
+            const p = Promise.resolve(true);
+            this._pending.set(key, p);
+            return p;
+        }
+
+        const promise = new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = `${src}${ASSET_VERSION}`;
+            script.async = true;
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.head.appendChild(script);
+        });
+        this._pending.set(key, promise);
+        return promise;
+    }
+
+    async ensureKaTeX() {
+        if (typeof window !== 'undefined' && typeof window.renderMathInElement === 'function') {
+            return true;
+        }
+        await this.loadStyle('lib/katex.min.css');
+        if (typeof window === 'undefined' || !window.katex) {
+            await this.loadScript('lib/katex.min.js');
+        }
+        await this.loadScript('lib/auto-render.min.js');
+        return typeof window !== 'undefined' && typeof window.renderMathInElement === 'function';
+    }
+
+    initMermaidOnce() {
+        if (this._mermaidReady) return true;
+        if (typeof window === 'undefined' || !window.mermaid || typeof window.mermaid.initialize !== 'function') {
+            return false;
+        }
+        try {
+            window.mermaid.initialize({
+                startOnLoad: false,
+                theme: 'dark',
+                flowchart: { useMaxWidth: false, htmlLabels: true },
+                sequence: { useMaxWidth: false },
+                securityLevel: 'strict'
+            });
+            this._mermaidReady = true;
+            return true;
+        } catch (err) {
+            console.error('Mermaid init error:', err);
+            return false;
+        }
+    }
+
+    async ensureMermaid() {
+        if (typeof window !== 'undefined' && window.mermaid) {
+            const initialized = this.initMermaidOnce();
+            if (!window.panzoom) {
+                await this.loadScript('lib/panzoom.min.js');
+            }
+            return initialized;
+        }
+        await Promise.all([
+            this.loadScript('lib/mermaid.min.js'),
+            this.loadScript('lib/panzoom.min.js')
+        ]);
+        return this.initMermaidOnce();
+    }
+}
+
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -19,7 +148,7 @@ const normalizePersona = (persona) => ({
 });
 
 const normalizeChat = (chat) => ({
-    id: String(chat?.id ?? ''),
+    id: chat?.id ? String(chat.id) : ('chat-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
     title: String(chat?.title || 'Chat importado'),
     messages: Array.isArray(chat?.messages)
         ? chat.messages
@@ -40,7 +169,7 @@ class PersonaManager {
     }
 
     load() {
-        const saved = localStorage.getItem('personas');
+        const saved = safeStorageGet('personas');
 
         const defaultPersonas = [
             {
@@ -93,8 +222,8 @@ class PersonaManager {
 
                 if (!Array.isArray(parsed)) throw new Error('Formato inválido no localStorage');
 
-                this.personas = parsed;
-                let changed = false;
+                this.personas = parsed.filter(p => p && typeof p === 'object');
+                let changed = this.personas.length !== parsed.length;
 
                 this.personas.forEach(p => {
                     if (p.id === 'default' && p.name === 'Padrão (Sem Prompt)') {
@@ -167,7 +296,11 @@ class PersonaManager {
     }
 
     save() {
-        localStorage.setItem('personas', JSON.stringify(this.personas));
+        const ok = safeStorageSet('personas', JSON.stringify(this.personas));
+        if (!ok && typeof this.onStorageError === 'function') {
+            this.onStorageError('personas');
+        }
+        return ok;
     }
 
     getAll() {
@@ -217,12 +350,34 @@ class ChatManager {
     }
 
     load() {
-        const saved = localStorage.getItem('allChats');
-        this.chats = saved ? JSON.parse(saved) : [];
+        try {
+            const saved = safeStorageGet('allChats');
+            const parsed = saved ? JSON.parse(saved) : [];
+            if (!Array.isArray(parsed)) throw new Error('Formato inválido no localStorage');
+            this.chats = parsed
+                .filter(c => c && typeof c === 'object')
+                .map(c => normalizeChat(c));
+        } catch (err) {
+            console.error('Erro ao carregar chats. Iniciando histórico vazio.', err);
+            this.chats = [];
+        }
     }
 
     save() {
-        localStorage.setItem('allChats', JSON.stringify(this.chats));
+        const ok = safeStorageSet('allChats', JSON.stringify(this.chats));
+        if (!ok && typeof this.onStorageError === 'function') {
+            this.onStorageError('allChats');
+        }
+        return ok;
+    }
+
+    clearMessages(id) {
+        const chat = this.get(id);
+        if (!chat) return false;
+        chat.messages = [];
+        chat.timestamp = Date.now();
+        this.save();
+        return true;
     }
 
     getAll() {
@@ -289,6 +444,31 @@ class ChatManager {
 class AIService {
     constructor() {
         this.session = null;
+        this.sessionState = null;
+        this.warmingPromise = null;
+        this.warmingKey = null;
+        this.warmingAbort = null;
+        this._preferLegacySystemPrompt = false;
+    }
+
+    /** Destroy live session safely and clear cached conversation state. */
+    _destroySession() {
+        if (this.session) {
+            try { this.session.destroy(); } catch (_) {}
+            this.session = null;
+        }
+        this.sessionState = null;
+    }
+
+    /** Invalidate any active session and cancel in-flight pre-warming. */
+    invalidateSession() {
+        if (this.warmingAbort) {
+            try { this.warmingAbort.abort(); } catch (_) {}
+            this.warmingAbort = null;
+        }
+        this.warmingPromise = null;
+        this.warmingKey = null;
+        this._destroySession();
     }
 
     get factory() {
@@ -301,9 +481,16 @@ class AIService {
         return null;
     }
 
-    async isAvailable() {
+    async getAvailabilityInfo() {
         const factory = this.factory;
-        if (!factory) return false;
+        if (!factory) {
+            return {
+                available: false,
+                status: 'unavailable',
+                label: 'API Chrome AI indisponível',
+                reason: 'API do Chrome AI não detectada neste navegador.'
+            };
+        }
         try {
             let status;
             if (typeof factory.availability === 'function') {
@@ -321,153 +508,370 @@ class AIService {
 
             if (typeof status === 'string') {
                 const s = status.toLowerCase();
-                return s === 'available' || s === 'readily' || s === 'after-download' || s === 'downloadable' || s === 'downloading';
+                if (s === 'available' || s === 'readily') {
+                    return { available: true, status: 'ready', label: 'IA Local Pronta', reason: '' };
+                }
+                if (s === 'after-download' || s === 'downloadable') {
+                    return {
+                        available: true,
+                        status: 'downloadable',
+                        label: 'Modelo p/ Download',
+                        reason: 'O modelo Gemini Nano será baixado no primeiro envio.'
+                    };
+                }
+                if (s === 'downloading') {
+                    return {
+                        available: true,
+                        status: 'downloading',
+                        label: 'Baixando Modelo...',
+                        reason: 'O modelo local do Chrome está sendo baixado.'
+                    };
+                }
             }
-            return false;
+            return {
+                available: false,
+                status: String(status || 'no'),
+                label: 'Modelo Indisponível',
+                reason: 'O dispositivo ou navegador retornou status indisponível para o modelo local.'
+            };
         } catch (e) {
             console.warn('Erro ao verificar disponibilidade do Chrome AI:', e);
-            return false;
+            return {
+                available: false,
+                status: 'error',
+                label: 'Erro na API Local',
+                reason: e.message || String(e)
+            };
         }
     }
 
-    async generateStream(messages, systemPrompt, callbacks, signal) {
-        const { onChunk, onDownloadProgress, onStats } = callbacks;
+    async isAvailable() {
+        const info = await this.getAvailabilityInfo();
+        return info.available;
+    }
+
+    /**
+     * Build truncated system prompt and budgeted history for both warm-up and generation.
+     * @param {Array<{role: string, content: string}>} messages
+     * @param {string} systemPrompt
+     * @param {boolean} hasPendingUserMessage
+     */
+    buildPromptConfig(messages, systemPrompt, hasPendingUserMessage = true) {
+        const list = Array.isArray(messages) ? messages : [];
+        const currentPromptText = hasPendingUserMessage && list.length > 0
+            ? (list[list.length - 1].content || '')
+            : '';
+        const rawHistory = hasPendingUserMessage ? list.slice(0, -1) : list;
+
+        const mermaidInstruction = `[DIRETRIZ VISUAL] NÃO gere códigos, HTML ou diagramas Mermaid a menos que o usuário solicite EXPLICITAMENTE. Se o usuário quiser apenas conversar, responda apenas com texto natural. Se um diagrama for estritamente exigido, use apenas 'graph TD' ou 'sequenceDiagram' simples com aspas nos nós.`;
+
+        let safeSystemPrompt = systemPrompt || '';
+        if (safeSystemPrompt.length > 3500) {
+            safeSystemPrompt = safeSystemPrompt.substring(0, 3500) + '\n\n...[Contexto de projeto truncado]';
+        }
+
+        const fullSystemPrompt = safeSystemPrompt
+            ? `${safeSystemPrompt}\n\n${mermaidInstruction}`
+            : mermaidInstruction;
+
+        const MAX_CHARS = 14000;
+        const fixedLength = fullSystemPrompt.length + currentPromptText.length;
+        let availableBudget = MAX_CHARS - fixedLength;
+        const optimizedHistory = [];
+
+        if (availableBudget > 0) {
+            for (let i = rawHistory.length - 1; i >= 0; i--) {
+                const msg = rawHistory[i];
+                let msgContent = msg.content || '';
+
+                if (msg.role === 'assistant' && msgContent.length > 300) {
+                    msgContent = msgContent.substring(0, 300) + '\n...\n```\n[texto comprimido]';
+                } else if (msg.role === 'user' && msgContent.length > 600) {
+                    msgContent = msgContent.substring(0, 600) + '\n...\n```\n[texto comprimido]';
+                }
+
+                const msgSize = msg.role.length + msgContent.length + 10;
+                if (availableBudget - msgSize >= 0) {
+                    optimizedHistory.unshift({ role: msg.role, content: msgContent });
+                    availableBudget -= msgSize;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if (optimizedHistory.length > 0 && optimizedHistory[0].role !== 'user') {
+            optimizedHistory.shift();
+        }
+        if (optimizedHistory.length > 0 && optimizedHistory[optimizedHistory.length - 1].role === 'user') {
+            optimizedHistory.pop();
+        }
+
+        return {
+            currentPromptText,
+            fullSystemPrompt,
+            rawHistoryLength: rawHistory.length,
+            formattedHistory: optimizedHistory.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }))
+        };
+    }
+
+    _buildWarmKey(chatId, fullSystemPrompt, rawHistoryLength) {
+        return `${chatId || ''}::${rawHistoryLength}::${fullSystemPrompt}`;
+    }
+
+    _isSessionReusable({ chatId, fullSystemPrompt, rawHistoryLength }) {
+        if (!this.session || !this.sessionState) return false;
+        if (this.sessionState.chatId !== (chatId || null)) return false;
+        if (this.sessionState.systemPrompt !== fullSystemPrompt) return false;
+        if (this.sessionState.historyLength !== rawHistoryLength) return false;
+
+        const quota = Number(this.session.inputQuota);
+        const usage = Number(this.session.inputUsage);
+        const left = Number(this.session.tokensLeft);
+        if (Number.isFinite(quota) && quota > 0 && Number.isFinite(usage) && (usage / quota) >= 0.85) {
+            return false;
+        }
+        if (Number.isFinite(left) && left < 400) {
+            return false;
+        }
+        return true;
+    }
+
+    _awaitWithSignal(promise, signal) {
+        if (!signal) return promise;
+        if (signal.aborted) {
+            const abortErr = new Error('Operação cancelada.');
+            abortErr.name = 'AbortError';
+            return Promise.reject(abortErr);
+        }
+        return new Promise((resolve, reject) => {
+            const onAbort = () => {
+                const abortErr = new Error('Operação cancelada.');
+                abortErr.name = 'AbortError';
+                reject(abortErr);
+            };
+            signal.addEventListener('abort', onAbort, { once: true });
+            Promise.resolve(promise).then(
+                (value) => {
+                    signal.removeEventListener('abort', onAbort);
+                    resolve(value);
+                },
+                (err) => {
+                    signal.removeEventListener('abort', onAbort);
+                    reject(err);
+                }
+            );
+        });
+    }
+
+    async _createRawSession(fullSystemPrompt, formattedHistory, { onDownloadProgress, signal } = {}) {
+        const baseOptions = {
+            monitor(m) {
+                if (m && typeof m.addEventListener === 'function') {
+                    m.addEventListener('downloadprogress', e => {
+                        if (onDownloadProgress) onDownloadProgress(e);
+                    });
+                }
+            }
+        };
+        if (signal) baseOptions.signal = signal;
+
+        const buildModernOptions = () => {
+            const initialPrompts = [];
+            if (fullSystemPrompt) {
+                initialPrompts.push({ role: 'system', content: fullSystemPrompt });
+            }
+            if (formattedHistory.length > 0) {
+                initialPrompts.push(...formattedHistory);
+            }
+            return { ...baseOptions, initialPrompts };
+        };
+
+        const buildLegacyOptions = () => {
+            const opts = { ...baseOptions };
+            if (fullSystemPrompt) opts.systemPrompt = fullSystemPrompt;
+            if (formattedHistory.length > 0) opts.initialPrompts = formattedHistory;
+            return opts;
+        };
+
+        const preferLegacy = this._preferLegacySystemPrompt;
+        const primaryOpts = preferLegacy ? buildLegacyOptions() : buildModernOptions();
+
+        try {
+            return await this.factory.create(primaryOpts);
+        } catch (err) {
+            if (signal?.aborted || err?.name === 'AbortError') {
+                throw err;
+            }
+            console.warn(
+                preferLegacy
+                    ? 'Falha com systemPrompt na raiz, tentando initialPrompts moderno...'
+                    : 'Falha com initialPrompts, tentando fallback com systemPrompt legado...',
+                err
+            );
+            const fallbackOpts = preferLegacy ? buildModernOptions() : buildLegacyOptions();
+            const session = await this.factory.create(fallbackOpts);
+            this._preferLegacySystemPrompt = !preferLegacy;
+            return session;
+        }
+    }
+
+    /**
+     * Silently pre-warm a session when the local model is already downloaded/ready.
+     * Coalesces duplicate calls for the same chat/system/history key.
+     */
+    async warmUp({ chatId = null, messages = [], systemPrompt = '', onDownloadProgress } = {}) {
+        if (!this.factory) return null;
+
+        const config = this.buildPromptConfig(messages, systemPrompt, false);
+        const reuseTarget = {
+            chatId: chatId || null,
+            fullSystemPrompt: config.fullSystemPrompt,
+            rawHistoryLength: config.rawHistoryLength
+        };
+
+        if (this._isSessionReusable(reuseTarget)) {
+            return this.session;
+        }
+
+        const key = this._buildWarmKey(reuseTarget.chatId, config.fullSystemPrompt, config.rawHistoryLength);
+        if (this.warmingPromise && this.warmingKey === key) {
+            return this.warmingPromise;
+        }
+
+        const availability = await this.getAvailabilityInfo();
+        if (availability.status !== 'ready') {
+            return null;
+        }
+
+        if (this.warmingAbort) {
+            try { this.warmingAbort.abort(); } catch (_) {}
+        }
+        const controller = new AbortController();
+        this.warmingAbort = controller;
+        this.warmingKey = key;
+
+        const warmTask = (async () => {
+            try {
+                this._destroySession();
+                const session = await this._createRawSession(
+                    config.fullSystemPrompt,
+                    config.formattedHistory,
+                    { onDownloadProgress, signal: controller.signal }
+                );
+                if (controller.signal.aborted || this.warmingKey !== key) {
+                    try { session?.destroy?.(); } catch (_) {}
+                    return null;
+                }
+                this.session = session;
+                this.sessionState = {
+                    chatId: reuseTarget.chatId,
+                    systemPrompt: config.fullSystemPrompt,
+                    historyLength: config.rawHistoryLength
+                };
+                return session;
+            } catch (err) {
+                if (!controller.signal.aborted && err?.name !== 'AbortError') {
+                    console.warn('Falha no pre-aquecimento da sessão local:', err);
+                }
+                return null;
+            } finally {
+                if (this.warmingPromise === warmTask) {
+                    this.warmingPromise = null;
+                    this.warmingKey = null;
+                    this.warmingAbort = null;
+                }
+            }
+        })();
+
+        this.warmingPromise = warmTask;
+        return warmTask;
+    }
+
+    async generateStream(messages, systemPrompt, callbacks = {}, signal = null, options = {}) {
+        const { onChunk, onDownloadProgress, onStats, onPhase } = callbacks || {};
+        const { chatId = null } = options || {};
         const startTime = Date.now();
         let fullResponse = '';
 
         try {
-            if (this.session) {
-                try { this.session.destroy(); } catch (_) {}
-                this.session = null;
-            }
-
             if (!this.factory) throw new Error('API do Chrome AI não encontrada no seu navegador.');
-
-            const currentPromptText = messages[messages.length - 1].content;
-            
-            let rawHistory = messages.slice(0, -1);
-
-            const mermaidInstruction = `[DIRETRIZ VISUAL] NÃO gere códigos, HTML ou diagramas Mermaid a menos que o usuário solicite EXPLICITAMENTE. Se o usuário quiser apenas conversar, responda apenas com texto natural. Se um diagrama for estritamente exigido, use apenas 'graph TD' ou 'sequenceDiagram' simples com aspas nos nós.`;
-
-            let safeSystemPrompt = systemPrompt || '';
-            
-            if (safeSystemPrompt.length > 3500) {
-                 safeSystemPrompt = safeSystemPrompt.substring(0, 3500) + "\n\n...[Contexto de projeto truncado]";
+            if (!Array.isArray(messages) || messages.length === 0) {
+                throw new Error('Nenhuma mensagem válida para enviar.');
             }
 
-            const fullSystemPrompt = safeSystemPrompt
-                ? `${safeSystemPrompt}\n\n${mermaidInstruction}`
-                : mermaidInstruction;
-
-            const MAX_CHARS = 14000;
-            const fixedLength = fullSystemPrompt.length + currentPromptText.length;
-            let availableBudget = MAX_CHARS - fixedLength;
-            let optimizedHistory = [];
-
-            if (availableBudget > 0) {
-                for (let i = rawHistory.length - 1; i >= 0; i--) {
-                    const msg = rawHistory[i];
-                    let msgContent = msg.content;
-                    
-                    if (msg.role === 'assistant' && msgContent.length > 300) {
-                        msgContent = msgContent.substring(0, 300) + "\n...\n```\n[texto comprimido]";
-                    } else if (msg.role === 'user' && msgContent.length > 600) {
-                        msgContent = msgContent.substring(0, 600) + "\n...\n```\n[texto comprimido]";
-                    }
-
-                    const msgSize = msg.role.length + msgContent.length + 10;
-
-                    if (availableBudget - msgSize >= 0) {
-                        optimizedHistory.unshift({ role: msg.role, content: msgContent });
-                        availableBudget -= msgSize;
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            if (optimizedHistory.length > 0 && optimizedHistory[0].role !== 'user') {
-                optimizedHistory.shift();
-            }
-
-            if (optimizedHistory.length > 0 && optimizedHistory[optimizedHistory.length - 1].role === 'user') {
-                optimizedHistory.pop();
-            }
-            
-            const formattedHistory = optimizedHistory.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-
-            let modelStatus = 'readily';
-            try {
-                if (typeof this.factory.availability === 'function') {
-                    modelStatus = await this.factory.availability();
-                } else if (typeof this.factory.capabilities === 'function') {
-                    const caps = await this.factory.capabilities();
-                    modelStatus = typeof caps === 'string' ? caps : (caps?.available || 'readily');
-                }
-            } catch (_) {}
-
-            const statusStr = typeof modelStatus === 'string' ? modelStatus.toLowerCase() : '';
-            const needsDownload = statusStr === 'downloadable' || statusStr === 'after-download' || statusStr === 'downloading';
-
-            const baseOptions = {
-                monitor(m) {
-                    if (needsDownload && m) {
-                        m.addEventListener('downloadprogress', e => {
-                            if (onDownloadProgress) onDownloadProgress(e);
-                        });
-                    }
-                }
+            const config = this.buildPromptConfig(messages, systemPrompt, true);
+            const { currentPromptText, fullSystemPrompt, rawHistoryLength, formattedHistory } = config;
+            const reuseTarget = {
+                chatId: chatId || null,
+                fullSystemPrompt,
+                rawHistoryLength
             };
+            const warmKey = this._buildWarmKey(reuseTarget.chatId, fullSystemPrompt, rawHistoryLength);
 
-            if (formattedHistory.length === 0) {
-                try {
-                    const options = {
-                        ...baseOptions
+            let reusedSession = this._isSessionReusable(reuseTarget);
+
+            if (!reusedSession && this.warmingPromise) {
+                if (this.warmingKey === warmKey) {
+                    if (onPhase) onPhase('creating');
+                    const onAbortWarm = () => {
+                        try { this.warmingAbort?.abort(); } catch (_) {}
                     };
-                    if (fullSystemPrompt) {
-                        options.systemPrompt = fullSystemPrompt;
+                    if (signal) {
+                        if (signal.aborted) onAbortWarm();
+                        else signal.addEventListener('abort', onAbortWarm, { once: true });
                     }
-                    this.session = await this.factory.create(options);
-                } catch (err) {
-                    console.warn('Falha com systemPrompt isolado, tentando initialPrompts com role system...', err);
-                    const fallbackOptions = {
-                        ...baseOptions,
-                        initialPrompts: fullSystemPrompt ? [{ role: 'system', content: fullSystemPrompt }] : []
-                    };
-                    this.session = await this.factory.create(fallbackOptions);
-                }
-            } else {
-                try {
-                    const options = {
-                        ...baseOptions,
-                        systemPrompt: fullSystemPrompt,
-                        initialPrompts: formattedHistory
-                    };
-                    this.session = await this.factory.create(options);
-                } catch (err) {
-                    console.warn('Tentando fallback para navegadores com restrição de systemPrompt + initialPrompts...', err);
-                    const fallbackPrompts = [];
-                    if (fullSystemPrompt) {
-                        fallbackPrompts.push({ role: 'system', content: fullSystemPrompt });
+                    try {
+                        await this._awaitWithSignal(this.warmingPromise, signal);
+                    } finally {
+                        if (signal) signal.removeEventListener('abort', onAbortWarm);
                     }
-                    fallbackPrompts.push(...formattedHistory);
-                    const fallbackOptions = {
-                        ...baseOptions,
-                        initialPrompts: fallbackPrompts
-                    };
-                    this.session = await this.factory.create(fallbackOptions);
+                    reusedSession = this._isSessionReusable(reuseTarget);
+                } else {
+                    if (this.warmingAbort) {
+                        try { this.warmingAbort.abort(); } catch (_) {}
+                        this.warmingAbort = null;
+                    }
+                    this.warmingPromise = null;
+                    this.warmingKey = null;
                 }
             }
 
-            let promptToSend = currentPromptText;
-            if (safeSystemPrompt) {
-                promptToSend = `${safeSystemPrompt}\n\n[Mensagem do Usuário]: ${currentPromptText}`;
+            if (!reusedSession) {
+                this._destroySession();
+                if (onPhase) onPhase('creating');
+                const created = await this._awaitWithSignal(
+                    this._createRawSession(fullSystemPrompt, formattedHistory, { onDownloadProgress, signal }),
+                    signal
+                );
+                if (signal?.aborted) {
+                    try { created?.destroy?.(); } catch (_) {}
+                    const abortErr = new Error('Operação cancelada.');
+                    abortErr.name = 'AbortError';
+                    throw abortErr;
+                }
+                this.session = created;
+                this.sessionState = {
+                    chatId: reuseTarget.chatId,
+                    systemPrompt: fullSystemPrompt,
+                    historyLength: rawHistoryLength
+                };
             }
 
-            const stream = await this.session.promptStreaming(promptToSend, { signal });
+            if (signal?.aborted) {
+                const abortErr = new Error('Operação cancelada.');
+                abortErr.name = 'AbortError';
+                throw abortErr;
+            }
+
+            const promptStart = Date.now();
+            const setupMs = reusedSession ? 0 : (promptStart - startTime);
+            if (onPhase) onPhase('prompting');
+
+            const stream = await this.session.promptStreaming(currentPromptText, { signal });
             let firstTokenTime = null;
 
             const handleChunk = (val) => {
@@ -496,12 +900,23 @@ class AIService {
                 }
             }
 
+            if (signal?.aborted || !fullResponse.trim()) {
+                this._destroySession();
+            } else {
+                // Keep session KV-cache alive across subsequent turns in the same chat.
+                this.sessionState = {
+                    chatId: reuseTarget.chatId,
+                    systemPrompt: fullSystemPrompt,
+                    historyLength: messages.length + 1
+                };
+            }
+
             if (onStats && fullResponse) {
                 try {
                     const endTime = Date.now();
                     const durationSeconds = (endTime - startTime) / 1000;
                     const ttftMs = firstTokenTime ? (firstTokenTime - startTime) : 0;
-
+                    const promptTtftMs = firstTokenTime ? (firstTokenTime - promptStart) : 0;
                     const generationTimeSeconds = firstTokenTime ? (endTime - firstTokenTime) / 1000 : durationSeconds;
 
                     let tokenCount;
@@ -517,18 +932,18 @@ class AIService {
                         tokens: tokenCount,
                         duration: durationSeconds.toFixed(2),
                         tokensPerSecond,
-                        ttft: ttftMs
+                        ttft: ttftMs,
+                        setupMs,
+                        promptTtftMs,
+                        reusedSession
                     });
                 } catch (statsErr) {
                     console.warn('Could not calculate stats:', statsErr);
                 }
             }
-
-        } finally {
-            if (this.session) {
-                this.session.destroy();
-                this.session = null;
-            }
+        } catch (err) {
+            this._destroySession();
+            throw err;
         }
     }
 }
@@ -682,12 +1097,27 @@ class UIManager {
         this.chats = chatManager;
         this.ai = aiService;
         this.personas = personaManager;
+        this.assets = new AssetLoader();
         this.abortController = null;
         this.isLoading = false;
         this.renderBuffer = "";
         this.lastRenderTime = 0;
+        this.searchQuery = '';
+        this._chatRenderToken = 0;
+        this._storageWarned = false;
+        this.messageRawText = new WeakMap();
         this.emojiPicker = new EmojiPicker('inputPersonaIcon', 'emojiPicker');
         this.colorPicker = new ColorPicker('inputPersonaColor', 'colorPicker');
+
+        const notifyStorageQuota = () => {
+            if (this._storageWarned) return;
+            this._storageWarned = true;
+            this.showDialog('Armazenamento local cheio (QuotaExceededError). Exporte um backup e remova chats antigos para continuar salvando.', {
+                title: 'Limite de Armazenamento'
+            });
+        };
+        this.personas.onStorageError = notifyStorageQuota;
+        this.chats.onStorageError = notifyStorageQuota;
 
         this.els = {
             prompt: document.getElementById('promptText'),
@@ -696,13 +1126,25 @@ class UIManager {
             stopBtn: document.getElementById('stopButton'),
             newChatBtn: document.getElementById('btnNewChat'),
             chatList: document.getElementById('chatList'),
+            chatSearchInput: document.getElementById('chatSearchInput'),
+            btnClearSearch: document.getElementById('btnClearSearch'),
             sidebar: document.getElementById('sidebar'),
+            btnToggleSidebarCollapse: document.getElementById('btnToggleSidebarCollapse'),
             menuBtn: document.getElementById('menuButton'),
             overlay: document.getElementById('overlay'),
             backBtn: document.getElementById('btnVoltar'),
+            mobileNotice: document.getElementById('mobile-notice'),
+            btnDismissMobileNotice: document.getElementById('btnDismissMobileNotice'),
+            chatTopbar: document.getElementById('chatTopbar'),
+            activePersonaChip: document.getElementById('activePersonaChip'),
+            activeChatTitle: document.getElementById('activeChatTitle'),
+            btnOpenCanvasHeader: document.getElementById('btnOpenCanvasHeader'),
+            aiStatusBadge: document.getElementById('aiStatusBadge'),
+            btnExportChatMd: document.getElementById('btnExportChatMd'),
+            btnClearChat: document.getElementById('btnClearChat'),
             personasBtn: document.getElementById('btnPersonas'),
             personasModal: document.getElementById('personasModal'),
-            closeModalBtn: document.querySelector('.close-modal'),
+            closeModalBtn: document.querySelector('#personasModal .close-modal') || document.querySelector('.close-modal'),
             personasList: document.getElementById('personasList'),
             addPersonaBtn: document.getElementById('btnAddPersona'),
             personaForm: document.getElementById('personaForm'),
@@ -719,7 +1161,7 @@ class UIManager {
             btnExportChats: document.getElementById('btnExportChats'),
             btnImportChats: document.getElementById('btnImportChats'),
             importChatsFile: document.getElementById('importChatsFile'),
-            modalFooter: document.querySelector('.modal-footer'),
+            modalFooter: document.querySelector('#personasModal .modal-footer') || document.querySelector('.modal-footer'),
             genericModal: document.getElementById('genericModal'),
             genericModalTitle: document.getElementById('genericModalTitle'),
             genericModalMessage: document.getElementById('genericModalMessage'),
@@ -731,6 +1173,8 @@ class UIManager {
             mainWrapper: document.getElementById('mainWrapper'),
             canvasContainer: document.getElementById('canvasContainer'),
             canvasFrame: document.getElementById('canvasFrame'),
+            copyCanvasBtn: document.getElementById('copyCanvas'),
+            downloadCanvasBtn: document.getElementById('downloadCanvas'),
             closeCanvasBtn: document.getElementById('closeCanvas'),
             refreshCanvasBtn: document.getElementById('refreshCanvas'),
             scrollToBottomBtn: document.getElementById('scrollToBottomBtn')
@@ -747,95 +1191,149 @@ class UIManager {
 
     init() {
         try {
-            if (window.mermaid) {
-                mermaid.initialize({
-                    startOnLoad: false,
-                    theme: 'dark',
-                    flowchart: { useMaxWidth: false, htmlLabels: true },
-                    sequence: { useMaxWidth: false },
-                    securityLevel: 'loose'
-                });
-            }
-        } catch (e) {
-            console.error('Mermaid init error:', e);
-        }
+            if (typeof marked !== 'undefined' && marked?.Renderer) {
+                const renderer = new marked.Renderer();
+                const originalCode = renderer.code.bind(renderer);
 
-        try {
-            const renderer = new marked.Renderer();
-            const originalCode = renderer.code.bind(renderer);
+                renderer.code = (code, language) => {
+                    let text = code;
+                    let lang = language;
 
-            renderer.code = (code, language) => {
-                let text = code;
-                let lang = language;
+                    if (typeof code === 'object' && code !== null && !Array.isArray(code)) {
+                        text = code.text || '';
+                        lang = code.lang || '';
+                    }
 
-                if (typeof code === 'object' && code !== null && !Array.isArray(code)) {
-                    text = code.text || '';
-                    lang = code.lang || '';
-                }
+                    let codeContent = String(text || '');
+                    codeContent = codeContent.replace(/^mermaid\s*\n/i, '');
 
-                let codeContent = String(text || '');
+                    const mermaidHeaderMatch = codeContent.match(/^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b/i);
+                    const isMermaid = (lang && lang.toLowerCase() === 'mermaid') || Boolean(mermaidHeaderMatch);
 
-                codeContent = codeContent.replace(/^mermaid\s*\n/i, '');
+                    if (isMermaid) {
+                        let fixedCode = codeContent;
+                        const headerKind = mermaidHeaderMatch ? mermaidHeaderMatch[1].toLowerCase() : '';
+                        const isFlowchart = headerKind === 'graph' || headerKind === 'flowchart';
 
-                const isMermaid = (lang && lang.toLowerCase() === 'mermaid') ||
-                    /^\s*(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b/i.test(codeContent);
+                        // Apenas graph/flowchart usam classDef default e rótulos [..]/(..)/{..} dessa forma;
+                        // aplicar em sequenceDiagram/classDiagram quebraria sintaxe válida.
+                        if (isFlowchart) {
+                            const chatId = this.chats.activeChatId;
+                            const chat = this.chats.get(chatId);
+                            const personaColor = safeColor(chat?.personaColor);
+                            const darkColor = this.darkenColor(personaColor, 40);
 
-                if (isMermaid) {
-                    const chatId = this.chats.activeChatId;
-                    const chat = this.chats.get(chatId);
-                    const personaColor = chat?.personaColor || '#f2511b';
-                    const darkColor = this.darkenColor(personaColor, 40);
+                            const fixLabel = (id, open, content, close) => {
+                                let label = (content || '').trim();
+                                if (label.startsWith('"') && label.endsWith('"')) label = label.slice(1, -1);
+                                label = label.replace(/"/g, "'");
+                                return `${id || ''}${open}"${label}"${close}`;
+                            };
 
-                    const fixLabel = (id, open, content, close) => {
-                        let text = (content || '').trim();
-                        if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
-                        text = text.replace(/"/g, "'");
-                        return `${id || ''}${open}"${text}"${close}`;
-                    };
+                            fixedCode = fixedCode.replace(/(\b\w+)?\s*(?:\[([^\]]*)\]|\{([^\}]*)\}|\(([^\)]*)\))/g, (match, id, c1, c2, c3) => {
+                                if (c1 !== undefined) return fixLabel(id, '[', c1, ']');
+                                if (c2 !== undefined) return fixLabel(id, '{', c2, '}');
+                                if (c3 !== undefined) return fixLabel(id, '(', c3, ')');
+                                return match;
+                            });
 
-                    let fixedCode = codeContent.replace(/(\b\w+)?\s*(?:\[([^\]]*)\]|\{([^\}]*)\}|\(([^\)]*)\))/g, (match, id, c1, c2, c3) => {
-                        if (c1 !== undefined) return fixLabel(id, '[', c1, ']');
-                        if (c2 !== undefined) return fixLabel(id, '{', c2, '}');
-                        if (c3 !== undefined) return fixLabel(id, '(', c3, ')');
-                        return match;
-                    });
+                            fixedCode = fixedCode
+                                .replace(/fill\s*:\s*#[a-fA-F0-9]{3,6}/gi, `fill:${darkColor}`)
+                                .replace(/stroke\s*:\s*#[a-fA-F0-9]{3,6}/gi, `stroke:${personaColor}`);
 
-                    fixedCode = fixedCode
-                        .replace(/fill\s*:\s*#[a-fA-F0-9]{3,6}/gi, `fill:${darkColor}`)
-                        .replace(/stroke\s*:\s*#[a-fA-F0-9]{3,6}/gi, `stroke:${personaColor}`);
+                            const textColor = this.getContrastYIQ(darkColor) === 'black' ? '#000000' : '#ffffff';
+                            fixedCode += `\n    classDef default fill:${darkColor},stroke:${personaColor},stroke-width:2px,color:${textColor};`;
+                        }
 
-                    const textColor = this.getContrastYIQ(darkColor) === 'black' ? '#000000' : '#ffffff';
-                    fixedCode += `\n    classDef default fill:${darkColor},stroke:${personaColor},stroke-width:2px,color:${textColor};`;
-
-                    const encodedCode = encodeURIComponent(fixedCode);
-                    return `
-                        <div class="mermaid-wrapper">
-                            <div class="mermaid-top-bar">
-                                <span class="mermaid-label">Diagrama</span>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="reset-zoom-btn">
-                                        Reset Zoom
-                                    </button>
-                                    <button class="copy-mermaid-btn" data-data="${encodedCode}">
-                                        Copiar Código
-                                    </button>
+                        const encodedCode = encodeURIComponent(fixedCode);
+                        return `
+                            <div class="mermaid-wrapper">
+                                <div class="mermaid-top-bar">
+                                    <span class="mermaid-label">Diagrama</span>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button type="button" class="reset-zoom-btn">
+                                            Reset Zoom
+                                        </button>
+                                        <button type="button" class="copy-mermaid-btn" data-data="${encodedCode}">
+                                            Copiar Código
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="mermaid">${fixedCode}</div>
-                        </div>`;
-                }
-                return originalCode(code, language);
-            };
+                                <div class="mermaid">${escapeHtml(fixedCode)}</div>
+                            </div>`;
+                    }
+                    return originalCode(code, language);
+                };
 
-            marked.use({ renderer });
+                marked.use({ renderer });
+            }
         } catch (e) {
             console.error('Marked init error:', e);
         }
 
-        window.addEventListener('load', () => this.loadInitialState());
+        if (document.readyState === 'complete') {
+            this.loadInitialState();
+        } else {
+            window.addEventListener('load', () => this.loadInitialState());
+        }
 
         if (this.els.menuBtn) this.els.menuBtn.onclick = () => this.toggleSidebar();
         if (this.els.overlay) this.els.overlay.onclick = () => this.toggleSidebar();
+        if (this.els.btnToggleSidebarCollapse) {
+            this.els.btnToggleSidebarCollapse.onclick = () => this.toggleDesktopSidebar();
+        }
+
+        if (this.els.btnDismissMobileNotice && this.els.mobileNotice) {
+            try {
+                if (sessionStorage.getItem('dismissedMobileNotice') === '1') {
+                    this.els.mobileNotice.classList.add('dismissed');
+                    document.body.classList.add('mobile-notice-dismissed');
+                }
+            } catch (_) { }
+
+            this.els.btnDismissMobileNotice.onclick = () => {
+                this.els.mobileNotice.classList.add('dismissed');
+                document.body.classList.add('mobile-notice-dismissed');
+                try { sessionStorage.setItem('dismissedMobileNotice', '1'); } catch (_) { }
+            };
+        }
+
+        if (this.els.chatSearchInput) {
+            this.els.chatSearchInput.addEventListener('input', (e) => {
+                this.setSearchQuery(e.target.value);
+            });
+        }
+        if (this.els.btnClearSearch) {
+            this.els.btnClearSearch.onclick = () => {
+                if (this.els.chatSearchInput) this.els.chatSearchInput.value = '';
+                this.setSearchQuery('');
+                this.els.chatSearchInput?.focus();
+            };
+        }
+
+        if (this.els.activePersonaChip) {
+            this.els.activePersonaChip.onclick = () => this.openPersonasModal();
+        }
+        if (this.els.btnOpenCanvasHeader) {
+            this.els.btnOpenCanvasHeader.onclick = () => {
+                const combined = this.combineCode(this.codeState);
+                if (combined) this.openCanvas(combined);
+            };
+        }
+        if (this.els.aiStatusBadge) {
+            this.els.aiStatusBadge.onclick = () => this.showAIAvailabilityHelp();
+        }
+        if (this.els.btnExportChatMd) {
+            this.els.btnExportChatMd.onclick = () => this.exportActiveChatMarkdown();
+        }
+        if (this.els.btnClearChat) {
+            this.els.btnClearChat.onclick = () => this.confirmClearActiveChat();
+        }
+
+        const savedCollapsed = safeStorageGet('sidebarCollapsed') === '1';
+        if (savedCollapsed && this.els.sidebar && window.innerWidth > 768) {
+            this.setDesktopSidebarCollapsed(true);
+        }
 
         if (this.els.newChatBtn) this.els.newChatBtn.onclick = () => this.createNewChat();
 
@@ -853,6 +1351,7 @@ class UIManager {
 
         if (this.els.prompt) {
             this.els.prompt.addEventListener('input', () => this.adjustTextarea());
+            this.els.prompt.addEventListener('focus', () => this.warmUpActiveChat());
             this.els.prompt.onkeydown = (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -903,20 +1402,26 @@ class UIManager {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                if (this.els.personasModal && this.els.personasModal.classList.contains('active')) {
-                    this.closePersonasModal();
-                }
-
                 if (this.els.genericModal && this.els.genericModal.classList.contains('active')) {
                     if (this.els.genericModalCancelBtn && this.els.genericModalCancelBtn.offsetParent !== null) {
                         this.els.genericModalCancelBtn.click();
-                    }
-                    else if (this.els.closeGenericModalBtn) {
+                    } else if (this.els.closeGenericModalBtn) {
                         this.els.closeGenericModalBtn.click();
-                    }
-                    else {
+                    } else {
                         this.els.genericModal.classList.remove('active');
                     }
+                    return;
+                }
+
+                const editModal = document.getElementById('editMessageModal');
+                if (editModal && editModal.classList.contains('active')) {
+                    const cancelEdit = document.getElementById('cancelEditBtn');
+                    if (cancelEdit) cancelEdit.click();
+                    return;
+                }
+
+                if (this.els.personasModal && this.els.personasModal.classList.contains('active')) {
+                    this.closePersonasModal();
                 }
             } else if (e.key === 'Enter') {
                 if (this.els.genericModal && this.els.genericModal.classList.contains('active')) {
@@ -987,13 +1492,14 @@ class UIManager {
         if (chats.length === 0) {
             this.createNewChat();
         } else {
-            const savedId = localStorage.getItem('activeChatId');
+            const savedId = safeStorageGet('activeChatId');
             const targetId = savedId && this.chats.get(savedId) ? savedId : chats[0].id;
             this.switchChat(targetId);
         }
 
         this.adjustTextarea();
         this.initCanvas();
+        this.refreshAIStatus();
     }
 
     initCanvas() {
@@ -1003,6 +1509,12 @@ class UIManager {
         if (this.els.refreshCanvasBtn) {
             this.els.refreshCanvasBtn.onclick = () => this.refreshCanvas();
         }
+        if (this.els.copyCanvasBtn) {
+            this.els.copyCanvasBtn.onclick = () => this.copyCanvasCode();
+        }
+        if (this.els.downloadCanvasBtn) {
+            this.els.downloadCanvasBtn.onclick = () => this.downloadCanvasHtml();
+        }
     }
 
     openCanvas(code) {
@@ -1010,77 +1522,71 @@ class UIManager {
         if (!this.els.mainWrapper) return;
 
         const container = this.els.mainWrapper.querySelector('.container');
-        const canvas = this.els.canvasContainer;
-        if (!container || !canvas) return;
-
-        const startWidth = container.offsetWidth;
-        const targetWidth = 400;
-        const duration = 350;
-        const startTime = performance.now();
+        if (container) container.style.width = '';
 
         this.els.mainWrapper.classList.add('canvas-open');
         this.els.mainWrapper.classList.remove('canvas-closing');
-
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-
-            const currentWidth = startWidth - (startWidth - targetWidth) * eased;
-            container.style.width = currentWidth + 'px';
-            canvas.style.opacity = eased;
-            canvas.style.width = (eased * 100) + '%';
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                container.style.width = targetWidth + 'px';
-                canvas.style.opacity = '1';
-                canvas.style.width = '';
-                if (this.stickToBottom) this.scrollToBottom();
-            }
-        };
-
-        requestAnimationFrame(animate);
         this.renderCanvasPreview(code);
+        this.updateTopbar();
+
+        if (this.stickToBottom) {
+            requestAnimationFrame(() => this.scrollToBottom());
+        }
     }
 
     closeCanvas() {
         if (!this.els.mainWrapper) return;
 
         const container = this.els.mainWrapper.querySelector('.container');
-        const canvas = this.els.canvasContainer;
-        if (!container || !canvas) return;
+        if (container) container.style.width = '';
 
-        const startWidth = 400;
-        const targetWidth = this.els.mainWrapper.offsetWidth;
-        const duration = 350;
-        const startTime = performance.now();
-
-        this.els.mainWrapper.classList.add('canvas-closing');
-
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-
-            const currentWidth = startWidth + (targetWidth - startWidth) * eased;
-            container.style.width = currentWidth + 'px';
-            canvas.style.opacity = 1 - eased;
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.els.mainWrapper.classList.remove('canvas-open');
-                this.els.mainWrapper.classList.remove('canvas-closing');
-                container.style.width = '';
-                canvas.style.opacity = '';
-                canvas.style.width = '';
-                if (this.stickToBottom) this.scrollToBottom();
-            }
-        };
-        requestAnimationFrame(animate);
+        this.els.mainWrapper.classList.remove('canvas-open', 'canvas-closing');
+        if (this.currentBlobUrl) {
+            try { URL.revokeObjectURL(this.currentBlobUrl); } catch (_) { }
+            this.currentBlobUrl = null;
+        }
+        if (this.els.canvasFrame) {
+            this.els.canvasFrame.removeAttribute('srcdoc');
+            this.els.canvasFrame.src = 'about:blank';
+        }
         this.currentCanvasCode = '';
+        this.updateTopbar();
+
+        if (this.stickToBottom) {
+            requestAnimationFrame(() => this.scrollToBottom());
+        }
+    }
+
+    async copyCanvasCode() {
+        if (!this.currentCanvasCode) return;
+        const btn = this.els.copyCanvasBtn;
+        try {
+            await navigator.clipboard.writeText(this.currentCanvasCode);
+            if (btn) {
+                btn.classList.add('copied');
+                const prevTitle = btn.title;
+                btn.title = 'Copiado!';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.title = prevTitle;
+                }, 1800);
+            }
+        } catch (_) {
+            this.showDialog('Não foi possível copiar o código automaticamente.', { title: 'Aviso' });
+        }
+    }
+
+    downloadCanvasHtml() {
+        if (!this.currentCanvasCode) return;
+        const blob = new Blob([this.currentCanvasCode], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nanochat-preview.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     extractCodeForPreview(text) {
@@ -1285,25 +1791,28 @@ class UIManager {
     }
 
     checkAutoUpdateCanvas(text, force = false) {
-        if (!this.els.mainWrapper) return;
+        if (!this.els.mainWrapper || !text) return;
+        if (!force && !text.includes('```')) return;
 
         const now = Date.now();
         if (!this.lastCanvasUpdate) this.lastCanvasUpdate = 0;
 
-        if (!force && now - this.lastCanvasUpdate < 500) return;
+        if (!force && now - this.lastCanvasUpdate < 650) return;
 
         const blocks = this.extractCodeForPreview(text);
-        if (!blocks) return;
+        if (!blocks || (!blocks.html && !blocks.css && !blocks.js)) return;
 
         if (force) {
             this.updateCodeState(blocks);
         }
 
-        const merged = {
-            html: this.smartMerge(this.codeState.html, blocks.html, 'html'),
-            css: this.smartMerge(this.codeState.css, blocks.css, 'css'),
-            js: this.smartMerge(this.codeState.js, blocks.js, 'js')
-        };
+        const merged = force
+            ? this.codeState
+            : {
+                html: this.smartMerge(this.codeState.html, blocks.html, 'html'),
+                css: this.smartMerge(this.codeState.css, blocks.css, 'css'),
+                js: this.smartMerge(this.codeState.js, blocks.js, 'js')
+            };
 
         const combinedHtml = this.combineCode(merged);
 
@@ -1363,7 +1872,228 @@ ${code}
         if (this.els.overlay) this.els.overlay.classList.toggle('active');
     }
 
+    setDesktopSidebarCollapsed(collapsed) {
+        if (!this.els.sidebar) return;
+        this.els.sidebar.classList.toggle('collapsed', collapsed);
+        const container = this.els.mainWrapper?.querySelector('.container') || document.querySelector('.container');
+        if (this.els.mainWrapper) this.els.mainWrapper.classList.toggle('sidebar-collapsed', collapsed);
+        if (container) container.classList.toggle('full-width', collapsed);
+        if (this.els.btnToggleSidebarCollapse) {
+            this.els.btnToggleSidebarCollapse.setAttribute('aria-expanded', String(!collapsed));
+            this.els.btnToggleSidebarCollapse.title = collapsed ? 'Expandir barra lateral' : 'Recolher barra lateral';
+        }
+        safeStorageSet('sidebarCollapsed', collapsed ? '1' : '0');
+    }
+
+    toggleDesktopSidebar() {
+        if (!this.els.sidebar) return;
+        const willCollapse = !this.els.sidebar.classList.contains('collapsed');
+        this.setDesktopSidebarCollapsed(willCollapse);
+    }
+
+    setSearchQuery(query) {
+        this.searchQuery = String(query || '').trim().toLowerCase();
+        if (this.els.btnClearSearch) {
+            this.els.btnClearSearch.style.display = this.searchQuery ? 'flex' : 'none';
+        }
+        this.renderChatList();
+    }
+
+    abortActiveStream() {
+        if (this.abortController) {
+            this.abortController.abort();
+        }
+    }
+
+    async refreshAIStatus() {
+        const info = await this.ai.getAvailabilityInfo();
+        this.aiStatusInfo = info;
+        const badge = this.els.aiStatusBadge;
+        if (!badge) return;
+
+        badge.classList.remove('status-ready', 'status-warn', 'status-error');
+        if (info.status === 'ready') {
+            badge.classList.add('status-ready');
+        } else if (info.available) {
+            badge.classList.add('status-warn');
+        } else {
+            badge.classList.add('status-error');
+        }
+
+        const labelEl = badge.querySelector('.ai-status-label');
+        if (labelEl) {
+            labelEl.textContent = info.label;
+        } else {
+            badge.textContent = info.label;
+        }
+        badge.title = info.reason || info.label;
+        if (info.status === 'ready' && !this.isLoading) {
+            this.warmUpActiveChat();
+        }
+    }
+
+    /** Assemble system prompt + code context consistently for warm-up and chat turns. */
+    buildChatSystemPrompt(chat) {
+        let systemPrompt = chat ? (chat.systemPrompt || '') : '';
+        if (!systemPrompt && chat && chat.personaName) {
+            const p = this.personas.getAll().find(per => per.name === chat.personaName);
+            if (p && p.prompt) systemPrompt = p.prompt;
+        }
+        if (!systemPrompt) {
+            const defaultP = this.personas.get('default');
+            if (defaultP && defaultP.prompt) systemPrompt = defaultP.prompt;
+        }
+
+        const hasCodeContext = this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js);
+        const isDevPersona = chat && (
+            (chat.personaName || '').includes('Dev') ||
+            (chat.personaName || '').includes('Arquiteto')
+        );
+
+        if (isDevPersona || hasCodeContext) {
+            systemPrompt += `\n\n[REGRAS TÉCNICAS PARA CÓDIGO]:\nSe você for gerar ou editar HTML, siga estas regras: 1. Todo elemento HTML gerado deve ter 'id'. 2. ECONOMIA DE TOKENS: Ao editar, gere APENAS o bloco HTML alterado e não o arquivo todo, a menos que solicitado.`;
+        }
+
+        if (hasCodeContext) {
+            const combinedCode = this.combineCode(this.codeState);
+            if (combinedCode) {
+                if (combinedCode.length <= 2500) {
+                    systemPrompt += `\n\n[CONTEXTO ATUAL]:\n\`\`\`html\n${combinedCode}\n\`\`\``;
+                } else {
+                    const truncatedCode = combinedCode.substring(0, 2500);
+                    systemPrompt += `\n\n[CONTEXTO ATUAL (PARCIAL)]:\n\`\`\`html\n${truncatedCode}\n...[CÓDIGO TRUNCADO]\n\`\`\``;
+                }
+            }
+        }
+        return systemPrompt;
+    }
+
+    /** Silently pre-warm the active chat session when Chrome AI is already ready. */
+    warmUpActiveChat() {
+        if (this.isLoading) return null;
+        if (!this.aiStatusInfo || this.aiStatusInfo.status !== 'ready') return null;
+        const chatId = this.chats.activeChatId;
+        const chat = this.chats.get(chatId);
+        if (!chat) return null;
+        const messages = chat.messages.map(m => ({ role: m.role, content: m.content }));
+        const systemPrompt = this.buildChatSystemPrompt(chat);
+        return this.ai.warmUp({ chatId, messages, systemPrompt });
+    }
+
+    showAIAvailabilityHelp() {
+        const info = this.aiStatusInfo || { available: false, label: 'Chrome AI', reason: '' };
+        if (info.status === 'ready') {
+            this.showDialog('O modelo local Gemini Nano está ativo e pronto para uso offline no navegador.', {
+                title: 'Chrome AI Pronto'
+            });
+            return;
+        }
+        if (info.available) {
+            this.showDialog(`${info.reason}\n\nEnvie sua primeira mensagem para iniciar o preparo do modelo local.`, {
+                title: info.label
+            });
+            return;
+        }
+
+        this.showDialog(
+            `${info.reason}\n\nPara ativar no Google Chrome Desktop (138+):\n1. Abra chrome://flags/#prompt-api-for-gemini-nano → Enabled\n2. Abra chrome://flags/#optimization-guide-on-device-model → Enabled BypassPerfRequirement\n3. Reinicie o Chrome e aguarde o download em chrome://components (Optimization Guide On Device Model).`,
+            {
+                title: 'Como ativar o Chrome AI',
+                buttons: [
+                    {
+                        text: 'Verificar Novamente',
+                        class: 'btn-primary',
+                        onClick: () => { this.refreshAIStatus(); }
+                    },
+                    {
+                        text: 'Fechar',
+                        class: 'btn-secondary',
+                        onClick: () => { }
+                    }
+                ]
+            }
+        );
+    }
+
+    updateTopbar() {
+        const chat = this.chats.get(this.chats.activeChatId);
+        if (this.els.activeChatTitle) {
+            this.els.activeChatTitle.textContent = chat ? chat.title : 'NanoChat';
+        }
+        if (this.els.activePersonaChip && chat) {
+            const persona = this.personas.getAll().find(p => p.name === chat.personaName);
+            const name = persona ? persona.name : (chat.personaName || 'Padrão');
+            const icon = escapeHtml(persona ? (persona.icon || '🤖') : (chat.personaIcon || '🤖'));
+            const color = safeColor(persona ? persona.color : chat.personaColor);
+            this.els.activePersonaChip.style.borderColor = `${color}66`;
+            this.els.activePersonaChip.innerHTML = `<span class="persona-chip-icon" style="color:${color}">${icon}</span><span class="persona-chip-name">${escapeHtml(name)}</span>`;
+        }
+        if (this.els.btnOpenCanvasHeader) {
+            const hasPreviewCode = Boolean(this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js));
+            const canvasOpen = this.els.mainWrapper?.classList.contains('canvas-open');
+            this.els.btnOpenCanvasHeader.style.display = (hasPreviewCode && !canvasOpen) ? 'inline-flex' : 'none';
+        }
+        if (this.els.btnExportChatMd) {
+            const hasMsgs = Boolean(chat && chat.messages.length > 0);
+            this.els.btnExportChatMd.disabled = !hasMsgs;
+        }
+        if (this.els.btnClearChat) {
+            const hasMsgs = Boolean(chat && chat.messages.length > 0);
+            this.els.btnClearChat.disabled = !hasMsgs;
+        }
+    }
+
+    exportActiveChatMarkdown() {
+        const chat = this.chats.get(this.chats.activeChatId);
+        if (!chat || chat.messages.length === 0) return;
+
+        const lines = [`# ${chat.title}\n`];
+        if (chat.personaName) lines.push(`> Persona: ${chat.personaName}\n`);
+        lines.push('---\n');
+
+        chat.messages.forEach((msg) => {
+            const author = msg.role === 'user' ? 'Você' : (chat.personaName || 'Assistente');
+            lines.push(`## ${author}\n\n${msg.content}\n`);
+        });
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const safeName = (chat.title || 'conversa')
+            .toLowerCase()
+            .replace(/[^a-z0-9-_]+/gi, '-')
+            .replace(/^-+|-+$/g, '') || 'conversa';
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeName}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    confirmClearActiveChat() {
+        const chat = this.chats.get(this.chats.activeChatId);
+        if (!chat || chat.messages.length === 0) return;
+
+        this.showDialog(`Limpar todas as mensagens de "${chat.title}"?`, {
+            title: 'Limpar Conversa',
+            type: 'confirm',
+            onConfirm: () => {
+                this.abortActiveStream();
+                this.ai.invalidateSession();
+                this.chats.clearMessages(chat.id);
+                this.codeState = { html: null, css: null, js: null };
+                if (this.els.mainWrapper?.classList.contains('canvas-open')) {
+                    this.closeCanvas();
+                }
+                this.switchChat(chat.id);
+            }
+        });
+    }
+
     createNewChat(systemPrompt = '', personaName = 'Padrão', personaIcon = null, personaColor = null) {
+        this.abortActiveStream();
+        this.ai.invalidateSession();
         const defaultPersona = this.personas.get('default') || this.personas.getAll()[0];
         const initialPrompt = (systemPrompt !== undefined && systemPrompt !== '') ? systemPrompt : (defaultPersona ? defaultPersona.prompt : '');
         const initialName = personaName || (defaultPersona ? defaultPersona.name : 'Padrão');
@@ -1408,10 +2138,13 @@ ${code}
     }
 
     switchChat(id) {
+        if (this.chats.activeChatId && this.chats.activeChatId !== id) {
+            this.abortActiveStream();
+            this.ai.invalidateSession();
+        }
+        this._chatRenderToken++;
         this.chats.activeChatId = id;
-        try {
-            localStorage.setItem('activeChatId', id);
-        } catch (_) { }
+        safeStorageSet('activeChatId', id);
         this.reconstructCodeState(id);
 
         if (this.codeState.html) {
@@ -1440,10 +2173,12 @@ ${code}
 
         this.renderChatList();
         this.updateInputState();
+        this.updateTopbar();
 
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
         }
+        this.warmUpActiveChat();
     }
 
     renderSuggestionPills() {
@@ -1462,9 +2197,12 @@ ${code}
 
         const chat = this.chats.get(this.chats.activeChatId);
         const persona = chat ? this.personas.getAll().find(p => p.name === chat.personaName) : null;
-        const personaColor = persona?.color || '#f2511b';
-        const personaIcon = persona?.icon || '🤖';
-        const personaName = persona?.name || 'Assistente';
+        const personaColor = safeColor(persona?.color || chat?.personaColor);
+        const personaIcon = escapeHtml(persona?.icon || chat?.personaIcon || '🤖');
+        const personaName = persona?.name || chat?.personaName || 'Assistente';
+        const greeting = personaName && personaName !== 'Padrão'
+            ? `Olá! Como ${escapeHtml(personaName)} pode ajudar?`
+            : 'Olá! Como posso ajudar?';
 
         const container = document.createElement('div');
         container.className = 'suggestion-pills-container';
@@ -1473,12 +2211,12 @@ ${code}
                 <div class="suggestion-avatar" style="background-color: ${personaColor}20; color: ${personaColor};">
                     ${personaIcon}
                 </div>
-                <h2>Olá! Como posso ajudar?</h2>
+                <h2>${greeting}</h2>
                 <p>Escolha uma sugestão abaixo ou digite sua própria mensagem.</p>
             </div>
             <div class="suggestion-pills">
                 ${suggestions.map(s => `
-                    <button class="suggestion-pill" data-prompt="${encodeURIComponent(s.prompt)}">
+                    <button type="button" class="suggestion-pill" data-prompt="${encodeURIComponent(s.prompt)}">
                         <span class="pill-icon">${s.icon}</span>
                         <span class="pill-text">${s.text}</span>
                     </button>
@@ -1515,6 +2253,10 @@ ${code}
             title: 'Confirmar Exclusão',
             type: 'confirm',
             onConfirm: () => {
+                if (this.chats.activeChatId === id) {
+                    this.abortActiveStream();
+                    this.ai.invalidateSession();
+                }
                 this.chats.delete(id);
 
                 if (this.chats.activeChatId === id) {
@@ -1541,6 +2283,7 @@ ${code}
                 if (newTitle && newTitle.trim()) {
                     this.chats.rename(id, newTitle.trim());
                     this.renderChatList();
+                    if (id === this.chats.activeChatId) this.updateTopbar();
                 }
             }
         });
@@ -1550,7 +2293,25 @@ ${code}
         if (!this.els.chatList) return;
         this.els.chatList.innerHTML = '';
 
-        this.chats.getAll().forEach(chat => {
+        const query = this.searchQuery;
+        const allChats = this.chats.getAll();
+        const filteredChats = query
+            ? allChats.filter(chat => {
+                if ((chat.title || '').toLowerCase().includes(query)) return true;
+                if ((chat.personaName || '').toLowerCase().includes(query)) return true;
+                return Array.isArray(chat.messages) && chat.messages.some(m => (m.content || '').toLowerCase().includes(query));
+            })
+            : allChats;
+
+        if (filteredChats.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-list-empty';
+            empty.textContent = query ? 'Nenhum chat encontrado.' : 'Sem conversas ainda.';
+            this.els.chatList.appendChild(empty);
+            return;
+        }
+
+        filteredChats.forEach(chat => {
             const item = document.createElement('div');
             item.className = `chat-item ${chat.id === this.chats.activeChatId ? 'active' : ''}`;
 
@@ -1623,6 +2384,8 @@ ${code}
                 this.els.genericModalFooter.innerHTML = '';
                 this.els.genericModalFooter.style.flexDirection = 'column';
                 this.els.genericModalFooter.style.alignItems = 'stretch';
+                this.els.genericModalOkBtn = null;
+                this.els.genericModalCancelBtn = null;
 
                 buttons.forEach(btn => {
                     const button = document.createElement('button');
@@ -1658,7 +2421,7 @@ ${code}
                 okBtn.textContent = 'OK';
                 okBtn.onclick = () => {
                     const value = this.els.genericModalInput ? this.els.genericModalInput.value : null;
-                    if (type === 'prompt' && !value) return;
+                    if (type === 'prompt' && (!value || !value.trim())) return;
 
                     this.els.genericModal.classList.remove('active');
                     onConfirm(value);
@@ -1666,6 +2429,8 @@ ${code}
 
                 this.els.genericModalFooter.appendChild(cancelBtn);
                 this.els.genericModalFooter.appendChild(okBtn);
+                this.els.genericModalCancelBtn = cancelBtn;
+                this.els.genericModalOkBtn = okBtn;
             }
         }
 
@@ -1699,9 +2464,9 @@ ${code}
                     bubbleColor = this.darkenColor(activeColor, 45);
                 }
 
+                prompt.style.setProperty('--current-chat-color', bubbleColor);
                 prompt.style.borderColor = bubbleColor;
-                
-                prompt.style.boxShadow = `0 0 0 1px ${bubbleColor}`;
+                prompt.style.boxShadow = '';
 
                 this.els.messages.style.setProperty('--current-chat-color', bubbleColor);
                 this.els.messages.style.setProperty('--current-chat-text-color', textColor);
@@ -1880,7 +2645,21 @@ ${code}
         }
 
         if (this.currentEditingId) {
+            const previousPersona = this.personas.get(this.currentEditingId);
+            const oldName = previousPersona ? previousPersona.name : null;
             this.personas.update(this.currentEditingId, name, prompt, color, icon);
+            if (oldName) {
+                let chatsUpdated = false;
+                this.chats.getAll().forEach(c => {
+                    if (c.personaName === oldName) {
+                        c.personaName = name;
+                        c.personaIcon = icon;
+                        c.personaColor = color;
+                        chatsUpdated = true;
+                    }
+                });
+                if (chatsUpdated) this.chats.save();
+            }
         } else {
             this.personas.create(name, prompt, color, icon);
         }
@@ -1888,6 +2667,7 @@ ${code}
         this.renderPersonasList();
         this.renderChatList();
         this.updateInputState();
+        this.updateTopbar();
         this.hidePersonaEditor();
     }
 
@@ -1921,6 +2701,9 @@ ${code}
         if (!file) return;
 
         const reader = new FileReader();
+        reader.onerror = () => {
+            this.showDialog('Erro ao ler o arquivo selecionado.', { title: 'Erro' });
+        };
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
@@ -1997,6 +2780,9 @@ ${code}
         if (!file) return;
 
         const reader = new FileReader();
+        reader.onerror = () => {
+            this.showDialog('Erro ao ler o arquivo selecionado.', { title: 'Erro' });
+        };
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
@@ -2114,8 +2900,13 @@ ${code}
         const text = this.els.prompt.value.trim();
         if (!text) return;
 
-        const chatId = this.chats.activeChatId;
-        const currentChat = this.chats.get(chatId);
+        let chatId = this.chats.activeChatId;
+        let currentChat = this.chats.get(chatId);
+        if (!currentChat) {
+            this.createNewChat();
+            chatId = this.chats.activeChatId;
+            currentChat = this.chats.get(chatId);
+        }
 
         if (currentChat && !this.skipUserMessage) {
             this.chats.addMessage(chatId, 'user', text);
@@ -2126,6 +2917,7 @@ ${code}
                     this.renderChatList();
                 }
             }
+            this.updateTopbar();
         }
 
         this.removeSuggestionPills();
@@ -2141,8 +2933,14 @@ ${code}
         const msgId = 'msg-' + Date.now();
         const skeletonHtml = `
             <div class="message" id="${msgId}">
-                <div class="skeleton-loading">
+                <div class="skeleton-loading" aria-live="polite">
+                    <div class="skeleton-status">
+                        <span class="skeleton-phase" id="${msgId}-phase">Verificando IA local...</span>
+                        <span class="skeleton-timer" id="${msgId}-timer">0s</span>
+                    </div>
                     <div class="skeleton-line"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-hint" id="${msgId}-hint" hidden>O primeiro carregamento do Gemini Nano na memória/GPU pode levar alguns segundos.</div>
                 </div>
             </div>
         `;
@@ -2154,49 +2952,43 @@ ${code}
         this.scrollToBottom(true);
 
         const msgElement = document.getElementById(msgId);
+        const isStillActiveBubble = () => Boolean(msgElement && msgElement.isConnected && this.chats.activeChatId === chatId);
+        const phaseEl = document.getElementById(`${msgId}-phase`);
+        const timerEl = document.getElementById(`${msgId}-timer`);
+        const hintEl = document.getElementById(`${msgId}-hint`);
+        const waitStartedAt = Date.now();
+        const phaseLabels = {
+            creating: 'Inicializando Gemini Nano na memória...',
+            prompting: 'Aguardando primeira resposta...'
+        };
         let fullResponse = "";
         let firstChunk = true;
         const downloadMsgId = 'download-progress-msg';
+        const waitTimerId = setInterval(() => {
+            if (!isStillActiveBubble() || !firstChunk) {
+                clearInterval(waitTimerId);
+                return;
+            }
+            const elapsedSec = Math.floor((Date.now() - waitStartedAt) / 1000);
+            if (timerEl && timerEl.isConnected) {
+                timerEl.textContent = `${elapsedSec}s`;
+            }
+            if (hintEl && hintEl.isConnected && elapsedSec >= 10) {
+                hintEl.hidden = false;
+            }
+        }, 1000);
 
         try {
-            if (!(await this.ai.isAvailable())) {
-                throw new Error('API de IA não disponível. Verifique as flags do Chrome.');
+            const availability = await this.ai.getAvailabilityInfo();
+            this.aiStatusInfo = availability;
+            if (!availability.available) {
+                const err = new Error(availability.reason || 'API de IA não disponível. Verifique as flags do Chrome.');
+                err.isAvailabilityError = true;
+                throw err;
             }
 
             const context = currentChat ? currentChat.messages.map(m => ({ role: m.role, content: m.content })) : [];
-            
-            let systemPrompt = currentChat ? (currentChat.systemPrompt || '') : '';
-            if (!systemPrompt && currentChat && currentChat.personaName) {
-                const p = this.personas.getAll().find(per => per.name === currentChat.personaName);
-                if (p && p.prompt) systemPrompt = p.prompt;
-            }
-            if (!systemPrompt) {
-                const defaultP = this.personas.get('default');
-                if (defaultP && defaultP.prompt) systemPrompt = defaultP.prompt;
-            }
-
-            const hasCodeContext = this.codeState && (this.codeState.html || this.codeState.css || this.codeState.js);
-
-            const isDevPersona = currentChat && (
-                currentChat.personaName.includes('Dev') || 
-                currentChat.personaName.includes('Arquiteto')
-            );
-
-            if (isDevPersona || hasCodeContext) {
-                systemPrompt += `\n\n[REGRAS TÉCNICAS PARA CÓDIGO]:\nSe você for gerar ou editar HTML, siga estas regras: 1. Todo elemento HTML gerado deve ter 'id'. 2. ECONOMIA DE TOKENS: Ao editar, gere APENAS o bloco HTML alterado e não o arquivo todo, a menos que solicitado.`;
-            }
-
-            if (hasCodeContext) {
-                const combinedCode = this.combineCode(this.codeState);
-                if (combinedCode) {
-                    if (combinedCode.length <= 2500) {
-                        systemPrompt += `\n\n[CONTEXTO ATUAL]:\n\`\`\`html\n${combinedCode}\n\`\`\``;
-                    } else {
-                        const truncatedCode = combinedCode.substring(0, 2500);
-                        systemPrompt += `\n\n[CONTEXTO ATUAL (PARCIAL)]:\n\`\`\`html\n${truncatedCode}\n...[CÓDIGO TRUNCADO]\n\`\`\``;
-                    }
-                }
-            }
+            const systemPrompt = this.buildChatSystemPrompt(currentChat);
 
             let responseStats = null;
 
@@ -2204,65 +2996,105 @@ ${code}
                 context,
                 systemPrompt,
                 {
-                    onChunk: (text) => {
+                    onPhase: (phase) => {
+                        if (firstChunk && isStillActiveBubble() && phaseEl && phaseEl.isConnected) {
+                            phaseEl.textContent = phaseLabels[phase] || phaseLabels.prompting;
+                        }
+                    },
+                    onChunk: (chunkText) => {
+                        fullResponse = chunkText;
+                        if (!isStillActiveBubble()) return;
+
                         if (firstChunk) {
+                            clearInterval(waitTimerId);
                             msgElement.className = 'message is-streaming';
                             const dlRow = document.getElementById(downloadMsgId)?.closest('.rowAssistant');
                             if (dlRow) dlRow.remove();
                             firstChunk = false;
                         }
 
-                        fullResponse = text;
                         this.throttledRender(fullResponse, msgElement, false);
-                        
                         this.checkAutoUpdateCanvas(fullResponse, false);
                     },
                     onDownloadProgress: (e) => {
-                        this.handleDownloadProgress(e, downloadMsgId);
+                        if (isStillActiveBubble()) {
+                            this.handleDownloadProgress(e, downloadMsgId);
+                        }
                     },
                     onStats: (stats) => {
                         responseStats = stats;
                     }
                 },
-                this.abortController.signal
+                this.abortController.signal,
+                { chatId }
             );
 
-            this.throttledRender(fullResponse, msgElement, true);
+            if (isStillActiveBubble()) {
+                await this.throttledRender(fullResponse, msgElement, true);
+            }
 
             if (!fullResponse.trim()) {
-                msgElement.innerHTML = '<p class="error-message"><b>Nada foi gerado.</b> Tente enviar novamente.</p>';
+                if (isStillActiveBubble()) {
+                    msgElement.innerHTML = '<p class="error-message"><b>Nada foi gerado.</b> Tente enviar novamente.</p>';
+                }
                 return;
             }
 
-            this.chats.addMessage(chatId, 'assistant', fullResponse);
-            this.addCopyButtons(msgElement, fullResponse);
-            this.checkAutoUpdateCanvas(fullResponse, true);
+            if (this.chats.get(chatId)) {
+                this.chats.addMessage(chatId, 'assistant', fullResponse);
+                this.renderChatList();
+            }
 
-            if (responseStats) {
-                const statsHtml = `<div class="message-stats">Tokens: ${responseStats.tokens} · Velocidade: ${responseStats.tokensPerSecond} tok/s · Primeiro token: ${responseStats.ttft}ms · Tempo total: ${responseStats.duration}s</div>`;
-                msgElement.insertAdjacentHTML('beforeend', statsHtml);
+            if (isStillActiveBubble()) {
+                this.messageRawText.set(msgElement, fullResponse);
+                this.addCopyButtons(msgElement, fullResponse);
+                this.checkAutoUpdateCanvas(fullResponse, true);
+
+                if (responseStats) {
+                    const sessionDetail = responseStats.reusedSession
+                        ? ' · Sessão em cache'
+                        : (responseStats.setupMs > 0 ? ` · Setup: ${responseStats.setupMs}ms` : '');
+                    const statsHtml = `<div class="message-stats">Tokens: ${responseStats.tokens} · Velocidade: ${responseStats.tokensPerSecond} tok/s · Primeiro token: ${responseStats.ttft}ms${sessionDetail} · Tempo total: ${responseStats.duration}s</div>`;
+                    msgElement.insertAdjacentHTML('beforeend', statsHtml);
+                }
             }
 
         } catch (error) {
             if (this.abortController?.signal.aborted || error.name === 'AbortError') {
-                if (fullResponse) {
+                if (fullResponse && fullResponse.trim() && this.chats.get(chatId)) {
                     this.chats.addMessage(chatId, 'assistant', fullResponse);
-                    if (msgElement) this.addCopyButtons(msgElement, fullResponse);
-                } else if (msgElement) {
+                    this.renderChatList();
+                    if (isStillActiveBubble()) {
+                        this.messageRawText.set(msgElement, fullResponse);
+                        this.addCopyButtons(msgElement, fullResponse);
+                    }
+                } else if (msgElement && msgElement.isConnected) {
                     const row = msgElement.closest('.rowAssistant');
                     if (row) row.remove();
                     else msgElement.remove();
                 }
-            } else {
-                if (msgElement) msgElement.innerHTML = `<p class="error-message"><b>Erro:</b> ${escapeHtml(error.message)}</p>`;
+            } else if (isStillActiveBubble()) {
+                msgElement.innerHTML = `<p class="error-message"><b>Erro:</b> ${escapeHtml(error.message)}</p>`;
+                if (error.isAvailabilityError) {
+                    const helpBtn = document.createElement('button');
+                    helpBtn.type = 'button';
+                    helpBtn.className = 'btn-primary-small';
+                    helpBtn.style.marginTop = '0.5rem';
+                    helpBtn.textContent = 'Ver instruções para ativar';
+                    helpBtn.onclick = () => this.showAIAvailabilityHelp();
+                    msgElement.appendChild(helpBtn);
+                }
             }
         } finally {
+            clearInterval(waitTimerId);
             this.setLoadingState(false);
-            const msgElement = document.getElementById(msgId);
-            if (msgElement) msgElement.classList.remove('is-streaming');
+            const activeBubble = document.getElementById(msgId);
+            if (activeBubble) activeBubble.classList.remove('is-streaming');
             this.abortController = null;
 
             this.updateMessageActions();
+            this.updateTopbar();
+            this.refreshAIStatus();
             // Cabeçalhos de código, estatísticas e botões de ação mudam a altura no fim.
             this.scrollToBottom();
         }
@@ -2326,6 +3158,7 @@ ${code}
             }
         }
 
+        this.ai.invalidateSession();
         this.skipUserMessage = true;
         this.els.prompt.value = lastUserMessage;
         this.handleSend();
@@ -2369,6 +3202,7 @@ ${code}
                 allRows[totalRows - 1 - i].remove();
             }
 
+            this.ai.invalidateSession();
             this.els.prompt.value = editedMessage.trim();
             this.handleSend();
         });
@@ -2455,35 +3289,71 @@ ${code}
 
         if (userRows.length > 0) {
             const lastUserRow = userRows[userRows.length - 1];
-            const editBtn = document.createElement('div');
-            editBtn.className = 'message-actions';
-            editBtn.innerHTML = `
-                <button class="action-btn edit-btn" title="Editar mensagem">
+            const actionsWrap = document.createElement('div');
+            actionsWrap.className = 'message-actions';
+            actionsWrap.innerHTML = `
+                <button type="button" class="action-btn edit-btn" title="Editar mensagem" aria-label="Editar mensagem">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 20h9"></path>
                         <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                     </svg>
                 </button>
             `;
-            editBtn.querySelector('.edit-btn').onclick = () => this.handleEditLastMessage();
-            lastUserRow.appendChild(editBtn);
+            actionsWrap.querySelector('.edit-btn').onclick = () => this.handleEditLastMessage();
+            lastUserRow.appendChild(actionsWrap);
         }
 
-        if (assistantRows.length > 0) {
-            const lastAssistantRow = assistantRows[assistantRows.length - 1];
-            const regenBtn = document.createElement('div');
-            regenBtn.className = 'message-actions';
-            regenBtn.innerHTML = `
-                <button class="action-btn regen-btn" title="Regenerar resposta">
+        assistantRows.forEach((row, index) => {
+            const msgEl = row.querySelector('.message');
+            if (!msgEl || msgEl.querySelector('.skeleton-loading')) return;
+
+            const actionsWrap = document.createElement('div');
+            actionsWrap.className = 'message-actions';
+
+            const copyMsgBtn = document.createElement('button');
+            copyMsgBtn.type = 'button';
+            copyMsgBtn.className = 'action-btn copy-msg-btn';
+            copyMsgBtn.title = 'Copiar resposta';
+            copyMsgBtn.setAttribute('aria-label', 'Copiar resposta');
+            copyMsgBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            `;
+            copyMsgBtn.onclick = async () => {
+                const raw = this.messageRawText.get(msgEl) || msgEl.textContent || '';
+                if (!raw.trim()) return;
+                try {
+                    await navigator.clipboard.writeText(raw);
+                    copyMsgBtn.classList.add('copied');
+                    copyMsgBtn.title = 'Copiado!';
+                    setTimeout(() => {
+                        copyMsgBtn.classList.remove('copied');
+                        copyMsgBtn.title = 'Copiar resposta';
+                    }, 1800);
+                } catch (_) { }
+            };
+            actionsWrap.appendChild(copyMsgBtn);
+
+            if (index === assistantRows.length - 1) {
+                const regenBtn = document.createElement('button');
+                regenBtn.type = 'button';
+                regenBtn.className = 'action-btn regen-btn';
+                regenBtn.title = 'Regenerar resposta';
+                regenBtn.setAttribute('aria-label', 'Regenerar resposta');
+                regenBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="23 4 23 10 17 10"></polyline>
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                     </svg>
-                </button>
-            `;
-            regenBtn.querySelector('.regen-btn').onclick = () => this.handleRegenerate();
-            lastAssistantRow.appendChild(regenBtn);
-        }
+                `;
+                regenBtn.onclick = () => this.handleRegenerate();
+                actionsWrap.appendChild(regenBtn);
+            }
+
+            row.appendChild(actionsWrap);
+        });
     }
 
     handleDownloadProgress(e, msgId) {
@@ -2526,16 +3396,25 @@ ${code}
         if (!force && now - this.lastRenderTime < 60) return;
 
         this.lastRenderTime = now;
-        this.renderMarkdownUpdate(fullText, element, !force);
+        return this.renderMarkdownUpdate(fullText, element, !force);
     }
 
     async renderMarkdownUpdate(text, element, isStreaming = false) {
-        const unsafe = marked.parse(text);
+        if (!element) return;
+        const renderSeq = (element._renderSeq || 0) + 1;
+        element._renderSeq = renderSeq;
+        this.messageRawText.set(element, text);
 
-        const sanitized = DOMPurify.sanitize(unsafe, {
-            ADD_TAGS: ['div', 'button', 'svg', 'g', 'path', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'style', 'defs', 'marker', 'foreignObject'],
-            ADD_ATTR: ['class', 'id', 'data-data', 'width', 'height', 'viewBox', 'd', 'fill', 'stroke', 'stroke-width', 'marker-end', 'transform', 'style']
-        });
+        let sanitized;
+        if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            const unsafe = marked.parse(text);
+            sanitized = DOMPurify.sanitize(unsafe, {
+                ADD_TAGS: ['div', 'button', 'svg', 'g', 'path', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', 'style', 'defs', 'marker', 'foreignObject'],
+                ADD_ATTR: ['class', 'id', 'type', 'data-data', 'width', 'height', 'viewBox', 'd', 'fill', 'stroke', 'stroke-width', 'marker-end', 'transform', 'style']
+            });
+        } else {
+            sanitized = `<p>${escapeHtml(text)}</p>`;
+        }
 
         element.innerHTML = sanitized;
 
@@ -2547,81 +3426,89 @@ ${code}
 
         // Durante o streaming o HTML é recriado a cada chunk: rodar KaTeX e highlight.js
         // em tudo a cada atualização trava a thread principal. O acabamento fica para o fim.
-        if (!isStreaming && window.renderMathInElement) {
-            renderMathInElement(element, {
-                delimiters: [
-                    { left: '$$', right: '$$', display: true },
-                    { left: '$', right: '$', display: false },
-                    { left: '\\(', right: '\\)', display: false },
-                    { left: '\\[', right: '\\]', display: true }
-                ],
-                throwOnError: false
-            });
+        if (!isStreaming && hasMathDelimiters(text)) {
+            await this.assets.ensureKaTeX();
+            if (!element.isConnected || element._renderSeq !== renderSeq) return;
+            if (window.renderMathInElement) {
+                renderMathInElement(element, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false
+                });
+            }
         }
 
         const mermaidNodes = element.querySelectorAll('.mermaid');
-        if (!isStreaming && mermaidNodes.length > 0 && window.mermaid) {
-            try {
-                await mermaid.run({ nodes: mermaidNodes });
+        if (!isStreaming && mermaidNodes.length > 0) {
+            const mermaidReady = await this.assets.ensureMermaid();
+            if (!element.isConnected || element._renderSeq !== renderSeq) return;
+            if (mermaidReady && window.mermaid) {
+                try {
+                    await mermaid.run({ nodes: mermaidNodes });
 
-                if (window.panzoom) {
+                    if (window.panzoom) {
+                        mermaidNodes.forEach(div => {
+                            const svg = div.querySelector('svg');
+                            if (svg && !div.dataset.panzoomApplied) {
+                                div.dataset.panzoomApplied = 'true';
+                                const instance = panzoom(svg, {
+                                    maxZoom: 5,
+                                    minZoom: 0.3,
+                                    bounds: true,
+                                    boundsPadding: 0.1
+                                });
+
+                                div.addEventListener('wheel', (e) => {
+                                    e.preventDefault(); e.stopPropagation();
+                                    const transform = instance.getTransform();
+                                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                                    const newZoom = Math.min(5, Math.max(0.3, transform.scale * delta));
+                                    instance.zoomTo(e.clientX, e.clientY, newZoom / transform.scale);
+                                }, { passive: false });
+
+                                div._panzoomInstance = instance;
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.warn('Mermaid render failed:', err);
+                    const errorString = err.message || err.str || String(err);
+
                     mermaidNodes.forEach(div => {
-                        const svg = div.querySelector('svg');
-                        if (svg && !div.dataset.panzoomApplied) {
-                            div.dataset.panzoomApplied = 'true';
-                            const instance = panzoom(svg, {
-                                maxZoom: 5,
-                                minZoom: 0.3,
-                                bounds: true,
-                                boundsPadding: 0.1
-                            });
+                        let rawCode = div.textContent;
+                        const wrapper = div.closest('.mermaid-wrapper');
+                        if (wrapper) {
+                            const copyBtn = wrapper.querySelector('.copy-mermaid-btn');
+                            if (copyBtn && copyBtn.dataset.data) {
+                                rawCode = decodeURIComponent(copyBtn.dataset.data);
+                            }
+                        }
 
-                            div.addEventListener('wheel', (e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                const transform = instance.getTransform();
-                                const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                                const newZoom = Math.min(5, Math.max(0.3, transform.scale * delta));
-                                instance.zoomTo(e.clientX, e.clientY, newZoom / transform.scale);
-                            }, { passive: false });
+                        div.innerHTML = `
+                            <div class="mermaid-error-wrapper" style="border: 1px solid #ef4444; border-radius: 6px; overflow: hidden; margin-top: 10px;">
+                                <div style="background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>⚠️ Erro ao gerar diagrama</span>
+                                    <button type="button" class="retry-mermaid-btn" style="background: white; color: #ef4444; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">
+                                        Pedir para IA Corrigir
+                                    </button>
+                                </div>
+                                <div style="padding: 10px; background: #2a1515; color: #ffadad; font-family: monospace; font-size: 12px; white-space: pre-wrap;">${escapeHtml(errorString)}</div>
+                                <pre style="margin: 0; background: #1e1e1e; padding: 10px; border-top: 1px solid #444; overflow-x: auto;">
+                                    <code class="language-mermaid" style="font-family: monospace; color: #ccc;">${escapeHtml(rawCode)}</code>
+                                </pre>
+                            </div>
+                        `;
 
-                            div._panzoomInstance = instance;
+                        const btn = div.querySelector('.retry-mermaid-btn');
+                        if (btn) {
+                            btn.onclick = () => this.handleFixMermaid(rawCode, errorString);
                         }
                     });
                 }
-            } catch (err) {
-                console.warn('Mermaid render failed:', err);
-                const errorString = err.message || err.str || String(err);
-
-                mermaidNodes.forEach(div => {
-                    let rawCode = div.textContent;
-                    const wrapper = div.closest('.mermaid-wrapper');
-                    if (wrapper) {
-                        const copyBtn = wrapper.querySelector('.copy-mermaid-btn');
-                        if (copyBtn && copyBtn.dataset.data) {
-                            rawCode = decodeURIComponent(copyBtn.dataset.data);
-                        }
-                    }
-
-                    div.innerHTML = `
-                        <div class="mermaid-error-wrapper" style="border: 1px solid #ef4444; border-radius: 6px; overflow: hidden; margin-top: 10px;">
-                            <div style="background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                                <span>⚠️ Erro ao gerar diagrama</span>
-                                <button class="retry-mermaid-btn" style="background: white; color: #ef4444; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px;">
-                                    Pedir para IA Corrigir
-                                </button>
-                            </div>
-                            <div style="padding: 10px; background: #2a1515; color: #ffadad; font-family: monospace; font-size: 12px; white-space: pre-wrap;">${errorString}</div>
-                            <pre style="margin: 0; background: #1e1e1e; padding: 10px; border-top: 1px solid #444; overflow-x: auto;">
-                                <code class="language-mermaid" style="font-family: monospace; color: #ccc;">${rawCode}</code>
-                            </pre>
-                        </div>
-                    `;
-
-                    const btn = div.querySelector('.retry-mermaid-btn');
-                    if (btn) {
-                        btn.onclick = () => this.handleFixMermaid(rawCode, errorString);
-                    }
-                });
             }
         } else if (isStreaming && mermaidNodes.length > 0) {
             mermaidNodes.forEach(node => {
@@ -2629,14 +3516,16 @@ ${code}
             });
         }
 
-        if (!isStreaming) {
+        if (!isStreaming && typeof hljs !== 'undefined' && hljs?.highlightElement) {
             element.querySelectorAll('pre code:not(.language-mermaid):not(.hljs-added)').forEach(block => {
-                hljs.highlightElement(block);
-                block.classList.add('hljs-added');
+                try {
+                    hljs.highlightElement(block);
+                    block.classList.add('hljs-added');
+                } catch (_) { }
             });
         }
 
-        if (!element.isConnected) return;
+        if (!element.isConnected || element._renderSeq !== renderSeq) return;
 
         if (this.stickToBottom) this.scrollToBottom();
         this.updateScrollButton();
@@ -2649,12 +3538,16 @@ ${code}
             html = `<p class="message">${escapeHtml(content)}</p>`;
         } else {
             const id = 'msg-' + Math.random().toString(36).substr(2, 9);
+            const renderToken = this._chatRenderToken;
             html = `<div class="message" id="${id}"></div>`;
             setTimeout(async () => {
+                if (renderToken !== this._chatRenderToken) return;
                 const el = document.getElementById(id);
-                if (!el) return;
+                if (!el || !el.isConnected) return;
 
+                this.messageRawText.set(el, content);
                 await this.renderMarkdownUpdate(content, el);
+                if (renderToken !== this._chatRenderToken || !el.isConnected) return;
                 this.addCopyButtons(el, content);
                 if (this.stickToBottom) this.scrollToBottom();
             }, 0);
@@ -2850,7 +3743,7 @@ ${code}
             wrapper.className = 'code-block-wrapper';
 
             const codeElement = pre.querySelector('code');
-            const codeContent = codeElement ? codeElement.innerText : '';
+            const codeContent = codeElement ? (codeElement.textContent ?? codeElement.innerText ?? '') : '';
 
             let language = 'código';
             if (codeElement) {
@@ -2894,6 +3787,7 @@ ${code}
 
             if ((isHtml || (this.codeState && this.codeState.html)) && codeContent.length > 20) {
                 const previewBtn = document.createElement('button');
+                previewBtn.type = 'button';
                 previewBtn.className = 'code-header-btn preview-btn';
                 previewBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2923,6 +3817,7 @@ ${code}
             }
 
             const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
             copyBtn.className = 'code-header-btn copy-btn';
             copyBtn.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2976,3 +3871,22 @@ const personaManager = new PersonaManager();
 const chatManager = new ChatManager();
 const aiService = new AIService();
 const uiManager = new UIManager(chatManager, aiService, personaManager);
+
+if (typeof window !== 'undefined') {
+    window.__chromeAILocal = {
+        AssetLoader,
+        PersonaManager,
+        ChatManager,
+        AIService,
+        UIManager,
+        escapeHtml,
+        safeColor,
+        normalizePersona,
+        normalizeChat,
+        hasMathDelimiters,
+        personaManager,
+        chatManager,
+        aiService,
+        uiManager
+    };
+}

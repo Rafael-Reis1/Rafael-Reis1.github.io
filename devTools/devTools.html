@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Suíte Dev & Utilitários de Rafael Reis: diff de texto geral, Excel/TSV para SQL/JSON/Markdown, inspetor JSON/XML/JWT/Base64, kit LGPD/CPF/CNPJ, CSV/SQL IN, comparador de listas, calculadora, Markdown e leitor de logs TOTVS/Fluig no navegador.">
+    <meta name="theme-color" content="#06071A">
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
+    <title>Suíte Dev &amp; Utilitários</title>
+    <script defer src="app.js?v=1311260750"></script>
+</head>
+
+<body>
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
+        Home
+    </button>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header-section">
+                <div class="hero-badge">
+                    <span class="badge-dot" aria-hidden="true"></span>
+                    100% no navegador · Zero upload · Uso interno de TI
+                </div>
+
+                <h1>Suíte Dev &amp; Utilitários</h1>
+                <p class="subtitle">Coleção centralizada de utilitários 100% offline para texto, Excel/SQL, APIs, LGPD, listas e diagnóstico de logs.</p>
+
+                <div class="search-container">
+                    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="search" id="toolSearch" aria-label="Pesquisar ferramenta"
+                        placeholder="Pesquisar ferramenta... (ex: diff, excel, sql, json, jwt, cpf, lgpd, fluig)">
+                    <button type="button" id="clearSearch" class="clear-search-btn" aria-label="Limpar busca" hidden>✕</button>
+                    <kbd class="search-shortcut" aria-hidden="true">/</kbd>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-pills" role="group" aria-label="Filtrar por categoria">
+                        <button type="button" class="filter-pill is-active" data-category="all" aria-pressed="true">Todas</button>
+                        <button type="button" class="filter-pill" data-category="lists" aria-pressed="false">Listas &amp; Dados</button>
+                        <button type="button" class="filter-pill" data-category="docs" aria-pressed="false">Texto &amp; Docs</button>
+                        <button type="button" class="filter-pill" data-category="debug" aria-pressed="false">APIs, Logs &amp; LGPD</button>
+                    </div>
+                    <span id="toolsCount" class="tools-count" aria-live="polite">9 ferramentas disponíveis</span>
+                </div>
+            </header>
+
+            <main>
+                <div class="tools-grid" id="toolsGrid">
+                    <a class="tool-card"
+                       href="../Formatar para lista separada por virgulas/Formatar para lista separada por virgulas.html"
+                       data-tool="csv"
+                       data-category="lists"
+                       data-keywords="csv virgula sql in aspas parenteses duplicados lista formatador numeros textos colunas">
+                        <div class="tool-card-top">
+                            <div class="tool-icon csv-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 7h16" />
+                                    <path d="M4 12h10" />
+                                    <path d="M4 17h12" />
+                                    <circle cx="18" cy="16.5" r="2.5" />
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Listas &amp; SQL</span>
+                        </div>
+                        <h2>Formatador de Listas (CSV)</h2>
+                        <p>Converta colunas soltas em listas separadas por vírgula com aspas, parênteses para SQL <code>IN (...)</code> e remoção de duplicados.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">JavaScript · CSV / SQL</span>
+                            <span class="tool-arrow" aria-hidden="true">Abrir →</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="../ComparaListasNomes/ComparaListasNomes.html"
+                       data-tool="compare"
+                       data-category="lists"
+                       data-keywords="comparar listas nomes diferenca intersecao ausentes extras duplicados acentos tsv tabela">
+                        <div class="tool-card-top">
+                            <div class="tool-icon compare-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="7" height="16" rx="1.5" />
+                                    <rect x="14" y="4" width="7" height="16" rx="1.5" />
+                                    <path d="M10 9h4" />
+                                    <path d="M10 15h4" />
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Comparação</span>
+                        </div>
+                        <h2>Comparador de Listas</h2>
+                        <p>Cruze duas listas linha a linha para identificar correspondências, ausentes, adicionais e itens duplicados com exportação TSV.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">JavaScript · TSV / Filtro</span>
+                            <span class="tool-arrow" aria-hidden="true">Abrir →</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="../somaValores/somaValores.html"
+                       data-tool="sum"
+                       data-category="lists"
+                       data-keywords="soma calculadora valores numeros moeda reais brl br us media minimo maximo duplicados">
+                        <div class="tool-card-top">
+                            <div class="tool-icon sum-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 5H7l6 7-6 7h11" />
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Cálculos</span>
+                        </div>
+                        <h2>Calculadora de Listas</h2>
+                        <p>Extraia e some valores em R$ ou formatos mistos (BR/US), lidando com negativos, textos mistos e cálculo exato de média, menor e maior.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">JavaScript · Precisão Exata</span>
+                            <span class="tool-arrow" aria-hidden="true">Abrir →</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="../linksMD/linksMD.html"
+                       data-tool="markdown"
+                       data-category="docs"
+                       data-keywords="markdown md links urls youtube github totvs tdn docs documentacao lista">
+                        <div class="tool-card-top">
+                            <div class="tool-icon md-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Documentação</span>
+                        </div>
+                        <h2>Gerador de Links Markdown</h2>
+                        <p>Extraia URLs de textos bagunçados e gere links Markdown com nomes amigáveis automáticos para GitHub, YouTube e TDN TOTVS.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">JavaScript · Exportar .md</span>
+                            <span class="tool-arrow" aria-hidden="true">Abrir →</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="textDiff/textDiff.html"
+                       data-tool="text-diff"
+                       data-category="docs"
+                       data-keywords="diff comparar texto codigo sql json email linha palavra patch unified diff merge comparacao">
+                        <div class="tool-card-top">
+                            <div class="tool-icon diff-icon">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="4" width="7" height="16" rx="1.5"></rect>
+                                    <rect x="14" y="4" width="7" height="16" rx="1.5"></rect>
+                                    <line x1="6" y1="9" x2="8" y2="9"></line>
+                                    <line x1="16" y1="9" x2="19" y2="9"></line>
+                                    <line x1="16" y1="13" x2="19" y2="13"></line>
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Texto &amp; Código</span>
+                        </div>
+                        <h2>Diff de Texto Geral</h2>
+                        <p>Compare textos, SQL, JSON, e-mails ou atas linha a linha e palavra por palavra em modo dividido ou unificado.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">Split · Unificado · Patch</span>
+                            <span class="tool-arrow">Abrir &rarr;</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="sheetConverter/sheetConverter.html"
+                       data-tool="sheet-converter"
+                       data-category="lists"
+                       data-keywords="excel tsv csv planilha tabela sql insert update json markdown banco dados zero a esquerda">
+                        <div class="tool-card-top">
+                            <div class="tool-icon sheet-icon">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    <line x1="3" y1="15" x2="21" y2="15"></line>
+                                    <line x1="9" y1="4" x2="9" y2="20"></line>
+                                    <line x1="15" y1="4" x2="15" y2="20"></line>
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Planilhas &amp; SQL</span>
+                        </div>
+                        <h2>Excel/TSV &rarr; SQL &amp; JSON</h2>
+                        <p>Cole direto do Excel ou CSV para gerar <code>INSERT</code> em lote, <code>UPDATE</code>, JSON tipado ou tabelas Markdown.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">TSV/CSV · SQL · JSON · MD</span>
+                            <span class="tool-arrow">Abrir &rarr;</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="apiInspector/apiInspector.html"
+                       data-tool="api-inspector"
+                       data-category="debug"
+                       data-keywords="json xml soap jwt token bearer base64 base64url urlencode validator formatar pretty minificar api">
+                        <div class="tool-card-top">
+                            <div class="tool-icon api-icon">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M8 4H6a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h2"></path>
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-2"></path>
+                                </svg>
+                            </div>
+                            <span class="tool-tag">APIs &amp; Payloads</span>
+                        </div>
+                        <h2>Inspetor JSON/XML, JWT &amp; Base64</h2>
+                        <p>Formate e valide JSON/XML (SOAP), decodifique tokens JWT com validade e converta Base64/URL 100% offline.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">JSON · XML · JWT · Base64</span>
+                            <span class="tool-arrow">Abrir &rarr;</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card"
+                       href="lgpdKit/lgpdKit.html"
+                       data-tool="lgpd-kit"
+                       data-category="debug"
+                       data-keywords="lgpd anonimizar mascarar cpf cnpj email telefone bearer secret token gerar validar homologacao testes">
+                        <div class="tool-card-top">
+                            <div class="tool-icon lgpd-icon">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    <path d="m9 12 2 2 4-4"></path>
+                                </svg>
+                            </div>
+                            <span class="tool-tag">Segurança &amp; Testes</span>
+                        </div>
+                        <h2>Kit Homologação &amp; LGPD</h2>
+                        <p>Mascaramento de CPFs, e-mails, telefones e segredos em logs + gerador e validador em lote de CPF/CNPJ.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">Anonimizador · CPF/CNPJ</span>
+                            <span class="tool-arrow">Abrir &rarr;</span>
+                        </div>
+                    </a>
+
+                    <a class="tool-card is-featured"
+                       href="../Leitor-logs-totvs-fluig/leitor.html?from=devtools"
+                       data-tool="logs"
+                       data-category="debug"
+                       data-keywords="logs totvs fluig stack trace erro streaming arquivo grande regex jboss server.log">
+                        <div class="tool-card-top">
+                            <div class="tool-icon logs-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <path d="M8 13h2l1.5 3 2-6 1.5 3h2" />
+                                </svg>
+                            </div>
+                            <span class="tool-tag tool-tag--featured">App Completo</span>
+                        </div>
+                        <h2>Leitor de Logs TOTVS/Fluig</h2>
+                        <p>Analise logs gigantes localmente em streaming, agrupando stack traces Java/Fluig com busca em tempo real, filtros e exportação.</p>
+                        <div class="tool-card-footer">
+                            <span class="tool-tech">File API · Streaming · Regex</span>
+                            <span class="tool-arrow" aria-hidden="true">Abrir →</span>
+                        </div>
+                    </a>
+                </div>
+
+                <div id="emptyState" class="empty-state" hidden>
+                    <p>Nenhuma ferramenta encontrada para este filtro.</p>
+                    <button type="button" id="resetFiltersBtn" class="reset-btn">Mostrar todas</button>
+                </div>
+            </main>
+
+            <footer class="hub-footer">
+                <p>Dica: pressione <kbd>/</kbd> para pesquisar rápido · Os favoritos antigos diretos das ferramentas continuam funcionando normalmente.</p>
+            </footer>
+        </div>
+    </div>
+</body>
+
+</html>

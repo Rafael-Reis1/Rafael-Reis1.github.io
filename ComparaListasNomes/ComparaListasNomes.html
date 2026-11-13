@@ -4,45 +4,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preload" href="/imgs/arrow_back_white.webp?v=1910261441" as="image">
-    <link rel="stylesheet" href="style.css?v=1910261441">
-    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1910261441">
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1910261441">
-    <title>Compara 2 listas</title>
+    <link rel="stylesheet" href="../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1311260750">
+    <title>Comparador de Listas</title>
+    <script defer src="../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
 </head>
 
 <body>
-    <button class="btnVoltar" id="btnVoltar">
-        <img class="seta-animada arrow-back-icon">
-        Home
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools/devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
     </button>
 
-    <div class="container">
+    <main class="container">
         <h1>Comparador de Listas</h1>
-        <div class="opcoes">
+        <p class="tool-subtitle">Compare duas listas linha a linha para encontrar correspondências, ausentes, adicionais e duplicados.</p>
+
+        <section class="opcoes" aria-label="Entrada de listas">
             <div class="listas">
-                <textarea name="listaUm" id="listaUm" class="" rows="20" placeholder="Lista Original"></textarea>
-                <textarea name="listaDois" id="listaDois" rows="20" placeholder="Lista Secundária"></textarea>
+                <div class="lista-col">
+                    <div class="textarea-meta">
+                        <label for="listaUm"><strong>Lista Original</strong></label>
+                        <span id="count-um" aria-live="polite">0 itens</span>
+                    </div>
+                    <textarea name="listaUm" id="listaUm" rows="16" placeholder="Cole os itens da lista original (um por linha)..."></textarea>
+                </div>
+
+                <div class="lista-col">
+                    <div class="textarea-meta">
+                        <label for="listaDois"><strong>Lista Secundária</strong></label>
+                        <span id="count-dois" aria-live="polite">0 itens</span>
+                    </div>
+                    <textarea name="listaDois" id="listaDois" rows="16" placeholder="Cole os itens da lista a comparar (um por linha)..."></textarea>
+                </div>
             </div>
-            <div class="formatarBTNS">
-                <button id="formataLista">Comparar lista</button>
-                <button id="limpar">Limpar</button>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <label class="checkbox-item" for="ignorarMaiusculas">
+                        <input type="checkbox" id="ignorarMaiusculas" checked>
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar maiúsculas</span>
+                    </label>
+                    <label class="checkbox-item" for="ignorarAcentos">
+                        <input type="checkbox" id="ignorarAcentos">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ignorar acentos</span>
+                    </label>
+                </div>
+
+                <div class="actions-group">
+                    <button type="button" id="inverterListas" class="btn-secondary" title="Trocar Lista Original pela Secundária">⇄ Inverter</button>
+                    <button type="button" id="formataLista">Comparar listas</button>
+                    <button type="button" id="limpar" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="listaFormatadaPopup" class="tool-popup-overlay" role="dialog" aria-modal="true" aria-labelledby="compareModalTitle" aria-hidden="true">
+        <div id="listaBackgroud" class="tool-popup-backdrop"></div>
+        <div class="tool-popup-card popupCard tool-popup-card--wide">
+            <div class="popup-header">
+                <h2 id="compareModalTitle">Resultado da Comparação</h2>
+                <input type="search" id="filtroResultado" class="filter-input" aria-label="Filtrar resultados na tabela" placeholder="Filtrar tabela...">
+            </div>
+
+            <div id="compare-stats" class="stats-bar" aria-live="polite"></div>
+
+            <div id="listaFormatada" class="popup-scroll-box table-scroll-box"></div>
+
+            <div class="popup-actions formatarBTNSPopup">
+                <div class="actions-group">
+                    <button type="button" id="copiarListaBtn">Copiar Tabela (TSV)</button>
+                    <button type="button" id="copiarAusentesBtn" class="btn-secondary">Copiar Ausentes</button>
+                    <button type="button" id="copiarAdicionaisBtn" class="btn-secondary">Copiar Adicionais</button>
+                </div>
+                <button type="button" id="fechar" class="btn-secondary">Fechar</button>
             </div>
         </div>
     </div>
-    <div id="listaFormatadaPopup" style="display: none;">
-        <div id="listaBackgroud">
-        </div>
-        <div class="popupCard">
-            <div id="listaFormatada"></div>
-            <div class="formatarBTNSPopup">
-                <button id="copiarListaBtn">Copiar Lista</button>
-                <button id="fechar">Fechar</button>
-            </div>
-        </div>
-    </div>
-    <div id="notificacao-copia"></div>
-    <script src="app.js?v=1910261441"></script>
+
+    <div id="notificacao-copia" class="tool-toast" role="status" aria-live="polite"></div>
 </body>
 
 </html>

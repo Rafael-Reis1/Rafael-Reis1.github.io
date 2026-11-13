@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../assets/libs_comuns/fonts.css?v=1311260750">
+    <link rel="stylesheet" href="../../assets/libs_comuns/mini-tools.css?v=1311260750">
+    <link rel="stylesheet" href="style.css?v=1311260750">
+    <link rel="icon" type="image/svg+xml" href="../../favicon.svg?v=1311260750">
+    <title>Inspetor JSON / XML + JWT &amp; Base64 | Suíte Dev</title>
+    <script defer src="../../assets/libs_comuns/mini-tools.js?v=1311260750"></script>
+    <script defer src="app.js?v=1311260750"></script>
+</head>
+
+<body>
+    <button type="button" class="btnVoltar" id="btnVoltar" data-back-href="../devTools.html">
+        <img class="seta-animada arrow-back-icon" src="../../imgs/arrow_back_white.webp" alt="">
+        Suíte Dev
+    </button>
+
+    <main class="container container--wide">
+        <h1>Inspetor JSON / XML + JWT &amp; Base64</h1>
+        <p class="tool-subtitle">Formate payloads JSON/XML, inspecione tokens JWT e converta Base64 ou URLs 100% offline sem vazar credenciais.</p>
+
+        <div class="tab-bar" role="tablist" aria-label="Modo do Inspetor">
+            <button type="button" class="tab-btn is-active" id="tabBtnJson" role="tab" aria-selected="true" aria-controls="panelJson" data-tab="json">{ } JSON</button>
+            <button type="button" class="tab-btn" id="tabBtnXml" role="tab" aria-selected="false" aria-controls="panelXml" data-tab="xml">&lt;/&gt; XML / SOAP</button>
+            <button type="button" class="tab-btn" id="tabBtnJwt" role="tab" aria-selected="false" aria-controls="panelJwt" data-tab="jwt">JWT Token</button>
+            <button type="button" class="tab-btn" id="tabBtnEncode" role="tab" aria-selected="false" aria-controls="panelEncode" data-tab="encode">Base64 &amp; URL</button>
+        </div>
+
+        <!-- TAB 1: JSON -->
+        <section id="panelJson" class="opcoes tab-panel is-active" role="tabpanel" aria-labelledby="tabBtnJson">
+            <div class="dual-grid">
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="jsonInput"><strong>JSON de entrada</strong></label>
+                        <span id="jsonStatus" class="stat-pill" aria-live="polite">Aguardando JSON</span>
+                    </div>
+                    <textarea id="jsonInput" rows="14" spellcheck="false" placeholder='Cole aqui seu payload JSON... Ex: {"usuario":"rafael","ativo":true}'></textarea>
+                </div>
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="jsonOutput"><strong>JSON processado</strong></label>
+                        <span id="jsonMetrics" class="stat-pill">0 bytes</span>
+                    </div>
+                    <textarea id="jsonOutput" rows="14" readonly spellcheck="false" placeholder="O JSON formatado ou minificado aparecerá aqui..."></textarea>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <select id="jsonMode" class="tool-select" aria-label="Indentação JSON">
+                        <option value="pretty-2">Formatar (2 espaços)</option>
+                        <option value="pretty-4">Formatar (4 espaços)</option>
+                        <option value="minify">Minificar (1 linha)</option>
+                    </select>
+                    <label class="checkbox-item" for="jsonSortKeys">
+                        <input type="checkbox" id="jsonSortKeys">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Ordenar chaves (A–Z)</span>
+                    </label>
+                    <label class="checkbox-item" for="jsonStripNulls">
+                        <input type="checkbox" id="jsonStripNulls">
+                        <span class="checkbox-box" aria-hidden="true"></span>
+                        <span>Remover nulos</span>
+                    </label>
+                </div>
+                <div class="actions-group">
+                    <button type="button" id="jsonSampleBtn" class="btn-secondary">Exemplo</button>
+                    <button type="button" id="jsonDownloadBtn" class="btn-secondary">Baixar .json</button>
+                    <button type="button" id="jsonCopyBtn">Copiar JSON</button>
+                    <button type="button" id="jsonClearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: XML -->
+        <section id="panelXml" class="opcoes tab-panel" role="tabpanel" aria-labelledby="tabBtnXml" hidden>
+            <div class="dual-grid">
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="xmlInput"><strong>XML / SOAP de entrada</strong></label>
+                        <span id="xmlStatus" class="stat-pill" aria-live="polite">Aguardando XML</span>
+                    </div>
+                    <textarea id="xmlInput" rows="14" spellcheck="false" placeholder="<requisicao><sistema id='1'>Portal</sistema></requisicao>"></textarea>
+                </div>
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="xmlOutput"><strong>XML processado</strong></label>
+                        <span id="xmlMetrics" class="stat-pill">0 bytes</span>
+                    </div>
+                    <textarea id="xmlOutput" rows="14" readonly spellcheck="false" placeholder="O XML formatado ou minificado aparecerá aqui..."></textarea>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <select id="xmlMode" class="tool-select" aria-label="Formato XML">
+                        <option value="pretty-2">Formatar (2 espaços)</option>
+                        <option value="pretty-4">Formatar (4 espaços)</option>
+                        <option value="minify">Minificar</option>
+                    </select>
+                </div>
+                <div class="actions-group">
+                    <button type="button" id="xmlSampleBtn" class="btn-secondary">Exemplo SOAP</button>
+                    <button type="button" id="xmlDownloadBtn" class="btn-secondary">Baixar .xml</button>
+                    <button type="button" id="xmlCopyBtn">Copiar XML</button>
+                    <button type="button" id="xmlClearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: JWT -->
+        <section id="panelJwt" class="opcoes tab-panel" role="tabpanel" aria-labelledby="tabBtnJwt" hidden>
+            <div class="pane-col">
+                <div class="textarea-meta">
+                    <label for="jwtInput"><strong>Token JWT (header.payload.signature)</strong></label>
+                    <span id="jwtStatus" class="stat-pill" aria-live="polite">Decodificação 100% local</span>
+                </div>
+                <textarea id="jwtInput" rows="4" class="jwt-input" spellcheck="false" placeholder="Cole aqui o token JWT (eyJ...) para inspecionar header, payload e expiração..."></textarea>
+            </div>
+
+            <div id="jwtClaimsBar" class="stats-bar" aria-live="polite"></div>
+
+            <div class="dual-grid">
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <strong>Header</strong>
+                        <button type="button" id="jwtCopyHeaderBtn" class="btn-secondary btn-compact">Copiar Header</button>
+                    </div>
+                    <pre id="jwtHeaderOut" class="code-box">{}</pre>
+                </div>
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <strong>Payload (Claims)</strong>
+                        <button type="button" id="jwtCopyPayloadBtn" class="btn-secondary btn-compact">Copiar Payload</button>
+                    </div>
+                    <pre id="jwtPayloadOut" class="code-box">{}</pre>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <span class="privacy-note">A assinatura HMAC/RSA não é validada no navegador sem a chave secreta/pública.</span>
+                </div>
+                <div class="actions-group">
+                    <button type="button" id="jwtSampleBtn" class="btn-secondary">Exemplo JWT</button>
+                    <button type="button" id="jwtClearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: BASE64 & URL -->
+        <section id="panelEncode" class="opcoes tab-panel" role="tabpanel" aria-labelledby="tabBtnEncode" hidden>
+            <div class="dual-grid">
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="encodeInput"><strong>Texto / Código de entrada</strong></label>
+                        <span id="encodeStatus" class="stat-pill" aria-live="polite">UTF-8 pronto</span>
+                    </div>
+                    <textarea id="encodeInput" rows="11" spellcheck="false" placeholder="Cole texto puro, string Base64, token ou URL codificada..."></textarea>
+                </div>
+                <div class="pane-col">
+                    <div class="textarea-meta">
+                        <label for="encodeOutput"><strong>Resultado</strong></label>
+                        <span id="encodeLen" class="stat-pill">0 caracteres</span>
+                    </div>
+                    <textarea id="encodeOutput" rows="11" readonly spellcheck="false" placeholder="Resultado da conversão..."></textarea>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="options-group">
+                    <select id="encodeOperation" class="tool-select" aria-label="Tipo de codificação">
+                        <option value="b64-encode">Base64: Texto → Base64</option>
+                        <option value="b64-decode">Base64: Base64 → Texto</option>
+                        <option value="b64url-encode">Base64URL: Texto → Base64URL</option>
+                        <option value="url-encode">URL Encode (encodeURIComponent)</option>
+                        <option value="url-decode">URL Decode (decodeURIComponent)</option>
+                    </select>
+                </div>
+                <div class="actions-group">
+                    <button type="button" id="encodeSwapBtn" class="btn-secondary">⇄ Usar saída na entrada</button>
+                    <button type="button" id="encodeCopyBtn">Copiar resultado</button>
+                    <button type="button" id="encodeClearBtn" class="btn-ghost-danger">Limpar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
