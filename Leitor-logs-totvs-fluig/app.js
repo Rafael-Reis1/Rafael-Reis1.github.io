@@ -1,4 +1,4 @@
-const WORKER_SCRIPT_URL = 'logWorker.js?v=1311260750';
+const WORKER_SCRIPT_URL = 'logWorker.js?v=1311261304';
 const LOG_FILE_NAME_REGEX = /\.(?:log|txt|out|err|trace)(?:\.[^.]+)?$/i;
 const BLOCKED_BINARY_REGEX = /\.(?:gz|zip|rar|7z|tar|png|jpe?g|gif|webp|svg|ico|pdf|exe|dll|jar|war|ear|class|mp3|mp4|avi|mov)$/i;
 const RENDER_CHUNK_SIZE = 400;
@@ -1342,12 +1342,12 @@ function initLeitorLogs() {
 
     if (fileUploadArea) {
         fileUploadArea.addEventListener('dragover', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311260750';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311261304';
             fileUploadArea.classList.add('dragover');
             event.preventDefault();
         });
         fileUploadArea.addEventListener('dragleave', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311260750';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311261304';
             fileUploadArea.classList.remove('dragover');
             event.preventDefault();
         });
@@ -1366,10 +1366,10 @@ function initLeitorLogs() {
             }
         });
         fileUploadArea.onmouseenter = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311260750';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311261304';
         };
         fileUploadArea.onmouseleave = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311260750';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311261304';
         };
     }
 

@@ -1,4 +1,4 @@
-const ASSET_VERSION = '?v=1311260750';
+const ASSET_VERSION = '?v=1311261304';
 
 const safeStorageGet = (key, fallback = null) => {
     try {
@@ -445,30 +445,141 @@ class AIService {
     constructor() {
         this.session = null;
         this.sessionState = null;
+        this.baseSessions = new Map();
+        this.MAX_BASE_SESSIONS = 2;
         this.warmingPromise = null;
         this.warmingKey = null;
         this.warmingAbort = null;
+        this.availabilityCache = null;
+        this.availabilityCacheAt = 0;
+        this.availabilityPromise = null;
+        this._cachedFactory = null;
+        this.AVAILABILITY_TTL_MS = 30000;
         this._preferLegacySystemPrompt = false;
     }
 
-    /** Destroy live session safely and clear cached conversation state. */
+    _destroySafely(session) {
+        if (!session) return;
+        try { session.destroy(); } catch (_) {}
+    }
+
+    _isSessionHealthyQuota(session) {
+        if (!session) return false;
+        const quota = Number(session.inputQuota);
+        const usage = Number(session.inputUsage);
+        const left = Number(session.tokensLeft);
+        if (Number.isFinite(quota) && quota > 0 && Number.isFinite(usage) && (usage / quota) >= 0.85) {
+            return false;
+        }
+        if (Number.isFinite(left) && left < 400) {
+            return false;
+        }
+        return true;
+    }
+
+    _isBaseSession(session) {
+        if (!session) return false;
+        for (const cached of this.baseSessions.values()) {
+            if (cached === session) return true;
+        }
+        return false;
+    }
+
+    _storeBaseSession(systemPrompt, session) {
+        if (!session || typeof session.clone !== 'function' || !this._isSessionHealthyQuota(session)) {
+            return false;
+        }
+        if (this.baseSessions.has(systemPrompt)) {
+            const previous = this.baseSessions.get(systemPrompt);
+            this.baseSessions.delete(systemPrompt);
+            if (previous && previous !== session && previous !== this.session) {
+                this._destroySafely(previous);
+            }
+        }
+        this.baseSessions.set(systemPrompt, session);
+        while (this.baseSessions.size > this.MAX_BASE_SESSIONS) {
+            const oldestKey = this.baseSessions.keys().next().value;
+            const oldestSession = this.baseSessions.get(oldestKey);
+            this.baseSessions.delete(oldestKey);
+            if (oldestSession && oldestSession !== this.session) {
+                this._destroySafely(oldestSession);
+            }
+        }
+        return true;
+    }
+
+    _getReusableBaseSession(systemPrompt) {
+        if (!this.baseSessions.has(systemPrompt)) return null;
+        const base = this.baseSessions.get(systemPrompt);
+        if (!this._isSessionHealthyQuota(base)) {
+            this.baseSessions.delete(systemPrompt);
+            if (base && base !== this.session) {
+                this._destroySafely(base);
+            }
+            return null;
+        }
+        // Refresh LRU order.
+        this.baseSessions.delete(systemPrompt);
+        this.baseSessions.set(systemPrompt, base);
+        return base;
+    }
+
+    _removeBaseSessionByInstance(session) {
+        if (!session) return;
+        for (const [key, value] of this.baseSessions.entries()) {
+            if (value === session) {
+                this.baseSessions.delete(key);
+            }
+        }
+    }
+
+    _invalidateAvailabilityCache() {
+        this.availabilityCache = null;
+        this.availabilityCacheAt = 0;
+        this._cachedFactory = null;
+    }
+
+    /** Destroy live active session safely without tearing down pooled base templates. */
     _destroySession() {
         if (this.session) {
-            try { this.session.destroy(); } catch (_) {}
+            if (!this._isBaseSession(this.session)) {
+                this._destroySafely(this.session);
+            }
             this.session = null;
         }
         this.sessionState = null;
     }
 
-    /** Invalidate any active session and cancel in-flight pre-warming. */
-    invalidateSession() {
-        if (this.warmingAbort) {
-            try { this.warmingAbort.abort(); } catch (_) {}
-            this.warmingAbort = null;
+    /** Invalidate active conversation session and cancel mismatched or dirty pre-warming. */
+    invalidateSession({ keepCleanBase = false, destroyBase = false } = {}) {
+        const isCleanBaseWarm = Boolean(this.warmingKey && this.warmingKey.startsWith('base::0::'));
+        const isCleanActiveEmpty = Boolean(
+            this.session &&
+            this.sessionState &&
+            this.sessionState.historyLength === 0 &&
+            !this.sessionState.dirty &&
+            this._isSessionHealthyQuota(this.session)
+        );
+
+        if (!(keepCleanBase && isCleanBaseWarm)) {
+            if (this.warmingAbort) {
+                try { this.warmingAbort.abort(); } catch (_) {}
+                this.warmingAbort = null;
+            }
+            this.warmingPromise = null;
+            this.warmingKey = null;
         }
-        this.warmingPromise = null;
-        this.warmingKey = null;
-        this._destroySession();
+
+        if (!(keepCleanBase && isCleanActiveEmpty)) {
+            this._destroySession();
+        }
+
+        if (destroyBase) {
+            for (const base of this.baseSessions.values()) {
+                this._destroySafely(base);
+            }
+            this.baseSessions.clear();
+        }
     }
 
     get factory() {
@@ -481,9 +592,10 @@ class AIService {
         return null;
     }
 
-    async getAvailabilityInfo() {
+    async getAvailabilityInfo({ force = false } = {}) {
         const factory = this.factory;
         if (!factory) {
+            this._invalidateAvailabilityCache();
             return {
                 available: false,
                 status: 'unavailable',
@@ -491,58 +603,92 @@ class AIService {
                 reason: 'API do Chrome AI não detectada neste navegador.'
             };
         }
-        try {
-            let status;
-            if (typeof factory.availability === 'function') {
-                status = await factory.availability();
-            } else if (typeof factory.capabilities === 'function') {
-                const caps = await factory.capabilities();
-                status = typeof caps === 'string' ? caps : caps?.available;
-            } else if (typeof factory.canCreate === 'function') {
-                status = await factory.canCreate();
-            }
 
-            if (typeof status === 'object' && status !== null) {
-                status = status.available || status.status;
-            }
-
-            if (typeof status === 'string') {
-                const s = status.toLowerCase();
-                if (s === 'available' || s === 'readily') {
-                    return { available: true, status: 'ready', label: 'IA Local Pronta', reason: '' };
-                }
-                if (s === 'after-download' || s === 'downloadable') {
-                    return {
-                        available: true,
-                        status: 'downloadable',
-                        label: 'Modelo p/ Download',
-                        reason: 'O modelo Gemini Nano será baixado no primeiro envio.'
-                    };
-                }
-                if (s === 'downloading') {
-                    return {
-                        available: true,
-                        status: 'downloading',
-                        label: 'Baixando Modelo...',
-                        reason: 'O modelo local do Chrome está sendo baixado.'
-                    };
-                }
-            }
-            return {
-                available: false,
-                status: String(status || 'no'),
-                label: 'Modelo Indisponível',
-                reason: 'O dispositivo ou navegador retornou status indisponível para o modelo local.'
-            };
-        } catch (e) {
-            console.warn('Erro ao verificar disponibilidade do Chrome AI:', e);
-            return {
-                available: false,
-                status: 'error',
-                label: 'Erro na API Local',
-                reason: e.message || String(e)
-            };
+        if (
+            !force &&
+            this._cachedFactory === factory &&
+            this.availabilityCache &&
+            this.availabilityCache.status === 'ready' &&
+            (Date.now() - this.availabilityCacheAt) < this.AVAILABILITY_TTL_MS
+        ) {
+            return this.availabilityCache;
         }
+
+        if (!force && this.availabilityPromise && this._cachedFactory === factory) {
+            return this.availabilityPromise;
+        }
+
+        this._cachedFactory = factory;
+        const probe = (async () => {
+            try {
+                let status;
+                if (typeof factory.availability === 'function') {
+                    status = await factory.availability();
+                } else if (typeof factory.capabilities === 'function') {
+                    const caps = await factory.capabilities();
+                    status = typeof caps === 'string' ? caps : caps?.available;
+                } else if (typeof factory.canCreate === 'function') {
+                    status = await factory.canCreate();
+                }
+
+                if (typeof status === 'object' && status !== null) {
+                    status = status.available || status.status;
+                }
+
+                if (typeof status === 'string') {
+                    const s = status.toLowerCase();
+                    if (s === 'available' || s === 'readily') {
+                        const readyInfo = { available: true, status: 'ready', label: 'IA Local Pronta', reason: '' };
+                        if (this.factory === factory) {
+                            this.availabilityCache = readyInfo;
+                            this.availabilityCacheAt = Date.now();
+                        }
+                        return readyInfo;
+                    }
+                    if (s === 'after-download' || s === 'downloadable') {
+                        this._invalidateAvailabilityCache();
+                        return {
+                            available: true,
+                            status: 'downloadable',
+                            label: 'Modelo p/ Download',
+                            reason: 'O modelo Gemini Nano será baixado no primeiro envio.'
+                        };
+                    }
+                    if (s === 'downloading') {
+                        this._invalidateAvailabilityCache();
+                        return {
+                            available: true,
+                            status: 'downloading',
+                            label: 'Baixando Modelo...',
+                            reason: 'O modelo local do Chrome está sendo baixado.'
+                        };
+                    }
+                }
+                this._invalidateAvailabilityCache();
+                return {
+                    available: false,
+                    status: String(status || 'no'),
+                    label: 'Modelo Indisponível',
+                    reason: 'O dispositivo ou navegador retornou status indisponível para o modelo local.'
+                };
+            } catch (e) {
+                console.warn('Erro ao verificar disponibilidade do Chrome AI:', e);
+                this._invalidateAvailabilityCache();
+                return {
+                    available: false,
+                    status: 'error',
+                    label: 'Erro na API Local',
+                    reason: e.message || String(e)
+                };
+            } finally {
+                if (this.availabilityPromise === probe) {
+                    this.availabilityPromise = null;
+                }
+            }
+        })();
+
+        this.availabilityPromise = probe;
+        return probe;
     }
 
     async isAvailable() {
@@ -619,22 +765,22 @@ class AIService {
     }
 
     _buildWarmKey(chatId, fullSystemPrompt, rawHistoryLength) {
+        if (rawHistoryLength === 0) {
+            return `base::0::${fullSystemPrompt}`;
+        }
         return `${chatId || ''}::${rawHistoryLength}::${fullSystemPrompt}`;
     }
 
     _isSessionReusable({ chatId, fullSystemPrompt, rawHistoryLength }) {
         if (!this.session || !this.sessionState) return false;
-        if (this.sessionState.chatId !== (chatId || null)) return false;
         if (this.sessionState.systemPrompt !== fullSystemPrompt) return false;
         if (this.sessionState.historyLength !== rawHistoryLength) return false;
 
-        const quota = Number(this.session.inputQuota);
-        const usage = Number(this.session.inputUsage);
-        const left = Number(this.session.tokensLeft);
-        if (Number.isFinite(quota) && quota > 0 && Number.isFinite(usage) && (usage / quota) >= 0.85) {
+        const isCleanSharedEmpty = rawHistoryLength === 0 && !this.sessionState.dirty;
+        if (!isCleanSharedEmpty && this.sessionState.chatId !== (chatId || null)) {
             return false;
         }
-        if (Number.isFinite(left) && left < 400) {
+        if (!this._isSessionHealthyQuota(this.session)) {
             return false;
         }
         return true;
@@ -665,6 +811,29 @@ class AIService {
                 }
             );
         });
+    }
+
+    async _cloneBaseSession(baseSession, signal = null, fullSystemPrompt = '') {
+        if (!baseSession || typeof baseSession.clone !== 'function') return null;
+        try {
+            const clonePromise = signal ? baseSession.clone({ signal }) : baseSession.clone();
+            const cloned = await this._awaitWithSignal(clonePromise, signal);
+            return cloned || null;
+        } catch (err) {
+            if (signal?.aborted || err?.name === 'AbortError') {
+                throw err;
+            }
+            console.warn('Falha ao clonar sessão base em cache, recriando sessão limpa:', err);
+            if (fullSystemPrompt) {
+                this.baseSessions.delete(fullSystemPrompt);
+            } else {
+                this._removeBaseSessionByInstance(baseSession);
+            }
+            if (baseSession !== this.session) {
+                this._destroySafely(baseSession);
+            }
+            return null;
+        }
     }
 
     async _createRawSession(fullSystemPrompt, formattedHistory, { onDownloadProgress, signal } = {}) {
@@ -700,8 +869,33 @@ class AIService {
         const preferLegacy = this._preferLegacySystemPrompt;
         const primaryOpts = preferLegacy ? buildLegacyOptions() : buildModernOptions();
 
+        const runCreate = async (opts, label) => {
+            const startedAt = Date.now();
+            const rawPromise = Promise.resolve(this.factory.create(opts));
+            // Destroy late-resolving sessions if caller already aborted while Chrome stalled.
+            rawPromise.then((lateSession) => {
+                if (signal?.aborted && lateSession) {
+                    this._destroySafely(lateSession);
+                }
+            }, () => {});
+            try {
+                const session = await this._awaitWithSignal(rawPromise, signal);
+                const elapsedMs = Date.now() - startedAt;
+                if (elapsedMs >= 2000) {
+                    console.info(`[NanoChat] LanguageModel.create (${label}) concluído em ${elapsedMs}ms`);
+                }
+                return session;
+            } catch (err) {
+                const elapsedMs = Date.now() - startedAt;
+                if (signal?.aborted || err?.name === 'AbortError') {
+                    console.warn(`[NanoChat] LanguageModel.create (${label}) cancelado após ${elapsedMs}ms`);
+                }
+                throw err;
+            }
+        };
+
         try {
-            return await this.factory.create(primaryOpts);
+            return await runCreate(primaryOpts, preferLegacy ? 'legacy' : 'initialPrompts');
         } catch (err) {
             if (signal?.aborted || err?.name === 'AbortError') {
                 throw err;
@@ -713,7 +907,7 @@ class AIService {
                 err
             );
             const fallbackOpts = preferLegacy ? buildModernOptions() : buildLegacyOptions();
-            const session = await this.factory.create(fallbackOpts);
+            const session = await runCreate(fallbackOpts, preferLegacy ? 'initialPrompts-fallback' : 'legacy-fallback');
             this._preferLegacySystemPrompt = !preferLegacy;
             return session;
         }
@@ -721,7 +915,7 @@ class AIService {
 
     /**
      * Silently pre-warm a session when the local model is already downloaded/ready.
-     * Coalesces duplicate calls for the same chat/system/history key.
+     * Coalesces duplicate calls synchronously before any async availability probe.
      */
     async warmUp({ chatId = null, messages = [], systemPrompt = '', onDownloadProgress } = {}) {
         if (!this.factory) return null;
@@ -737,14 +931,16 @@ class AIService {
             return this.session;
         }
 
+        if (config.rawHistoryLength === 0) {
+            const pooledBase = this._getReusableBaseSession(config.fullSystemPrompt);
+            if (pooledBase) {
+                return pooledBase;
+            }
+        }
+
         const key = this._buildWarmKey(reuseTarget.chatId, config.fullSystemPrompt, config.rawHistoryLength);
         if (this.warmingPromise && this.warmingKey === key) {
             return this.warmingPromise;
-        }
-
-        const availability = await this.getAvailabilityInfo();
-        if (availability.status !== 'ready') {
-            return null;
         }
 
         if (this.warmingAbort) {
@@ -756,6 +952,11 @@ class AIService {
 
         const warmTask = (async () => {
             try {
+                const availability = await this._awaitWithSignal(this.getAvailabilityInfo(), controller.signal);
+                if (controller.signal.aborted || this.warmingKey !== key || availability.status !== 'ready') {
+                    return null;
+                }
+
                 this._destroySession();
                 const session = await this._createRawSession(
                     config.fullSystemPrompt,
@@ -763,14 +964,20 @@ class AIService {
                     { onDownloadProgress, signal: controller.signal }
                 );
                 if (controller.signal.aborted || this.warmingKey !== key) {
-                    try { session?.destroy?.(); } catch (_) {}
+                    this._destroySafely(session);
                     return null;
                 }
+
+                if (config.rawHistoryLength === 0) {
+                    this._storeBaseSession(config.fullSystemPrompt, session);
+                }
+
                 this.session = session;
                 this.sessionState = {
                     chatId: reuseTarget.chatId,
                     systemPrompt: config.fullSystemPrompt,
-                    historyLength: config.rawHistoryLength
+                    historyLength: config.rawHistoryLength,
+                    dirty: false
                 };
                 return session;
             } catch (err) {
@@ -814,11 +1021,34 @@ class AIService {
 
             let reusedSession = this._isSessionReusable(reuseTarget);
 
+            if (!reusedSession && rawHistoryLength === 0) {
+                const pooledBase = this._getReusableBaseSession(fullSystemPrompt);
+                if (pooledBase) {
+                    const forked = await this._cloneBaseSession(pooledBase, signal, fullSystemPrompt);
+                    if (forked) {
+                        this._destroySession();
+                        this.session = forked;
+                        this.sessionState = {
+                            chatId: reuseTarget.chatId,
+                            systemPrompt: fullSystemPrompt,
+                            historyLength: 0,
+                            dirty: false
+                        };
+                        reusedSession = true;
+                    }
+                }
+            }
+
             if (!reusedSession && this.warmingPromise) {
                 if (this.warmingKey === warmKey) {
                     if (onPhase) onPhase('creating');
                     const onAbortWarm = () => {
                         try { this.warmingAbort?.abort(); } catch (_) {}
+                        if (this.warmingKey === warmKey) {
+                            this.warmingPromise = null;
+                            this.warmingKey = null;
+                            this.warmingAbort = null;
+                        }
                     };
                     if (signal) {
                         if (signal.aborted) onAbortWarm();
@@ -830,6 +1060,23 @@ class AIService {
                         if (signal) signal.removeEventListener('abort', onAbortWarm);
                     }
                     reusedSession = this._isSessionReusable(reuseTarget);
+                    if (!reusedSession && rawHistoryLength === 0) {
+                        const pooledBase = this._getReusableBaseSession(fullSystemPrompt);
+                        if (pooledBase) {
+                            const forked = await this._cloneBaseSession(pooledBase, signal, fullSystemPrompt);
+                            if (forked) {
+                                this._destroySession();
+                                this.session = forked;
+                                this.sessionState = {
+                                    chatId: reuseTarget.chatId,
+                                    systemPrompt: fullSystemPrompt,
+                                    historyLength: 0,
+                                    dirty: false
+                                };
+                                reusedSession = true;
+                            }
+                        }
+                    }
                 } else {
                     if (this.warmingAbort) {
                         try { this.warmingAbort.abort(); } catch (_) {}
@@ -837,6 +1084,25 @@ class AIService {
                     }
                     this.warmingPromise = null;
                     this.warmingKey = null;
+                }
+            }
+
+            if (reusedSession && this._isBaseSession(this.session) && typeof this.session.clone === 'function') {
+                const forked = await this._cloneBaseSession(this.session, signal, fullSystemPrompt);
+                if (forked) {
+                    this.session = forked;
+                    this.sessionState = {
+                        chatId: reuseTarget.chatId,
+                        systemPrompt: fullSystemPrompt,
+                        historyLength: 0,
+                        dirty: false
+                    };
+                } else {
+                    // Base session failed to clone (e.g., expired on GPU): force clean create fallback.
+                    this._removeBaseSessionByInstance(this.session);
+                    this.session = null;
+                    this.sessionState = null;
+                    reusedSession = false;
                 }
             }
 
@@ -848,16 +1114,26 @@ class AIService {
                     signal
                 );
                 if (signal?.aborted) {
-                    try { created?.destroy?.(); } catch (_) {}
+                    this._destroySafely(created);
                     const abortErr = new Error('Operação cancelada.');
                     abortErr.name = 'AbortError';
                     throw abortErr;
                 }
-                this.session = created;
+
+                let activeSession = created;
+                if (rawHistoryLength === 0 && this._storeBaseSession(fullSystemPrompt, created)) {
+                    const forked = await this._cloneBaseSession(created, signal, fullSystemPrompt);
+                    if (forked) {
+                        activeSession = forked;
+                    }
+                }
+
+                this.session = activeSession;
                 this.sessionState = {
                     chatId: reuseTarget.chatId,
                     systemPrompt: fullSystemPrompt,
-                    historyLength: rawHistoryLength
+                    historyLength: rawHistoryLength,
+                    dirty: false
                 };
             }
 
@@ -865,6 +1141,11 @@ class AIService {
                 const abortErr = new Error('Operação cancelada.');
                 abortErr.name = 'AbortError';
                 throw abortErr;
+            }
+
+            if (this.sessionState) {
+                this.sessionState.chatId = reuseTarget.chatId;
+                this.sessionState.dirty = true;
             }
 
             const promptStart = Date.now();
@@ -907,7 +1188,8 @@ class AIService {
                 this.sessionState = {
                     chatId: reuseTarget.chatId,
                     systemPrompt: fullSystemPrompt,
-                    historyLength: messages.length + 1
+                    historyLength: messages.length + 1,
+                    dirty: true
                 };
             }
 
@@ -942,6 +1224,14 @@ class AIService {
                 }
             }
         } catch (err) {
+            if (!signal?.aborted && err?.name !== 'AbortError') {
+                this._invalidateAvailabilityCache();
+                if (this._isBaseSession(this.session)) {
+                    const broken = this.session;
+                    this._removeBaseSessionByInstance(broken);
+                    this._destroySafely(broken);
+                }
+            }
             this._destroySession();
             throw err;
         }
@@ -1271,10 +1561,10 @@ class UIManager {
             console.error('Marked init error:', e);
         }
 
-        if (document.readyState === 'complete') {
+        if (document.readyState !== 'loading') {
             this.loadInitialState();
         } else {
-            window.addEventListener('load', () => this.loadInitialState());
+            document.addEventListener('DOMContentLoaded', () => this.loadInitialState(), { once: true });
         }
 
         if (this.els.menuBtn) this.els.menuBtn.onclick = () => this.toggleSidebar();
@@ -1351,7 +1641,7 @@ class UIManager {
 
         if (this.els.prompt) {
             this.els.prompt.addEventListener('input', () => this.adjustTextarea());
-            this.els.prompt.addEventListener('focus', () => this.warmUpActiveChat());
+            this.els.prompt.addEventListener('focus', () => this.warmUpActiveChat({ includeHistory: true }));
             this.els.prompt.onkeydown = (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -1905,8 +2195,8 @@ ${code}
         }
     }
 
-    async refreshAIStatus() {
-        const info = await this.ai.getAvailabilityInfo();
+    async refreshAIStatus({ force = true, warmUp = true } = {}) {
+        const info = await this.ai.getAvailabilityInfo({ force });
         this.aiStatusInfo = info;
         const badge = this.els.aiStatusBadge;
         if (!badge) return;
@@ -1927,8 +2217,8 @@ ${code}
             badge.textContent = info.label;
         }
         badge.title = info.reason || info.label;
-        if (info.status === 'ready' && !this.isLoading) {
-            this.warmUpActiveChat();
+        if (warmUp && info.status === 'ready' && !this.isLoading) {
+            this.warmUpActiveChat({ includeHistory: false });
         }
     }
 
@@ -1968,15 +2258,31 @@ ${code}
         return systemPrompt;
     }
 
-    /** Silently pre-warm the active chat session when Chrome AI is already ready. */
-    warmUpActiveChat() {
+    /** Silently pre-warm the active chat session (base prompt first unless user focuses history). */
+    warmUpActiveChat({ includeHistory = false } = {}) {
         if (this.isLoading) return null;
         if (!this.aiStatusInfo || this.aiStatusInfo.status !== 'ready') return null;
         const chatId = this.chats.activeChatId;
         const chat = this.chats.get(chatId);
         if (!chat) return null;
-        const messages = chat.messages.map(m => ({ role: m.role, content: m.content }));
+
         const systemPrompt = this.buildChatSystemPrompt(chat);
+        const fullConfig = this.ai.buildPromptConfig(
+            chat.messages.map(m => ({ role: m.role, content: m.content })),
+            systemPrompt,
+            false
+        );
+        if (this.ai._isSessionReusable({
+            chatId,
+            fullSystemPrompt: fullConfig.fullSystemPrompt,
+            rawHistoryLength: fullConfig.rawHistoryLength
+        })) {
+            return this.ai.session;
+        }
+
+        const messages = includeHistory && chat.messages.length > 0
+            ? chat.messages.map(m => ({ role: m.role, content: m.content }))
+            : [];
         return this.ai.warmUp({ chatId, messages, systemPrompt });
     }
 
@@ -2080,7 +2386,7 @@ ${code}
             type: 'confirm',
             onConfirm: () => {
                 this.abortActiveStream();
-                this.ai.invalidateSession();
+                this.ai.invalidateSession({ keepCleanBase: true });
                 this.chats.clearMessages(chat.id);
                 this.codeState = { html: null, css: null, js: null };
                 if (this.els.mainWrapper?.classList.contains('canvas-open')) {
@@ -2093,7 +2399,7 @@ ${code}
 
     createNewChat(systemPrompt = '', personaName = 'Padrão', personaIcon = null, personaColor = null) {
         this.abortActiveStream();
-        this.ai.invalidateSession();
+        this.ai.invalidateSession({ keepCleanBase: true });
         const defaultPersona = this.personas.get('default') || this.personas.getAll()[0];
         const initialPrompt = (systemPrompt !== undefined && systemPrompt !== '') ? systemPrompt : (defaultPersona ? defaultPersona.prompt : '');
         const initialName = personaName || (defaultPersona ? defaultPersona.name : 'Padrão');
@@ -2140,7 +2446,7 @@ ${code}
     switchChat(id) {
         if (this.chats.activeChatId && this.chats.activeChatId !== id) {
             this.abortActiveStream();
-            this.ai.invalidateSession();
+            this.ai.invalidateSession({ keepCleanBase: true });
         }
         this._chatRenderToken++;
         this.chats.activeChatId = id;
@@ -2178,7 +2484,7 @@ ${code}
         if (window.innerWidth <= 768 && this.els.sidebar && this.els.sidebar.classList.contains('open')) {
             this.toggleSidebar();
         }
-        this.warmUpActiveChat();
+        this.warmUpActiveChat({ includeHistory: false });
     }
 
     renderSuggestionPills() {
@@ -2255,7 +2561,7 @@ ${code}
             onConfirm: () => {
                 if (this.chats.activeChatId === id) {
                     this.abortActiveStream();
-                    this.ai.invalidateSession();
+                    this.ai.invalidateSession({ keepCleanBase: true });
                 }
                 this.chats.delete(id);
 
@@ -2974,6 +3280,9 @@ ${code}
                 timerEl.textContent = `${elapsedSec}s`;
             }
             if (hintEl && hintEl.isConnected && elapsedSec >= 10) {
+                if (elapsedSec >= 20) {
+                    hintEl.textContent = 'Demorando mais que o normal? Verifique chrome://on-device-internals ou clique em Parar e tente novamente.';
+                }
                 hintEl.hidden = false;
             }
         }, 1000);
@@ -3094,7 +3403,10 @@ ${code}
 
             this.updateMessageActions();
             this.updateTopbar();
-            this.refreshAIStatus();
+            this.refreshAIStatus({
+                force: this.aiStatusInfo?.status !== 'ready',
+                warmUp: false
+            });
             // Cabeçalhos de código, estatísticas e botões de ação mudam a altura no fim.
             this.scrollToBottom();
         }

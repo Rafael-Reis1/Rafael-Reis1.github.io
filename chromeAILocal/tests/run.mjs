@@ -691,5 +691,258 @@ await check('Pre-aquecimento (warmUp) e reúso de KV-cache evitam LanguageModel.
     window.close();
 });
 
+await check('warmUp coalescing síncrono evita abort/recreate e pool base via session.clone() zera LanguageModel.create() em novo chat e regeneração', async () => {
+    let availabilityCount = 0;
+    let createCount = 0;
+    let cloneCount = 0;
+    let destroyCount = 0;
+    let abortedSignals = 0;
+    const initialPromptLengths = [];
+    const promptLog = [];
+
+    const makeSession = (isClone = false) => {
+        const sess = {
+            inputQuota: 4000,
+            inputUsage: 120,
+            isClone,
+            async promptStreaming(prompt) {
+                promptLog.push(prompt);
+                return (async function* () {
+                    yield `Eco: ${prompt}`;
+                })();
+            },
+            destroy() {
+                destroyCount++;
+            }
+        };
+        if (!isClone) {
+            sess.clone = async () => {
+                cloneCount++;
+                return makeSession(true);
+            };
+        }
+        return sess;
+    };
+
+    const { window } = createBootedDOM({
+        languageModel: {
+            async availability() {
+                availabilityCount++;
+                await new Promise(r => setTimeout(r, 8));
+                return 'available';
+            },
+            async create(opts) {
+                createCount++;
+                initialPromptLengths.push(opts.initialPrompts?.length || 0);
+                if (opts.signal) {
+                    opts.signal.addEventListener('abort', () => { abortedSignals++; }, { once: true });
+                }
+                await new Promise(r => setTimeout(r, 12));
+                return makeSession(false);
+            }
+        }
+    });
+
+    const { aiService, uiManager } = window.__chromeAILocal;
+    const doc = window.document;
+
+    // Aguarda boot/warmUp inicial do chat padrão concluir de forma determinística
+    while (!aiService.session || aiService.warmingPromise) {
+        await flush(10);
+    }
+    const bootAvailCalls = availabilityCount;
+    const baseCreatesAfterBoot = createCount;
+    assert.equal(baseCreatesAfterBoot, 1);
+
+    // Chamadas concorrentes de warmUp para mesmo systemPrompt (mesmo antes de availability() responder) coalescem sem abortar create()
+    await Promise.all([
+        aiService.warmUp({ chatId: 'chat-x', messages: [], systemPrompt: 'P1' }),
+        aiService.warmUp({ chatId: 'chat-y', messages: [], systemPrompt: 'P1' })
+    ]);
+    assert.equal(abortedSignals, 0, 'chamadas concorrentes com mesmo systemPrompt não devem abortar create() em andamento');
+    assert.equal(createCount, baseCreatesAfterBoot + 1, 'duas chamadas concorrentes com mesma persona devem resultar em 1 create()');
+
+    // Volta para o chat inicial e garante que a base padrão segue no pool (clone em vez de novo create)
+    const activeDefaultChat = uiManager.chats.get(uiManager.chats.activeChatId);
+    const expectedCreatesBeforeFallback = createCount;
+
+    // Enviar mensagem no chat 1 deve usar clone da base session (0 novos creates, 0 novas chamadas IPC availability)
+    doc.getElementById('promptText').value = 'Oi chat 1';
+    await uiManager.handleSend();
+    await flush();
+    assert.equal(createCount, expectedCreatesBeforeFallback, 'envio no chat 1 deve reutilizar/clonar base session sem novo create()');
+    assert.equal(availabilityCount, bootAvailCalls, 'availability() cached deve evitar nova consulta IPC no handleSend()');
+    assert.equal(cloneCount, 1, 'turno 1 deve clonar a base session preservando template limpo');
+
+    // Abrir Novo Chat e enviar sem chamar LanguageModel.create() novamente
+    const clonesBeforeNewChat = cloneCount;
+    uiManager.createNewChat();
+    await flush();
+    assert.equal(createCount, expectedCreatesBeforeFallback, 'Novo Chat com mesmo prompt deve reaproveitar pool base sem create()');
+    assert.equal(destroyCount, 1, 'apenas a sessão suja do chat 1 deve ser destruída, mantendo base viva');
+
+    doc.getElementById('promptText').value = 'Oi chat 2';
+    await uiManager.handleSend();
+    await flush();
+    assert.equal(createCount, expectedCreatesBeforeFallback, 'envio em Novo Chat deve usar baseSession.clone()');
+    assert.equal(cloneCount, clonesBeforeNewChat + 1, 'Novo Chat deve clonar base session');
+    assert.match(doc.querySelector('.message-stats')?.textContent || '', /Sessão em cache/i);
+
+    // Regenerar primeira resposta também deve clonar base session limpa sem chamar create()
+    uiManager.handleRegenerate();
+    await flush(30);
+    assert.equal(createCount, expectedCreatesBeforeFallback, 'handleRegenerate no turno 1 deve reutilizar clone da base session');
+    assert.equal(cloneCount, clonesBeforeNewChat + 2);
+    assert.equal(destroyCount, 2);
+
+    // Caso baseSession.clone() falhe em erro não-abort, deve descartar base corrompida e criar sessão nova sem travar
+    const defaultConfig = aiService.buildPromptConfig([], uiManager.buildChatSystemPrompt(activeDefaultChat), false);
+    const baseEntry = aiService.baseSessions.get(defaultConfig.fullSystemPrompt);
+    assert.ok(baseEntry, 'base session padrão deve estar no pool');
+    baseEntry.clone = async () => { throw new Error('GPU context lost'); };
+
+    uiManager.createNewChat();
+    doc.getElementById('promptText').value = 'Recupera apos falha de clone';
+    await uiManager.handleSend();
+    await flush();
+    assert.equal(createCount, expectedCreatesBeforeFallback + 1, 'falha no clone() deve acionar fallback transparente para create()');
+    assert.ok(promptLog.includes('Recupera apos falha de clone'));
+
+    window.close();
+});
+
+await check('Boot com histórico antigo aquecido apenas com prompt base leve; histórico só aquece sob demanda no foco', async () => {
+    const initialPromptLengths = [];
+    const { window } = createBootedDOM({
+        initialStorage: {
+            activeChatId: 'old-chat-1',
+            allChats: JSON.stringify([{
+                id: 'old-chat-1',
+                title: 'Conversa Longa',
+                personaName: 'Padrão',
+                messages: [
+                    { role: 'user', content: 'Pergunta antiga 1' },
+                    { role: 'assistant', content: 'Resposta antiga 1' },
+                    { role: 'user', content: 'Pergunta antiga 2' },
+                    { role: 'assistant', content: 'Resposta antiga 2' }
+                ]
+            }])
+        },
+        languageModel: {
+            async availability() { return 'available'; },
+            async create(opts) {
+                initialPromptLengths.push(opts.initialPrompts?.length || 0);
+                return {
+                    inputQuota: 4000,
+                    inputUsage: 100,
+                    async clone() {
+                        return {
+                            inputQuota: 4000,
+                            inputUsage: 100,
+                            async promptStreaming() {
+                                return (async function* () { yield 'ok'; })();
+                            },
+                            destroy() {}
+                        };
+                    },
+                    async promptStreaming() {
+                        return (async function* () { yield 'ok'; })();
+                    },
+                    destroy() {}
+                };
+            }
+        }
+    });
+    await flush();
+
+    // No boot, apenas system prompt base (tamanho 1) deve ter sido enviado, evitando pré-fill pesado de histórico antigo
+    assert.deepEqual(initialPromptLengths, [1], 'boot em chat antigo deve aquecer só prompt base (length 1) sem travar GPU com histórico');
+
+    // Focar no campo de entrada do chat antigo aquece o histórico completo sob demanda
+    window.document.getElementById('promptText').dispatchEvent(new window.Event('focus'));
+    await flush();
+    assert.equal(initialPromptLengths.length, 2);
+    assert.equal(initialPromptLengths[1], 5, 'foco no chat antigo deve pre-aquecer system + 4 mensagens de histórico');
+
+    window.close();
+});
+
+await check('Abortar LanguageModel.create() travado no warmUp limpa warmingPromise, destrói sessão tardia e desbloqueia próximo envio', async () => {
+    let createCalls = 0;
+    let resolveHungCreate = null;
+    let lateSessionDestroyed = false;
+
+    const { window } = createBootedDOM({
+        languageModel: {
+            async availability() { return 'available'; },
+            create() {
+                createCalls += 1;
+                if (createCalls === 1) {
+                    // Simula Chrome ignorando AbortSignal dentro de LanguageModel.create()
+                    return new Promise((resolve) => {
+                        resolveHungCreate = resolve;
+                    });
+                }
+                return Promise.resolve({
+                    inputQuota: 4000,
+                    inputUsage: 100,
+                    async clone() {
+                        return {
+                            inputQuota: 4000,
+                            inputUsage: 100,
+                            async promptStreaming() {
+                                return (async function* () { yield 'Recuperado apos abortar create travado'; })();
+                            },
+                            destroy() {}
+                        };
+                    },
+                    async promptStreaming() {
+                        return (async function* () { yield 'Recuperado apos abortar create travado'; })();
+                    },
+                    destroy() {}
+                });
+            }
+        }
+    });
+    await flush();
+
+    const doc = window.document;
+    const { uiManager } = window.__chromeAILocal;
+    assert.equal(createCalls, 1, 'boot deve ter iniciado primeiro create() travado');
+    assert.ok(uiManager.ai.warmingPromise, 'warmUp travado mantém warmingPromise ativa antes do Stop');
+
+    doc.getElementById('promptText').value = 'Primeira tentativa';
+    const abortedSendPromise = uiManager.handleSend();
+    await flush();
+
+    // Usuário clica em Parar enquanto create() ignora signal
+    uiManager.handleStop();
+    await abortedSendPromise;
+    await flush();
+
+    assert.equal(uiManager.ai.warmingPromise, null, 'warmingPromise deve ser limpa após cancelar wait travado');
+    assert.equal(uiManager.ai.warmingKey, null, 'warmingKey deve ser limpa após cancelar wait travado');
+    assert.equal(uiManager.isLoading, false, 'UI deve sair de loading imediatamente após Stop');
+
+    doc.getElementById('promptText').value = 'Segunda tentativa';
+    await uiManager.handleSend();
+    await flush();
+
+    assert.equal(createCalls, 2, 'próximo envio não deve reaproveitar warmingPromise abortada');
+    const chat = uiManager.chats.get(uiManager.chats.activeChatId);
+    assert.equal(chat.messages[chat.messages.length - 1].content, 'Recuperado apos abortar create travado');
+
+    // Se a criação antiga do Chrome resolver tardiamente, deve ser destruída sem vazar VRAM
+    resolveHungCreate({
+        inputQuota: 4000,
+        inputUsage: 0,
+        destroy() { lateSessionDestroyed = true; }
+    });
+    await flush();
+    assert.equal(lateSessionDestroyed, true, 'sessão criada tardiamente após abort deve ser destruída');
+
+    window.close();
+});
+
 console.log(`\nResumo chromeAILocal: ${passed} passou, ${failed} falhou.`);
 if (failed > 0) process.exit(1);

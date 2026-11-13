@@ -1,4 +1,4 @@
-const CACHE_VERSION = '?v=1311260750';
+const CACHE_VERSION = '?v=1311261304';
 const CACHE_NAME = 'chrome-ai-local-' + CACHE_VERSION.replace(/\W+/g, '');
 
 const CORE_ASSETS = [
