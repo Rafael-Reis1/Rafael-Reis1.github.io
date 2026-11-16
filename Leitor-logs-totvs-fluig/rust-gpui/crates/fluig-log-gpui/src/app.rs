@@ -9,10 +9,10 @@ use fluig_log_core::{
 use futures::StreamExt;
 use gpui::{
     AnyElement, Bounds, ClipboardItem, Context, Decorations, DispatchPhase, ExternalPaths,
-    FocusHandle, FontWeight, HighlightStyle, Hsla, KeyDownEvent, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, PathPromptOptions, Pixels, Render, Rgba, ScrollStrategy,
-    SharedString, StyledText, UniformListScrollHandle, Window, canvas, div, point, prelude::*, px,
-    relative, rgb, rgba, uniform_list,
+    FocusHandle, FontWeight, HighlightStyle, Hsla, KeyDownEvent, ListAlignment, ListOffset,
+    ListState, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PathPromptOptions,
+    Pixels, Render, Rgba, SharedString, StyledText, Window, canvas, div, list, prelude::*, px,
+    relative, rgb, rgba,
 };
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -170,6 +170,51 @@ struct LoadTabMeta {
     file_id: Option<String>,
 }
 
+struct ScrollbarMetrics {
+    thumb_h: Pixels,
+    track_range: Pixels,
+    offset_top: Pixels,
+    total_rows: usize,
+    max_top_rows: f32,
+}
+
+fn scroll_list_to_pct(
+    list_state: &ListState,
+    total_rows: usize,
+    max_top_rows: f32,
+    new_pct: f32,
+) {
+    if total_rows == 0 {
+        return;
+    }
+    let pct = new_pct.clamp(0.0, 1.0);
+    if pct <= 0.0 {
+        list_state.scroll_to(ListOffset {
+            item_ix: 0,
+            offset_in_item: px(0.),
+        });
+        return;
+    }
+    if pct >= 0.999 {
+        list_state.scroll_to(ListOffset {
+            item_ix: total_rows,
+            offset_in_item: px(0.),
+        });
+        return;
+    }
+
+    let target_pos = pct * max_top_rows;
+    let item_ix = (target_pos.floor() as usize).min(total_rows.saturating_sub(1));
+    let frac = (target_pos - item_ix as f32).clamp(0.0, 0.999);
+    let item_h = list_state
+        .bounds_for_item(item_ix)
+        .map_or(px(ROW_HEIGHT_PX), |b| b.size.height);
+    list_state.scroll_to(ListOffset {
+        item_ix,
+        offset_in_item: item_h * frac,
+    });
+}
+
 struct LogTab {
     id: u64,
     short_title: String,
@@ -184,7 +229,7 @@ struct LogTab {
     global_expand_state: bool,
     pinned_signatures: HashSet<String>,
     active_row: usize,
-    scroll_handle: UniformListScrollHandle,
+    list_state: ListState,
 }
 
 impl LogTab {
@@ -214,9 +259,9 @@ impl LogTab {
             global_expand_state: false,
             pinned_signatures,
             active_row: 0,
-            scroll_handle: UniformListScrollHandle::new(),
+            list_state: ListState::new(0, ListAlignment::Top, px(300.)),
         };
-        tab.rebuild_visible_rows();
+        tab.rebuild_visible_rows(false);
         tab
     }
 
@@ -231,14 +276,12 @@ impl LogTab {
 
     fn apply_filters(&mut self) {
         self.filtered = filter_entries(&self.entries, &self.criteria, &self.pinned_signatures);
-        self.rebuild_visible_rows();
+        self.rebuild_visible_rows(false);
         self.active_row = 0;
-        if !self.visible_rows.is_empty() {
-            self.scroll_handle.scroll_to_item(0, ScrollStrategy::Top);
-        }
     }
 
-    fn rebuild_visible_rows(&mut self) {
+    fn rebuild_visible_rows(&mut self, preserve_scroll: bool) {
+        let prev_scroll = preserve_scroll.then(|| self.list_state.logical_scroll_top());
         let mut rows = Vec::with_capacity(self.filtered.indices.len());
         let search_spec = &self.filtered.search_spec;
 
@@ -286,24 +329,98 @@ impl LogTab {
         } else if self.active_row >= self.visible_rows.len() {
             self.active_row = self.visible_rows.len() - 1;
         }
+        self.list_state.reset(self.visible_rows.len());
+        if let Some(top) = prev_scroll {
+            self.list_state.scroll_to(top);
+        }
     }
 
     fn table_bounds(&self) -> Bounds<Pixels> {
-        self.scroll_handle.0.borrow().base_handle.bounds()
+        self.list_state.viewport_bounds()
     }
 
-    fn scroll_top(&self) -> Pixels {
-        self.scroll_handle.0.borrow().base_handle.offset().y
-    }
+    fn scrollbar_metrics(&self) -> Option<ScrollbarMetrics> {
+        let total_rows = self.visible_rows.len();
+        let viewport = self.table_bounds();
+        let table_height = viewport.size.height;
+        if total_rows == 0 || table_height <= px(0.) {
+            return None;
+        }
 
-    fn scroll_height(&self) -> Pixels {
-        self.scroll_handle
-            .0
-            .borrow()
-            .last_item_size
-            .unwrap_or_default()
-            .contents
-            .height
+        let top = self.list_state.logical_scroll_top();
+        let at_top = top.item_ix == 0 && top.offset_in_item <= px(0.5);
+
+        let mut visible_count = 0usize;
+        let mut visible_span = px(0.);
+        let mut first_item_h = px(ROW_HEIGHT_PX);
+        let mut last_visible_ix = top.item_ix;
+        let mut last_visible_bottom = viewport.top();
+
+        for ix in top.item_ix..total_rows {
+            let Some(item_bounds) = self.list_state.bounds_for_item(ix) else {
+                break;
+            };
+            if visible_count == 0 {
+                first_item_h = item_bounds.size.height.max(px(1.));
+            }
+            visible_count += 1;
+            visible_span += item_bounds.size.height;
+            last_visible_ix = ix;
+            last_visible_bottom = item_bounds.bottom();
+            if item_bounds.bottom() >= viewport.bottom() {
+                break;
+            }
+        }
+
+        let at_bottom = visible_count > 0
+            && last_visible_ix + 1 >= total_rows
+            && last_visible_bottom <= viewport.bottom() + px(0.5);
+
+        if at_top && at_bottom {
+            return None;
+        }
+
+        let measured_max_scroll = self.list_state.max_offset_for_scrollbar().height;
+        let measured_total_height = table_height + measured_max_scroll;
+        let estimated_total_height =
+            px(total_rows as f32 * ROW_HEIGHT_PX).max(measured_total_height);
+
+        if at_top && estimated_total_height <= table_height + px(0.5) {
+            return None;
+        }
+
+        let max_thumb_h = (table_height - px(20.)).max(px(28.));
+        let thumb_h = ((table_height / estimated_total_height) * table_height)
+            .clamp(px(28.), max_thumb_h);
+        let track_range = (table_height - thumb_h - px(8.)).max(px(0.));
+
+        let avg_vis_h = if visible_count > 0 {
+            (visible_span / visible_count as f32).max(px(12.))
+        } else {
+            px(ROW_HEIGHT_PX)
+        };
+        let est_visible_rows = (table_height / avg_vis_h).clamp(1.0, total_rows as f32);
+        let max_top_rows = (total_rows as f32 - est_visible_rows).max(1.0);
+
+        let pct = if at_bottom {
+            1.0
+        } else if at_top {
+            0.0
+        } else {
+            let frac_in_item = (top.offset_in_item / first_item_h).clamp(0.0, 0.999);
+            let current_row = top.item_ix as f32 + frac_in_item;
+            (current_row / max_top_rows).clamp(0.0, 0.999)
+        };
+
+        let offset_top = px(4.) + track_range * pct;
+
+        Some(ScrollbarMetrics {
+            thumb_h,
+            track_range,
+            offset_top,
+            total_rows,
+            max_top_rows,
+        })
     }
 
     fn active_input_str(&self, kind: ActiveInput) -> &str {
@@ -334,16 +451,45 @@ impl LogTab {
             ActiveInput::TimeStart | ActiveInput::TimeEnd => {
                 let target = self.active_input_mut(kind);
                 for ch in text.chars() {
-                    if target.len() >= 8 {
-                        break;
-                    }
-                    if ch.is_ascii_digit() || ch == ':' {
-                        target.push(ch);
-                    }
+                    push_time_mask_char(target, ch);
                 }
             }
         }
     }
+}
+
+fn push_time_mask_char(target: &mut String, ch: char) {
+    if ch == ':' {
+        if target.len() == 1 {
+            target.insert(0, '0');
+            target.push(':');
+        }
+        return;
+    }
+    if !ch.is_ascii_digit() || target.len() >= 8 {
+        return;
+    }
+    let next_len = target.len();
+    let valid = match next_len {
+        0 => ('0'..='2').contains(&ch),
+        1 => {
+            if target.starts_with('2') {
+                ('0'..='3').contains(&ch)
+            } else {
+                true
+            }
+        }
+        2 | 3 | 5 | 6 => ('0'..='5').contains(&ch),
+        4 | 7 => true,
+        _ => false,
+    };
+    if !valid {
+        return;
+    }
+    if next_len == 2 || next_len == 5 {
+        target.push(':');
+    }
+    target.push(ch);
 }
 
 pub struct LogViewerApp {
@@ -750,7 +896,7 @@ impl LogViewerApp {
         if !tab.expanded_entries.remove(&entry_idx) {
             tab.expanded_entries.insert(entry_idx);
         }
-        tab.rebuild_visible_rows();
+        tab.rebuild_visible_rows(true);
         cx.notify();
     }
 
@@ -777,7 +923,7 @@ impl LogViewerApp {
         } else {
             tab.expanded_entries.clear();
         }
-        tab.rebuild_visible_rows();
+        tab.rebuild_visible_rows(true);
         cx.notify();
     }
 
@@ -800,22 +946,53 @@ impl LogViewerApp {
         cx.notify();
     }
 
-    fn set_active_row(
-        &mut self,
-        row_ix: usize,
-        strategy: Option<ScrollStrategy>,
-        cx: &mut Context<Self>,
-    ) {
+    fn set_active_row(&mut self, row_ix: usize, reveal: bool, cx: &mut Context<Self>) {
         let Some(tab) = self.active_tab_mut() else {
             return;
         };
-        if tab.visible_rows.is_empty() {
+        let len = tab.visible_rows.len();
+        if len == 0 {
             tab.active_row = 0;
             return;
         }
-        tab.active_row = row_ix.min(tab.visible_rows.len() - 1);
-        if let Some(strat) = strategy {
-            tab.scroll_handle.scroll_to_item(tab.active_row, strat);
+        tab.active_row = row_ix.min(len - 1);
+        if reveal {
+            let target = tab.active_row;
+            let viewport = tab.table_bounds();
+            if let Some(item_bounds) = tab.list_state.bounds_for_item(target)
+                && viewport.size.height > px(0.)
+            {
+                if item_bounds.top() < viewport.top() {
+                    tab.list_state.scroll_to(ListOffset {
+                        item_ix: target,
+                        offset_in_item: px(0.),
+                    });
+                } else if item_bounds.bottom() > viewport.bottom() {
+                    if target + 1 >= len {
+                        tab.list_state.scroll_to(ListOffset {
+                            item_ix: len,
+                            offset_in_item: px(0.),
+                        });
+                    } else {
+                        tab.list_state.scroll_to_reveal_item(target);
+                    }
+                }
+            } else if target == 0 {
+                tab.list_state.scroll_to(ListOffset {
+                    item_ix: 0,
+                    offset_in_item: px(0.),
+                });
+            } else if target + 1 >= len {
+                tab.list_state.scroll_to(ListOffset {
+                    item_ix: len,
+                    offset_in_item: px(0.),
+                });
+            } else {
+                tab.list_state.scroll_to(ListOffset {
+                    item_ix: target,
+                    offset_in_item: px(0.),
+                });
+            }
         }
         cx.notify();
     }
@@ -1067,7 +1244,7 @@ impl LogViewerApp {
                 } else {
                     active_row - 1
                 };
-                self.set_active_row(next, Some(ScrollStrategy::Center), cx);
+                self.set_active_row(next, true, cx);
             }
             "pageup" | "left" => {
                 if let Some((len, active_row)) = self
@@ -1076,7 +1253,7 @@ impl LogViewerApp {
                     && len > 0
                 {
                     let next = active_row.saturating_sub(40);
-                    self.set_active_row(next, Some(ScrollStrategy::Center), cx);
+                    self.set_active_row(next, true, cx);
                 }
             }
             "pagedown" | "right" => {
@@ -1086,7 +1263,7 @@ impl LogViewerApp {
                     && len > 0
                 {
                     let next = (active_row + 40).min(len - 1);
-                    self.set_active_row(next, Some(ScrollStrategy::Center), cx);
+                    self.set_active_row(next, true, cx);
                 }
             }
             "home" => {
@@ -1094,7 +1271,7 @@ impl LogViewerApp {
                     .active_tab()
                     .is_some_and(|t| !t.visible_rows.is_empty())
                 {
-                    self.set_active_row(0, Some(ScrollStrategy::Top), cx);
+                    self.set_active_row(0, true, cx);
                 }
             }
             "end" => {
@@ -1103,7 +1280,7 @@ impl LogViewerApp {
                     .map(|t| t.visible_rows.len())
                     .filter(|&len| len > 0)
                 {
-                    self.set_active_row(len - 1, Some(ScrollStrategy::Bottom), cx);
+                    self.set_active_row(len - 1, true, cx);
                 }
             }
             _ => {}
@@ -1150,6 +1327,11 @@ impl LogViewerApp {
                         target.clear();
                     } else {
                         target.pop();
+                        if matches!(input_kind, ActiveInput::TimeStart | ActiveInput::TimeEnd)
+                            && target.ends_with(':')
+                        {
+                            target.pop();
+                        }
                     }
                     tab.apply_filters();
                     tab.persist_settings();
@@ -1850,29 +2032,37 @@ impl LogViewerApp {
                                 cx.notify();
                             })),
                     )
-                    .when(has_time, |el| {
-                        el.child(
-                            div()
-                                .id("clear-time-btn")
-                                .px_1p5()
-                                .py_1()
-                                .rounded_sm()
-                                .text_xs()
-                                .text_color(col_text_muted())
-                                .cursor_pointer()
-                                .hover(|s| s.text_color(col_text()))
-                                .on_click(cx.listener(|this, _ev, _window, cx| {
-                                    if let Some(tab) = this.active_tab_mut() {
-                                        tab.criteria.time_start.clear();
-                                        tab.criteria.time_end.clear();
-                                        tab.apply_filters();
-                                        tab.persist_settings();
-                                    }
-                                    cx.notify();
-                                }))
-                                .child("✕"),
-                        )
-                    }),
+                    .child(
+                        div()
+                            .id("clear-time-btn")
+                            .w(px(26.))
+                            .h(px(32.))
+                            .rounded_md()
+                            .bg(col_bg_log_area())
+                            .border_1()
+                            .border_color(col_border())
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .text_xs()
+                            .text_color(col_text_muted())
+                            .when(!has_time, |d| d.opacity(0.35))
+                            .when(has_time, |d| {
+                                d.cursor_pointer()
+                                    .hover(|s| s.text_color(col_text()).border_color(col_error()))
+                                    .on_click(cx.listener(|this, _ev, _window, cx| {
+                                        this.active_input = None;
+                                        if let Some(tab) = this.active_tab_mut() {
+                                            tab.criteria.time_start.clear();
+                                            tab.criteria.time_end.clear();
+                                            tab.apply_filters();
+                                            tab.persist_settings();
+                                        }
+                                        cx.notify();
+                                    }))
+                            })
+                            .child("✕"),
+                    ),
             )
             // Level & flag chips
             .child(
@@ -1965,14 +2155,23 @@ impl LogViewerApp {
                             cx.notify();
                         })),
                     )
-                    .when(has_filters, |el| {
-                        el.child(toolbar_btn("btn-clear-filters", "Limpar filtros", false).on_click(
-                            cx.listener(|this, _ev, _window, cx| {
+                    .child(
+                        toolbar_btn_stateful(
+                            "btn-clear-filters",
+                            "Limpar filtros",
+                            false,
+                            has_filters,
+                        )
+                        .h(px(32.))
+                        .flex()
+                        .items_center()
+                        .when(has_filters, |el| {
+                            el.on_click(cx.listener(|this, _ev, _window, cx| {
                                 this.active_input = None;
                                 this.clear_all_filters(cx);
-                            }),
-                        ))
-                    }),
+                            }))
+                        }),
+                    ),
             )
             .into_any_element()
     }
@@ -1981,10 +2180,9 @@ impl LogViewerApp {
         let Some(tab) = self.active_tab() else {
             return div().into_any_element();
         };
-        let tab_id = tab.id;
         let row_count = tab.visible_rows.len();
         let has_pins = !tab.pinned_signatures.is_empty();
-        let scroll_handle = tab.scroll_handle.clone();
+        let list_state = tab.list_state.clone();
 
         div()
             .flex_1()
@@ -2015,7 +2213,7 @@ impl LogViewerApp {
                     .text_color(rgb(0xC5CDE0))
                     .child(
                         div()
-                            .w(px(54.))
+                            .w(px(48.))
                             .flex_none()
                             .flex()
                             .items_center()
@@ -2048,11 +2246,11 @@ impl LogViewerApp {
                                 )
                             }),
                     )
-                    .child(div().w(px(248.)).flex_none().child("DATE"))
-                    .child(div().w(px(88.)).flex_none().child("LEVEL"))
-                    .child(proportional_col(div(), 1.4, 180.0).child("CLASS"))
-                    .child(proportional_col(div(), 0.85, 110.0).child("THREAD"))
-                    .child(proportional_col(div(), 2.2, 240.0).child("MESSAGE")),
+                    .child(div().w(px(206.)).flex_none().child("DATE"))
+                    .child(div().w(px(72.)).flex_none().child("LEVEL"))
+                    .child(proportional_col(div(), 1.35, 180.0).child("CLASS"))
+                    .child(proportional_col(div(), 0.45, 105.0).child("THREAD"))
+                    .child(proportional_col(div(), 3.2, 280.0).child("MESSAGE")),
             )
             // Corpo virtualizado ou mensagem vazia
             .child(if row_count == 0 {
@@ -2072,23 +2270,18 @@ impl LogViewerApp {
                     .min_h_0()
                     .w_full()
                     .child(
-                        uniform_list(
-                            ("log-rows-virtual", tab_id),
-                            row_count,
-                            cx.processor(|this, range: std::ops::Range<usize>, _window, cx| {
+                        list(
+                            list_state,
+                            cx.processor(|this, row_ix: usize, _window, cx| {
                                 let Some(tab) = this.tabs.get(this.active_tab_idx) else {
-                                    return Vec::new();
+                                    return div().into_any_element();
                                 };
-                                let mut out = Vec::with_capacity(range.len());
-                                for row_ix in range {
-                                    if let Some(row) = tab.visible_rows.get(row_ix).copied() {
-                                        out.push(this.render_visible_row(tab, row_ix, row, cx));
-                                    }
-                                }
-                                out
+                                let Some(row) = tab.visible_rows.get(row_ix).copied() else {
+                                    return div().into_any_element();
+                                };
+                                this.render_visible_row(tab, row_ix, row, cx)
                             }),
                         )
-                        .track_scroll(scroll_handle)
                         .size_full(),
                     )
                     .child(self.render_scrollbar(cx))
@@ -2101,23 +2294,18 @@ impl LogViewerApp {
         let Some(tab) = self.active_tab() else {
             return div().into_any_element();
         };
-        let table_bounds = tab.table_bounds();
-        let table_height = table_bounds.size.height;
-        let scroll_height = tab.scroll_height();
-
-        if table_height <= px(0.) || scroll_height <= table_height {
+        let Some(metrics) = tab.scrollbar_metrics() else {
             return div().into_any_element();
-        }
+        };
 
-        let max_scroll = (scroll_height - table_height).max(px(1.));
-        let thumb_h = ((table_height / scroll_height) * table_height)
-            .clamp(px(28.), (table_height - px(8.)).max(px(28.)));
-        let track_range = (table_height - thumb_h - px(8.)).max(px(0.));
-        let pct = (-tab.scroll_top() / max_scroll).clamp(0.0, 1.0);
-        let offset_top = px(4.) + track_range * pct;
+        let thumb_h = metrics.thumb_h;
+        let track_range = metrics.track_range;
+        let offset_top = metrics.offset_top;
+        let total_rows = metrics.total_rows;
+        let max_top_rows = metrics.max_top_rows;
 
         let entity = cx.entity();
-        let scroll_handle = tab.scroll_handle.0.borrow().base_handle.clone();
+        let list_state = tab.list_state.clone();
         let is_dragging = self.scrollbar_drag_offset.is_some();
 
         div()
@@ -2151,7 +2339,7 @@ impl LogViewerApp {
                     move |track_bounds, _, window, _| {
                         window.on_mouse_event({
                             let entity = entity.clone();
-                            let scroll_handle = scroll_handle.clone();
+                            let list_state = list_state.clone();
                             move |ev: &MouseDownEvent, phase, _, cx| {
                                 if phase != DispatchPhase::Bubble
                                     || ev.button != MouseButton::Left
@@ -2178,8 +2366,12 @@ impl LogViewerApp {
                                         } else {
                                             0.0
                                         };
-                                        let offset_y = max_scroll * new_pct;
-                                        scroll_handle.set_offset(point(px(0.), -offset_y));
+                                        scroll_list_to_pct(
+                                            &list_state,
+                                            total_rows,
+                                            max_top_rows,
+                                            new_pct,
+                                        );
                                         this.scrollbar_drag_offset = Some(center_offset);
                                     }
                                     cx.notify();
@@ -2204,7 +2396,7 @@ impl LogViewerApp {
 
                         window.on_mouse_event({
                             let entity = entity.clone();
-                            let scroll_handle = scroll_handle.clone();
+                            let list_state = list_state.clone();
                             move |ev: &MouseMoveEvent, phase, _, cx| {
                                 if phase != DispatchPhase::Bubble || !ev.dragging() {
                                     return;
@@ -2222,8 +2414,12 @@ impl LogViewerApp {
                                 } else {
                                     0.0
                                 };
-                                let offset_y = max_scroll * new_pct;
-                                scroll_handle.set_offset(point(px(0.), -offset_y));
+                                scroll_list_to_pct(
+                                    &list_state,
+                                    total_rows,
+                                    max_top_rows,
+                                    new_pct,
+                                );
                                 cx.notify(entity.entity_id());
                             }
                         });
@@ -2266,7 +2462,8 @@ impl LogViewerApp {
                         .id(("log-row", row_ix))
                         .relative()
                         .w_full()
-                        .h(px(ROW_HEIGHT_PX))
+                        .min_h(px(ROW_HEIGHT_PX))
+                        .py_1()
                         .pl(px(62.))
                         .pr_5()
                         .bg(bg)
@@ -2279,7 +2476,6 @@ impl LogViewerApp {
                         .text_xs()
                         .when(is_bold, |d| d.font_weight(FontWeight::BOLD))
                         .text_color(rgb(0xCBD2E0))
-                        .truncate()
                         .when(is_active, |el| {
                             el.child(
                                 div()
@@ -2293,9 +2489,14 @@ impl LogViewerApp {
                         })
                         .on_click(cx.listener(move |this, _ev, _window, cx| {
                             this.active_input = None;
-                            this.set_active_row(row_ix, None, cx);
+                            this.set_active_row(row_ix, false, cx);
                         }))
-                        .child(render_highlighted_text(entry.message.clone(), search_spec))
+                        .child(
+                            div()
+                                .w_full()
+                                .min_w_0()
+                                .child(render_highlighted_text(entry.message.clone(), search_spec)),
+                        )
                         .into_any_element();
                 }
 
@@ -2334,7 +2535,8 @@ impl LogViewerApp {
                     .id(("log-row", row_ix))
                     .relative()
                     .w_full()
-                    .h(px(ROW_HEIGHT_PX))
+                    .min_h(px(ROW_HEIGHT_PX))
+                    .py_1()
                     .pl_2()
                     .pr_5()
                     .bg(bg)
@@ -2342,7 +2544,7 @@ impl LogViewerApp {
                     .border_color(rgba(0xFFFFFF09))
                     .hover(|s| s.bg(hover_bg))
                     .flex()
-                    .items_center()
+                    .items_start()
                     .gap_2()
                     .text_xs()
                     .font_family("Consolas")
@@ -2370,12 +2572,12 @@ impl LogViewerApp {
                     })
                     .on_click(cx.listener(move |this, _ev, _window, cx| {
                         this.active_input = None;
-                        this.set_active_row(row_ix, None, cx);
+                        this.set_active_row(row_ix, false, cx);
                     }))
                     // Ações: Pin & Copy
                     .child(
                         div()
-                            .w(px(54.))
+                            .w(px(48.))
                             .flex_none()
                             .flex()
                             .items_center()
@@ -2437,11 +2639,11 @@ impl LogViewerApp {
                     // Date + delta
                     .child(
                         div()
-                            .w(px(248.))
+                            .w(px(206.))
                             .flex_none()
                             .flex()
                             .items_center()
-                            .justify_between()
+                            .justify_start()
                             .gap_1p5()
                             .truncate()
                             .text_color(col_date())
@@ -2461,7 +2663,7 @@ impl LogViewerApp {
                     // Level + count pill (.log-count)
                     .child(
                         div()
-                            .w(px(88.))
+                            .w(px(72.))
                             .flex_none()
                             .flex()
                             .items_center()
@@ -2491,8 +2693,7 @@ impl LogViewerApp {
                     )
                     // Class (clicável)
                     .child(
-                        proportional_col(div().id(("cls-btn", row_ix)), 1.4, 180.0)
-                            .truncate()
+                        proportional_col(div().id(("cls-btn", row_ix)), 1.35, 180.0)
                             .text_color(col_class())
                             .cursor_pointer()
                             .hover(|s| s.underline().text_color(col_info()))
@@ -2514,8 +2715,7 @@ impl LogViewerApp {
                     )
                     // Thread (clicável)
                     .child(
-                        proportional_col(div().id(("thr-btn", row_ix)), 0.85, 110.0)
-                            .truncate()
+                        proportional_col(div().id(("thr-btn", row_ix)), 0.45, 105.0)
                             .text_color(col_thread())
                             .cursor_pointer()
                             .hover(|s| s.underline().text_color(col_info()))
@@ -2537,11 +2737,10 @@ impl LogViewerApp {
                     )
                     // Message + file badge + highlight
                     .child(
-                        proportional_col(div(), 2.2, 240.0)
+                        proportional_col(div(), 3.2, 280.0)
                             .flex()
-                            .items_center()
+                            .items_start()
                             .gap_1p5()
-                            .truncate()
                             .text_color(rgb(0xFFFFFF))
                             .when_some(file_tag, |el, tag| {
                                 el.child(
@@ -2558,7 +2757,6 @@ impl LogViewerApp {
                                 div()
                                     .flex_1()
                                     .min_w_0()
-                                    .truncate()
                                     .child(render_highlighted_text(msg, search_spec)),
                             ),
                     )
@@ -2675,7 +2873,8 @@ impl LogViewerApp {
                     .id(("stack-line", row_ix))
                     .relative()
                     .w_full()
-                    .h(px(ROW_HEIGHT_PX))
+                    .min_h(px(24.))
+                    .py_0p5()
                     .pl(px(74.))
                     .pr_5()
                     .bg(if is_active {
@@ -2689,7 +2888,6 @@ impl LogViewerApp {
                     .font_family("Consolas")
                     .text_xs()
                     .text_color(rgb(0xB7C0D2))
-                    .truncate()
                     .child(
                         div()
                             .absolute()
@@ -2712,9 +2910,14 @@ impl LogViewerApp {
                     })
                     .on_click(cx.listener(move |this, _ev, _window, cx| {
                         this.active_input = None;
-                        this.set_active_row(row_ix, None, cx);
+                        this.set_active_row(row_ix, false, cx);
                     }))
-                    .child(render_highlighted_text(line_text, search_spec))
+                    .child(
+                        div()
+                            .w_full()
+                            .min_w_0()
+                            .child(render_highlighted_text(line_text, search_spec)),
+                    )
                     .into_any_element()
             }
         }
@@ -3326,6 +3529,15 @@ fn proportional_col<E: Styled>(el: E, weight: f32, min_width: f32) -> E {
 }
 
 fn toolbar_btn(id: &'static str, label: impl Into<SharedString>, active: bool) -> gpui::Stateful<gpui::Div> {
+    toolbar_btn_stateful(id, label, active, true)
+}
+
+fn toolbar_btn_stateful(
+    id: &'static str,
+    label: impl Into<SharedString>,
+    active: bool,
+    enabled: bool,
+) -> gpui::Stateful<gpui::Div> {
     div()
         .id(id)
         .px_3()
@@ -3340,9 +3552,18 @@ fn toolbar_btn(id: &'static str, label: impl Into<SharedString>, active: bool) -
         .border_color(if active { col_accent() } else { col_border() })
         .text_xs()
         .font_weight(FontWeight::MEDIUM)
-        .text_color(if active { rgb(0xFFFFFF) } else { col_text() })
-        .cursor_pointer()
-        .hover(|s| s.bg(col_bg_panel()).border_color(col_accent()))
+        .text_color(if active {
+            rgb(0xFFFFFF)
+        } else if enabled {
+            col_text()
+        } else {
+            col_text_muted()
+        })
+        .when(!enabled, |d| d.opacity(0.38))
+        .when(enabled, |d| {
+            d.cursor_pointer()
+                .hover(|s| s.bg(col_bg_panel()).border_color(col_accent()))
+        })
         .child(label.into())
 }
 

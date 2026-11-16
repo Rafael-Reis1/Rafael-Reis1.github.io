@@ -334,11 +334,20 @@ await check('Filtros de nível, horário virando meia-noite, stacktrace e ordem 
 
     await loadLogFiles([makeMockBlobFile(rawLog, 'server.log')]);
 
+    const clearTimeBtn = window.document.getElementById('clearTimeBtn');
+    const clearFiltersBtn = window.document.getElementById('clearFiltersBtn');
+    assert.equal(clearTimeBtn.style.display, '');
+    assert.equal(clearFiltersBtn.style.display, '');
+    assert.equal(clearTimeBtn.disabled, true);
+    assert.equal(clearFiltersBtn.disabled, true);
+
     // Faixa cruzando meia-noite: 23:30 - 01:00
     window.document.getElementById('timeStart').value = '23:30:00';
     window.document.getElementById('timeEnd').value = '01:00:00';
     window.filterLogs();
     assert.equal(run('filteredGroupedLogs.length'), 2);
+    assert.equal(clearTimeBtn.disabled, false);
+    assert.equal(clearFiltersBtn.disabled, false);
 
     // Filtro somente com stacktrace -> resta apenas o FATAL
     window.document.getElementById('withStacktraceOnly').checked = true;
@@ -348,6 +357,8 @@ await check('Filtros de nível, horário virando meia-noite, stacktrace e ordem 
 
     // Limpa todos os filtros e testa sortOrder cronológica
     window.clearAllFilters();
+    assert.equal(clearTimeBtn.disabled, true);
+    assert.equal(clearFiltersBtn.disabled, true);
     assert.equal(run('filteredGroupedLogs.length'), 3);
     assert.equal(run('getOrderedFilteredItem(0).level'), 'INFO'); // Mais recentes primeiro
 

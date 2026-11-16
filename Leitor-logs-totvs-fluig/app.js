@@ -1,4 +1,4 @@
-const WORKER_SCRIPT_URL = 'logWorker.js?v=1611260410';
+const WORKER_SCRIPT_URL = 'logWorker.js?v=1611261852';
 const LOG_FILE_NAME_REGEX = /\.(?:log|txt|out|err|trace)(?:\.[^.]+)?$/i;
 const BLOCKED_BINARY_REGEX = /\.(?:gz|zip|rar|7z|tar|png|jpe?g|gif|webp|svg|ico|pdf|exe|dll|jar|war|ear|class|mp3|mp4|avi|mov)$/i;
 const RENDER_CHUNK_SIZE = 400;
@@ -398,14 +398,14 @@ function updateFilterIndicatorsUi() {
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
     if (clearSearchBtn) clearSearchBtn.style.display = searchVal ? 'inline-flex' : 'none';
-    if (clearTimeBtn) clearTimeBtn.style.display = (timeStartVal || timeEndVal) ? 'inline-flex' : 'none';
+    if (clearTimeBtn) clearTimeBtn.disabled = !(timeStartVal || timeEndVal);
 
     const anyLevelChecked = document.querySelectorAll('input[name="filterLevel"]:checked').length > 0;
     const pinnedChecked = Boolean(document.getElementById('pinnedOnly')?.checked);
     const stackChecked = Boolean(document.getElementById('withStacktraceOnly')?.checked);
     const hasFilters = Boolean(searchVal || timeStartVal || timeEndVal || anyLevelChecked || pinnedChecked || stackChecked);
 
-    if (clearFiltersBtn) clearFiltersBtn.style.display = hasFilters ? 'inline-flex' : 'none';
+    if (clearFiltersBtn) clearFiltersBtn.disabled = !hasFilters;
 }
 
 // DOM Rendering
@@ -1342,12 +1342,12 @@ function initLeitorLogs() {
 
     if (fileUploadArea) {
         fileUploadArea.addEventListener('dragover', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611260410';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611261852';
             fileUploadArea.classList.add('dragover');
             event.preventDefault();
         });
         fileUploadArea.addEventListener('dragleave', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611260410';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611261852';
             fileUploadArea.classList.remove('dragover');
             event.preventDefault();
         });
@@ -1366,10 +1366,10 @@ function initLeitorLogs() {
             }
         });
         fileUploadArea.onmouseenter = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611260410';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611261852';
         };
         fileUploadArea.onmouseleave = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611260410';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611261852';
         };
     }
 

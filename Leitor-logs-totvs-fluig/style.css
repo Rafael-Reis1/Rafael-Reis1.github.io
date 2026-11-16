@@ -432,9 +432,32 @@ select:focus-visible {
     color: var(--text-muted);
 }
 
-.toolbar-btn.subtle:hover {
+.toolbar-btn.subtle:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.06);
     color: var(--text-color);
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.toolbar-btn:disabled:hover {
+    background-color: var(--base-color);
+    border-color: var(--border-color);
+}
+
+.toolbar-btn.subtle:disabled:hover {
+    background: transparent;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+.filters-bar .toolbar-btn {
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .toolbar-btn.active-state {
@@ -540,7 +563,6 @@ select:focus-visible {
     align-items: center;
     flex: 1 1 260px;
     min-width: 190px;
-    max-width: 520px;
 }
 
 #searchInput {
@@ -629,18 +651,26 @@ select:focus-visible {
 }
 
 .mini-clear-btn {
-    height: 30px;
-    width: 28px;
-    border-radius: 6px;
+    height: 36px;
+    width: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     background: var(--base-color);
     color: var(--text-muted);
     font-size: 0.78rem;
 }
 
-.mini-clear-btn:hover {
+.mini-clear-btn:hover:not(:disabled) {
     color: #fff;
     border-color: var(--error-color);
+}
+
+.mini-clear-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .checkbox-group {
@@ -712,7 +742,7 @@ select:focus-visible {
 
 .log-header {
     display: grid;
-    grid-template-columns: 52px 272px 90px minmax(160px, 1.4fr) minmax(110px, 0.9fr) minmax(240px, 2.2fr);
+    grid-template-columns: 48px 214px 76px minmax(180px, 1.35fr) minmax(105px, 0.45fr) minmax(280px, 3.2fr);
     gap: 10px;
     background-color: #262738;
     color: #c5cde0;
@@ -764,7 +794,7 @@ select:focus-visible {
 
 .log-line {
     display: grid;
-    grid-template-columns: 52px 272px 90px minmax(160px, 1.4fr) minmax(110px, 0.9fr) minmax(240px, 2.2fr);
+    grid-template-columns: 48px 214px 76px minmax(180px, 1.35fr) minmax(105px, 0.45fr) minmax(280px, 3.2fr);
     gap: 10px;
     align-items: start;
     line-height: 1.45;
@@ -854,7 +884,7 @@ select:focus-visible {
     white-space: nowrap;
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 6px;
     overflow: hidden;
 }
@@ -913,9 +943,8 @@ select:focus-visible {
 
 .log-class,
 .log-thread {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .log-class {
