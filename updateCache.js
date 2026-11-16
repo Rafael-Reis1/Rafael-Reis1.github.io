@@ -14,7 +14,7 @@ const versionRegex = /\?v=\d+/g;
 
 console.log(`\n🔄  Atualizando cache de todos os projetos para a versão: ${newVersion}\n`);
 
-const IGNORED_DIRS  = new Set(['node_modules', '.git', 'fonts', 'assets', 'vendor', 'imgs', 'docs']);
+const IGNORED_DIRS  = new Set(['node_modules', '.git', 'fonts', 'assets', 'vendor', 'imgs', 'docs', 'target', 'rust-gpui']);
 const VALID_EXTS    = new Set(['.html', '.js', '.css', '.json']);
 
 let totalFiles   = 0;

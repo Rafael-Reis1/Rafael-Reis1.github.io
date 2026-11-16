@@ -16,7 +16,11 @@
     "test:devtools": "node --no-warnings devTools/tests/run.mjs",
     "test:minitools": "node --no-warnings tests/mini-tools.mjs",
     "validate": "node validate.js",
-    "cache": "node updateCache.js"
+    "cache": "node updateCache.js",
+    "build:desktop": "cargo build --release --manifest-path Leitor-logs-totvs-fluig/rust-gpui/Cargo.toml -p fluig-log-gpui && node -e \"const fs=require('fs'),p=process.platform,win=p==='win32',mac=p==='darwin',src='Leitor-logs-totvs-fluig/rust-gpui/target/release/'+(win?'fluig-log-gpui.exe':'fluig-log-gpui'),dst='Leitor-logs-totvs-fluig/downloads/'+(win?'fluig-log-gpui.exe':mac?'fluig-log-gpui-mac':'fluig-log-gpui-linux');fs.mkdirSync('Leitor-logs-totvs-fluig/downloads',{recursive:true});fs.copyFileSync(src,dst);if(win===false)fs.chmodSync(dst,0o755);console.log('Executável atualizado:',dst,(fs.statSync(dst).size/1048576).toFixed(2)+' MB');\"",
+    "build:windows": "cargo build --release --manifest-path Leitor-logs-totvs-fluig/rust-gpui/Cargo.toml -p fluig-log-gpui && node -e \"const fs=require('fs'),dst='Leitor-logs-totvs-fluig/downloads/fluig-log-gpui.exe';fs.mkdirSync('Leitor-logs-totvs-fluig/downloads',{recursive:true});fs.copyFileSync('Leitor-logs-totvs-fluig/rust-gpui/target/release/fluig-log-gpui.exe',dst);console.log('Executável atualizado:',dst,(fs.statSync(dst).size/1048576).toFixed(2)+' MB');\"",
+    "build:linux": "cargo build --release --manifest-path Leitor-logs-totvs-fluig/rust-gpui/Cargo.toml -p fluig-log-gpui && node -e \"const fs=require('fs'),dst='Leitor-logs-totvs-fluig/downloads/fluig-log-gpui-linux';fs.mkdirSync('Leitor-logs-totvs-fluig/downloads',{recursive:true});fs.copyFileSync('Leitor-logs-totvs-fluig/rust-gpui/target/release/fluig-log-gpui',dst);fs.chmodSync(dst,0o755);console.log('Executável atualizado:',dst,(fs.statSync(dst).size/1048576).toFixed(2)+' MB');\"",
+    "build:mac": "cargo build --release --manifest-path Leitor-logs-totvs-fluig/rust-gpui/Cargo.toml -p fluig-log-gpui && node -e \"const fs=require('fs'),dst='Leitor-logs-totvs-fluig/downloads/fluig-log-gpui-mac';fs.mkdirSync('Leitor-logs-totvs-fluig/downloads',{recursive:true});fs.copyFileSync('Leitor-logs-totvs-fluig/rust-gpui/target/release/fluig-log-gpui',dst);fs.chmodSync(dst,0o755);console.log('Executável atualizado:',dst,(fs.statSync(dst).size/1048576).toFixed(2)+' MB');\""
   },
   "devDependencies": {
     "jsdom": "^30.1.3"

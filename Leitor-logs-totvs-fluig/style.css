@@ -120,10 +120,48 @@ select:focus-visible {
     transform: translateX(-5px);
 }
 
-.btn-install {
+.top-right-actions {
     position: fixed;
     top: 1.25rem;
     right: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    z-index: 100;
+}
+
+.btn-download-desktop {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    padding: 0.625rem 1.15rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    text-decoration: none;
+    background-color: var(--base-color);
+    color: var(--text-color);
+    transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-download-desktop:hover {
+    background-color: var(--base-color-hover);
+    border-color: var(--accent-color);
+    color: #ffffff;
+    transform: translateY(-0.125rem);
+}
+
+.btn-download-desktop:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.btn-install {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -134,7 +172,7 @@ select:focus-visible {
     padding: 0.625rem 1.25rem;
     font-weight: bold;
     font-size: 0.9rem;
-    z-index: 100;
+    white-space: nowrap;
     background-color: var(--accent-color);
     color: white;
     transition: background-color 0.3s cubic-bezier(.34, .88, .34, 1), transform 0.2s;
@@ -696,6 +734,34 @@ select:focus-visible {
     align-items: center;
 }
 
+.header-actions-cell {
+    justify-content: flex-start;
+}
+
+.clear-pins-btn {
+    width: 22px;
+    height: 20px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    background: rgba(224, 108, 117, 0.16);
+    border: 1px solid rgba(224, 108, 117, 0.45);
+    color: #ff8b94;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clear-pins-btn:hover {
+    background: var(--error-color);
+    border-color: var(--error-color);
+    color: #ffffff;
+}
+
 .log-line {
     display: grid;
     grid-template-columns: 52px 272px 90px minmax(160px, 1.4fr) minmax(110px, 0.9fr) minmax(240px, 2.2fr);
@@ -742,8 +808,8 @@ select:focus-visible {
 }
 
 .log-line.pinned {
-    border-left: 4px solid var(--accent-color) !important;
-    box-shadow: inset 4px 0 0 0 rgba(242, 81, 27, 0.15);
+    box-shadow: inset 4px 0 0 var(--accent-color);
+    background-color: rgba(242, 81, 27, 0.09);
 }
 
 .log-row-actions {
@@ -754,6 +820,12 @@ select:focus-visible {
 
 .log-pin,
 .log-copy-btn {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
     cursor: pointer;
     opacity: 0.3;
     transition: opacity 0.15s ease, transform 0.12s ease;
@@ -761,7 +833,7 @@ select:focus-visible {
     background: none;
     border: none;
     color: inherit;
-    padding: 0 2px;
+    padding: 0;
     font-size: 0.82rem;
     line-height: 1;
 }
@@ -1320,6 +1392,7 @@ kbd {
 }
 
 @media all and (display-mode: standalone) {
+    .top-right-actions,
     .btn-install,
     .btnVoltar {
         display: none !important;

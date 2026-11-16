@@ -1,0 +1,30 @@
+1 ICON "app-icon.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,1,0,0
+PRODUCTVERSION 0,1,0,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Rafael Reis\0"
+            VALUE "FileDescription", "Leitor de Logs TOTVS/Fluig (Rust + GPUI)\0"
+            VALUE "FileVersion", "0.1.0\0"
+            VALUE "InternalName", "fluig-log-gpui\0"
+            VALUE "LegalCopyright", "Criado por Rafael Reis\0"
+            VALUE "OriginalFilename", "fluig-log-gpui.exe\0"
+            VALUE "ProductName", "Leitor de Logs TOTVS/Fluig\0"
+            VALUE "ProductVersion", "0.1.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

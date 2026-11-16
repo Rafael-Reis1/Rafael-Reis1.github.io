@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/fluig-log-core",
+    "crates/fluig-log-gpui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+authors = ["Rafael Reis"]
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+
+[patch.crates-io]
+xattr = { path = "patches/xattr" }

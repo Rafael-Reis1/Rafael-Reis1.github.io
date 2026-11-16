@@ -1,4 +1,4 @@
-const WORKER_SCRIPT_URL = 'logWorker.js?v=1311261304';
+const WORKER_SCRIPT_URL = 'logWorker.js?v=1611260410';
 const LOG_FILE_NAME_REGEX = /\.(?:log|txt|out|err|trace)(?:\.[^.]+)?$/i;
 const BLOCKED_BINARY_REGEX = /\.(?:gz|zip|rar|7z|tar|png|jpe?g|gif|webp|svg|ico|pdf|exe|dll|jar|war|ear|class|mp3|mp4|avi|mov)$/i;
 const RENDER_CHUNK_SIZE = 400;
@@ -591,8 +591,8 @@ function ensureLogHeaderElement() {
     const headerRow = document.createElement('div');
     headerRow.className = 'log-header';
     headerRow.innerHTML = `
-        <div class="header-cell" style="position: relative; justify-content: center;">
-            <button id="clearPins" type="button" title="Limpar todos os fixados" style="display: none; font-size: 0.78rem; padding: 2px 6px; cursor: pointer; background: var(--error-color); color: white; border: none; border-radius: 4px;">✕</button>
+        <div class="header-cell header-actions-cell">
+            <button id="clearPins" type="button" class="clear-pins-btn" title="Limpar todos os fixados" aria-label="Limpar todos os fixados" style="display: none;">✕</button>
         </div>
         <div class="header-cell">Date</div>
         <div class="header-cell">Level</div>
@@ -1342,12 +1342,12 @@ function initLeitorLogs() {
 
     if (fileUploadArea) {
         fileUploadArea.addEventListener('dragover', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311261304';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611260410';
             fileUploadArea.classList.add('dragover');
             event.preventDefault();
         });
         fileUploadArea.addEventListener('dragleave', (event) => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311261304';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611260410';
             fileUploadArea.classList.remove('dragover');
             event.preventDefault();
         });
@@ -1366,10 +1366,10 @@ function initLeitorLogs() {
             }
         });
         fileUploadArea.onmouseenter = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1311261304';
+            if (imageUpload) imageUpload.src = 'assets/upload_blue.webp?v=1611260410';
         };
         fileUploadArea.onmouseleave = () => {
-            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1311261304';
+            if (imageUpload) imageUpload.src = 'assets/upload.webp?v=1611260410';
         };
     }
 
@@ -1583,6 +1583,69 @@ function initLeitorLogs() {
     // PWA Service Worker & Install Prompt
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
+
+    function detectDesktopDownloadTarget() {
+        const platformHint = `${navigator.userAgentData?.platform || ''} ${navigator.platform || ''} ${navigator.userAgent || ''}`;
+        if (/android|iphone|ipad|ipod|mobile/i.test(platformHint)) return null;
+        if (/win/i.test(platformHint)) {
+            return {
+                os: 'windows',
+                url: 'downloads/fluig-log-gpui.exe',
+                download: 'Leitor-Logs-Fluig-Windows.exe',
+                label: 'Baixar Desktop (Windows)',
+                title: 'Baixar aplicativo desktop nativo em Rust + GPUI (Windows)',
+                toast: 'Download iniciado! Se o Windows SmartScreen aparecer, clique em "More info (Mais informações)" → "Run anyway (Executar assim mesmo)".'
+            };
+        }
+        if (/mac/i.test(platformHint)) {
+            return {
+                os: 'mac',
+                url: 'downloads/fluig-log-gpui-mac',
+                download: 'fluig-log-gpui-mac',
+                label: 'Baixar Desktop (macOS)',
+                title: 'Baixar aplicativo desktop nativo em Rust + GPUI (macOS)',
+                toast: 'Download iniciado! No macOS, dê permissão (chmod +x fluig-log-gpui-mac) e, se o Gatekeeper bloquear, use clique direito → Abrir.'
+            };
+        }
+        if (/linux|x11/i.test(platformHint)) {
+            return {
+                os: 'linux',
+                url: 'downloads/fluig-log-gpui-linux',
+                download: 'fluig-log-gpui-linux',
+                label: 'Baixar Desktop (Linux)',
+                title: 'Baixar aplicativo desktop nativo em Rust + GPUI (Linux)',
+                toast: 'Download iniciado! No Linux, dê permissão de execução antes de abrir (chmod +x fluig-log-gpui-linux).'
+            };
+        }
+        return null;
+    }
+
+    const downloadDesktopBtn = document.getElementById('downloadDesktopBtn');
+    const downloadDesktopLabel = document.getElementById('downloadDesktopLabel');
+    let activeDesktopTarget = null;
+    if (downloadDesktopBtn) {
+        downloadDesktopBtn.style.display = 'none';
+        const candidate = detectDesktopDownloadTarget();
+        if (candidate && typeof fetch === 'function') {
+            fetch(`./${candidate.url}`, { method: 'HEAD' })
+                .then((res) => {
+                    if (res && res.ok) {
+                        activeDesktopTarget = candidate;
+                        downloadDesktopBtn.href = candidate.url;
+                        downloadDesktopBtn.download = candidate.download;
+                        downloadDesktopBtn.title = candidate.title;
+                        if (downloadDesktopLabel) downloadDesktopLabel.textContent = candidate.label;
+                        downloadDesktopBtn.style.display = 'inline-flex';
+                    }
+                })
+                .catch(() => {});
+        }
+        downloadDesktopBtn.addEventListener('click', () => {
+            if (activeDesktopTarget) {
+                showToast(activeDesktopTarget.toast, 'info', 6500);
+            }
+        });
     }
 
     let deferredPrompt = null;

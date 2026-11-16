@@ -1,4 +1,4 @@
-const ASSET_VERSION = '?v=1311261304';
+const ASSET_VERSION = '?v=1611260410';
 
 const safeStorageGet = (key, fallback = null) => {
     try {

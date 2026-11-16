@@ -2,7 +2,7 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const IGNORED_DIRS = new Set(['node_modules', '.git', '.gemini', 'assets', 'vendor', '.npm-cache']);
+const IGNORED_DIRS = new Set(['node_modules', '.git', '.gemini', 'assets', 'vendor', '.npm-cache', 'target', 'rust-gpui']);
 const TEXT_EXTS = new Set(['.html', '.css', '.js', '.mjs', '.json']);
 const jsFiles = [];
 const textFiles = [];

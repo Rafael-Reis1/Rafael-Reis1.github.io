@@ -1,15 +1,15 @@
-const CACHE_NAME = 'leitor-logs-?v=1311261304';
+const CACHE_NAME = 'leitor-logs-?v=1611260410';
 const urlsToCache = [
     './leitor.html',
-    './style.css?v=1311261304',
-    './app.js?v=1311261304',
-    './logWorker.js?v=1311261304',
-    './manifest.json?v=1311261304',
-    './assets/upload.webp?v=1311261304',
-    './assets/upload_blue.webp?v=1311261304',
-    '../assets/libs_comuns/fonts.css?v=1311261304',
-    '../imgs/arrow_back_white.webp?v=1311261304',
-    '../favicon.svg?v=1311261304'
+    './style.css?v=1611260410',
+    './app.js?v=1611260410',
+    './logWorker.js?v=1611260410',
+    './manifest.json?v=1611260410',
+    './assets/upload.webp?v=1611260410',
+    './assets/upload_blue.webp?v=1611260410',
+    '../assets/libs_comuns/fonts.css?v=1611260410',
+    '../imgs/arrow_back_white.webp?v=1611260410',
+    '../favicon.svg?v=1611260410'
 ];
 
 self.addEventListener('install', (event) => {
